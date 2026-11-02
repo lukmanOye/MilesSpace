@@ -1,739 +1,2674 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MilesSpace — Admin Login</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<script src="/js/admin-session.js"></script>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',sans-serif;background:#f4f7fb;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.login-container{background:#fff;border-radius:20px;padding:40px 48px;max-width:440px;width:100%;box-shadow:0 16px 48px -12px rgba(8,42,51,.26)}
-.logo{text-align:center;margin-bottom:28px}
-.logo h1{font-size:28px;font-weight:800;color:#0c3d4a;letter-spacing:-.02em}
-.logo h1 span{color:#f59e0b}
-.logo p{color:#5b7480;font-size:14px;margin-top:4px}
-.step{display:none}
-.step.active{display:block}
-.form-group{margin-bottom:18px}
-.form-group label{display:block;font-size:13px;font-weight:600;color:#0c1f26;margin-bottom:6px}
-.form-group input{width:100%;padding:12px 16px;border:1px solid rgba(12,61,74,.12);border-radius:10px;font-size:14px;transition:border-color .2s,box-shadow .2s;background:#f8fafb}
-.form-group input:focus{outline:none;border-color:#0c3d4a;box-shadow:0 0 0 3px rgba(12,61,74,.1);background:#fff}
-.form-group input::placeholder{color:#8fa3ab}
-.input-icon{position:relative}
-.input-icon i{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#8fa3ab;font-size:14px}
-.input-icon input{padding-left:42px}
-.btn-login{width:100%;padding:14px;background:#0c3d4a;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:background .2s,transform .1s;display:flex;align-items:center;justify-content:center;gap:8px}
-.btn-login:hover{background:#12556a}
-.btn-login:active{transform:scale(.98)}
-.btn-login:disabled{opacity:.6;cursor:not-allowed}
-.btn-link{background:none;border:none;color:#0c3d4a;font-weight:600;font-size:12.5px;text-decoration:underline;cursor:pointer;padding:6px 0}
-.btn-link:hover{color:#12556a}
-.error-message{background:#fdecec;color:#dc2626;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;display:none;border-left:3px solid #dc2626}
-.error-message.show{display:block}
-.info-message{background:#e8f1fb;color:#2563a8;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;display:none;border-left:3px solid #2563a8;line-height:1.5}
-.info-message.show{display:block}
-.loading-spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.login-footer{text-align:center;margin-top:24px;font-size:13px;color:#5b7480}
-.login-footer a{color:#0c3d4a;font-weight:600;text-decoration:none}
-.login-footer a:hover{text-decoration:underline}
-.password-toggle{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:#8fa3ab;cursor:pointer;font-size:14px;padding:4px}
-.password-toggle:hover{color:#0c3d4a}
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+  SERVER REQUIREMENTS (cannot be set from this file):
+  Send these response headers for this page:
+    Content-Security-Policy  (script-src/style-src allowing self, cdnjs.cloudflare.com for Font Awesome,
+                              'unsafe-inline' only until inline styles/scripts are moved to files)
+    X-Frame-Options: DENY   and   Content-Security-Policy: frame-ancestors 'none'
+    Cache-Control: no-store
+-->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="theme-color"
+      content="#f4f7fb"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#08151a"
+      media="(prefers-color-scheme: dark)"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <title>MilesSpace Admin Login</title>
+    <link rel="icon" href="/images/miles.png" />
+    <link rel="apple-touch-icon" href="/images/miles.png" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <script src="/js/admin-session.js"></script>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --font:
+          ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        --mono:
+          ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono",
+          monospace;
+        --primary: #0f4c5c;
+        --deep: #0a3542;
+        --light: #14607a;
+        --gold: #f5a623;
+        --bg: #f4f7fb;
+        --surface: #ffffff;
+        --text: #0c1f26;
+        --dim: #506b77;
+        --border: rgba(12, 31, 38, 0.12);
+        --field-bg: #f8fafb;
+        --field-bg-focus: #ffffff;
+        --field-border: #7b8f98;
+        --icon: #5f7782;
+        --link: #0f4c5c;
+        --ring: #f5a623;
+        --btn-bg: #0f4c5c;
+        --btn-bg-hover: #14607a;
+        --btn-text: #ffffff;
+        --danger: #b42318;
+        --danger-bg: #fdecec;
+        --danger-line: #d92d20;
+        --info: #1d4f91;
+        --info-bg: #e8f1fb;
+        --info-line: #2563a8;
+        --warn: #7a4a06;
+        --warn-bg: #fff4d6;
+        --warn-line: #f5a623;
+        --shadow: 0 16px 48px -12px rgba(8, 42, 51, 0.26);
+        --tile-bg: #ffffff;
+        --tile-border: rgba(12, 31, 38, 0.1);
+        --mono-bg: #0f4c5c;
+        --mono-fg: #f5a623;
+        --on-brand: #eaf3f5;
+        --on-brand-dim: rgba(234, 243, 245, 0.78);
+        --qr-bg: #ffffff;
+        --code-bg: #ffffff;
+        --code-text: #0c1f26;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #08151a;
+          --surface: #10262d;
+          --text: #eaf3f5;
+          --dim: #9db5be;
+          --border: rgba(255, 255, 255, 0.09);
+          --field-bg: #0b1d23;
+          --field-bg-focus: #0b1d23;
+          --field-border: #5f808c;
+          --icon: #8aa5af;
+          --link: #7cc4dc;
+          --btn-bg: #14607a;
+          --btn-bg-hover: #1a7594;
+          --danger: #ffb4ac;
+          --danger-bg: rgba(220, 38, 38, 0.16);
+          --danger-line: #f97066;
+          --info: #a9cdf5;
+          --info-bg: rgba(37, 99, 168, 0.22);
+          --info-line: #5b9be0;
+          --warn: #fcd98a;
+          --warn-bg: rgba(245, 166, 35, 0.14);
+          --warn-line: #f5a623;
+          --shadow: 0 16px 48px -12px rgba(0, 0, 0, 0.6);
+          --code-bg: #0b1d23;
+          --code-text: #eaf3f5;
+        }
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      html {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
+      body {
+        margin: 0;
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.45;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      h1,
+      h2,
+      p,
+      ul {
+        margin: 0;
+      }
+      ul {
+        padding: 0;
+        list-style: none;
+      }
+      button,
+      input {
+        font-family: inherit;
+      }
+      a {
+        color: var(--link);
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+      .sr-copy {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        font-size: 16px;
+        border: 0;
+        padding: 0;
+      }
+      :focus-visible {
+        outline: 2.5px solid var(--ring);
+        outline-offset: 2px;
+      }
 
-/* ── Unified MFA / Setup screen ── */
-.mfa-step-title{font-size:18px;font-weight:700;color:#0c3d4a;text-align:center;margin-bottom:6px}
-.mfa-step-sub{font-size:13px;color:#5b7480;text-align:center;margin-bottom:20px;line-height:1.55}
-.mfa-timer{font-size:12px;color:#8fa3ab;text-align:center;margin-bottom:18px;font-family:'JetBrains Mono',monospace}
-.mfa-timer.warn{color:#dc2626;font-weight:600}
-.mfa-code-input{width:100%;padding:16px;border:2px solid rgba(12,61,74,.14);border-radius:12px;font-size:24px;font-weight:700;letter-spacing:.35em;text-align:center;font-family:'JetBrains Mono',monospace;background:#f8fafb;color:#0c3d4a;text-transform:uppercase;transition:border-color .2s,box-shadow .2s}
-.mfa-code-input:focus{outline:none;border-color:#0c3d4a;box-shadow:0 0 0 4px rgba(12,61,74,.08);background:#fff}
-.mfa-code-input.recovery-mode{font-size:16px;letter-spacing:.15em}
-.mfa-actions{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
-.mfa-return{display:block;text-align:center;margin-top:16px;font-size:12.5px;color:#5b7480}
+      /* ---------- Page layout ---------- */
+      .page {
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: flex;
+        padding: env(safe-area-inset-top) env(safe-area-inset-right)
+          env(safe-area-inset-bottom) env(safe-area-inset-left);
+      }
+      .form-panel {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        padding: clamp(12px, 4vw, 32px);
+      }
+      .card {
+        margin: auto;
+        width: 100%;
+        max-width: 440px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        padding: clamp(22px, 6vw, 40px) clamp(18px, 6vw, 44px);
+      }
+      @media (min-width: 481px) {
+        .card {
+          border-radius: 20px;
+        }
+      }
+      @media (min-width: 1600px) {
+        .card {
+          max-width: 460px;
+        }
+      }
 
-/* ── QR / Setup specific ── */
-.qr-panel{display:none;margin-top:8px}
-.qr-panel.show{display:block}
-.qr-box{display:flex;flex-direction:column;align-items:center;background:#f8fafb;border:1px dashed #d0dce3;border-radius:12px;padding:20px 16px;margin-bottom:20px}
-.qr-box img{width:180px;height:180px;background:#fff;border:1px solid #e4e8ec;border-radius:10px;padding:8px;margin-bottom:10px}
-.qr-secret{font-family:'JetBrains Mono',monospace;font-size:11.5px;background:#fff;border:1px solid #e4e8ec;border-radius:6px;padding:8px 10px;word-break:break-all;text-align:center;color:#0c3d4a;width:100%}
-.qr-label{font-size:11px;color:#8fa3ab;margin-bottom:6px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+      /* ---------- Brand panel (desktop) ---------- */
+      .brand-panel {
+        display: none;
+        position: relative;
+        overflow: hidden;
+        color: var(--on-brand);
+        background: linear-gradient(
+          145deg,
+          var(--deep) 0%,
+          var(--primary) 58%,
+          var(--light) 100%
+        );
+      }
+      .brand-panel::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background-image: radial-gradient(
+          rgba(255, 255, 255, 0.07) 1px,
+          transparent 1px
+        );
+        background-size: 22px 22px;
+      }
+      .brand-inner {
+        position: relative;
+        margin: auto;
+        width: 100%;
+        max-width: 480px;
+        padding: clamp(40px, 5vw, 80px) clamp(32px, 4vw, 64px);
+      }
+      .brand-panel .tagline {
+        color: var(--on-brand-dim);
+      }
+      .value-list {
+        margin-top: clamp(28px, 4vw, 48px);
+        display: grid;
+        gap: 22px;
+      }
+      .value-list li {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+      }
+      .value-icon {
+        flex: 0 0 auto;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        color: var(--gold);
+        font-size: 18px;
+      }
+      .value-list strong {
+        display: block;
+        font-size: 16px;
+        font-weight: 700;
+      }
+      .value-list span.v-text {
+        display: block;
+        font-size: 14px;
+        color: var(--on-brand-dim);
+        margin-top: 2px;
+      }
+      @media (min-width: 1024px) {
+        .brand-panel {
+          display: flex;
+          flex: 0 0 min(46%, 640px);
+        }
+        .card-brand {
+          display: none;
+        }
+        .page {
+          align-items: stretch;
+        }
+      }
 
-/* ── Recovery codes ── */
-.recovery-block{display:none;margin-top:20px;padding:18px;background:#fef3c7;border:1px solid #fde68a;border-radius:12px}
-.recovery-block.show{display:block}
-.recovery-block strong{display:block;color:#92400e;font-size:13px;margin-bottom:8px}
-.recovery-block p{font-size:12px;color:#92400e;line-height:1.5;margin-bottom:10px}
-.recovery-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
-.recovery-grid code{background:#fff;border:1px solid #fcd34d;border-radius:6px;padding:7px 8px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#92400e}
+      /* ---------- Logo / wordmark ---------- */
+      .card-brand {
+        text-align: center;
+        margin-bottom: clamp(18px, 4vw, 28px);
+      }
+      .logo-tile {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 88px;
+        height: 88px;
+        border-radius: 22px;
+        background: var(--tile-bg);
+        border: 1px solid var(--tile-border);
+        box-shadow: 0 6px 18px -8px rgba(8, 42, 51, 0.35);
+      }
+      .logo-tile img,
+      .logo-tile svg {
+        width: 72px;
+        height: 72px;
+        object-fit: contain;
+        display: block;
+      }
+      .mono-bg {
+        fill: var(--mono-bg);
+      }
+      .mono-fg {
+        fill: var(--mono-fg);
+        font-family: var(--font);
+        font-weight: 800;
+      }
+      .wordmark {
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin-top: 12px;
+        color: var(--text);
+        line-height: 1.1;
+      }
+      .wordmark span {
+        color: var(--gold);
+      }
+      .brand-panel .wordmark {
+        color: var(--on-brand);
+        font-size: 36px;
+      }
+      .tagline {
+        font-size: 14px;
+        color: var(--dim);
+        margin-top: 4px;
+        letter-spacing: 0.02em;
+      }
+      @media (max-height: 520px) {
+        .logo-tile {
+          width: 60px;
+          height: 60px;
+          border-radius: 16px;
+        }
+        .logo-tile img,
+        .logo-tile svg {
+          width: 44px;
+          height: 44px;
+        }
+        .wordmark {
+          font-size: 22px;
+          margin-top: 8px;
+        }
+        .card-brand {
+          margin-bottom: 12px;
+        }
+      }
 
-@media (max-width:480px){
-    body{padding:12px}
-    .login-container{padding:28px 22px;border-radius:16px}
-    .logo h1{font-size:24px}
-    .mfa-code-input{font-size:20px;letter-spacing:.3em;padding:14px}
-    .mfa-code-input.recovery-mode{font-size:14px;letter-spacing:.08em}
-    .qr-box img{width:150px;height:150px}
-    .recovery-grid{grid-template-columns:1fr}
-}
-</style>
-</head>
-<body>
-<div class="login-container">
-    <div class="logo">
-        <h1>Miles<span>Space</span></h1>
-        <p>Admin Intelligence Portal</p>
-    </div>
+      /* ---------- Steps ---------- */
+      .step {
+        display: none;
+      }
+      .step.active {
+        display: block;
+        animation: stepIn 0.22s ease both;
+      }
+      @keyframes stepIn {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      .step-title {
+        font-size: 20px;
+        font-weight: 700;
+        text-align: center;
+        color: var(--text);
+        margin-bottom: 6px;
+        outline-offset: 6px;
+      }
+      .step-sub {
+        font-size: 14px;
+        color: var(--dim);
+        text-align: center;
+        margin-bottom: 20px;
+        line-height: 1.55;
+      }
+      .step-badge {
+        display: flex;
+        width: max-content;
+        max-width: 100%;
+        margin: 0 auto 12px;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--text);
+        background: var(--field-bg);
+        border: 1px solid var(--border);
+      }
+      .step-badge i {
+        color: var(--gold);
+      }
 
-    <div class="info-message" id="infoMessage">
-        <span id="infoText"></span>
-    </div>
+      /* ---------- Messages ---------- */
+      .msg {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        border-left: 4px solid;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 14px;
+        line-height: 1.5;
+        margin-bottom: 16px;
+        overflow-wrap: anywhere;
+      }
+      .msg i {
+        margin-top: 3px;
+        flex: 0 0 auto;
+      }
+      .msg-error {
+        background: var(--danger-bg);
+        color: var(--danger);
+        border-color: var(--danger-line);
+      }
+      .msg-info {
+        background: var(--info-bg);
+        color: var(--info);
+        border-color: var(--info-line);
+      }
+      .msg-warn {
+        background: var(--warn-bg);
+        color: var(--warn);
+        border-color: var(--warn-line);
+      }
+      .hint {
+        font-size: 13px;
+        color: var(--dim);
+        margin-top: 6px;
+        line-height: 1.5;
+      }
+      .caps-hint {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-size: 13px;
+        color: var(--warn);
+        margin-top: 8px;
+      }
 
-    <div class="error-message" id="errorMessage">
-        <i class="fas fa-exclamation-circle"></i>
-        <span id="errorText">Something went wrong</span>
-    </div>
+      /* ---------- Fields ---------- */
+      .field {
+        margin-bottom: 18px;
+      }
+      .field > label,
+      .field-label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 6px;
+      }
+      .input-wrap {
+        position: relative;
+      }
+      .input-wrap .lead-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--icon);
+        font-size: 15px;
+        pointer-events: none;
+      }
+      input[type="email"],
+      input[type="password"],
+      input[type="text"] {
+        width: 100%;
+        min-height: 48px;
+        padding: 12px 16px;
+        font-size: 16px;
+        color: var(--text);
+        background: var(--field-bg);
+        border: 1px solid var(--field-border);
+        border-radius: 12px;
+        transition:
+          border-color 0.12s,
+          box-shadow 0.12s,
+          background-color 0.12s;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+      input::placeholder {
+        color: var(--icon);
+        opacity: 0.85;
+      }
+      .has-icon input {
+        padding-left: 44px;
+      }
+      .has-toggle input {
+        padding-right: 56px;
+      }
+      input:focus {
+        outline: none;
+        border-color: var(--primary);
+        background: var(--field-bg-focus);
+      }
+      input:focus-visible {
+        outline: 2.5px solid var(--ring);
+        outline-offset: 1px;
+      }
+      input[aria-invalid="true"] {
+        border-color: var(--danger-line);
+      }
+      .password-toggle {
+        position: absolute;
+        right: 2px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: 0;
+        border-radius: 10px;
+        color: var(--icon);
+        cursor: pointer;
+        font-size: 16px;
+        transition:
+          color 0.1s,
+          background-color 0.1s;
+      }
+      .password-toggle:hover {
+        color: var(--text);
+        background: var(--border);
+      }
+      .fallback-text {
+        display: none;
+        font-size: 12px;
+        font-weight: 700;
+      }
 
-    <!-- ═══ STEP 1 — Password ═══ -->
-    <div class="step active" id="stepPassword">
-        <form id="loginForm" autocomplete="off">
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <div class="input-icon">
-                    <i class="fas fa-envelope"></i>
-                    <input type="email" id="email" placeholder="admin@example.com" required autofocus>
-                </div>
+      .code-input {
+        text-align: center;
+        font-family: var(--mono) !important;
+        font-size: 24px !important;
+        font-weight: 700;
+        letter-spacing: 0.35em;
+        text-indent: 0.35em;
+        min-height: 56px !important;
+        border-width: 2px !important;
+        border-radius: 14px !important;
+        padding: 12px 8px !important;
+      }
+      .code-input.recovery-mode {
+        font-size: 18px !important;
+        letter-spacing: 0.08em;
+        text-indent: 0.08em;
+        text-transform: uppercase;
+      }
+      @media (max-width: 480px) {
+        .code-input {
+          font-size: 22px !important;
+        }
+        .code-input.recovery-mode {
+          font-size: 17px !important;
+        }
+      }
+      .mfa-timer {
+        font-size: 13px;
+        color: var(--dim);
+        text-align: center;
+        margin-bottom: 16px;
+        font-family: var(--mono);
+      }
+      .mfa-timer.warn {
+        color: var(--danger);
+        font-weight: 700;
+      }
+
+      .check-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 44px;
+        margin: -4px 0 12px;
+        cursor: pointer;
+        font-size: 14px;
+        color: var(--text);
+      }
+      .check-row input {
+        width: 22px;
+        height: 22px;
+        flex: 0 0 auto;
+        accent-color: var(--primary);
+        margin: 0;
+        cursor: pointer;
+      }
+
+      /* ---------- Buttons ---------- */
+      .btn {
+        position: relative;
+        display: flex;
+        width: 100%;
+        min-height: 48px;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 12px 18px;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.2;
+        border: 0;
+        border-radius: 12px;
+        cursor: pointer;
+        transition:
+          background-color 0.1s,
+          transform 0.08s,
+          opacity 0.1s,
+          box-shadow 0.1s;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+      .btn-primary {
+        background: var(--btn-bg);
+        color: var(--btn-text);
+      }
+      .btn-primary:hover:not(:disabled) {
+        background: var(--btn-bg-hover);
+      }
+      .btn:active:not(:disabled) {
+        transform: scale(0.985);
+      }
+      .btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .btn-secondary {
+        background: transparent;
+        color: var(--link);
+        border: 1px solid var(--field-border);
+        min-height: 44px;
+        font-size: 15px;
+        font-weight: 600;
+        width: auto;
+        flex: 1 1 auto;
+      }
+      .btn-secondary:hover:not(:disabled) {
+        background: var(--border);
+      }
+      .btn-link {
+        background: none;
+        border: 0;
+        color: var(--link);
+        font-size: 15px;
+        font-weight: 600;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        cursor: pointer;
+        min-height: 44px;
+        padding: 0 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 8px;
+      }
+      .btn-link:hover:not(:disabled) {
+        text-decoration-thickness: 2px;
+      }
+      .btn-link:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .spinner {
+        display: none;
+        width: 18px;
+        height: 18px;
+        border: 2.5px solid rgba(255, 255, 255, 0.35);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      .is-loading .spinner {
+        display: inline-block;
+      }
+      .is-loading .btn-arrow {
+        display: none;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .mfa-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 4px 8px;
+        margin-top: 10px;
+      }
+
+      /* ---------- QR / setup ---------- */
+      .qr-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: var(--field-bg);
+        border: 1px dashed var(--field-border);
+        border-radius: 14px;
+        padding: 18px 14px;
+        margin-bottom: 20px;
+      }
+      .qr-box img {
+        width: 180px;
+        height: 180px;
+        max-width: 100%;
+        background: var(--qr-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 8px;
+        margin-bottom: 12px;
+      }
+      .qr-label {
+        font-size: 12px;
+        color: var(--dim);
+        margin-bottom: 6px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        text-align: center;
+      }
+      .qr-secret {
+        font-family: var(--mono);
+        font-size: 14px;
+        background: var(--code-bg);
+        color: var(--code-text);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        word-break: break-all;
+        overflow-wrap: anywhere;
+        text-align: center;
+        width: 100%;
+        -webkit-user-select: all;
+        user-select: all;
+      }
+      @media (max-width: 480px) {
+        .qr-box img {
+          width: 150px;
+          height: 150px;
+        }
+      }
+
+      /* ---------- Recovery codes ---------- */
+      .recovery-block {
+        padding: 16px;
+        background: var(--warn-bg);
+        border: 1px solid var(--warn-line);
+        border-radius: 14px;
+        color: var(--warn);
+      }
+      .recovery-block strong {
+        display: block;
+        font-size: 16px;
+        margin-bottom: 6px;
+        color: var(--warn);
+      }
+      .recovery-block p {
+        font-size: 14px;
+        line-height: 1.5;
+        margin-bottom: 12px;
+      }
+      .recovery-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 12px;
+        -webkit-user-select: all;
+        user-select: all;
+      }
+      .recovery-grid code {
+        background: var(--code-bg);
+        color: var(--code-text);
+        border: 1px solid var(--warn-line);
+        border-radius: 8px;
+        padding: 10px 6px;
+        text-align: center;
+        font-family: var(--mono);
+        font-size: 14px;
+        word-break: break-all;
+        overflow-wrap: anywhere;
+        -webkit-user-select: all;
+        user-select: all;
+      }
+      @media (max-width: 360px) {
+        .recovery-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .recovery-tools {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .recovery-tools .btn-secondary {
+        color: var(--warn);
+        border-color: var(--warn-line);
+      }
+      .recovery-status {
+        min-height: 20px;
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+
+      /* ---------- Footer ---------- */
+      .card-footer {
+        text-align: center;
+        margin-top: 24px;
+        font-size: 13px;
+        color: var(--dim);
+        display: grid;
+        gap: 6px;
+      }
+      .card-footer a {
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        padding: 6px 2px;
+      }
+      .card-footer a:hover {
+        text-decoration: underline;
+      }
+      .card-footer .tiny {
+        font-size: 12px;
+        opacity: 0.9;
+      }
+
+      /* ---------- Icon fallback (Font Awesome failed) ---------- */
+      .no-fa .fas,
+      .no-fa .fa-brands {
+        display: none;
+      }
+      .no-fa .fallback-text {
+        display: inline;
+      }
+      .no-fa .has-icon input {
+        padding-left: 16px;
+      }
+
+      /* ---------- Motion ---------- */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+        .step.active {
+          animation: none;
+        }
+        .spinner {
+          animation-duration: 1.6s !important;
+          animation-iteration-count: infinite !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <!-- Brand panel: decorative, desktop only -->
+      <aside class="brand-panel" aria-hidden="true">
+        <div class="brand-inner">
+          <div class="logo-tile">
+            <img
+              class="brand-logo"
+              src="/images/miles.png"
+              alt=""
+              width="72"
+              height="72"
+              decoding="async"
+            />
+          </div>
+          <div class="wordmark">Miles<span>Space</span></div>
+          <p class="tagline">Admin Console</p>
+          <ul class="value-list">
+            <li>
+              <span class="value-icon"
+                ><i class="fas fa-shield-halved"></i
+              ></span>
+              <div>
+                <strong>Bank-grade security</strong
+                ><span class="v-text"
+                  >Two-factor authentication on every administrator
+                  account.</span
+                >
+              </div>
+            </li>
+            <li>
+              <span class="value-icon"
+                ><i class="fas fa-clipboard-list"></i
+              ></span>
+              <div>
+                <strong>Complete audit trail</strong
+                ><span class="v-text"
+                  >Every sign-in and administrative action is recorded.</span
+                >
+              </div>
+            </li>
+            <li>
+              <span class="value-icon"><i class="fas fa-user-lock"></i></span>
+              <div>
+                <strong>Role-based access</strong
+                ><span class="v-text"
+                  >Admins see only what their role allows.</span
+                >
+              </div>
+            </li>
+          </ul>
+        </div>
+      </aside>
+
+      <main class="form-panel" id="main">
+        <div class="card">
+          <div class="msg msg-warn" id="offlineBanner" role="status" hidden>
+            <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+            <span>You are offline. Reconnect to sign in.</span>
+          </div>
+
+          <header class="card-brand">
+            <div class="logo-tile">
+              <img
+                class="brand-logo"
+                id="logoImg"
+                src="/images/miles.png"
+                alt="MilesSpace"
+                width="72"
+                height="72"
+                decoding="async"
+              />
             </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <div class="input-icon">
-                    <i class="fas fa-lock"></i>
-                    <input type="password" id="password" placeholder="Enter your password" required>
-                    <button type="button" class="password-toggle" id="passwordToggle" aria-label="Toggle password visibility">
-                        <i class="fas fa-eye"></i>
+            <div class="wordmark">Miles<span>Space</span></div>
+            <p class="tagline">Admin Console</p>
+          </header>
+
+          <div class="msg msg-info" id="infoMessage" role="status" hidden>
+            <i class="fas fa-circle-info" aria-hidden="true"></i>
+            <span id="infoText"></span>
+          </div>
+          <div class="msg msg-error" id="errorMessage" role="alert" hidden>
+            <i class="fas fa-circle-exclamation" aria-hidden="true"></i>
+            <span id="errorText"></span>
+          </div>
+
+          <noscript
+            ><div class="msg msg-error">
+              <span>JavaScript is required to sign in.</span>
+            </div></noscript
+          >
+
+          <div id="stepContainer" aria-live="polite">
+            <!-- STEP 1: password -->
+            <section
+              class="step active"
+              id="stepPassword"
+              aria-labelledby="passwordHeading"
+            >
+              <h1 class="step-title" id="passwordHeading" tabindex="-1">
+                Sign in
+              </h1>
+              <p class="step-sub">
+                Use your administrator credentials to continue.
+              </p>
+              <form id="loginForm" novalidate>
+                <div class="field">
+                  <label for="email">Email address</label>
+                  <div class="input-wrap has-icon">
+                    <i class="fas fa-envelope lead-icon" aria-hidden="true"></i>
+                    <input
+                      type="email"
+                      id="email"
+                      name="username"
+                      placeholder="admin@example.com"
+                      required
+                      autocomplete="username"
+                      inputmode="email"
+                      autocapitalize="off"
+                      autocorrect="off"
+                      spellcheck="false"
+                      enterkeyhint="next"
+                      aria-describedby="errorMessage"
+                    />
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="password">Password</label>
+                  <div class="input-wrap has-icon has-toggle">
+                    <i class="fas fa-lock lead-icon" aria-hidden="true"></i>
+                    <input
+                      type="password"
+                      id="password"
+                      name="password"
+                      placeholder="Enter your password"
+                      required
+                      autocomplete="current-password"
+                      autocapitalize="off"
+                      autocorrect="off"
+                      spellcheck="false"
+                      enterkeyhint="go"
+                      aria-describedby="capsHint errorMessage"
+                    />
+                    <button
+                      type="button"
+                      class="password-toggle"
+                      id="passwordToggle"
+                      aria-pressed="false"
+                      aria-label="Show password"
+                    >
+                      <i
+                        class="fas fa-eye"
+                        id="passwordToggleIcon"
+                        aria-hidden="true"
+                      ></i>
+                      <span
+                        class="fallback-text"
+                        id="passwordToggleText"
+                        aria-hidden="true"
+                        >Show</span
+                      >
                     </button>
+                  </div>
+                  <p class="caps-hint" id="capsHint" hidden>
+                    <i
+                      class="fas fa-triangle-exclamation"
+                      aria-hidden="true"
+                    ></i
+                    ><span>Caps Lock is on.</span>
+                  </p>
                 </div>
-            </div>
-            <button type="submit" class="btn-login" id="loginBtn">
-                <span id="loginBtnText">Sign In</span>
-                <span id="loginBtnIcon"><i class="fas fa-arrow-right"></i></span>
-            </button>
-        </form>
+                <label class="check-row" for="rememberEmail">
+                  <input type="checkbox" id="rememberEmail" />
+                  <span>Remember email on this device</span>
+                </label>
+                <button
+                  type="submit"
+                  class="btn btn-primary"
+                  id="loginBtn"
+                  data-label="Sign in"
+                >
+                  <span class="spinner" aria-hidden="true"></span>
+                  <span class="btn-label" id="loginBtnText">Sign in</span>
+                  <i
+                    class="fas fa-arrow-right btn-arrow"
+                    aria-hidden="true"
+                  ></i>
+                </button>
+              </form>
+            </section>
+
+            <!-- STEP 2: MFA / setup -->
+            <section class="step" id="stepMfa" aria-labelledby="mfaHeading">
+              <div class="step-badge" id="mfaBadge">
+                <i class="fas fa-shield-halved" aria-hidden="true"></i
+                ><span id="mfaBadgeText">Step 2 of 2</span>
+              </div>
+              <h1 class="step-title" id="mfaHeading" tabindex="-1">
+                <span id="mfaTitleText">Two-factor verification</span>
+              </h1>
+              <p class="step-sub" id="mfaStepSub"></p>
+              <p
+                class="mfa-timer"
+                id="mfaTimer"
+                role="timer"
+                aria-live="off"
+                hidden
+              ></p>
+
+              <div id="qrPanel" hidden>
+                <div class="qr-box">
+                  <div class="qr-label">Scan with your authenticator app</div>
+                  <img
+                    id="qrImg"
+                    alt="QR code for your authenticator app"
+                    width="180"
+                    height="180"
+                    decoding="async"
+                  />
+                  <div class="qr-label">Or enter this secret manually</div>
+                  <div class="qr-secret" id="qrSecret"></div>
+                </div>
+              </div>
+
+              <form id="mfaForm" novalidate>
+                <div class="field">
+                  <label for="mfaCode" class="sr-only" id="mfaLabel"
+                    >Authentication code</label
+                  >
+                  <input
+                    type="text"
+                    id="mfaCode"
+                    name="otp"
+                    class="code-input"
+                    required
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    autocomplete="one-time-code"
+                    maxlength="6"
+                    placeholder="&bull;&bull;&bull;&bull;&bull;&bull;"
+                    enterkeyhint="done"
+                    autocapitalize="off"
+                    autocorrect="off"
+                    spellcheck="false"
+                    aria-describedby="mfaHint errorMessage"
+                  />
+                  <p class="hint" id="mfaHint"></p>
+                </div>
+                <button
+                  type="submit"
+                  class="btn btn-primary"
+                  id="mfaBtn"
+                  data-label="Verify &amp; sign in"
+                >
+                  <span class="spinner" aria-hidden="true"></span>
+                  <span class="btn-label" id="mfaBtnText"
+                    >Verify &amp; sign in</span
+                  >
+                  <i
+                    class="fas fa-arrow-right btn-arrow"
+                    aria-hidden="true"
+                  ></i>
+                </button>
+              </form>
+
+              <div class="mfa-actions" id="mfaActions">
+                <button type="button" class="btn-link" id="mfaUseRecovery">
+                  Use recovery code
+                </button>
+                <button type="button" class="btn-link" id="mfaBack">
+                  <i class="fas fa-arrow-left" aria-hidden="true"></i
+                  ><span>Back to sign in</span>
+                </button>
+              </div>
+
+              <div class="recovery-block" id="recoveryBlock" hidden>
+                <strong>Save these recovery codes now</strong>
+                <p>
+                  Each code can be used once if you lose access to your
+                  authenticator app. Store them somewhere safe. They will not be
+                  shown again.
+                </p>
+                <div class="recovery-grid" id="recoveryGrid"></div>
+                <div class="recovery-tools">
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    id="recoveryCopyBtn"
+                  >
+                    <i class="fas fa-copy" aria-hidden="true"></i
+                    ><span>Copy all</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    id="recoveryDownloadBtn"
+                  >
+                    <i class="fas fa-download" aria-hidden="true"></i
+                    ><span>Download .txt</span>
+                  </button>
+                </div>
+                <p
+                  class="recovery-status"
+                  id="recoveryStatus"
+                  role="status"
+                ></p>
+                <label
+                  class="check-row"
+                  for="recoverySaved"
+                  id="recoverySavedRow"
+                >
+                  <input type="checkbox" id="recoverySaved" />
+                  <span>I have saved these codes</span>
+                </label>
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  id="recoveryDoneBtn"
+                  disabled
+                  data-label="Continue"
+                >
+                  <span class="spinner" aria-hidden="true"></span>
+                  <span class="btn-label">Continue</span>
+                  <i
+                    class="fas fa-arrow-right btn-arrow"
+                    aria-hidden="true"
+                  ></i>
+                </button>
+              </div>
+            </section>
+          </div>
+
+          <footer class="card-footer">
+            <p>
+              <i class="fas fa-lock" aria-hidden="true"></i> Secure admin access
+              only &middot; <a href="/">Back to site</a>
+            </p>
+            <p class="tiny">Protected by two-factor authentication</p>
+          </footer>
+        </div>
+      </main>
     </div>
 
-    <!-- ═══ STEP 2 — Unified MFA / Setup ═══ -->
-    <div class="step" id="stepMfa">
-        <div class="mfa-step-title" id="mfaTitle">
-            <i class="fas fa-shield-halved" style="color:#f59e0b"></i>
-            <span id="mfaTitleText">Two-factor verification</span>
-        </div>
-        <div class="mfa-step-sub" id="mfaStepSub">Enter the 6-digit code from your authenticator app.</div>
+    <script>
+      (function () {
+        "use strict";
 
-        <div class="mfa-timer" id="mfaTimer">Code expires in 03:00</div>
+        // ---------- Constants ----------
+        var DEFAULT_DEST = "/admin/dashboard.html";
+        var SESSION_KEY = "admin_sess";
+        var RETURN_KEY = "admin_return_url";
+        var EMAIL_KEY = "ms-admin-email";
+        var REQUEST_TIMEOUT_MS = 20000;
+        var MFA_FALLBACK_SEC = 180;
+        var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        var RECOVERY_RE = /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{2}$/;
 
-        <div class="qr-panel" id="qrPanel">
-            <div class="qr-box">
-                <div class="qr-label">Scan with your authenticator app</div>
-                <img id="qrImg" src="" alt="QR code">
-                <div class="qr-label">Or enter this secret manually</div>
-                <div class="qr-secret" id="qrSecret">—</div>
-            </div>
-        </div>
-
-        <form id="mfaForm" autocomplete="off">
-            <div class="form-group">
-                <input type="text" id="mfaCode" class="mfa-code-input"
-                       inputmode="numeric" maxlength="6"
-                       placeholder="••••••" autocomplete="one-time-code" required>
-            </div>
-            <button type="submit" class="btn-login" id="mfaBtn">
-                <span id="mfaBtnText">Verify &amp; Sign In</span>
-                <span id="mfaBtnIcon"><i class="fas fa-arrow-right"></i></span>
-            </button>
-        </form>
-
-        <div class="mfa-actions" id="mfaActions">
-            <button type="button" class="btn-link" id="mfaUseRecovery">Use recovery code</button>
-            <button type="button" class="btn-link" id="mfaBack">← Back to sign in</button>
-        </div>
-
-        <div class="recovery-block" id="recoveryBlock">
-            <strong>Save these recovery codes now</strong>
-            <p>Each code can be used once if you lose access to your authenticator. Store them somewhere safe.</p>
-            <div class="recovery-grid" id="recoveryGrid"></div>
-            <button type="button" class="btn-login" id="recoveryDoneBtn">I've saved them — Continue</button>
-        </div>
-    </div>
-
-    <div class="login-footer">
-        Secure admin access only · <a href="/">Back to site</a>
-    </div>
-</div>
-
-<script>
-(function () {
-    'use strict';
-
-    // ─── Clear stale session on the login page ─────────────
-    try {
-        const existing = localStorage.getItem('admin_sess');
-        if (existing) {
-            let parsed = null;
-            try { parsed = JSON.parse(existing); } catch (_) {}
-            const token = parsed && parsed.token;
-            if (token) {
-                const parts = token.split('.');
-                if (parts.length === 3) {
-                    let b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-                    while (b64.length % 4) b64 += '=';
-                    try {
-                        const payload = JSON.parse(atob(b64));
-                        const expired = !payload.exp || (payload.exp * 1000) <= Date.now();
-                        if (expired) localStorage.removeItem('admin_sess');
-                    } catch (_) {
-                        localStorage.removeItem('admin_sess');
-                    }
-                } else {
-                    localStorage.removeItem('admin_sess');
-                }
-            } else {
-                localStorage.removeItem('admin_sess');
-            }
+        // ---------- Small helpers ----------
+        function $(id) {
+          return document.getElementById(id);
         }
-        sessionStorage.removeItem('admin_return_url');
-    } catch (_) { /* ignore storage errors */ }
+        function on(n, ev, fn, opt) {
+          if (n) n.addEventListener(ev, fn, opt);
+        }
+        function setText(n, t) {
+          if (n) n.textContent = t;
+        }
+        function setHidden(n, h) {
+          if (n) n.hidden = !!h;
+        }
+        function getVal(n) {
+          return n ? String(n.value || "") : "";
+        }
+        function setVal(n, v) {
+          if (n) n.value = v;
+        }
 
-    // ─── DOM ────────────────────────────────────────────────
-    const stepPassword   = document.getElementById('stepPassword');
-    const stepMfa        = document.getElementById('stepMfa');
-    const loginForm      = document.getElementById('loginForm');
-    const mfaForm        = document.getElementById('mfaForm');
-    const emailInput     = document.getElementById('email');
-    const passwordInput  = document.getElementById('password');
-    const mfaCodeInput   = document.getElementById('mfaCode');
-    const mfaBtn         = document.getElementById('mfaBtn');
-    const mfaBtnText     = document.getElementById('mfaBtnText');
-    const mfaBtnIcon     = document.getElementById('mfaBtnIcon');
-    const loginBtn       = document.getElementById('loginBtn');
-    const loginBtnText   = document.getElementById('loginBtnText');
-    const loginBtnIcon   = document.getElementById('loginBtnIcon');
-    const errorMessage   = document.getElementById('errorMessage');
-    const errorText      = document.getElementById('errorText');
-    const infoMessage    = document.getElementById('infoMessage');
-    const infoText       = document.getElementById('infoText');
-    const passwordToggle = document.getElementById('passwordToggle');
-    const mfaTitleText   = document.getElementById('mfaTitleText');
-    const mfaStepSub     = document.getElementById('mfaStepSub');
-    const mfaTimer       = document.getElementById('mfaTimer');
-    const mfaActions     = document.getElementById('mfaActions');
-    const mfaBack        = document.getElementById('mfaBack');
-    const mfaUseRecovery = document.getElementById('mfaUseRecovery');
-    const qrPanel        = document.getElementById('qrPanel');
-    const qrImg          = document.getElementById('qrImg');
-    const qrSecret       = document.getElementById('qrSecret');
-    const recoveryBlock  = document.getElementById('recoveryBlock');
-    const recoveryGrid   = document.getElementById('recoveryGrid');
-    const recoveryDoneBtn= document.getElementById('recoveryDoneBtn');
+        function lsGet(k) {
+          try {
+            return window.localStorage.getItem(k);
+          } catch (_) {
+            return null;
+          }
+        }
+        function lsSet(k, v) {
+          try {
+            window.localStorage.setItem(k, v);
+            return true;
+          } catch (_) {
+            return false;
+          }
+        }
+        function lsRemove(k) {
+          try {
+            window.localStorage.removeItem(k);
+          } catch (_) {}
+        }
+        function ssGet(k) {
+          try {
+            return window.sessionStorage.getItem(k);
+          } catch (_) {
+            return null;
+          }
+        }
+        function ssSet(k, v) {
+          try {
+            window.sessionStorage.setItem(k, v);
+          } catch (_) {}
+        }
+        function ssRemove(k) {
+          try {
+            window.sessionStorage.removeItem(k);
+          } catch (_) {}
+        }
 
-    // ─── State ──────────────────────────────────────────────
-    let passwordVisible   = false;
-    let usingRecovery     = false;
-    let mfaToken          = null;
-    let setupToken        = null;
-    let setupSession      = null;
-    let currentMode       = 'idle'; // 'login' | 'setup'
-    let countdownTimer    = null;
-    let secondsLeft       = 180;
-    let redirectScheduled = false;
-
-    // ─── Return-URL handling ────────────────────────────────
-    function safeReturnTo(value) {
-        if (!value || typeof value !== 'string') return '/admin/dashboard.html';
-        if (!value.startsWith('/admin/')) return '/admin/dashboard.html';
-        if (value.startsWith('//')) return '/admin/dashboard.html';
-        if (value.indexOf('://') !== -1) return '/admin/dashboard.html';
-        if (value === '/admin/index.html' || value.startsWith('/admin/index')) return '/admin/dashboard.html';
-        if (value === '/admin/login.html' || value.startsWith('/admin/login')) return '/admin/dashboard.html';
-        return value;
-    }
-
-    function getReturnTo() {
+        var FINE = false,
+          REDUCED = false;
         try {
-            const params = new URLSearchParams(window.location.search);
-            const fromQuery = params.get('returnTo');
-            if (fromQuery) {
-                const safe = safeReturnTo(fromQuery);
-                if (safe !== '/admin/dashboard.html') return safe;
-            }
+          FINE = !!(
+            window.matchMedia &&
+            window.matchMedia("(hover:hover) and (pointer:fine)").matches
+          );
         } catch (_) {}
         try {
-            const raw = sessionStorage.getItem('admin_return_url');
-            if (raw) {
-                const safe = safeReturnTo(raw);
-                if (safe !== '/admin/dashboard.html') return safe;
-            }
+          REDUCED = !!(
+            window.matchMedia &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          );
         } catch (_) {}
-        return null;
-    }
 
-    const RETURN_TO = getReturnTo();
+        // ---------- DOM ----------
+        var stepPassword = $("stepPassword"),
+          stepMfa = $("stepMfa");
+        var loginForm = $("loginForm"),
+          mfaForm = $("mfaForm");
+        var emailInput = $("email"),
+          passwordInput = $("password"),
+          mfaCodeInput = $("mfaCode");
+        var loginBtn = $("loginBtn"),
+          mfaBtn = $("mfaBtn");
+        var errorMessage = $("errorMessage"),
+          errorText = $("errorText");
+        var infoMessage = $("infoMessage"),
+          infoText = $("infoText");
+        var offlineBanner = $("offlineBanner");
+        var passwordToggle = $("passwordToggle"),
+          passwordToggleIcon = $("passwordToggleIcon"),
+          passwordToggleText = $("passwordToggleText");
+        var capsHint = $("capsHint"),
+          rememberEmail = $("rememberEmail");
+        var passwordHeading = $("passwordHeading"),
+          mfaHeading = $("mfaHeading");
+        var mfaBadge = $("mfaBadge"),
+          mfaBadgeText = $("mfaBadgeText"),
+          mfaTitleText = $("mfaTitleText");
+        var mfaStepSub = $("mfaStepSub"),
+          mfaTimer = $("mfaTimer"),
+          mfaLabel = $("mfaLabel"),
+          mfaHint = $("mfaHint");
+        var mfaActions = $("mfaActions"),
+          mfaBack = $("mfaBack"),
+          mfaUseRecovery = $("mfaUseRecovery");
+        var qrPanel = $("qrPanel"),
+          qrImg = $("qrImg"),
+          qrSecret = $("qrSecret");
+        var recoveryBlock = $("recoveryBlock"),
+          recoveryGrid = $("recoveryGrid");
+        var recoveryDoneBtn = $("recoveryDoneBtn"),
+          recoveryCopyBtn = $("recoveryCopyBtn"),
+          recoveryDownloadBtn = $("recoveryDownloadBtn");
+        var recoverySaved = $("recoverySaved"),
+          recoverySavedRow = $("recoverySavedRow"),
+          recoveryStatus = $("recoveryStatus");
 
-    // ─── UI helpers ─────────────────────────────────────────
-    function showError(msg) {
-        errorText.textContent = msg;
-        errorMessage.classList.add('show');
-        infoMessage.classList.remove('show');
-    }
-    function hideError() { errorMessage.classList.remove('show'); }
+        if (
+          !stepPassword ||
+          !stepMfa ||
+          !loginForm ||
+          !mfaForm ||
+          !emailInput ||
+          !passwordInput ||
+          !mfaCodeInput ||
+          !loginBtn ||
+          !mfaBtn
+        ) {
+          return;
+        }
 
-    function showInfo(msg) {
-        infoText.textContent = msg;
-        infoMessage.classList.add('show');
-        errorMessage.classList.remove('show');
-    }
-    function hideInfo() { infoMessage.classList.remove('show'); }
+        // ---------- State ----------
+        var mode = "password"; // 'password' | 'mfa' | 'setup' | 'recovery'
+        var usingRecovery = false;
+        var mfaToken = null,
+          setupToken = null,
+          setupSession = null;
+        var recoveryCodes = [];
+        var inFlight = { login: false, mfa: false };
+        var redirecting = false;
+        var deadline = null,
+          deadlineKind = null,
+          timerId = null;
+        var lockUntil = 0,
+          lockTimer = null;
 
-    function setLoading(btn, textEl, iconEl, isLoading, defaultLabel) {
-        if (isLoading) {
+        // ---------- JWT / storage helpers ----------
+        function decodeJwtPayload(token) {
+          try {
+            if (typeof token !== "string") return null;
+            var p = token.split(".");
+            if (p.length !== 3) return null;
+            var b = p[1].replace(/-/g, "+").replace(/_/g, "/");
+            while (b.length % 4) b += "=";
+            return JSON.parse(atob(b));
+          } catch (_) {
+            return null;
+          }
+        }
+        function jwtExpiryMs(token) {
+          var p = decodeJwtPayload(token);
+          return p && typeof p.exp === "number" ? p.exp * 1000 : null;
+        }
+
+        function readStoredToken() {
+          var raw = lsGet(SESSION_KEY);
+          if (!raw) return null;
+          try {
+            var o = JSON.parse(raw);
+            return o && typeof o.token === "string" ? o.token : null;
+          } catch (_) {
+            return null;
+          }
+        }
+
+        function clearStaleSession() {
+          var raw = lsGet(SESSION_KEY);
+          if (!raw) return;
+          var parsed = null;
+          try {
+            parsed = JSON.parse(raw);
+          } catch (_) {}
+          var token = parsed && parsed.token;
+          if (typeof token !== "string" || !token) {
+            lsRemove(SESSION_KEY);
+            return;
+          }
+          var payload = decodeJwtPayload(token);
+          if (
+            !payload ||
+            typeof payload.exp !== "number" ||
+            payload.exp * 1000 <= Date.now()
+          )
+            lsRemove(SESSION_KEY);
+        }
+
+        function localSessionLooksValid() {
+          var t = readStoredToken();
+          var exp = t ? jwtExpiryMs(t) : null;
+          return !!(exp && exp > Date.now());
+        }
+
+        // ---------- returnTo hardening ----------
+        function sanitizeReturnTo(v) {
+          if (typeof v !== "string") return null;
+          v = v.trim();
+          if (!v || v.length > 512) return null;
+          if (v.indexOf("/admin/") !== 0) return null;
+          if (/[\u0000-\u001f\u007f\\#]/.test(v)) return null;
+          if (
+            v.indexOf("..") !== -1 ||
+            v.indexOf("//") !== -1 ||
+            v.indexOf("://") !== -1
+          )
+            return null;
+          if (/%2e|%2f|%5c|%0[0-9a-f]|%1[0-9a-f]|%7f|%00/i.test(v)) return null;
+          var path = v.split("?")[0].toLowerCase();
+          if (!/\.html$/.test(path)) return null;
+          if (
+            path.indexOf("/admin/index") === 0 ||
+            path.indexOf("/admin/login") === 0
+          )
+            return null;
+          return v;
+        }
+
+        // Read ONCE at load, before the stale-session cleanup, then drop the storage key.
+        function readReturnToOnce() {
+          var result = null;
+          try {
+            result = sanitizeReturnTo(
+              new URLSearchParams(window.location.search).get("returnTo"),
+            );
+          } catch (_) {}
+          if (!result) result = sanitizeReturnTo(ssGet(RETURN_KEY));
+          return result;
+        }
+        var RETURN_TO = readReturnToOnce();
+        clearStaleSession();
+
+        // ---------- Messages ----------
+        function lockoutActive() {
+          return lockUntil > Date.now();
+        }
+        function showError(msg) {
+          setText(errorText, msg);
+          setHidden(errorMessage, false);
+          setHidden(infoMessage, true);
+        }
+        function hideError() {
+          if (lockoutActive() && mode === "password") return;
+          setHidden(errorMessage, true);
+        }
+        function showInfo(msg) {
+          setText(infoText, msg);
+          setHidden(infoMessage, false);
+          setHidden(errorMessage, true);
+        }
+        function hideInfo() {
+          setHidden(infoMessage, true);
+        }
+
+        function netMsg(err) {
+          var k = err && err.kind;
+          if (k === "offline")
+            return "You appear to be offline. Check your connection and try again.";
+          if (k === "timeout")
+            return "The request timed out. Please try again.";
+          return "Something went wrong. Please try again.";
+        }
+
+        function fieldError(input, msg) {
+          showError(msg);
+          if (input) {
+            input.setAttribute("aria-invalid", "true");
+            try {
+              input.focus();
+            } catch (_) {}
+          }
+        }
+        function clearInvalid() {
+          [emailInput, passwordInput, mfaCodeInput].forEach(function (n) {
+            if (n) n.removeAttribute("aria-invalid");
+          });
+        }
+
+        // ---------- Buttons ----------
+        function setLoading(btn, isLoading, busyLabel) {
+          if (!btn) return;
+          var label = btn.querySelector(".btn-label");
+          if (isLoading) {
             btn.disabled = true;
-            textEl.textContent = 'Please wait…';
-            iconEl.innerHTML = '<span class="loading-spinner"></span>';
-        } else {
-            btn.disabled = false;
-            textEl.textContent = defaultLabel;
-            iconEl.innerHTML = '<i class="fas fa-arrow-right"></i>';
+            btn.classList.add("is-loading");
+            btn.setAttribute("aria-busy", "true");
+            if (label) label.textContent = busyLabel || "Please wait\u2026";
+          } else {
+            btn.classList.remove("is-loading");
+            btn.removeAttribute("aria-busy");
+            if (label)
+              label.textContent =
+                btn.getAttribute("data-label") || label.textContent;
+            btn.disabled = btn === loginBtn && lockoutActive();
+          }
         }
-    }
-
-    function showStep(step) {
-        stepPassword.classList.remove('active');
-        stepMfa.classList.remove('active');
-        step.classList.add('active');
-    }
-
-    function enterPasswordStep() {
-        stopCountdown();
-        currentMode = 'idle';
-        mfaToken = null;
-        setupToken = null;
-        setupSession = null;
-        usingRecovery = false;
-        mfaCodeInput.value = '';
-        setRecoveryMode(false);
-        hideError();
-        hideInfo();
-        recoveryBlock.classList.remove('show');
-        qrPanel.classList.remove('show');
-        mfaTimer.style.display = 'block';
-        mfaActions.style.display = 'flex';
-        mfaForm.style.display = '';
-        mfaTitleText.textContent = 'Two-factor verification';
-        mfaStepSub.textContent = 'Enter the 6-digit code from your authenticator app.';
-        showStep(stepPassword);
-        emailInput.focus();
-    }
-
-    function enterMfaLoginStep() {
-        currentMode = 'login';
-        usingRecovery = false;
-        mfaCodeInput.value = '';
-        setRecoveryMode(false);
-        mfaTimer.style.display = 'block';
-        mfaActions.style.display = 'flex';
-        mfaForm.style.display = '';
-        qrPanel.classList.remove('show');
-        recoveryBlock.classList.remove('show');
-        mfaTitleText.textContent = 'Two-factor verification';
-        mfaStepSub.textContent = 'Enter the 6-digit code from your authenticator app.';
-        hideError();
-        hideInfo();
-        showStep(stepMfa);
-        startCountdown();
-        mfaCodeInput.focus();
-    }
-
-    function enterSetupStep(enrollment) {
-        currentMode = 'setup';
-        usingRecovery = false;
-        mfaCodeInput.value = '';
-        mfaTimer.style.display = 'none';
-        mfaActions.style.display = 'none';
-        mfaForm.style.display = '';
-        qrPanel.classList.add('show');
-        recoveryBlock.classList.remove('show');
-        mfaTitleText.textContent = 'Set up Two-Factor Auth';
-        mfaStepSub.textContent = 'Scan the QR code with your authenticator app, then enter the 6-digit code to continue.';
-        qrImg.src = enrollment.qr_data_url || '';
-        qrSecret.textContent = enrollment.secret || '—';
-        hideError();
-        hideInfo();
-        showStep(stepMfa);
-        setTimeout(() => mfaCodeInput.focus(), 100);
-    }
-
-    function clearSetupSecret() {
-        // Remove secret material from the DOM once enrollment is done.
-        qrImg.src = '';
-        qrImg.removeAttribute('src');
-        qrSecret.textContent = '—';
-        qrPanel.classList.remove('show');
-        setupToken = null;
-    }
-
-    function setRecoveryMode(on) {
-        usingRecovery = on;
-        mfaCodeInput.value = '';
-        if (on) {
-            mfaStepSub.textContent = 'Enter one of your saved recovery codes (format: XXXX-XXXX-XX).';
-            mfaCodeInput.maxLength = 20;
-            mfaCodeInput.placeholder = 'XXXX-XXXX-XX';
-            mfaCodeInput.classList.add('recovery-mode');
-            mfaCodeInput.setAttribute('inputmode', 'text');
-            mfaUseRecovery.textContent = 'Use authenticator code';
-        } else {
-            mfaStepSub.textContent = 'Enter the 6-digit code from your authenticator app.';
-            mfaCodeInput.maxLength = 6;
-            mfaCodeInput.placeholder = '••••••';
-            mfaCodeInput.classList.remove('recovery-mode');
-            mfaCodeInput.setAttribute('inputmode', 'numeric');
-            mfaUseRecovery.textContent = 'Use recovery code';
+        function setButtonLabel(btn, text) {
+          if (!btn) return;
+          btn.setAttribute("data-label", text);
+          var label = btn.querySelector(".btn-label");
+          if (label) label.textContent = text;
         }
-        mfaCodeInput.focus();
-    }
+        function setNavDisabled(disabled) {
+          if (mfaBack) mfaBack.disabled = disabled;
+          if (mfaUseRecovery) mfaUseRecovery.disabled = disabled;
+        }
 
-    // ─── Countdown ──────────────────────────────────────────
-    function startCountdown() {
-        stopCountdown();
-        secondsLeft = 180;
-        updateTimerDisplay();
-        countdownTimer = setInterval(() => {
-            secondsLeft -= 1;
-            updateTimerDisplay();
-            if (secondsLeft <= 0) {
-                stopCountdown();
-                showError('Your verification session expired. Please sign in again.');
-                setTimeout(enterPasswordStep, 1500);
+        // ---------- Network ----------
+        function makeErr(kind) {
+          var e = new Error(kind);
+          e.kind = kind;
+          return e;
+        }
+
+        async function request(url, opts) {
+          opts = opts || {};
+          if (typeof navigator !== "undefined" && navigator.onLine === false)
+            throw makeErr("offline");
+          var ctrl =
+            typeof AbortController !== "undefined"
+              ? new AbortController()
+              : null;
+          var timer = setTimeout(function () {
+            if (ctrl) ctrl.abort();
+          }, REQUEST_TIMEOUT_MS);
+          try {
+            var headers = { "Content-Type": "application/json" };
+            if (opts.headers)
+              Object.keys(opts.headers).forEach(function (k) {
+                headers[k] = opts.headers[k];
+              });
+            var init = {
+              method: opts.method || "POST",
+              headers: headers,
+              credentials: "same-origin",
+              cache: "no-store",
+              body: JSON.stringify(opts.body || {}),
+            };
+            if (ctrl) init.signal = ctrl.signal;
+            var res = await fetch(url, init);
+            var data = {};
+            try {
+              data = await res.json();
+            } catch (_) {
+              data = {};
             }
-        }, 1000);
-    }
-    function stopCountdown() {
-        if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
-    }
-    function updateTimerDisplay() {
-        if (secondsLeft <= 0) {
-            mfaTimer.textContent = 'Expired';
-            mfaTimer.classList.add('warn');
+            if (!data || typeof data !== "object") data = {};
+            return { res: res, data: data };
+          } catch (e) {
+            if (e && e.name === "AbortError") throw makeErr("timeout");
+            throw makeErr("network");
+          } finally {
+            clearTimeout(timer);
+          }
+        }
+
+        function parseRetryAfter(res) {
+          var s = 60;
+          try {
+            var h = res.headers.get("Retry-After");
+            if (h) {
+              if (/^\d+$/.test(h.trim())) s = parseInt(h, 10);
+              else {
+                var t = Date.parse(h);
+                if (isFinite(t)) s = Math.ceil((t - Date.now()) / 1000);
+              }
+            }
+          } catch (_) {}
+          return Math.min(Math.max(s, 1), 3600);
+        }
+
+        // ---------- Offline banner ----------
+        function updateOffline() {
+          setHidden(
+            offlineBanner,
+            !(typeof navigator !== "undefined" && navigator.onLine === false),
+          );
+        }
+        on(window, "online", updateOffline);
+        on(window, "offline", updateOffline);
+
+        // ---------- Lockout countdown (HTTP 429) ----------
+        function renderLock() {
+          var left = Math.ceil((lockUntil - Date.now()) / 1000);
+          if (left <= 0) {
+            if (lockTimer) {
+              clearInterval(lockTimer);
+              lockTimer = null;
+            }
+            lockUntil = 0;
+            if (!inFlight.login) loginBtn.disabled = false;
+            setHidden(errorMessage, true);
             return;
+          }
+          showError("Too many attempts. Try again in " + left + "s.");
         }
-        const m = Math.floor(secondsLeft / 60);
-        const s = secondsLeft % 60;
-        mfaTimer.textContent = `Code expires in ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-        mfaTimer.classList.toggle('warn', secondsLeft <= 30);
-    }
+        function startLockout(seconds) {
+          lockUntil = Date.now() + seconds * 1000;
+          loginBtn.disabled = true;
+          if (lockTimer) clearInterval(lockTimer);
+          renderLock();
+          lockTimer = setInterval(renderLock, 1000);
+        }
 
-    // ─── Password toggle ────────────────────────────────────
-    passwordToggle.addEventListener('click', () => {
-        passwordVisible = !passwordVisible;
-        passwordInput.type = passwordVisible ? 'text' : 'password';
-        passwordToggle.innerHTML = `<i class="fas fa-${passwordVisible ? 'eye-slash' : 'eye'}"></i>`;
-    });
+        // ---------- Step / deadline timer ----------
+        function deriveDeadline(sources, token, fallbackSec) {
+          var now = Date.now();
+          var list = Array.isArray(sources) ? sources : [sources];
+          for (var i = 0; i < list.length; i++) {
+            var o = list[i];
+            if (!o || typeof o !== "object") continue;
+            var ei = Number(o.expires_in);
+            if (isFinite(ei) && ei > 0) return now + ei * 1000;
+            if (o.expires_at) {
+              var v = o.expires_at,
+                t;
+              if (typeof v === "number") t = v < 1e12 ? v * 1000 : v;
+              else t = Date.parse(v);
+              if (isFinite(t) && t > now) return t;
+            }
+          }
+          var exp = jwtExpiryMs(token);
+          if (exp && exp > now) return exp;
+          return fallbackSec ? now + fallbackSec * 1000 : null;
+        }
 
-    // ─── Step 1: Submit password ────────────────────────────
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        hideError();
-        hideInfo();
-        const email = emailInput.value.trim();
-        const password = passwordInput.value;
-        if (!email || !password) {
-            showError('Please enter both email and password.');
+        function pad2(n) {
+          return (n < 10 ? "0" : "") + n;
+        }
+        function renderTimer(left) {
+          if (!mfaTimer) return;
+          if (left <= 0) {
+            mfaTimer.textContent = "Expired";
+            mfaTimer.classList.add("warn");
             return;
+          }
+          var m = Math.floor(left / 60),
+            s = left % 60;
+          var prefix =
+            deadlineKind === "setup"
+              ? "Setup session expires in "
+              : "Code expires in ";
+          mfaTimer.textContent = prefix + pad2(m) + ":" + pad2(s);
+          mfaTimer.classList.toggle("warn", left <= 30);
         }
-
-        setLoading(loginBtn, loginBtnText, loginBtnIcon, true);
-
-        try {
-            const body = { email, password };
-            if (RETURN_TO) body.returnTo = RETURN_TO;
-
-            const res = await fetch('/api/admin/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify(body)
-            });
-            const data = await res.json().catch(() => ({}));
-
-            if (!res.ok || !data.success) {
-                throw new Error(data.error || data.message || 'Login failed.');
-            }
-
-            // ── Setup required (first-time login) ─────────
-            if (data.data && data.data.setup_required) {
-                setupToken = data.data.setup_token;
-
-                const enrollRes = await fetch('/api/admin/mfa/enroll', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + setupToken
-                    },
-                    credentials: 'same-origin',
-                    body: JSON.stringify({})
-                });
-                const enrollData = await enrollRes.json().catch(() => ({}));
-
-                if (!enrollRes.ok || !enrollData.success) {
-                    setupToken = null;
-                    throw new Error(enrollData.error || 'Could not start 2FA setup. Please try again.');
-                }
-
-                setLoading(loginBtn, loginBtnText, loginBtnIcon, false, 'Sign In');
-                showInfo('Two-factor authentication is required. Scan the QR code below to continue.');
-                enterSetupStep(enrollData.enrollment);
-                return;
-            }
-
-            // ── Standard MFA challenge ─────────────────────
-            if (data.data && data.data.mfa_required) {
-                mfaToken = data.data.mfa_token;
-                setLoading(loginBtn, loginBtnText, loginBtnIcon, false, 'Sign In');
-                enterMfaLoginStep();
-                return;
-            }
-
-            // ── No MFA required (fallback) ─────────────────
-            completeLogin(data.data);
-
-        } catch (err) {
-            showError(err.message || 'Invalid email or password.');
-            setLoading(loginBtn, loginBtnText, loginBtnIcon, false, 'Sign In');
+        function stopTimer() {
+          if (timerId) {
+            clearInterval(timerId);
+            timerId = null;
+          }
+          deadline = null;
+          deadlineKind = null;
+          setHidden(mfaTimer, true);
+          if (mfaTimer) mfaTimer.classList.remove("warn");
         }
-    });
-
-    // ─── Step 2: Submit MFA / Setup code ────────────────────
-    mfaCodeInput.addEventListener('input', () => {
-        if (currentMode === 'setup' || !usingRecovery) {
-            mfaCodeInput.value = mfaCodeInput.value.replace(/\D/g, '').slice(0, 6);
-        } else {
-            let v = mfaCodeInput.value
-                .replace(/[^A-Za-z0-9-]/g, '')
-                .toUpperCase()
-                .replace(/-+/g, '-');
-            mfaCodeInput.value = v.slice(0, 20);
+        function tick() {
+          if (!deadline) return;
+          var left = Math.ceil((deadline - Date.now()) / 1000);
+          renderTimer(left);
+          if (left <= 0) {
+            if (inFlight.mfa || redirecting) return;
+            var kind = deadlineKind;
+            stopTimer();
+            if (kind === "mfa")
+              enterPasswordStep({
+                error:
+                  "Your verification session expired. Please sign in again.",
+              });
+            else if (kind === "setup")
+              enterPasswordStep({
+                error: "Your setup session expired. Sign in again.",
+              });
+          }
         }
-        hideError();
-    });
-
-    mfaUseRecovery.addEventListener('click', () => {
-        if (currentMode !== 'login') return;
-        setRecoveryMode(!usingRecovery);
-    });
-
-    mfaBack.addEventListener('click', () => {
-        if (currentMode === 'setup') clearSetupSecret();
-        enterPasswordStep();
-    });
-
-    mfaForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        hideError();
-
-        const raw = (mfaCodeInput.value || '').trim();
-        if (!raw) {
-            showError(currentMode === 'setup' ? 'Enter the 6-digit code from your app.' : 'Enter your code.');
+        function startDeadline(ts, kind) {
+          stopTimer();
+          if (!ts) return;
+          deadline = ts;
+          deadlineKind = kind;
+          setHidden(mfaTimer, false);
+          tick();
+          if (deadline) timerId = setInterval(tick, 1000);
+        }
+        on(document, "visibilitychange", function () {
+          if (!document.hidden) {
+            tick();
+            updateOffline();
+          }
+        });
+        on(window, "pageshow", function (e) {
+          if (e && e.persisted) {
+            window.location.reload();
             return;
-        }
-
-        if (currentMode === 'setup') {
-            if (!/^\d{6}$/.test(raw)) {
-                showError('The verification code must be 6 digits.');
-                return;
-            }
-            return await submitSetupCode(raw);
-        }
-
-        // Login MFA
-        if (!usingRecovery && !/^\d{6}$/.test(raw)) {
-            showError('The authenticator code must be 6 digits.');
-            return;
-        }
-        if (usingRecovery && !/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{2}$/.test(raw)) {
-            showError('Recovery codes look like XXXX-XXXX-XX.');
-            return;
-        }
-        return await submitLoginCode(raw);
-    });
-
-    async function submitLoginCode(raw) {
-        setLoading(mfaBtn, mfaBtnText, mfaBtnIcon, true);
-
-        try {
-            const body = usingRecovery
-                ? { mfa_token: mfaToken, recovery_code: raw }
-                : { mfa_token: mfaToken, code: raw };
-            if (RETURN_TO) body.returnTo = RETURN_TO;
-
-            const res = await fetch('/api/admin/login/mfa', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify(body)
-            });
-            const data = await res.json().catch(() => ({}));
-
-            if (!res.ok || !data.success) {
-                if (data.code === 'INVALID_MFA_TOKEN') {
-                    stopCountdown();
-                    showError('Your verification session expired. Please sign in again.');
-                    setLoading(mfaBtn, mfaBtnText, mfaBtnIcon, false, 'Verify & Sign In');
-                    setTimeout(enterPasswordStep, 1500);
-                    return;
-                }
-                throw new Error(data.error || data.message || 'Verification failed.');
-            }
-
-            stopCountdown();
-            completeLogin(data.data);
-        } catch (err) {
-            showError(err.message || 'Verification failed.');
-            setLoading(mfaBtn, mfaBtnText, mfaBtnIcon, false, 'Verify & Sign In');
-        }
-    }
-
-    async function submitSetupCode(raw) {
-        setLoading(mfaBtn, mfaBtnText, mfaBtnIcon, true);
-
-        try {
-            const res = await fetch('/api/admin/mfa/verify-enrollment', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + setupToken
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify({ code: raw })
-            });
-            const data = await res.json().catch(() => ({}));
-
-            if (!res.ok || !data.success) {
-                throw new Error(data.error || 'Verification failed.');
-            }
-
-            clearSetupSecret();
-
-            if (data.session && data.session.token) {
-                setupSession = data.session;
-                showRecoveryCodes(data.recovery_codes || []);
-            } else {
-                showError('Setup completed, but no session was returned. Please sign in again.');
-                setTimeout(enterPasswordStep, 2000);
-            }
-        } catch (err) {
-            showError(err.message || 'Verification failed.');
-        } finally {
-            setLoading(mfaBtn, mfaBtnText, mfaBtnIcon, false, 'Verify & Sign In');
-        }
-    }
-
-    function showRecoveryCodes(codes) {
-        // Hide the input + actions, show the recovery codes.
-        mfaForm.style.display = 'none';
-        mfaTimer.style.display = 'none';
-        mfaActions.style.display = 'none';
-
-        // Render with DOM methods + textContent (never innerHTML).
-        recoveryGrid.innerHTML = '';
-        (Array.isArray(codes) ? codes : []).forEach(function (c) {
-            const el = document.createElement('code');
-            el.textContent = String(c);
-            recoveryGrid.appendChild(el);
+          }
+          tick();
         });
 
-        recoveryBlock.classList.add('show');
-        hideInfo();
-        showInfo('2FA is now enabled. Save your recovery codes before continuing.');
-    }
-
-    recoveryDoneBtn.addEventListener('click', () => {
-        if (setupSession) {
-            completeLogin(setupSession);
-        } else {
-            enterPasswordStep();
+        // ---------- Step switching ----------
+        function showStep(name) {
+          stepPassword.classList.toggle("active", name === "password");
+          stepMfa.classList.toggle("active", name !== "password");
         }
-    });
-
-    // ─── Finish login ───────────────────────────────────────
-    function completeLogin(payload) {
-        const data = payload || {};
-        const token = data.token;
-        const user = data.user;
-        const refreshToken = data.refreshToken;
-        const serverReturnTo = data.returnTo;
-
-        if (!token) {
-            showError('Server did not return an authentication token.');
-            return;
-        }
-
-        if (window.AdminSession && typeof window.AdminSession.save === 'function') {
+        function focusHeading(h) {
+          if (h) {
             try {
-                window.AdminSession.save(token, user, refreshToken);
-            } catch (e) {
-                showError('Could not persist session. Please try again.');
-                return;
-            }
-        } else {
-            localStorage.setItem('admin_sess', JSON.stringify({
-                token,
-                refreshToken: refreshToken || null,
-                user: user || null,
-                loggedAt: Date.now()
-            }));
+              h.focus();
+            } catch (_) {}
+          }
         }
 
-        let destination = '/admin/dashboard.html';
-        if (serverReturnTo) destination = safeReturnTo(serverReturnTo);
-        else if (RETURN_TO) destination = safeReturnTo(RETURN_TO);
+        function wipeRecoveryUi() {
+          recoveryCodes = [];
+          if (recoveryGrid) {
+            while (recoveryGrid.firstChild)
+              recoveryGrid.removeChild(recoveryGrid.firstChild);
+          }
+          if (recoverySaved) recoverySaved.checked = false;
+          if (recoveryDoneBtn) recoveryDoneBtn.disabled = true;
+          setText(recoveryStatus, "");
+          setHidden(recoveryBlock, true);
+        }
+        function clearSetupSecret() {
+          if (qrImg) {
+            qrImg.removeAttribute("src");
+          }
+          setText(qrSecret, "");
+          setHidden(qrPanel, true);
+          setupToken = null;
+        }
+        function wipeSecrets() {
+          mfaToken = null;
+          setupToken = null;
+          setupSession = null;
+          clearSetupSecret();
+          wipeRecoveryUi();
+          setVal(mfaCodeInput, "");
+        }
 
-        try {
-            const stored = sessionStorage.getItem('admin_return_url');
-            if (stored) {
-                const safeStored = safeReturnTo(stored);
-                if (safeStored !== '/admin/dashboard.html') destination = safeStored;
+        function applyCodeMode() {
+          var rec = usingRecovery;
+          setVal(mfaCodeInput, "");
+          mfaCodeInput.setAttribute("inputmode", rec ? "text" : "numeric");
+          mfaCodeInput.setAttribute("maxlength", rec ? "12" : "6");
+          mfaCodeInput.setAttribute(
+            "placeholder",
+            rec ? "XXXX-XXXX-XX" : "\u2022\u2022\u2022\u2022\u2022\u2022",
+          );
+          mfaCodeInput.setAttribute(
+            "autocapitalize",
+            rec ? "characters" : "off",
+          );
+          mfaCodeInput.setAttribute(
+            "autocomplete",
+            rec ? "off" : "one-time-code",
+          );
+          if (rec) mfaCodeInput.removeAttribute("pattern");
+          else mfaCodeInput.setAttribute("pattern", "[0-9]*");
+          mfaCodeInput.classList.toggle("recovery-mode", rec);
+          setText(mfaLabel, rec ? "Recovery code" : "Authentication code");
+          setText(
+            mfaHint,
+            rec
+              ? "Enter one of your saved recovery codes (format XXXX-XXXX-XX). Each code works once."
+              : mode === "setup"
+                ? "Enter the 6-digit code shown in your authenticator app."
+                : "Enter the 6-digit code from your authenticator app.",
+          );
+          setText(
+            mfaUseRecovery,
+            rec ? "Use authenticator code" : "Use recovery code",
+          );
+          mfaCodeInput.removeAttribute("aria-invalid");
+        }
+
+        function enterPasswordStep(opts) {
+          opts = opts || {};
+          stopTimer();
+          mode = "password";
+          usingRecovery = false;
+          wipeSecrets();
+          applyCodeMode();
+          setHidden(mfaForm, false);
+          setHidden(mfaActions, false);
+          setHidden(mfaBadge, false);
+          hideInfo();
+          setHidden(errorMessage, true);
+          clearInvalid();
+          showStep("password");
+          focusHeading(passwordHeading);
+          if (opts.error) showError(opts.error);
+          else if (opts.info) showInfo(opts.info);
+        }
+
+        function enterMfaStep(sources) {
+          mode = "mfa";
+          usingRecovery = false;
+          setText(mfaBadgeText, "Step 2 of 2");
+          setText(mfaTitleText, "Two-factor verification");
+          setText(mfaStepSub, "Confirm it is you to finish signing in.");
+          setHidden(qrPanel, true);
+          setHidden(recoveryBlock, true);
+          setHidden(mfaForm, false);
+          setHidden(mfaActions, false);
+          setHidden(mfaUseRecovery, false);
+          setHidden(mfaBadge, false);
+          setButtonLabel(mfaBtn, "Verify & sign in");
+          applyCodeMode();
+          hideInfo();
+          setHidden(errorMessage, true);
+          startDeadline(
+            deriveDeadline(sources, mfaToken, MFA_FALLBACK_SEC),
+            "mfa",
+          );
+          showStep("mfa");
+          focusHeading(mfaHeading);
+        }
+
+        function enterSetupStep(enrollment, setupDeadline) {
+          mode = "setup";
+          usingRecovery = false;
+          var e = enrollment || {};
+          setText(mfaBadgeText, "Set up 2FA");
+          setText(mfaTitleText, "Set up two-factor authentication");
+          setText(
+            mfaStepSub,
+            "Scan the QR code with your authenticator app, then enter the 6-digit code to continue.",
+          );
+          setHidden(mfaForm, false);
+          setHidden(mfaActions, false);
+          setHidden(mfaUseRecovery, true);
+          setHidden(mfaBadge, false);
+          setHidden(recoveryBlock, true);
+          setButtonLabel(mfaBtn, "Verify & continue");
+          var qr =
+            typeof e.qr_data_url === "string" &&
+            e.qr_data_url.indexOf("data:image/") === 0
+              ? e.qr_data_url
+              : "";
+          if (qrImg) {
+            if (qr) qrImg.setAttribute("src", qr);
+            else qrImg.removeAttribute("src");
+          }
+          setText(qrSecret, typeof e.secret === "string" ? e.secret : "");
+          setHidden(qrPanel, false);
+          applyCodeMode();
+          setHidden(errorMessage, true);
+          startDeadline(setupDeadline, "setup");
+          showStep("setup");
+          focusHeading(mfaHeading);
+        }
+
+        function showRecoveryCodes(codes) {
+          stopTimer();
+          mode = "recovery";
+          setHidden(mfaForm, true);
+          setHidden(mfaActions, true);
+          setHidden(mfaBadge, true);
+          setHidden(qrPanel, true);
+          setText(mfaTitleText, "Two-factor authentication enabled");
+          setText(mfaStepSub, "Save your recovery codes before you continue.");
+          recoveryCodes = (Array.isArray(codes) ? codes : []).map(function (c) {
+            return String(c);
+          });
+          while (recoveryGrid.firstChild)
+            recoveryGrid.removeChild(recoveryGrid.firstChild);
+          recoveryCodes.forEach(function (c) {
+            var el = document.createElement("code");
+            el.textContent = c;
+            recoveryGrid.appendChild(el);
+          });
+          var hasCodes = recoveryCodes.length > 0;
+          setHidden(recoveryCopyBtn, !hasCodes);
+          setHidden(recoveryDownloadBtn, !hasCodes);
+          setHidden(recoverySavedRow, !hasCodes);
+          if (recoverySaved) recoverySaved.checked = false;
+          if (recoveryDoneBtn) recoveryDoneBtn.disabled = hasCodes;
+          setText(
+            recoveryStatus,
+            hasCodes
+              ? ""
+              : "No recovery codes were returned. Contact a super admin if you need them.",
+          );
+          setHidden(recoveryBlock, false);
+          setHidden(errorMessage, true);
+          showInfo("Two-factor authentication is now enabled.");
+          focusHeading(mfaHeading);
+        }
+
+        // ---------- Recovery code tools ----------
+        function legacyCopy(text) {
+          var ta = document.createElement("textarea");
+          ta.value = text;
+          ta.setAttribute("readonly", "");
+          ta.className = "sr-copy";
+          document.body.appendChild(ta);
+          var ok = false;
+          try {
+            ta.focus();
+            ta.select();
+            try {
+              ta.setSelectionRange(0, text.length);
+            } catch (_) {}
+            ok = document.execCommand("copy");
+          } catch (_) {
+            ok = false;
+          }
+          document.body.removeChild(ta);
+          return ok;
+        }
+        function selectNode(node) {
+          try {
+            var range = document.createRange();
+            range.selectNodeContents(node);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+          } catch (_) {}
+        }
+        async function copyRecovery() {
+          var text = recoveryCodes.join("\n");
+          if (!text) return;
+          var ok = false;
+          try {
+            if (navigator.clipboard && window.isSecureContext) {
+              await navigator.clipboard.writeText(text);
+              ok = true;
             }
-        } catch (_) {}
-
-        redirectScheduled = true;
-        if (window.AdminSession && typeof window.AdminSession.redirectAfterLogin === 'function') {
-            setTimeout(() => window.AdminSession.redirectAfterLogin(), 150);
+          } catch (_) {
+            ok = false;
+          }
+          if (!ok) ok = legacyCopy(text);
+          if (!ok) selectNode(recoveryGrid);
+          setText(
+            recoveryStatus,
+            ok
+              ? "Codes copied to clipboard."
+              : "Copy failed. The codes are selected; copy them manually.",
+          );
+        }
+        function downloadRecovery() {
+          if (!recoveryCodes.length) return;
+          var content =
+            "MilesSpace admin recovery codes\nKeep these somewhere safe. Each code can be used once.\n\n" +
+            recoveryCodes.join("\n") +
+            "\n";
+          try {
+            var blob = new Blob([content], {
+              type: "text/plain;charset=utf-8",
+            });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement("a");
+            a.href = url;
+            a.download = "milesspace-recovery-codes.txt";
+            a.rel = "noopener";
+            a.hidden = true;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(function () {
+              try {
+                URL.revokeObjectURL(url);
+              } catch (_) {}
+            }, 4000);
+            setText(recoveryStatus, "Download started.");
             return;
+          } catch (_) {}
+          try {
+            var w = window.open(
+              "data:text/plain;charset=utf-8," + encodeURIComponent(content),
+              "_blank",
+            );
+            if (!w) throw new Error("blocked");
+            setText(recoveryStatus, "Opened in a new tab. Save it from there.");
+          } catch (_) {
+            selectNode(recoveryGrid);
+            setText(
+              recoveryStatus,
+              "Download not available. The codes are selected; copy them manually.",
+            );
+          }
         }
-        window.location.replace(destination);
-    }
+        on(recoveryCopyBtn, "click", copyRecovery);
+        on(recoveryDownloadBtn, "click", downloadRecovery);
+        on(recoverySaved, "change", function () {
+          if (recoveryDoneBtn)
+            recoveryDoneBtn.disabled = !recoverySaved.checked;
+        });
+        on(recoveryDoneBtn, "click", function () {
+          if (redirecting || (recoveryDoneBtn && recoveryDoneBtn.disabled))
+            return;
+          var s = setupSession;
+          setupSession = null;
+          wipeRecoveryUi();
+          if (s) completeLogin(s);
+          else enterPasswordStep();
+        });
 
-    emailInput.addEventListener('input', hideError);
-    passwordInput.addEventListener('input', hideError);
+        // ---------- Redirect / session ----------
+        function destinationFor(serverReturnTo) {
+          return sanitizeReturnTo(serverReturnTo) || RETURN_TO || DEFAULT_DEST;
+        }
+        function redirectToApp(dest, delay) {
+          redirecting = true;
+          var AS = window.AdminSession;
+          if (AS && typeof AS.redirectAfterLogin === "function") {
+            // Hand the validated target to AdminSession for the redirect only.
+            if (dest && dest !== DEFAULT_DEST) ssSet(RETURN_KEY, dest);
+            setTimeout(function () {
+              try {
+                AS.redirectAfterLogin();
+              } catch (_) {
+                window.location.replace(dest || DEFAULT_DEST);
+              }
+            }, delay || 0);
+            return;
+          }
+          window.location.replace(dest || DEFAULT_DEST);
+        }
 
-    // ─── If already logged in, skip the form ───────────────
-    setTimeout(() => {
-        try {
-            if (!window.AdminSession) return;
-            if (typeof window.AdminSession.isValid === 'function' && window.AdminSession.isValid()) {
-                redirectScheduled = true;
-                if (typeof window.AdminSession.redirectAfterLogin === 'function') {
-                    window.AdminSession.redirectAfterLogin();
-                } else {
-                    window.location.replace(RETURN_TO || '/admin/dashboard.html');
-                }
+        function completeLogin(payload) {
+          var d = payload || {};
+          var token = d.token,
+            user = d.user,
+            refreshToken = d.refreshToken;
+          if (!token) {
+            enterPasswordStep({
+              error: "Sign-in could not be completed. Please try again.",
+            });
+            return;
+          }
+          var saved = false;
+          try {
+            if (
+              window.AdminSession &&
+              typeof window.AdminSession.save === "function"
+            ) {
+              window.AdminSession.save(token, user, refreshToken);
+              saved = true;
+            } else {
+              saved = lsSet(
+                SESSION_KEY,
+                JSON.stringify({
+                  token: token,
+                  refreshToken: refreshToken || null,
+                  user: user || null,
+                  loggedAt: Date.now(),
+                }),
+              );
             }
-        } catch (_) {}
-    }, 350);
-})();
-</script>
-</body>
+          } catch (_) {
+            saved = false;
+          }
+          if (!saved) {
+            enterPasswordStep({
+              error: "Could not save your session. Please sign in again.",
+            });
+            return;
+          }
+          var dest = destinationFor(d.returnTo);
+          redirecting = true;
+          stopTimer();
+          setVal(passwordInput, "");
+          wipeSecrets();
+          token = null;
+          d = null;
+          payload = null;
+          if (mfaBtn && mode !== "recovery")
+            setLoading(mfaBtn, true, "Signing in\u2026");
+          if (mode === "password")
+            setLoading(loginBtn, true, "Signing in\u2026");
+          if (mode === "recovery" && recoveryDoneBtn) {
+            recoveryDoneBtn.disabled = true;
+          }
+
+          // FIX: re-write the return URL so AdminSession.redirectAfterLogin()
+          // can find it. It was deleted by readReturnToOnce() at page load.
+          if (dest && dest !== DEFAULT_DEST) {
+            try {
+              sessionStorage.setItem("admin_return_url", dest);
+            } catch (_) {}
+          }
+
+          redirectToApp(dest, 150);
+        }
+
+        // ---------- Password step ----------
+        function rememberEmailNow(email) {
+          if (rememberEmail && rememberEmail.checked) lsSet(EMAIL_KEY, email);
+          else lsRemove(EMAIL_KEY);
+        }
+
+        function onPasswordFailure(res, data) {
+          var s = res.status;
+          if (s === 429) {
+            startLockout(parseRetryAfter(res));
+            return;
+          }
+          if (
+            s === 423 ||
+            s === 403 ||
+            /LOCK/i.test(String((data && data.code) || ""))
+          ) {
+            showError(
+              "This account is temporarily locked. Contact a super admin.",
+            );
+            return;
+          }
+          if (s >= 500) {
+            showError("Something went wrong. Please try again.");
+            return;
+          }
+          showError("Invalid email or password.");
+        }
+
+        async function beginSetup(d, top) {
+          var tok = d.setup_token;
+          if (!tok) {
+            showError("Something went wrong. Please try again.");
+            return;
+          }
+          setupToken = tok;
+          var setupDeadline = deriveDeadline([d, top], tok, null);
+          var r = await request("/api/admin/mfa/enroll", {
+            headers: { Authorization: "Bearer " + tok },
+            body: {},
+          });
+          if (r.res.status === 401) {
+            setupToken = null;
+            showError("Your setup session expired. Sign in again.");
+            return;
+          }
+          if (!r.res.ok || !r.data.success || !r.data.enrollment) {
+            setupToken = null;
+            showError(
+              r.res.status >= 500
+                ? "Something went wrong. Please try again."
+                : "Could not start 2FA setup. Please try again.",
+            );
+            return;
+          }
+          enterSetupStep(r.data.enrollment, setupDeadline);
+          showInfo(
+            "Two-factor authentication is required for admin accounts. Scan the QR code to continue.",
+          );
+        }
+
+        on(loginForm, "submit", async function (e) {
+          e.preventDefault();
+          if (inFlight.login || redirecting || lockoutActive()) return;
+          hideError();
+          hideInfo();
+          clearInvalid();
+          var email = getVal(emailInput).trim();
+          var password = getVal(passwordInput);
+          if (!email) {
+            fieldError(emailInput, "Enter your email address.");
+            return;
+          }
+          if (!EMAIL_RE.test(email)) {
+            fieldError(emailInput, "Enter a valid email address.");
+            return;
+          }
+          if (!password) {
+            fieldError(passwordInput, "Enter your password.");
+            return;
+          }
+
+          inFlight.login = true;
+          setLoading(loginBtn, true, "Signing in\u2026");
+          try {
+            var body = { email: email, password: password };
+            if (RETURN_TO) body.returnTo = RETURN_TO;
+            var r = await request("/api/admin/login", { body: body });
+            if (!r.res.ok || !r.data.success) {
+              onPasswordFailure(r.res, r.data);
+              return;
+            }
+
+            var d = r.data.data || {};
+            rememberEmailNow(email);
+            setVal(passwordInput, "");
+            setHidden(capsHint, true);
+
+            if (d.setup_required) {
+              await beginSetup(d, r.data);
+              return;
+            }
+            if (d.mfa_required) {
+              if (!d.mfa_token) {
+                showError("Something went wrong. Please try again.");
+                return;
+              }
+              mfaToken = d.mfa_token;
+              enterMfaStep([d, r.data]);
+              return;
+            }
+            completeLogin(d);
+          } catch (err) {
+            if (mode === "password") {
+              setupToken = null;
+              mfaToken = null;
+            }
+            showError(netMsg(err));
+          } finally {
+            inFlight.login = false;
+            if (!redirecting) setLoading(loginBtn, false);
+          }
+        });
+
+        on(emailInput, "input", function () {
+          hideError();
+          emailInput.removeAttribute("aria-invalid");
+        });
+        on(passwordInput, "input", function () {
+          hideError();
+          passwordInput.removeAttribute("aria-invalid");
+        });
+
+        // Password visibility
+        on(passwordToggle, "click", function () {
+          var show = passwordInput.type === "password";
+          passwordInput.type = show ? "text" : "password";
+          passwordToggle.setAttribute("aria-pressed", show ? "true" : "false");
+          passwordToggle.setAttribute(
+            "aria-label",
+            show ? "Hide password" : "Show password",
+          );
+          if (passwordToggleIcon) {
+            passwordToggleIcon.classList.toggle("fa-eye", !show);
+            passwordToggleIcon.classList.toggle("fa-eye-slash", show);
+          }
+          setText(passwordToggleText, show ? "Hide" : "Show");
+        });
+
+        // Caps Lock warning
+        function checkCaps(e) {
+          var on_ = false;
+          try {
+            on_ = !!(e && e.getModifierState && e.getModifierState("CapsLock"));
+          } catch (_) {}
+          setHidden(
+            capsHint,
+            !(on_ && document.activeElement === passwordInput),
+          );
+        }
+        on(passwordInput, "keydown", checkCaps);
+        on(passwordInput, "keyup", checkCaps);
+        on(passwordInput, "blur", function () {
+          setHidden(capsHint, true);
+        });
+
+        // Remember email
+        on(rememberEmail, "change", function () {
+          if (!rememberEmail.checked) lsRemove(EMAIL_KEY);
+        });
+
+        // ---------- MFA / setup step ----------
+        function formatRecovery(v) {
+          var s = String(v || "")
+            .toUpperCase()
+            .replace(/[^A-Z0-9]/g, "")
+            .slice(0, 10);
+          var parts = [s.slice(0, 4), s.slice(4, 8), s.slice(8, 10)].filter(
+            function (p) {
+              return p.length;
+            },
+          );
+          return parts.join("-");
+        }
+        function normaliseCode(v) {
+          return mode === "mfa" && usingRecovery
+            ? formatRecovery(v)
+            : String(v || "")
+                .replace(/\D/g, "")
+                .slice(0, 6);
+        }
+        function handleCodeChange() {
+          mfaCodeInput.value = normaliseCode(mfaCodeInput.value);
+          mfaCodeInput.removeAttribute("aria-invalid");
+          hideError();
+          if (
+            !usingRecovery &&
+            /^\d{6}$/.test(mfaCodeInput.value) &&
+            !inFlight.mfa &&
+            !redirecting &&
+            (mode === "mfa" || mode === "setup")
+          ) {
+            submitMfa();
+          }
+        }
+        on(mfaCodeInput, "input", handleCodeChange);
+        on(mfaCodeInput, "paste", function (e) {
+          var text = "";
+          try {
+            text = (e.clipboardData || window.clipboardData).getData("text");
+          } catch (_) {}
+          if (!text) return;
+          e.preventDefault();
+          mfaCodeInput.value = normaliseCode(text);
+          handleCodeChange();
+        });
+
+        on(mfaUseRecovery, "click", function () {
+          if (mode !== "mfa" || inFlight.mfa) return;
+          usingRecovery = !usingRecovery;
+          applyCodeMode();
+          hideError();
+          try {
+            mfaCodeInput.focus();
+          } catch (_) {}
+        });
+        on(mfaBack, "click", function () {
+          if (inFlight.mfa) return;
+          enterPasswordStep();
+        });
+
+        function mfaFailureMessage(res) {
+          var s = res.status;
+          if (s === 429)
+            return "Too many attempts. Please wait a moment and try again.";
+          if (s === 423 || s === 403)
+            return "This account is temporarily locked. Contact a super admin.";
+          if (s >= 500) return "Something went wrong. Please try again.";
+          return "Incorrect code. Try again.";
+        }
+        function rejectCode() {
+          setVal(mfaCodeInput, "");
+          try {
+            mfaCodeInput.focus();
+          } catch (_) {}
+        }
+
+        async function submitMfa() {
+          if (inFlight.mfa || redirecting) return;
+          hideError();
+          var raw = getVal(mfaCodeInput).trim();
+          if (!raw) {
+            fieldError(
+              mfaCodeInput,
+              mode === "setup"
+                ? "Enter the 6-digit code from your app."
+                : "Enter your code.",
+            );
+            return;
+          }
+          if (mode === "setup" || !usingRecovery) {
+            if (!/^\d{6}$/.test(raw)) {
+              fieldError(mfaCodeInput, "The code must be 6 digits.");
+              return;
+            }
+          } else if (!RECOVERY_RE.test(raw)) {
+            fieldError(mfaCodeInput, "Recovery codes look like XXXX-XXXX-XX.");
+            return;
+          }
+
+          inFlight.mfa = true;
+          setLoading(mfaBtn, true, "Verifying\u2026");
+          setNavDisabled(true);
+          try {
+            if (mode === "setup") await submitSetupCode(raw);
+            else if (mode === "mfa") await submitLoginCode(raw);
+          } catch (err) {
+            showError(netMsg(err));
+          } finally {
+            inFlight.mfa = false;
+            if (!redirecting) setLoading(mfaBtn, false);
+            setNavDisabled(false);
+          }
+        }
+
+        async function submitLoginCode(raw) {
+          var body = usingRecovery
+            ? { mfa_token: mfaToken, recovery_code: raw }
+            : { mfa_token: mfaToken, code: raw };
+          if (RETURN_TO) body.returnTo = RETURN_TO;
+          var r = await request("/api/admin/login/mfa", { body: body });
+          if (!r.res.ok || !r.data.success) {
+            if (r.data.code === "INVALID_MFA_TOKEN") {
+              enterPasswordStep({
+                error:
+                  "Your verification session expired. Please sign in again.",
+              });
+              return;
+            }
+            showError(mfaFailureMessage(r.res));
+            if (r.res.status < 500 && r.res.status !== 429) rejectCode();
+            return;
+          }
+          completeLogin(r.data.data);
+        }
+
+        async function submitSetupCode(raw) {
+          var r = await request("/api/admin/mfa/verify-enrollment", {
+            headers: { Authorization: "Bearer " + setupToken },
+            body: { code: raw },
+          });
+          if (r.res.status === 401) {
+            enterPasswordStep({
+              error: "Your setup session expired. Sign in again.",
+            });
+            return;
+          }
+          if (!r.res.ok || !r.data.success) {
+            showError(mfaFailureMessage(r.res));
+            if (r.res.status < 500 && r.res.status !== 429) rejectCode();
+            return;
+          }
+          var session = r.data.session;
+          var codes = r.data.recovery_codes;
+          clearSetupSecret();
+          setVal(mfaCodeInput, "");
+          if (session && session.token) {
+            setupSession = session;
+            showRecoveryCodes(codes);
+          } else {
+            enterPasswordStep({
+              error:
+                "Setup completed, but no session was returned. Please sign in again.",
+            });
+          }
+        }
+
+        on(mfaForm, "submit", function (e) {
+          e.preventDefault();
+          submitMfa();
+        });
+
+        // ---------- Input niceties ----------
+        document.querySelectorAll(".input-wrap").forEach(function (w) {
+          on(w, "click", function (e) {
+            if (e.target && e.target.closest && e.target.closest("button"))
+              return;
+            var inp = w.querySelector("input");
+            if (inp && e.target !== inp) {
+              try {
+                inp.focus();
+              } catch (_) {}
+            }
+          });
+        });
+        on(document, "focusin", function (e) {
+          var t = e.target;
+          if (
+            FINE ||
+            !t ||
+            !t.matches ||
+            !t.matches("input:not([type=checkbox])")
+          )
+            return;
+          setTimeout(function () {
+            try {
+              t.scrollIntoView({
+                block: "center",
+                behavior: REDUCED ? "auto" : "smooth",
+              });
+            } catch (_) {}
+          }, 280);
+        });
+
+        // ---------- Logo fallback chain ----------
+        function swapForMonogram(img) {
+          try {
+            var NS = "http://www.w3.org/2000/svg";
+            var svg = document.createElementNS(NS, "svg");
+            svg.setAttribute("viewBox", "0 0 72 72");
+            svg.setAttribute("width", "72");
+            svg.setAttribute("height", "72");
+            var label = img.getAttribute("alt");
+            if (label) {
+              svg.setAttribute("role", "img");
+              svg.setAttribute("aria-label", label);
+            } else svg.setAttribute("aria-hidden", "true");
+            var rect = document.createElementNS(NS, "rect");
+            rect.setAttribute("width", "72");
+            rect.setAttribute("height", "72");
+            rect.setAttribute("rx", "16");
+            rect.setAttribute("class", "mono-bg");
+            var text = document.createElementNS(NS, "text");
+            text.setAttribute("x", "36");
+            text.setAttribute("y", "51");
+            text.setAttribute("text-anchor", "middle");
+            text.setAttribute("font-size", "42");
+            text.setAttribute("class", "mono-fg");
+            text.textContent = "M";
+            svg.appendChild(rect);
+            svg.appendChild(text);
+            if (img.parentNode) img.parentNode.replaceChild(svg, img);
+          } catch (_) {}
+        }
+        function initLogos() {
+          document.querySelectorAll("img.brand-logo").forEach(function (img) {
+            var stage = 0;
+            function fallback() {
+              stage += 1;
+              if (stage === 1) img.src = "../images/miles.png";
+              else if (stage === 2) swapForMonogram(img);
+            }
+            on(img, "error", function () {
+              if (stage < 2) fallback();
+            });
+            if (
+              img.complete &&
+              img.naturalWidth === 0 &&
+              img.getAttribute("src")
+            )
+              fallback();
+          });
+        }
+        initLogos();
+
+        // ---------- Font Awesome fallback detection ----------
+        on(window, "load", function () {
+          try {
+            var probe = document.createElement("i");
+            probe.className = "fas fa-lock sr-only";
+            document.body.appendChild(probe);
+            var ff = window.getComputedStyle(probe).fontFamily || "";
+            document.body.removeChild(probe);
+            if (!/Font Awesome/i.test(ff))
+              document.documentElement.classList.add("no-fa");
+          } catch (_) {}
+        });
+
+        // ---------- Existing session check (no blind redirects) ----------
+        async function verifyExistingSession() {
+          var valid = false;
+          try {
+            var AS = window.AdminSession;
+            valid =
+              AS && typeof AS.isValid === "function"
+                ? !!AS.isValid()
+                : localSessionLooksValid();
+          } catch (_) {
+            valid = false;
+          }
+          if (!valid) return;
+          try {
+            var res = null;
+            var AS2 = window.AdminSession;
+            if (AS2 && typeof AS2.fetch === "function") {
+              res = await Promise.race([
+                AS2.fetch("/api/admin/me"),
+                new Promise(function (_, rej) {
+                  setTimeout(function () {
+                    rej(new Error("timeout"));
+                  }, 10000);
+                }),
+              ]);
+            } else {
+              var token = readStoredToken();
+              if (!token) return;
+              var ctrl =
+                typeof AbortController !== "undefined"
+                  ? new AbortController()
+                  : null;
+              var t = setTimeout(function () {
+                if (ctrl) ctrl.abort();
+              }, 10000);
+              try {
+                res = await fetch("/api/admin/me", {
+                  method: "GET",
+                  headers: { Authorization: "Bearer " + token },
+                  credentials: "same-origin",
+                  cache: "no-store",
+                  signal: ctrl ? ctrl.signal : undefined,
+                });
+              } finally {
+                clearTimeout(t);
+              }
+            }
+            if (!res) return;
+            if (res.status === 200) {
+              if (
+                inFlight.login ||
+                inFlight.mfa ||
+                mode !== "password" ||
+                redirecting
+              )
+                return;
+              redirectToApp(RETURN_TO || DEFAULT_DEST, 0);
+            } else if (res.status === 401 || res.status === 403) {
+              lsRemove(SESSION_KEY);
+            }
+          } catch (_) {
+            /* network problem: stay on the login page */
+          }
+        }
+
+        // ---------- Init ----------
+        (function init() {
+          updateOffline();
+          try {
+            var reason = new URLSearchParams(window.location.search).get(
+              "reason",
+            );
+            if (reason === "expired")
+              showInfo("Your session expired. Please sign in again.");
+            else if (reason === "signed_out")
+              showInfo("You have been signed out.");
+          } catch (_) {}
+          var remembered = lsGet(EMAIL_KEY);
+          if (remembered && rememberEmail) {
+            setVal(emailInput, remembered);
+            rememberEmail.checked = true;
+          }
+          if (FINE) {
+            try {
+              (remembered ? passwordInput : emailInput).focus();
+            } catch (_) {}
+          }
+          verifyExistingSession();
+        })();
+      })();
+    </script>
+  </body>
 </html>

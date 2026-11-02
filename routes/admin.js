@@ -21,6 +21,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
+const { adminAuth } = require('../middleware/adminAuth');
 const { supabase, supabaseAdmin, withRetry } = require('../db/supabase');
 const totp = require('../services/totpService');
 const mfaSvc = require('../services/adminMfaService');
@@ -712,6 +713,78 @@ router.post('/logout', async function (req, res) {
     } catch (err) {
         console.error('[ADMIN LOGOUT] unexpected error:', err);
         return res.json({ success: true, message: 'Logged out.' });
+    }
+});
+
+// In routes/admin.js — add alongside the other routes, before module.exports.
+
+router.post('/auth/step-up', adminAuth, async function (req, res) {
+    setNoStore(res);
+    try {
+        const adminId = req.adminContext?.id;
+        const sessionId = req.adminContext?.sessionId;
+        if (!adminId || !sessionId) {
+            return res.status(401).json({ success: false, code: 'AUTH_REQUIRED', error: 'Authentication required.' });
+        }
+
+        const password = String(req.body?.password || '');
+        const code = String(req.body?.code || '');
+        if (!password && !code) {
+            return res.status(400).json({ success: false, code: 'STEP_UP_CREDENTIALS_REQUIRED', error: 'Password or 2FA code required.' });
+        }
+
+        // Load the admin's email + mfa secret so we can verify
+        const { data: profile, error: lookupErr } = await supabaseAdmin
+            .from('profiles')
+            .select('id, email, mfa_secret_encrypted')
+            .eq('id', adminId)
+            .maybeSingle();
+        if (lookupErr || !profile) {
+            return res.status(404).json({ success: false, code: 'USER_NOT_FOUND', error: 'Account not found.' });
+        }
+
+        let valid = false;
+        if (password) {
+            const r = await verifyAdminCredentials(profile.email, password);
+            valid = !!r.ok;
+        } else if (code) {
+            valid = profile.mfa_secret_encrypted
+                ? totp.verifyCode({ secretEncrypted: profile.mfa_secret_encrypted, code })
+                : false;
+        }
+
+        if (!valid) {
+            return res.status(401).json({ success: false, code: 'STEP_UP_INVALID', error: 'Invalid password or code.' });
+        }
+
+        // Stamp the current session as step-up verified
+        const now = new Date().toISOString();
+        const { error: stampErr } = await supabaseAdmin
+            .from('user_sessions')
+            .update({
+                mfa_verified: true,
+                mfa_verified_at: now,
+                mfa_method: password ? 'password' : 'totp'
+            })
+            .eq('session_id', sessionId)
+            .eq('user_id', adminId);
+        if (stampErr) {
+            console.error('[STEP-UP] stamp failed:', stampErr.message);
+            return res.status(500).json({ success: false, code: 'STEP_UP_FAILED', error: 'Verification failed.' });
+        }
+
+        // Return a dummy token so the frontend's `X-Step-Up-Token` header
+        // has something to attach. The middleware ignores it — the DB
+        // flag is what matters.
+        const token = require('crypto').randomBytes(16).toString('hex');
+
+        return res.json({
+            success: true,
+            data: { step_up_token: token, expires_in: 300 }
+        });
+    } catch (err) {
+        console.error('[STEP-UP] unexpected:', err);
+        return res.status(500).json({ success: false, code: 'STEP_UP_FAILED', error: 'Verification failed.' });
     }
 });
 

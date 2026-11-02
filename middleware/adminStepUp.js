@@ -2,8 +2,17 @@
 // ─────────────────────────────────────────────────────────────────
 // Step-up authentication for sensitive admin operations.
 //
-// Reads the CURRENT SESSION's MFA verification state from
-// user_sessions and enforces a maximum age.
+// Two data sources, in this order:
+//
+//   1. If adminAuth middleware ran earlier in the chain, it has
+//      already read user_sessions and attached:
+//         req.sessionMfaVerified
+//         req.sessionMfaVerifiedAt
+//         req.sessionMfaMethod
+//      We use those directly — no second DB round-trip.
+//
+//   2. If those are undefined (adminAuth not on this route, or an
+//      older code path), fall back to reading user_sessions here.
 //
 // Exports:
 //   requireStepUpAuth({ maxAgeSeconds })  — Express middleware
@@ -29,13 +38,49 @@ function requireStepUpAuth(options = {}) {
     return async function adminStepUpMiddleware(req, res, next) {
         try {
             const admin = req.adminContext;
-            const sessionId = admin?.sessionId || req.user?.session_id;
 
             if (!admin?.id) {
                 return sendStepUpError(res, 401, 'AUTH_REQUIRED', 'Authentication required.');
             }
+
+            // ─── NEW: use adminAuth's attached values ────────────────
+            // adminAuth already read user_sessions and set these. If
+            // they are present (defined), we skip the DB read.
+            if (req.sessionMfaVerified !== undefined) {
+                if (!req.sessionMfaVerified || !req.sessionMfaVerifiedAt) {
+                    return sendStepUpError(res, 403, 'MFA_REQUIRED',
+                        'Additional verification required to perform this action.',
+                        { step_up_endpoint: '/api/admin/auth/step-up' });
+                }
+                const ageSeconds = (Date.now() - new Date(req.sessionMfaVerifiedAt).getTime()) / 1000;
+                if (ageSeconds > maxAgeSeconds) {
+                    return sendStepUpError(res, 403, 'STEP_UP_EXPIRED',
+                        'Your verification has expired. Please verify again.',
+                        {
+                            step_up_endpoint: '/api/admin/auth/step-up',
+                            max_age_seconds: maxAgeSeconds,
+                            age_seconds: Math.floor(ageSeconds)
+                        });
+                }
+                req.stepUp = {
+                    verified: true,
+                    verifiedAt: req.sessionMfaVerifiedAt,
+                    ageSeconds: Math.floor(ageSeconds),
+                    maxAgeSeconds
+                };
+                return next();
+            }
+            // ────────────────────────────────────────────────────────
+
+            // ─── Fallback: read user_sessions directly ──────────────
+            // This path runs only when adminAuth did not attach the
+            // fields (e.g. this middleware is mounted on a route that
+            // does not go through adminAuth first — should not happen
+            // in practice, but kept for safety).
+            const sessionId = admin?.sessionId || req.user?.session_id;
             if (!sessionId) {
-                return sendStepUpError(res, 401, 'INVALID_SESSION', 'Your session is missing an identifier. Please sign in again.');
+                return sendStepUpError(res, 401, 'INVALID_SESSION',
+                    'Your session is missing an identifier. Please sign in again.');
             }
 
             let sessionRow, sessionErr;
@@ -77,14 +122,14 @@ function requireStepUpAuth(options = {}) {
             if (!sessionRow.mfa_verified || !sessionRow.mfa_verified_at) {
                 return sendStepUpError(res, 403, 'MFA_REQUIRED',
                     'Additional verification required to perform this action.',
-                    { step_up_endpoint: '/api/admin/step-up/verify' });
+                    { step_up_endpoint: '/api/admin/auth/step-up' });
             }
             const ageSeconds = (Date.now() - new Date(sessionRow.mfa_verified_at).getTime()) / 1000;
             if (ageSeconds > maxAgeSeconds) {
                 return sendStepUpError(res, 403, 'STEP_UP_EXPIRED',
                     'Your verification has expired. Please verify again.',
                     {
-                        step_up_endpoint: '/api/admin/step-up/verify',
+                        step_up_endpoint: '/api/admin/auth/step-up',
                         max_age_seconds: maxAgeSeconds,
                         age_seconds: Math.floor(ageSeconds)
                     });
@@ -127,4 +172,9 @@ async function assertStepUp({ sessionId, userId, maxAgeSeconds = DEFAULT_MAX_AGE
     return { verifiedAt: data.mfa_verified_at, ageSeconds: Math.floor(age) };
 }
 
-module.exports = { requireStepUpAuth, assertStepUp, DEFAULT_MAX_AGE_SECONDS };
+module.exports = {
+    requireStepUpAuth,
+    requireStepUp: requireStepUpAuth,   // alias so userRoutes.js's import works
+    assertStepUp,
+    DEFAULT_MAX_AGE_SECONDS
+};

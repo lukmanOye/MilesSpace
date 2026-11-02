@@ -447,8 +447,8 @@ async function refreshAdminToken() {
                 if (refreshed) {
                     token = getAdminToken();
                 } else if (timeLeft <= 0) {
-                    clearAdminSession();
                     saveReturnUrl();
+                    clearAdminSession();
                     redirectToLogin();
                     throw new Error('Admin session expired');
                 }
@@ -473,11 +473,34 @@ async function refreshAdminToken() {
 
         // 401 → not authenticated. Log out. Do NOT clear on 403.
         if (response.status === 401) {
-            clearAdminSession();
-            saveReturnUrl();
-            redirectToLogin();
-            throw new Error('Admin session expired');
-        }
+    // Do not log out on the first 401. Re-verify the session against
+    // /api/admin/session first. If that succeeds, the 401 came from a
+    // route or backend that had a transient problem — do not clear the
+    // session. If /api/admin/session also returns 401, THEN log out.
+    const stillValid = await verifyAdminSession();
+    if (!stillValid) {
+        // verifyAdminSession() itself handles clear + redirect on fatal
+        // 401 codes (SESSION_REVOKED, SESSION_EXPIRED, etc.). Nothing
+        // more to do here.
+        throw new Error('Admin session expired');
+    }
+
+    // Session is still alive. Refresh the token if we can, then retry
+    // the original request once.
+    const refreshed = await refreshAdminToken();
+    if (refreshed) {
+        const newToken = getAdminToken();
+        const retryHeaders = Object.assign({}, headers, { 'Authorization': `Bearer ${newToken}` });
+        return fetch(url, Object.assign({}, options, { headers: retryHeaders, cache: 'no-store' }));
+    }
+
+    // No refresh available — surface the original 401 to the caller
+    // without clearing the session.
+    const err = new Error('Request failed with 401');
+    err.code = 'REQUEST_UNAUTHORIZED';
+    err.status = 401;
+    throw err;
+}
 
         // 403 → authenticated but unauthorized. Surface but do not log out.
         if (response.status === 403) {

@@ -221,6 +221,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
+const adminRolesRouter = require('./routes/adminRoles');
+
 
 // ─── ADMIN AUTH ROUTES ───────────────────────────────────────────
 const adminAuthRoutes = require('./routes/admin');
@@ -232,7 +234,7 @@ const { adminApiLimiter, adminLoginLimiter } = require('./middleware/adminRateLi
 app.use('/api/admin/login', adminLoginLimiter);
 app.use('/api/admin', adminApiLimiter);
 console.log('✅ Admin rate limiting enabled');
-
+app.use('/api/admin', adminRolesRouter);     // NEW: roles
 // ═══════════════════════════════════════════════════════════════════
 //  ROUTE LOADER HELPERS
 // ═══════════════════════════════════════════════════════════════════
