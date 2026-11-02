@@ -852,9 +852,50 @@ io.use(async (socket, next) => {
         socket.userAvatar = profile.avatar_url || null;
         socket.sessionId = decoded.sid || null;
 
+        // ── Support-layer context ─────────────────────────────
+        // adminAuth.resolvePermissionsForUser() gives us the same
+        // ctx shape buildAdminContext() produces, so anything that
+        // consumes req.adminContext also consumes socket.adminCtx.
+        //
+        // Customer sockets: userType='user', adminCtx=null.
+        // Admin sockets: userType='admin', adminCtx=ctx (permissions
+        // resolved once here; revalidated every 5 min by the
+        // support socket service).
+        //
+        // We run this for EVERY socket, not just admins, because
+        // supportSession.authContext needs to know which side this
+        // socket is on for support events (ticket access checks
+        // branch on it).
+        try {
+            const adminAuth = require('./middleware/adminAuth');
+            if (typeof adminAuth.resolvePermissionsForUser === 'function') {
+                const resolved = await adminAuth.resolvePermissionsForUser(
+                    profile.id,
+                    decoded.sid || null
+                );
+                if (resolved.ok) {
+                    socket.userType = 'admin';
+                    socket.adminCtx = resolved.ctx;
+                } else {
+                    // Not an admin (or session revoked). Treat as a
+                    // customer socket. Support events will still
+                    // work for the user's own tickets.
+                    socket.userType = 'user';
+                    socket.adminCtx = null;
+                }
+            } else {
+                socket.userType = 'user';
+                socket.adminCtx = null;
+            }
+        } catch (e) {
+            console.warn('[SOCKET AUTH] resolvePermissionsForUser failed:', e.message);
+            socket.userType = 'user';
+            socket.adminCtx = null;
+        }
+
         next();
     } catch (error) {
-        console.error('❌ Socket auth error:', error.message);
+        console.error('[SOCKET AUTH] error:', error.message);
         return next(new Error('Invalid authentication'));
     }
 });
@@ -877,11 +918,29 @@ io.on('connection', (socket) => {
 
     io.emit('presence:update', presenceManager.getOnlineUsers());
 
-    socket.join(`user:${userId}`);
+        socket.join(`user:${userId}`);
 
+    // ── Role-based room joins ────────────────────────────────
+    // `admins` is the legacy presence room — admin OR super_admin.
+    // `support:admins` is the support-wide room — anyone with
+    // SUPPORT_READ via their resolved permissions. Both are kept
+    // because presence already broadcasts to `admins` and the
+    // support UI listens on `support:admins` specifically.
     if (userRole === 'admin' || userRole === 'super_admin') {
         socket.join('admins');
-        console.log(`👑 Admin ${userName} joined admin room`);
+        console.log(`Admin ${userName} joined admin room`);
+    }
+
+    try {
+        const { can, PERMISSIONS } = require('./middleware/adminAuth');
+        if (socket.userType === 'admin'
+            && socket.adminCtx
+            && can(socket.adminCtx, PERMISSIONS.SUPPORT_READ)) {
+            socket.join('support:admins');
+            console.log(`Support agent ${userName} joined support:admins room`);
+        }
+    } catch (e) {
+        console.warn('[SOCKET] support:admins join failed:', e.message);
     }
 
     socket.on('page:change', (data) => {
@@ -928,6 +987,20 @@ io.on('connection', (socket) => {
 });
 
 console.log('✅ Socket.IO configured with presence manager');
+// ─── Support socket service ─────────────────────────────────────
+// Mounts the realtime support layer and exposes it on app.locals
+// so supportRoutes.js can call emitNewMessage / emitTicketUpdate.
+// Without this block, the page shows "Live" but no support events
+// fire, and no polling runs — new messages go silent.
+try {
+    const SupportSocketService = require('./services/supportSocketService');
+    app.locals.supportSocketService = new SupportSocketService(io);
+    console.log('✅ Support socket service mounted');
+} catch (e) {
+    console.warn('⚠️ Support socket service unavailable — support desk will be polling-only:', e.message);
+    app.locals.supportSocketService = null;
+}
+
 
 // ═══════════════════════════════════════════════════════════════════
 //  START SERVER

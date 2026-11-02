@@ -704,6 +704,141 @@ async function buildAdminContext(req, requiredPermission, expectedType = 'admin'
 
     return req.adminContext;
 }
+// ─── Socket-context resolver ───────────────────────────────────
+// Used by server.js `io.use` to build an admin context for a
+// socket handshake. Same logic as buildAdminContext, minus the
+// req/res plumbing. Returns { ok: true, ctx } or { ok: false,
+// code, message }. Never throws — callers disconnect the socket
+// on !ok.
+//
+// The returned ctx has the exact shape buildAdminContext produces
+// (id, email, username, role, isSuperAdmin, permissions, sessionId,
+// authType: 'admin'), so anything that consumes req.adminContext
+// also consumes socket.adminCtx without modification.
+async function resolvePermissionsForUser(userId, sessionId = null) {
+    if (!userId || typeof userId !== 'string') {
+        return { ok: false, code: 'INVALID_USER', message: 'Invalid user id' };
+    }
+
+    // 1. Profile read.
+    let profile;
+    try {
+        const { data, error } = await supabaseAdmin
+            .from('profiles')
+            .select(PROFILE_SELECT.join(', '))
+            .eq('id', userId)
+            .maybeSingle();
+        if (error) {
+            return { ok: false, code: 'AUTH_SERVICE_UNAVAILABLE', message: 'Auth service unavailable' };
+        }
+        profile = data;
+    } catch (_) {
+        return { ok: false, code: 'AUTH_SERVICE_UNAVAILABLE', message: 'Auth service unavailable' };
+    }
+
+    if (!profile) return { ok: false, code: 'USER_NOT_FOUND', message: 'Profile not found' };
+    if (profile.deleted_at) return { ok: false, code: 'ACCOUNT_DELETED', message: 'Account deleted' };
+
+    const profileStatus = String(profile.status || '').toLowerCase();
+    if (profileStatus && profileStatus !== 'active') {
+        return {
+            ok: false,
+            code: profileStatus === 'banned'    ? 'ACCOUNT_BANNED'
+                : profileStatus === 'suspended' ? 'ACCOUNT_SUSPENDED'
+                :                                 'ACCOUNT_INACTIVE',
+            message: 'Account not active'
+        };
+    }
+
+    // 2. Role check.
+    const role = String(profile.role || '').toLowerCase();
+    const roleValid = await isAdminRoleAsync(role);
+    if (!roleValid) return { ok: false, code: 'ADMIN_REQUIRED', message: 'Admin access required' };
+
+    // 3. Session check (only when a session was passed — customer
+    //    sockets have no admin session).
+    if (sessionId) {
+        if (!profile.current_session_id || profile.current_session_id !== sessionId) {
+            return { ok: false, code: 'SESSION_REVOKED', message: 'Session revoked' };
+        }
+        if (profile.session_expires_at && new Date(profile.session_expires_at) < new Date()) {
+            return { ok: false, code: 'SESSION_EXPIRED', message: 'Session expired' };
+        }
+        try {
+            const { data: sess, error: sessErr } = await supabaseAdmin
+                .from('user_sessions')
+                .select('session_id, user_id, is_active, revoked_at, expires_at')
+                .eq('session_id', sessionId)
+                .eq('user_id', profile.id)
+                .maybeSingle();
+            if (sessErr) return { ok: false, code: 'AUTH_SERVICE_UNAVAILABLE', message: 'Auth service unavailable' };
+            if (!sess) return { ok: false, code: 'SESSION_NOT_FOUND', message: 'Session not found' };
+            if (!sess.is_active || sess.revoked_at) {
+                return { ok: false, code: 'SESSION_REVOKED', message: 'Session revoked' };
+            }
+            if (sess.expires_at && new Date(sess.expires_at) <= new Date()) {
+                return { ok: false, code: 'SESSION_EXPIRED', message: 'Session expired' };
+            }
+        } catch (_) {
+            return { ok: false, code: 'AUTH_SERVICE_UNAVAILABLE', message: 'Auth service unavailable' };
+        }
+    }
+
+    // 4. Permissions.
+    let effective = [];
+    if (role === ADMIN_ROLES.SUPER_ADMIN) {
+        effective = ['*'];
+    } else {
+        let rolePermissions = null;
+        try {
+            const { data, error } = await supabaseAdmin
+                .from('admin_roles')
+                .select('permissions')
+                .eq('slug', role)
+                .maybeSingle();
+            if (!error && data && Array.isArray(data.permissions)) {
+                rolePermissions = data.permissions;
+            }
+        } catch (_) { /* fall through to defaults */ }
+
+        const defaults = rolePermissions != null
+            ? rolePermissions
+            : (ROLE_PERMISSIONS[role] || []);
+        const merged = new Set(defaults);
+
+        try {
+            const { data, error } = await supabaseAdmin
+                .from('admin_permissions')
+                .select('permission, granted')
+                .eq('user_id', profile.id);
+            if (error) {
+                return { ok: false, code: 'PERMISSION_SERVICE_UNAVAILABLE', message: 'Permission service unavailable' };
+            }
+            (data || []).forEach((o) => {
+                if (o.granted) merged.add(o.permission);
+                else merged.delete(o.permission);
+            });
+        } catch (_) {
+            return { ok: false, code: 'PERMISSION_SERVICE_UNAVAILABLE', message: 'Permission service unavailable' };
+        }
+        effective = Array.from(merged);
+    }
+
+    return {
+        ok: true,
+        ctx: {
+            id: profile.id,
+            email: profile.email,
+            username: profile.username,
+            role,
+            isSuperAdmin: role === ADMIN_ROLES.SUPER_ADMIN,
+            permissions: effective,
+            sessionId: sessionId || null,
+            authType: 'admin',
+            mfaEnabled: !!profile.two_factor_enabled
+        }
+    };
+}
 
 // ─── Programmatic permission helpers ────────────────────────────
 function can(ctx, permission) {
@@ -1057,6 +1192,7 @@ module.exports = {
     isServiceEnabled,
     isProviderEnabled,
     isOperationAllowed,
+    resolvePermissionsForUser,
 
     // registries
     ADMIN_ROLES,

@@ -1,115 +1,158 @@
-// middleware/supportUpload.js
-// ─────────────────────────────────────────────────────────────────
-// Upload validation for support attachments.
-// Used by both authenticated and guest message endpoints.
-// ─────────────────────────────────────────────────────────────────
-
 'use strict';
 
-const SIGNATURES = [
-    { mime: 'image/jpeg', bytes: [0xFF, 0xD8, 0xFF] },
-    { mime: 'image/png',  bytes: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A] },
-    { mime: 'image/gif',  bytes: [0x47, 0x49, 0x46, 0x38] },
-    { mime: 'image/webp', bytes: [0x52, 0x49, 0x46, 0x46], extra: { offset: 8, bytes: [0x57, 0x45, 0x42, 0x50] } },
-    { mime: 'application/pdf', bytes: [0x25, 0x50, 0x44, 0x46] }
-];
+// ─────────────────────────────────────────────────────────────────
+// middleware/supportUpload.js  —  NEW  2026-11-02
+//
+// Central multer configuration for support attachments, plus a
+// validateBatch() helper kept for backward compatibility with any
+// caller that imported it directly.
+//
+// This middleware performs the FIRST line of defence:
+//   • count, per-file size, total request size enforced by multer
+//   • mimetype allow-list enforced at the multer `fileFilter` stage
+//     so a disallowed file never reaches memory
+//
+// The AUTHORITATIVE checks (magic bytes, filename sanitization,
+// active-content rejection) live in
+// services/supportAttachmentService.validateFiles(), which runs
+// after multer. Routes call that through uploadForMessage(), so
+// there is exactly one place to audit the real validation policy.
+//
+// If your route already imports `validateBatch` from this module,
+// it will keep working — validateBatch now delegates to the same
+// shared policy.
+// ─────────────────────────────────────────────────────────────────
 
-const ALLOWED_MIME = new Set([
-    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-    'application/pdf', 'text/plain', 'text/csv'
-]);
-const ALLOWED_EXT = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'txt', 'csv']);
-const MAX_FILENAME_LEN = 200;
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const MAX_FILES = 5;
+const multer = require('multer');
+const path = require('path');
 
-function startsWith(buffer, bytes, offset = 0) {
-    if (buffer.length < offset + bytes.length) return false;
-    for (let i = 0; i < bytes.length; i++) {
-        if (buffer[offset + i] !== bytes[i]) return false;
-    }
-    return true;
-}
+const supportAttachments = require('../services/supportAttachmentService');
 
-function sniff(buffer) {
-    for (const sig of SIGNATURES) {
-        if (startsWith(buffer, sig.bytes)) {
-            if (sig.extra) {
-                if (startsWith(buffer, sig.extra.bytes, sig.extra.offset)) return sig.mime;
-                continue;
-            }
-            return sig.mime;
+// ─── Constants (mirrored from supportAttachmentService) ────────
+// We mirror them rather than reading from the service at import
+// time because multer's config must be a plain object. The service
+// remains the source of truth — this module reads the same values
+// so the two stay in lockstep.
+const MAX_FILES       = supportAttachments.MAX_FILES || 5;
+const MAX_FILE_BYTES  = supportAttachments.MAX_FILE_BYTES || 10 * 1024 * 1024;
+const MAX_TOTAL_BYTES = supportAttachments.MAX_TOTAL_BYTES || 25 * 1024 * 1024;
+const ALLOWED_MIMES   = supportAttachments.ALLOWED_MIMES || new Set();
+
+// ─── Multer instance ───────────────────────────────────────────
+// Memory storage: the buffer is validated, then streamed to
+// Cloudinary. No temp files hit the server's disk.
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: MAX_FILE_BYTES,
+        files:    MAX_FILES,
+        // A slightly generous field limit prevents a form-field
+        // DoS while still covering `message` + `is_internal` +
+        // future small metadata fields.
+        fields:   10,
+        fieldSize: 128 * 1024
+    },
+    fileFilter: (req, file, cb) => {
+        const mime = String(file.mimetype || '').toLowerCase();
+        if (!ALLOWED_MIMES.has(mime)) {
+            const e = new Error('File type "' + (mime || 'unknown') + '" is not allowed.');
+            e.code = 'MIME_NOT_ALLOWED';
+            e.status = 400;
+            return cb(e);
         }
-    }
-    return null;
-}
-
-function looksLikeText(buffer) {
-    const sample = buffer.slice(0, Math.min(buffer.length, 1024));
-    for (const b of sample) if (b === 0x00) return false;
-    let printable = 0;
-    for (const b of sample) {
-        if ((b >= 0x09 && b <= 0x7E) || b === 0x0A || b === 0x0D) printable++;
-    }
-    return sample.length === 0 || (printable / sample.length) > 0.9;
-}
-
-function validateUpload({ buffer, mimetype, originalname, size }) {
-    if (!Buffer.isBuffer(buffer) || buffer.length === 0) {
-        return { ok: false, error: 'File is empty.' };
-    }
-    const reportedSize = Number(size) || buffer.length;
-    if (reportedSize > MAX_FILE_SIZE) {
-        return { ok: false, error: 'File is too large (max 10MB).' };
-    }
-    const name = String(originalname || '').trim();
-    if (!name || name.length > MAX_FILENAME_LEN) {
-        return { ok: false, error: 'Filename is invalid or too long.' };
-    }
-    if (/[\/\\\0]/.test(name)) {
-        return { ok: false, error: 'Filename contains invalid characters.' };
-    }
-    const ext = (name.split('.').pop() || '').toLowerCase();
-    if (!ALLOWED_EXT.has(ext)) {
-        return { ok: false, error: `Extension .${ext} is not allowed.` };
-    }
-    const declared = mimetype === 'image/jpg' ? 'image/jpeg' : String(mimetype || '');
-    if (!ALLOWED_MIME.has(declared)) {
-        return { ok: false, error: 'Unsupported file type.' };
-    }
-    const sniffed = sniff(buffer);
-    if (sniffed) {
-        if (sniffed !== declared) {
-            return { ok: false, error: 'File contents do not match its type.' };
+        // Explicit reject of the most common dangerous types. The
+        // service will also sniff the head, but rejecting here
+        // saves the buffer allocation for the obvious cases.
+        if (
+            mime === 'application/x-msdownload' ||
+            mime === 'application/x-executable' ||
+            mime === 'application/x-sh' ||
+            mime === 'application/javascript' ||
+            mime === 'text/html' ||
+            mime === 'image/svg+xml'
+        ) {
+            const e = new Error('File type is not allowed.');
+            e.code = 'MIME_NOT_ALLOWED';
+            e.status = 400;
+            return cb(e);
         }
-    } else {
-        if ((declared === 'text/plain' || declared === 'text/csv') && !looksLikeText(buffer)) {
-            return { ok: false, error: 'Text file contains binary data.' };
-        }
-        if (declared !== 'text/plain' && declared !== 'text/csv') {
-            return { ok: false, error: 'File type is not recognised.' };
-        }
+        cb(null, true);
     }
-    return { ok: true };
-}
+});
 
+// ─── validateBatch ────────────────────────────────────────────
+// Backward-compatible synchronous wrapper around the service's
+// validateFiles(). Returns { ok, error?, code? } — never throws —
+// so existing route handlers that used the old contract keep
+// working.
+//
+// New code SHOULD call supportAttachments.uploadForMessage() and
+// let it validate + upload in one shot. This function is here for
+// any caller that needs to validate without uploading (e.g. a
+// pre-flight endpoint added later).
 function validateBatch(files) {
-    if (!Array.isArray(files)) return { ok: true, files: [] };
-    if (files.length > MAX_FILES) {
-        return { ok: false, error: `Maximum ${MAX_FILES} files per message.` };
+    const list = Array.isArray(files) ? files : [];
+    try {
+        const result = supportAttachments.validateFiles(list);
+        if (!result.ok) {
+            return {
+                ok: false,
+                code: result.code || 'INVALID_FILE',
+                error: result.error || 'Invalid file'
+            };
+        }
+        // Return the sanitized files so a caller can forward them
+        // directly to Cloudinary if it wants.
+        return { ok: true, files: result.files, totalBytes: result.totalBytes };
+    } catch (e) {
+        return { ok: false, code: 'VALIDATION_FAILED', error: e.message || 'Validation failed' };
     }
-    for (const f of files) {
-        const check = validateUpload(f);
-        if (!check.ok) return check;
-    }
-    return { ok: true, files };
 }
 
-module.exports = {
-    validateUpload,
-    validateBatch,
-    MAX_FILE_SIZE,
-    MAX_FILES,
-    ALLOWED_MIME,
-    ALLOWED_EXT
-};
+// ─── Total-size guard middleware ──────────────────────────────
+// multer enforces per-file size and count. It does NOT enforce a
+// total across the batch — that is our job. Wraps multer.array so
+// routes can `router.post(path, uploadBatch('attachments'), handler)`
+// and rely on both layers.
+function uploadBatch(fieldName = 'attachments') {
+    const arrayMw = upload.array(fieldName, MAX_FILES);
+    return (req, res, next) => {
+        arrayMw(req, res, (err) => {
+            if (err) {
+                // Normalise multer errors so the route can render a
+                // useful body.
+                const code = err.code === 'LIMIT_FILE_SIZE' ? 'FILE_TOO_LARGE'
+                           : err.code === 'LIMIT_FILE_COUNT' ? 'TOO_MANY_FILES'
+                           : err.code === 'LIMIT_UNEXPECTED_FILE' ? 'UNEXPECTED_FIELD'
+                           : err.code === 'LIMIT_FIELD_SIZE' ? 'FIELD_TOO_LARGE'
+                           : err.code || 'UPLOAD_ERROR';
+                const status = code === 'FILE_TOO_LARGE' || code === 'TOO_MANY_FILES' ? 413 : 400;
+                return res.status(status).json({
+                    success: false,
+                    code,
+                    error: err.message || 'Upload rejected.'
+                });
+            }
+            const files = req.files || [];
+            let total = 0;
+            for (const f of files) total += Number(f.size) || 0;
+            if (total > MAX_TOTAL_BYTES) {
+                return res.status(413).json({
+                    success: false,
+                    code: 'REQUEST_TOO_LARGE',
+                    error: 'Total upload must be under ' + Math.round(MAX_TOTAL_BYTES / 1024 / 1024) + ' MB.'
+                });
+            }
+            next();
+        });
+    };
+}
+
+module.exports = upload;
+module.exports.upload = upload;
+module.exports.uploadBatch = uploadBatch;
+module.exports.validateBatch = validateBatch;
+module.exports.MAX_FILES = MAX_FILES;
+module.exports.MAX_FILE_BYTES = MAX_FILE_BYTES;
+module.exports.MAX_TOTAL_BYTES = MAX_TOTAL_BYTES;
+module.exports.ALLOWED_MIMES = ALLOWED_MIMES;

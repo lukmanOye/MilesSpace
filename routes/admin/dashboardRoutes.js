@@ -1054,17 +1054,22 @@ router.get('/me', adminAuth, async (req, res) => {
 
         ok(res, {
             user: {
-                id: data.id,
-                username: data.username || data.email?.split('@')[0] || 'Admin',
-                email: data.email || '',
-                role: data.role || 'admin',
-                avatar_url: data.avatar_url || null,
-                created_at: data.created_at,
-                mfa_enabled: !!data.mfa_enabled_at
-            },
+                  id: data.id,
+        username: data.username || data.email?.split('@')[0] || 'Admin',
+        email: data.email || '',
+        role: data.role || 'admin',
+        avatar_url: data.avatar_url || null,
+        created_at: data.created_at,
+        mfa_enabled: !!data.mfa_enabled_at,
+        // Array of dotted string values, e.g. ['*'] for super_admin,
+        // or ['dashboard.read','support.assign', ...] for other roles.
+        permissions: Array.isArray(ctx.permissions)
+            ? ctx.permissions
+            : []
+    },
             permissions: buildPermissionMap(ctx),
-            role: ctx.role,
-            isSuperAdmin: ctx.isSuperAdmin
+    role: ctx.role,
+    isSuperAdmin: ctx.isSuperAdmin
         });
     } catch (err) { fail(res, err); }
 });

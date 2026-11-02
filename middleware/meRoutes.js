@@ -40,20 +40,23 @@ router.get(
             const permissions = buildPermissionMap(ctx);
 
             res.json({
-                success: true,
-                admin: {
-                    id: ctx.id,
-                    email: ctx.email,
-                    username: ctx.username,
-                    role: ctx.role,
-                    isSuperAdmin: !!ctx.isSuperAdmin,
-                    session: {
-                        id: ctx.sessionId,
-                        authTime: ctx.authTime
-                    }
-                },
-                permissions
-            });
+    success: true,
+    data: {
+        user: {
+            id: req.adminContext.id,
+            username: req.adminContext.username,
+            email: req.adminContext.email,
+            role: req.adminContext.role,
+            isSuperAdmin: req.adminContext.isSuperAdmin,
+            avatar_url: null,
+            created_at: null,
+            mfa_enabled: !!req.adminContext.mfaEnabled,
+            permissions: Array.isArray(req.adminContext.permissions)
+                ? req.adminContext.permissions
+                : []
+        }
+    }
+});
         } catch (err) {
             console.error('[ADMIN ME] error:', err.message);
             res.status(500).json({

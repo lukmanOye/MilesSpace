@@ -32,13 +32,24 @@ router.get('/me', adminAuth, async (req, res) => {
         } catch (_) {}
 
         res.json({
-            success: true,
-            // Legacy shape used by settings.html
-            user: { id: ctx.id, email: ctx.email, username: ctx.username, role: ctx.role, isSuperAdmin: !!ctx.isSuperAdmin },
-            isSuperAdmin: !!ctx.isSuperAdmin,
-            admin: { id: ctx.id, email: ctx.email, username: ctx.username, role: ctx.role, isSuperAdmin: !!ctx.isSuperAdmin, session },
-            permissions
-        });
+    success: true,
+    data: {
+        user: {
+            id: req.adminContext.id,
+            username: req.adminContext.username,
+            email: req.adminContext.email,
+            role: req.adminContext.role,
+            isSuperAdmin: req.adminContext.isSuperAdmin,
+            avatar_url: null,
+            created_at: null,
+            mfa_enabled: !!req.adminContext.mfaEnabled,
+            // The array of string permission values (e.g. "support.assign")
+            permissions: Array.isArray(req.adminContext.permissions)
+                ? req.adminContext.permissions
+                : []
+        }
+    }
+});
     } catch (err) {
         console.error('[ADMIN ME] error:', err.message);
         res.status(500).json({ success: false, error: 'Failed to load admin identity.', code: 'ADMIN_ME_ERROR' });
