@@ -10,29 +10,24 @@
   <link rel="apple-touch-icon" href="/images/miles.png" />
   <title>MilesSpace — Account Settings</title>
 
-  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
   <script src="/js/session.js"></script>
+  <script src="/js/presence.js" defer></script>
+  <script src="/js/miles-widget.js" defer></script>
   <script defer src="/js/settings.js"></script>
+  <link rel="stylesheet" href="/css/ms-shell.css?v=1">
+  <script src="/js/ms-shell.js?v=1" defer></script>
 
   <style>
-    /* ═══════════════════════════════════════════════════════════
-       RESET & DESIGN TOKENS
-       ═══════════════════════════════════════════════════════════ */
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
     :root {
-      /* Fonts */
       --fd: 'Inter', system-ui, sans-serif;
       --fb: 'Inter', system-ui, sans-serif;
-
       --fm: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 
       --safe-b: env(safe-area-inset-bottom, 0px);
@@ -57,10 +52,9 @@
       --success: #10b981;
       --info:    #3b82f6;
     }
-    html, body {
-      max-width: 100vw;
-      overflow-x: hidden;
-    }
+
+    html, body { max-width: 100vw; overflow-x: hidden; }
+
     body {
       font-family: var(--fb);
       background: var(--bg);
@@ -70,9 +64,7 @@
     }
     .mono { font-family: var(--fm); }
 
-    /* ═══════════════════════════════════════════════════════════
-       TOPBAR
-       ═══════════════════════════════════════════════════════════ */
+    /* TOPBAR */
     .topbar {
       position: sticky;
       top: 0;
@@ -128,18 +120,14 @@
     }
     .topbar .topbar-actions button:hover { background: rgba(12, 61, 74, 0.06); }
 
-    /* ═══════════════════════════════════════════════════════════
-       CONTENT LAYOUT
-       ═══════════════════════════════════════════════════════════ */
+    /* CONTENT */
     .content {
       max-width: 800px;
       margin: 0 auto;
       padding: 16px;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       SETTINGS CARDS
-       ═══════════════════════════════════════════════════════════ */
+    /* SETTINGS CARDS */
     .settings-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -164,7 +152,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
+      font-size: 14px;
       flex-shrink: 0;
     }
     .icon.gold   { background: #fef3c7; color: #d97706; }
@@ -174,10 +162,7 @@
     .icon.red    { background: #fee2e2; color: #ef4444; }
     .icon.green  { background: #d1fae5; color: #10b981; }
 
-    .settings-card-header .header-info {
-      flex: 1;
-      min-width: 0;
-    }
+    .settings-card-header .header-info { flex: 1; min-width: 0; }
     .settings-card-header .header-info h3 {
       font-family: var(--fd);
       font-size: 14px;
@@ -200,9 +185,7 @@
     }
     .settings-card-body.open { display: block; }
 
-    /* ═══════════════════════════════════════════════════════════
-       INFO ROWS
-       ═══════════════════════════════════════════════════════════ */
+    /* INFO ROWS */
     .info-row {
       display: flex;
       align-items: center;
@@ -234,9 +217,7 @@
       max-width: 260px;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       SETUP PIN BANNER
-       ═══════════════════════════════════════════════════════════ */
+    /* SETUP PIN BANNER */
     .setup-pin-banner {
       background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
       border: 1px solid #fcd34d;
@@ -252,6 +233,7 @@
       line-height: 1;
       flex-shrink: 0;
       margin-top: 1px;
+      color: #92400e;
     }
     .setup-pin-banner .banner-text { flex: 1; min-width: 0; }
     .setup-pin-banner .banner-title {
@@ -267,9 +249,7 @@
     }
     .setup-pin-banner .banner-action { margin-top: 10px; }
 
-    /* ═══════════════════════════════════════════════════════════
-       DANGER CARD
-       ═══════════════════════════════════════════════════════════ */
+    /* DANGER CARD */
     .danger-card {
       background: rgba(239, 68, 68, 0.04);
       border: 1px solid rgba(239, 68, 68, 0.2);
@@ -285,9 +265,7 @@
     .danger-actions .btn { width: 100%; }
     .danger-actions .helper-text { margin-top: 4px; }
 
-    /* ═══════════════════════════════════════════════════════════
-       BUTTONS
-       ═══════════════════════════════════════════════════════════ */
+    /* BUTTONS */
     .btn {
       display: inline-flex;
       align-items: center;
@@ -303,42 +281,23 @@
       transition: all 0.2s;
       min-height: 36px;
     }
-    .btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .btn-outline {
       background: transparent;
       color: var(--text-muted);
       border: 1.5px solid var(--border);
     }
     .btn-outline:hover:not(:disabled) { background: var(--bg); }
-    .btn-gold {
-      background: var(--gold);
-      color: #082a33;
-    }
+    .btn-gold { background: var(--gold); color: #082a33; }
     .btn-gold:hover:not(:disabled) { background: var(--gold-dark); }
-    .btn-danger {
-      background: var(--danger);
-      color: #fff;
-    }
+    .btn-danger { background: var(--danger); color: #fff; }
     .btn-danger:hover:not(:disabled) { background: #dc2626; }
-    .btn-primary {
-      background: var(--navy);
-      color: #fff;
-    }
+    .btn-primary { background: var(--navy); color: #fff; }
     .btn-primary:hover:not(:disabled) { background: var(--navy-light); }
-    .btn-xs {
-      padding: 4px 10px;
-      font-size: 10px;
-      border-radius: 6px;
-      min-height: 30px;
-    }
+    .btn-xs { padding: 4px 10px; font-size: 10px; border-radius: 6px; min-height: 30px; }
     .btn-sm { padding: 6px 12px; font-size: 11px; }
 
-    /* ═══════════════════════════════════════════════════════════
-       STATUS BADGES
-       ═══════════════════════════════════════════════════════════ */
+    /* STATUS BADGES */
     .status-badge {
       display: inline-flex;
       align-items: center;
@@ -364,9 +323,7 @@
       color: var(--gold-dark);
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       SESSIONS
-       ═══════════════════════════════════════════════════════════ */
+    /* SESSIONS */
     .session-item {
       display: flex;
       align-items: center;
@@ -417,9 +374,7 @@
       color: #fff;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       ACTIVITY & ALERTS
-       ═══════════════════════════════════════════════════════════ */
+    /* ACTIVITY & ALERTS */
     .activity-item,
     .alert-item {
       display: flex;
@@ -436,6 +391,8 @@
       font-size: 16px;
       flex-shrink: 0;
       margin-top: 1px;
+      width: 20px;
+      text-align: center;
     }
     .activity-info,
     .alert-info { flex: 1; min-width: 0; }
@@ -483,9 +440,7 @@
       min-width: 36px;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       TOGGLE SWITCH
-       ═══════════════════════════════════════════════════════════ */
+    /* TOGGLE SWITCH */
     .toggle-switch {
       position: relative;
       width: 42px;
@@ -544,9 +499,7 @@
       margin-left: 6px;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       EMPTY / ERROR STATES
-       ═══════════════════════════════════════════════════════════ */
+    /* EMPTY / ERROR STATES */
     .empty-state {
       text-align: center;
       color: var(--text-faint);
@@ -574,9 +527,7 @@
       font-size: 11px;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       MODALS
-       ═══════════════════════════════════════════════════════════ */
+    /* MODALS */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -646,9 +597,7 @@
       max-width: 160px;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       FORMS
-       ═══════════════════════════════════════════════════════════ */
+    /* FORMS */
     .form-group { margin-bottom: 12px; }
     .form-group label {
       display: block;
@@ -665,7 +614,7 @@
       border: 1.5px solid var(--border);
       border-radius: 8px;
       font-family: var(--fb);
-      font-size: 13.5px;
+      font-size: 16px;
       background: var(--bg);
       color: var(--text);
       outline: none;
@@ -686,9 +635,7 @@
       margin-top: 4px;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       2FA / PIN / DELETION SETUP UI
-       ═══════════════════════════════════════════════════════════ */
+    /* 2FA / PIN / DELETION SETUP UI */
     .twofa-setup {
       display: flex;
       flex-direction: column;
@@ -699,12 +646,16 @@
     .twofa-setup .step-icon {
       font-size: 48px;
       margin-bottom: 4px;
+      color: var(--navy);
+      line-height: 1;
     }
+    .twofa-setup .step-icon.danger { color: var(--danger); }
     .twofa-setup .step-title {
       font-family: var(--fd);
       font-size: 16px;
       font-weight: 700;
     }
+    .twofa-setup .step-title.danger { color: var(--danger); }
     .twofa-setup .step-desc {
       font-size: 13px;
       color: var(--text-muted);
@@ -730,9 +681,7 @@
     .twofa-status-text.error   { color: var(--danger);  background: #fee2e2; }
     .twofa-status-text.info    { color: var(--info);    background: #dbeafe; }
 
-    /* ═══════════════════════════════════════════════════════════
-       TOASTS
-       ═══════════════════════════════════════════════════════════ */
+    /* TOASTS */
     .toast-stack {
       position: fixed;
       bottom: calc(80px + var(--safe-b));
@@ -768,9 +717,7 @@
       to   { opacity: 1; transform: translateX(0); }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       MOBILE NAV
-       ═══════════════════════════════════════════════════════════ */
+    /* MOBILE NAV */
     .mnav {
       display: flex;
       position: fixed;
@@ -814,9 +761,7 @@
       color: var(--navy);
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       HELP LINKS
-       ═══════════════════════════════════════════════════════════ */
+    /* HELP LINKS */
     .help-links {
       display: flex;
       flex-wrap: wrap;
@@ -837,9 +782,7 @@
       background: rgba(245, 158, 11, 0.08);
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       RESPONSIVE
-       ═══════════════════════════════════════════════════════════ */
+    /* RESPONSIVE */
     @media (min-width: 768px) {
       .mnav { display: none; }
       body { padding-bottom: 0; }
@@ -864,6 +807,38 @@
       .topbar .title { font-size: 15px; }
       .topbar .subtitle { display: none; }
     }
+
+    /* STALE BANNER */
+    .tx-stale-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 14px;
+      margin: 8px 0;
+      border-radius: 10px;
+      background: rgba(245, 166, 35, 0.12);
+      border: 1px solid rgba(245, 166, 35, 0.35);
+      font-size: 12.5px;
+      color: var(--text-muted);
+    }
+    .tx-stale-banner strong { color: var(--text); font-weight: 600; }
+    .tx-stale-banner button {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: none;
+      background: #0f4c5c;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .tx-stale-banner button:disabled { opacity: .55; cursor: not-allowed; }
+    @media (max-width: 420px) {
+      .tx-stale-banner { flex-direction: column; align-items: stretch; }
+      .tx-stale-banner button { width: 100%; min-height: 44px; }
+    }
   </style>
 </head>
 
@@ -880,7 +855,6 @@
     <div class="subtitle">Manage your MilesSpace account</div>
   </div>
   <div class="topbar-actions">
-    <!-- Removed darkToggle button -->
     <button id="refreshBtn" type="button" aria-label="Refresh settings">
       <i class="fas fa-sync-alt"></i>
     </button>
@@ -889,12 +863,10 @@
 
 <div class="content">
 
-  <!-- ═════════════════════════════════════════════════════════
-       PERSONAL INFORMATION
-       ═════════════════════════════════════════════════════════ -->
+  <!-- PERSONAL INFORMATION -->
   <div class="settings-card">
     <div class="settings-card-header" data-toggle="1">
-      <div class="icon gold">👤</div>
+      <div class="icon gold"><i class="fas fa-user"></i></div>
       <div class="header-info">
         <h3>Personal Information</h3>
         <p>Your account details</p>
@@ -933,12 +905,10 @@
     </div>
   </div>
 
-  <!-- ═════════════════════════════════════════════════════════
-       SECURITY
-       ═════════════════════════════════════════════════════════ -->
+  <!-- SECURITY -->
   <div class="settings-card">
     <div class="settings-card-header" data-toggle="1">
-      <div class="icon navy">🔐</div>
+      <div class="icon navy"><i class="fas fa-lock"></i></div>
       <div class="header-info">
         <h3>Security</h3>
         <p>Password, PIN &amp; 2FA</p>
@@ -956,7 +926,7 @@
       </div>
 
       <div class="setup-pin-banner" id="setupPinBanner" style="display:none;">
-        <div class="banner-icon">🔢</div>
+        <div class="banner-icon"><i class="fas fa-key"></i></div>
         <div class="banner-text">
           <div class="banner-title">You haven't set a Transaction PIN yet</div>
           <div class="banner-desc">
@@ -1003,12 +973,10 @@
     </div>
   </div>
 
-  <!-- ═════════════════════════════════════════════════════════
-       NOTIFICATIONS
-       ═════════════════════════════════════════════════════════ -->
+  <!-- NOTIFICATIONS -->
   <div class="settings-card">
     <div class="settings-card-header" data-toggle="1">
-      <div class="icon purple">🔔</div>
+      <div class="icon purple"><i class="fas fa-bell"></i></div>
       <div class="header-info">
         <h3>Notifications</h3>
         <p>Email preferences</p>
@@ -1021,12 +989,10 @@
     </div>
   </div>
 
-  <!-- ═════════════════════════════════════════════════════════
-       LOGIN & DEVICES
-       ═════════════════════════════════════════════════════════ -->
+  <!-- LOGIN & DEVICES -->
   <div class="settings-card">
     <div class="settings-card-header" data-toggle="1">
-      <div class="icon blue">💻</div>
+      <div class="icon blue"><i class="fas fa-desktop"></i></div>
       <div class="header-info">
         <h3>Login &amp; Devices</h3>
         <p>Active sessions</p>
@@ -1048,12 +1014,10 @@
     </div>
   </div>
 
-  <!-- ═════════════════════════════════════════════════════════
-       ACCOUNT ACTIVITY
-       ═════════════════════════════════════════════════════════ -->
+  <!-- ACCOUNT ACTIVITY -->
   <div class="settings-card">
     <div class="settings-card-header" data-toggle="1">
-      <div class="icon purple">📋</div>
+      <div class="icon purple"><i class="fas fa-clipboard-list"></i></div>
       <div class="header-info">
         <h3>Account Activity</h3>
         <p>Recent actions</p>
@@ -1066,12 +1030,10 @@
     </div>
   </div>
 
-  <!-- ═════════════════════════════════════════════════════════
-       SECURITY ALERTS
-       ═════════════════════════════════════════════════════════ -->
+  <!-- SECURITY ALERTS -->
   <div class="settings-card">
     <div class="settings-card-header" data-toggle="1">
-      <div class="icon red">🛡️</div>
+      <div class="icon red"><i class="fas fa-shield-halved"></i></div>
       <div class="header-info">
         <h3>Security Alerts</h3>
         <p>Important security events</p>
@@ -1083,12 +1045,10 @@
     </div>
   </div>
 
-  <!-- ═════════════════════════════════════════════════════════
-       ACCOUNT STATUS
-       ═════════════════════════════════════════════════════════ -->
+  <!-- ACCOUNT STATUS -->
   <div class="settings-card">
     <div class="settings-card-header" data-toggle="1">
-      <div class="icon green">📊</div>
+      <div class="icon green"><i class="fas fa-chart-simple"></i></div>
       <div class="header-info">
         <h3>Account Status</h3>
         <p>Your account information</p>
@@ -1111,12 +1071,10 @@
     </div>
   </div>
 
-  <!-- ═════════════════════════════════════════════════════════
-       DANGER ZONE
-       ═════════════════════════════════════════════════════════ -->
+  <!-- DANGER ZONE -->
   <div class="settings-card danger-card">
     <div class="settings-card-header">
-      <div class="icon red">⚠️</div>
+      <div class="icon red"><i class="fas fa-triangle-exclamation"></i></div>
       <div class="header-info">
         <h3>Danger Zone</h3>
         <p>Reversible and permanent account actions</p>
@@ -1126,7 +1084,7 @@
 
       <div class="danger-actions">
         <button class="btn btn-outline btn-sm" id="deactivateBtn" type="button">
-          <i class="fas fa-pause-circle"></i> Deactivate Account
+          <i class="fas fa-circle-pause"></i> Deactivate Account
         </button>
         <p class="helper-text">
           Temporarily hides your account and signs you out everywhere.
@@ -1148,9 +1106,7 @@
     </div>
   </div>
 
-  <!-- ═════════════════════════════════════════════════════════
-       HELP LINKS
-       ═════════════════════════════════════════════════════════ -->
+  <!-- HELP LINKS -->
   <div class="help-links">
     <a href="/support.html">Help &amp; Support</a>
     <a href="/privacy.html">Privacy Policy</a>
@@ -1168,16 +1124,14 @@
 
 <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     MODALS
-     ═══════════════════════════════════════════════════════════════ -->
-
 <!-- EMAIL CHANGE -->
 <div class="modal-overlay" id="emailModal" role="dialog" aria-modal="true" aria-labelledby="emailModalTitle">
   <div class="modal">
     <div class="modal-header">
       <h2 id="emailModalTitle">Change Email</h2>
-      <button class="modal-close" data-modal="emailModal" type="button" aria-label="Close">✕</button>
+      <button class="modal-close" data-modal="emailModal" type="button" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
     <div class="modal-body">
       <div class="form-group">
@@ -1209,7 +1163,9 @@
   <div class="modal">
     <div class="modal-header">
       <h2 id="phoneModalTitle">Add Phone Number</h2>
-      <button class="modal-close" data-modal="phoneModal" type="button" aria-label="Close">✕</button>
+      <button class="modal-close" data-modal="phoneModal" type="button" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
     <div class="modal-body">
       <div class="form-group">
@@ -1231,7 +1187,9 @@
   <div class="modal">
     <div class="modal-header">
       <h2 id="passwordModalTitle">Change Password</h2>
-      <button class="modal-close" data-modal="passwordModal" type="button" aria-label="Close">✕</button>
+      <button class="modal-close" data-modal="passwordModal" type="button" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
     <div class="modal-body">
       <div class="form-group">
@@ -1263,7 +1221,9 @@
   <div class="modal">
     <div class="modal-header">
       <h2 id="pinModalTitle">Change Transaction PIN</h2>
-      <button class="modal-close" data-modal="pinModal" type="button" aria-label="Close">✕</button>
+      <button class="modal-close" data-modal="pinModal" type="button" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
     <div class="modal-body">
 
@@ -1310,12 +1270,14 @@
   <div class="modal">
     <div class="modal-header">
       <h2 id="forgotPinTitle">Reset Transaction PIN</h2>
-      <button class="modal-close" data-modal="forgotPinModal" type="button" aria-label="Close">✕</button>
+      <button class="modal-close" data-modal="forgotPinModal" type="button" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
     <div class="modal-body twofa-setup">
 
       <div id="forgotPinStep1" style="width:100%;">
-        <div class="step-icon">🔢</div>
+        <div class="step-icon"><i class="fas fa-key"></i></div>
         <div class="step-title">Forgot your transaction PIN?</div>
         <div class="step-desc">
           We'll send a verification code to your registered email:
@@ -1327,7 +1289,7 @@
       </div>
 
       <div id="forgotPinStep2" style="display:none;width:100%;">
-        <div class="step-icon">✉️</div>
+        <div class="step-icon"><i class="fas fa-envelope"></i></div>
         <div class="step-title">Enter Verification Code</div>
         <div class="step-desc">Enter the 6-digit code sent to your email</div>
         <div class="form-group" style="width:100%;margin-top:8px;">
@@ -1346,7 +1308,7 @@
       </div>
 
       <div id="forgotPinStep3" style="display:none;width:100%;">
-        <div class="step-icon">🔐</div>
+        <div class="step-icon"><i class="fas fa-lock"></i></div>
         <div class="step-title">Set New Transaction PIN</div>
         <div class="step-desc">Choose a new 4-digit PIN</div>
         <div class="form-group" style="width:100%;margin-top:12px;">
@@ -1378,12 +1340,14 @@
   <div class="modal">
     <div class="modal-header">
       <h2 id="twofaModalTitle">Enable Email 2FA</h2>
-      <button class="modal-close" data-modal="twofaModal" type="button" aria-label="Close">✕</button>
+      <button class="modal-close" data-modal="twofaModal" type="button" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
     <div class="modal-body twofa-setup">
 
       <div id="twofaSetupStep" style="width:100%;">
-        <div class="step-icon">🔐</div>
+        <div class="step-icon"><i class="fas fa-shield-halved"></i></div>
         <div class="step-title">Add Extra Protection</div>
         <div class="step-desc">We'll send a verification code to your registered email:</div>
         <div class="email-display" id="twofaEmailDisplay">loading@email.com</div>
@@ -1391,7 +1355,7 @@
       </div>
 
       <div id="twofaVerifyStep" style="display:none;width:100%;">
-        <div class="step-icon">✉️</div>
+        <div class="step-icon"><i class="fas fa-envelope"></i></div>
         <div class="step-title">Enter Verification Code</div>
         <div class="step-desc">Enter the 6-digit code sent to your email</div>
         <div class="form-group" style="width:100%;margin-top:8px;">
@@ -1406,7 +1370,7 @@
       </div>
 
       <div id="twofaSuccessStep" style="display:none;width:100%;">
-        <div class="step-icon">✅</div>
+        <div class="step-icon" style="color:var(--success);"><i class="fas fa-circle-check"></i></div>
         <div class="step-title">Email 2FA Enabled</div>
         <div class="step-desc">Your account is now protected.</div>
         <button class="btn btn-primary" id="twofaDoneBtn" type="button" style="margin-top:8px;">Done</button>
@@ -1424,10 +1388,12 @@
   <div class="modal">
     <div class="modal-header">
       <h2 id="disable2faTitle">Disable Email 2FA</h2>
-      <button class="modal-close" data-modal="disable2faModal" type="button" aria-label="Close">✕</button>
+      <button class="modal-close" data-modal="disable2faModal" type="button" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
     <div class="modal-body twofa-setup">
-      <div class="step-icon">⚠️</div>
+      <div class="step-icon" style="color:var(--gold-dark);"><i class="fas fa-triangle-exclamation"></i></div>
       <div class="step-title">Confirm Disable</div>
       <div class="step-desc">Enter the verification code sent to your email to disable 2FA.</div>
       <div class="form-group" style="width:100%;margin-top:8px;">
@@ -1445,21 +1411,20 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     PERMANENT ACCOUNT DELETION — 3-step wizard
-     ═══════════════════════════════════════════════════════════════ -->
+<!-- PERMANENT ACCOUNT DELETION -->
 <div class="modal-overlay" id="deleteAccountModal" role="dialog" aria-modal="true" aria-labelledby="deleteAccountTitle">
   <div class="modal">
     <div class="modal-header">
       <h2 id="deleteAccountTitle">Delete Account Permanently</h2>
-      <button class="modal-close" data-modal="deleteAccountModal" type="button" aria-label="Close">✕</button>
+      <button class="modal-close" data-modal="deleteAccountModal" type="button" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
     <div class="modal-body twofa-setup">
 
-      <!-- STEP 1 — warning + request code -->
       <div id="delStep1" style="width:100%;">
-        <div class="step-icon" style="color:var(--danger);">⚠️</div>
-        <div class="step-title" style="color:var(--danger);">Are you sure?</div>
+        <div class="step-icon danger"><i class="fas fa-triangle-exclamation"></i></div>
+        <div class="step-title danger">Are you sure?</div>
         <div class="step-desc" style="text-align:left;line-height:1.7;margin-top:8px;">
           Permanently deleting your account will:
           <ul style="margin-top:8px;padding-left:20px;font-size:12.5px;color:var(--text-muted);">
@@ -1480,9 +1445,8 @@
         </button>
       </div>
 
-      <!-- STEP 2 — verify code -->
       <div id="delStep2" style="display:none;width:100%;">
-        <div class="step-icon">✉️</div>
+        <div class="step-icon"><i class="fas fa-envelope"></i></div>
         <div class="step-title">Enter Verification Code</div>
         <div class="step-desc">Enter the 6-digit code sent to your email</div>
         <div class="form-group" style="width:100%;margin-top:8px;">
@@ -1500,10 +1464,9 @@
         </button>
       </div>
 
-      <!-- STEP 3 — final confirmation by typing username -->
       <div id="delStep3" style="display:none;width:100%;">
-        <div class="step-icon" style="color:var(--danger);">🗑️</div>
-        <div class="step-title" style="color:var(--danger);">Final Confirmation</div>
+        <div class="step-icon danger"><i class="fas fa-trash"></i></div>
+        <div class="step-title danger">Final Confirmation</div>
         <div class="step-desc" style="line-height:1.6;">
           To confirm, type your username below exactly as it appears on your account.
           This is your last chance to cancel.
@@ -1512,7 +1475,7 @@
           <input type="text" class="form-control" id="deleteConfirmInput"
                  placeholder="Type your username" autocomplete="off">
         </div>
-        <div id="deleteStatus" class="twofa-status-text" style="display:none;"></div>
+        <div id="deleteStatus2" class="twofa-status-text" style="display:none;"></div>
         <button class="btn btn-danger" id="deleteConfirmBtn" type="button" style="width:100%;">
           <i class="fas fa-trash"></i> Delete My Account Forever
         </button>
@@ -1525,5 +1488,11 @@
   </div>
 </div>
 
+<script>
+/* Stale banner placeholder — usersettings.html has no transaction list.
+   Nothing to wire here, but the shared shell requires ms-shell.js to load.
+   Kept as a no-op so a future addition (e.g. a recent-activity mini list)
+   can drop the standard banner adapter below without further changes. */
+</script>
 </body>
 </html>

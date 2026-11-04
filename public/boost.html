@@ -10,7 +10,6 @@
   <link rel="icon" href="/images/miles.png" type="image/png" />
   <link rel="apple-touch-icon" href="/images/miles.png" />
 
-  <!-- Open Graph -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="MilesSpace" />
   <meta property="og:title" content="MilesSpace — Digital Wallet & Digital Services" />
@@ -22,7 +21,6 @@
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
 
-  <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="MilesSpace — Digital Wallet & Digital Services" />
   <meta name="twitter:description" content="Fund your wallet, buy airtime and data, pay bills, get gift cards, use eSIM and more." />
@@ -30,14 +28,16 @@
 
   <title>MilesSpace | Social Boosting</title>
 
-  <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
+  <script src="/js/session.js"></script>
+  <script src="/js/presence.js" defer></script>
+  <script src="/js/miles-widget.js" defer></script>
+  <link rel="stylesheet" href="/css/ms-shell.css?v=1">
+  <script src="/js/ms-shell.js?v=1" defer></script>
+
   <style>
-    /* ═══════════════════════════════════════════════════════════
-       DESIGN TOKENS
-       ═══════════════════════════════════════════════════════════ */
     :root {
       --p:   #0c3d4a;
       --pm:  #155e72;
@@ -86,9 +86,6 @@
       --safe-t: env(safe-area-inset-top, 0px);
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       RESET
-       ═══════════════════════════════════════════════════════════ */
     *, *::before, *::after {
       box-sizing: border-box;
       margin: 0;
@@ -138,9 +135,7 @@
       color: inherit;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       OVERLAY
-       ═══════════════════════════════════════════════════════════ */
+    /* OVERLAY */
     .ov {
       display: none;
       position: fixed;
@@ -159,9 +154,7 @@
       pointer-events: auto;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       SIDEBAR
-       ═══════════════════════════════════════════════════════════ */
+    /* SIDEBAR */
     .sidebar {
       position: fixed;
       top: 0;
@@ -257,14 +250,8 @@
       font-size: .9rem;
       flex-shrink: 0;
     }
-    .sb-lnk:hover {
-      background: var(--bg);
-      color: var(--t1);
-    }
-    .sb-lnk.active {
-      background: var(--pl);
-      color: var(--p);
-    }
+    .sb-lnk:hover { background: var(--bg); color: var(--t1); }
+    .sb-lnk.active { background: var(--pl); color: var(--p); }
 
     .sb-foot {
       margin-top: auto;
@@ -273,21 +260,8 @@
       border-top: 1px solid var(--bdr);
       flex-shrink: 0;
     }
-    .sb-prof {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px;
-    }
-    .sb-prof-link {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex: 1;
-      min-width: 0;
-      text-decoration: none;
-      cursor: pointer;
-    }
+    .sb-prof { display: flex; align-items: center; gap: 10px; padding: 8px; }
+    .sb-prof-link { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; text-decoration: none; cursor: pointer; }
     .sb-av {
       width: 34px;
       height: 34px;
@@ -331,18 +305,10 @@
       background: none;
       flex-shrink: 0;
     }
-    .sb-out:hover {
-      background: var(--erl);
-      color: var(--err);
-    }
+    .sb-out:hover { background: var(--erl); color: var(--err); }
 
-    /* ═══════════════════════════════════════════════════════════
-       MAIN LAYOUT
-       ═══════════════════════════════════════════════════════════ */
-    .app {
-      display: flex;
-      min-height: 100vh;
-    }
+    /* MAIN */
+    .app { display: flex; min-height: 100vh; }
     .main {
       flex: 1;
       min-width: 0;
@@ -350,9 +316,7 @@
       flex-direction: column;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       TOPBAR
-       ═══════════════════════════════════════════════════════════ */
+    /* TOPBAR */
     .topbar {
       background: var(--srf);
       border-bottom: 1px solid var(--bdr);
@@ -378,10 +342,7 @@
       transition: all .2s;
       border: none;
     }
-    .tb-hbg:hover {
-      background: var(--p);
-      color: #fff;
-    }
+    .tb-hbg:hover { background: var(--p); color: #fff; }
     .tb-title {
       font-family: var(--fd);
       font-size: .88rem;
@@ -413,10 +374,7 @@
       transition: all .2s;
       text-decoration: none;
     }
-    .tb-btn:hover {
-      background: var(--pl);
-      color: var(--p);
-    }
+    .tb-btn:hover { background: var(--pl); color: var(--p); }
     .tb-av {
       width: 36px;
       height: 36px;
@@ -435,29 +393,19 @@
       text-decoration: none;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       CONTENT
-       ═══════════════════════════════════════════════════════════ */
+    /* CONTENT */
     .content {
       flex: 1;
       padding: 16px;
       padding-bottom: calc(100px + var(--safe-b));
     }
     @media (min-width: 641px) {
-      .content {
-        padding: 22px;
-        padding-bottom: 60px;
-      }
+      .content { padding: 22px; padding-bottom: 60px; }
     }
     @media (min-width: 1025px) {
-      .content {
-        padding: 26px 28px 40px;
-      }
+      .content { padding: 26px 28px 40px; }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       PAGE HEADER
-       ═══════════════════════════════════════════════════════════ */
     .page-header { margin-bottom: 18px; }
     .page-header-inner {
       display: flex;
@@ -512,9 +460,7 @@
       color: var(--p);
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       PLATFORM FILTERS
-       ═══════════════════════════════════════════════════════════ */
+    /* PLATFORM FILTERS */
     .plat-scroller {
       margin: 0 -16px 18px;
       padding: 4px 16px;
@@ -582,9 +528,7 @@
     .plat-pill.p-dc.active  { background: #5865f2; }
     .plat-pill.p-sp.active  { background: #1db954; }
 
-    /* ═══════════════════════════════════════════════════════════
-       BOOST LAYOUT
-       ═══════════════════════════════════════════════════════════ */
+    /* BOOST LAYOUT */
     .boost-layout {
       display: grid;
       grid-template-columns: 1fr;
@@ -617,9 +561,7 @@
       }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       PANEL
-       ═══════════════════════════════════════════════════════════ */
+    /* PANEL */
     .panel {
       background: var(--srf);
       border: 1px solid var(--bdr);
@@ -667,9 +609,6 @@
     }
     .panel-bd { padding: 14px; }
 
-    /* ═══════════════════════════════════════════════════════════
-       SERVICE SEARCH
-       ═══════════════════════════════════════════════════════════ */
     .svc-search {
       position: relative;
       margin-bottom: 11px;
@@ -699,9 +638,6 @@
       box-shadow: 0 0 0 3px rgba(12,61,74,.06);
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       SERVICE LIST
-       ═══════════════════════════════════════════════════════════ */
     .svc-grid {
       display: flex;
       flex-direction: column;
@@ -840,9 +776,7 @@
       color: var(--bdr);
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       ORDER FORM
-       ═══════════════════════════════════════════════════════════ */
+    /* ORDER FORM */
     .order-form {
       background: var(--srf);
       border: 1px solid var(--bdr);
@@ -923,7 +857,6 @@
       color: var(--err);
     }
 
-    /* ── Form fields ── */
     .fg { margin-bottom: 14px; }
     .flbl {
       display: block;
@@ -983,7 +916,6 @@
       border-color: var(--p);
     }
 
-    /* ── Price display ── */
     .price-display {
       background: var(--srf2);
       border: 1px solid var(--bdr);
@@ -1028,7 +960,6 @@
       margin-left: 4px;
     }
 
-    /* ── Wallet selector ── */
     .wallet-section { margin-bottom: 14px; }
     .wallet-section-lbl {
       font-size: .68rem;
@@ -1125,7 +1056,6 @@
     }
     .ws-insuf.show { display: block; }
 
-    /* ── Balance notice ── */
     .bal-notice {
       padding: 10px 12px;
       border-radius: var(--r);
@@ -1153,7 +1083,6 @@
       font-size: .8rem;
     }
 
-    /* ── Info box ── */
     .ibox {
       padding: 10px 12px;
       border-radius: var(--r);
@@ -1175,7 +1104,6 @@
       color: #1e4a8a;
     }
 
-    /* ── Order button ── */
     .btn-order {
       width: 100%;
       padding: 14px;
@@ -1206,9 +1134,7 @@
     }
     .btn-order:disabled:hover { background: var(--p); }
 
-    /* ═══════════════════════════════════════════════════════════
-       SIDEBAR CARDS (STATS, POPULAR)
-       ═══════════════════════════════════════════════════════════ */
+    /* CARDS */
     .card {
       background: var(--srf);
       border: 1px solid var(--bdr);
@@ -1263,7 +1189,6 @@
       display: block;
     }
 
-    /* ── Popular items ── */
     .pop-item {
       display: flex;
       align-items: center;
@@ -1313,9 +1238,7 @@
       transform: translateX(2px);
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       RECENT ORDERS TABLE
-       ═══════════════════════════════════════════════════════════ */
+    /* RECENT ORDERS */
     .orders-card {
       background: var(--srf);
       border: 1px solid var(--bdr);
@@ -1343,6 +1266,11 @@
     .oc-hd h3 i {
       color: var(--p);
       font-size: .8rem;
+    }
+    .oc-hd a {
+      font-size: .74rem;
+      font-weight: 600;
+      color: var(--pm);
     }
     .tbl-scroll {
       overflow-x: auto;
@@ -1390,9 +1318,7 @@
     .amt-ngn { color: var(--p);   font-weight: 700; white-space: nowrap; }
     .amt-usd { color: var(--usd); font-weight: 700; white-space: nowrap; }
 
-    /* ═══════════════════════════════════════════════════════════
-       CONFIRM MODAL
-       ═══════════════════════════════════════════════════════════ */
+    /* MODAL */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -1535,20 +1461,17 @@
       background: #f0f7ff;
       border: 1px solid #c3d9f5;
     }
-    .cm-info h4,
-    .cm-info li { color: #1e4a8a; }
+    .cm-info h4, .cm-info li { color: #1e4a8a; }
     .cm-ok {
       background: var(--okl);
       border: 1px solid #a7f3d0;
     }
-    .cm-ok h4,
-    .cm-ok li { color: #065f46; }
+    .cm-ok h4, .cm-ok li { color: #065f46; }
     .cm-err {
       background: var(--erl);
       border: 1px solid #fca5a5;
     }
-    .cm-err h4,
-    .cm-err li { color: #991b1b; }
+    .cm-err h4, .cm-err li { color: #991b1b; }
     .btn-cm-close {
       width: 100%;
       padding: 14px;
@@ -1570,9 +1493,7 @@
       transform: translateY(-1px);
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       TOASTS
-       ═══════════════════════════════════════════════════════════ */
+    /* TOASTS */
     .toasts {
       position: fixed;
       bottom: calc(20px + var(--safe-b));
@@ -1619,9 +1540,6 @@
       to   { opacity: 1; transform: none; }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       ANIMATIONS
-       ═══════════════════════════════════════════════════════════ */
     .fu { animation: fadeUp .38s var(--ease) both; }
     .d1 { animation-delay: .03s; }
     .d2 { animation-delay: .07s; }
@@ -1636,9 +1554,6 @@
     }
     .stat-pop { animation: statPop .35s ease; }
 
-    /* ═══════════════════════════════════════════════════════════
-       SKELETONS
-       ═══════════════════════════════════════════════════════════ */
     .sk {
       background: linear-gradient(90deg, var(--bdr) 25%, #eef1f7 37%, var(--bdr) 63%);
       background-size: 400% 100%;
@@ -1658,9 +1573,6 @@
       border-radius: var(--r);
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       REDUCED MOTION
-       ═══════════════════════════════════════════════════════════ */
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         animation-duration: .001ms !important;
@@ -1668,202 +1580,62 @@
       }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       SERVICE DETAILS DRAWER
-       ═══════════════════════════════════════════════════════════ */
-    .drawer-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(10,20,28,.5);
-      backdrop-filter: blur(4px);
-      z-index: 950;
-    }
-    .drawer-overlay.open { display: block; }
-    
-    .drawer {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: var(--srf);
-      border-radius: var(--rxl) var(--rxl) 0 0;
-      z-index: 960;
-      transform: translateY(100%);
-      transition: transform .3s var(--ease);
-      max-height: 90vh;
-      max-height: 90dvh;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 -10px 40px rgba(0,0,0,.15);
-    }
-    @media (min-width: 641px) {
-      .drawer {
-        top: 50%;
-        left: 50%;
-        bottom: auto;
-        right: auto;
-        transform: translate(-50%, -50%) scale(0.95);
-        width: 540px;
-        max-width: 90vw;
-        border-radius: var(--rxl);
-        opacity: 0;
-        pointer-events: none;
-      }
-      .drawer.open {
-        transform: translate(-50%, -50%) scale(1);
-        opacity: 1;
-        pointer-events: auto;
-      }
-    }
-    .drawer.open {
-      transform: translateY(0);
-    }
-    .dr-head {
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--bdr);
+    /* Stale banner */
+    .tx-stale-banner {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      flex-shrink: 0;
-    }
-    .dr-head h3 {
-      font-family: var(--fd);
-      font-size: 1.05rem;
-      font-weight: 800;
-    }
-    .dr-close {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      background: var(--srf2);
-      color: var(--t2);
-      display: grid;
-      place-items: center;
-    }
-    .dr-body {
-      padding: 20px;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    .dr-hero {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-bottom: 20px;
-    }
-    .dr-ic {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
-      display: grid;
-      place-items: center;
-      font-size: 1.2rem;
-      color: #fff;
-      flex-shrink: 0;
-    }
-    .dr-title {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--t1);
-      margin-bottom: 4px;
-    }
-    .dr-badges {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    .dr-desc {
-      font-size: .85rem;
-      color: var(--t2);
-      line-height: 1.6;
-      margin-bottom: 20px;
-      background: var(--srf2);
-      padding: 14px;
-      border-radius: var(--r);
-      border: 1px solid var(--bdr);
-    }
-    .dr-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin-bottom: 20px;
+      padding: 10px 14px;
+      margin: 8px 0;
+      border-radius: 10px;
+      background: rgba(245, 166, 35, 0.12);
+      border: 1px solid rgba(245, 166, 35, 0.35);
+      font-size: 12.5px;
+      color: var(--t2);
     }
-    .dr-row {
-      background: var(--srf2);
-      border-radius: var(--r);
-      padding: 10px 12px;
-      border: 1px solid var(--bdr);
-    }
-    .dr-lbl {
-      font-size: .65rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      color: var(--t3);
-      margin-bottom: 2px;
-    }
-    .dr-val {
-      font-size: .82rem;
-      font-weight: 700;
-      color: var(--t1);
-    }
-    .btn-dr-select {
-      width: 100%;
-      padding: 14px;
-      border-radius: var(--rp);
-      background: var(--p);
+    .tx-stale-banner strong { color: var(--t1); font-weight: 600; }
+    .tx-stale-banner button {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: none;
+      background: #0f4c5c;
       color: #fff;
-      font-family: var(--fd);
-      font-weight: 700;
-      font-size: .88rem;
-      transition: all .2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
     }
-    .btn-dr-select:hover { background: var(--pm); }
-
+    .tx-stale-banner button:disabled { opacity: .55; cursor: not-allowed; }
+    @media (max-width: 420px) {
+      .tx-stale-banner { flex-direction: column; align-items: stretch; }
+      .tx-stale-banner button { width: 100%; min-height: 44px; }
+    }
+    tr.ms-stale-tr > td { padding: 0; border-bottom: 1px solid var(--bdr); }
+    tr.ms-stale-tr .tx-stale-banner { margin: 6px 8px; }
   </style>
-
-  <script src="/js/session.js"></script>
-  <script src="/js/presence.js" defer></script>
-  <script src="/js/miles-widget.js" defer></script>
 </head>
 
 <body>
 
-<!-- ═══════════════════════════════════════════════════════════
-     OVERLAY
-     ═══════════════════════════════════════════════════════════ -->
 <div class="ov" id="ov"></div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     SERVICE DETAILS DRAWER
-     ═══════════════════════════════════════════════════════════ -->
-<div class="drawer-overlay" id="drOverlay"></div>
-<div class="drawer" id="svcDrawer">
+<div class="drawer-overlay" id="drOverlay" hidden></div>
+<div class="drawer" id="svcDrawer" hidden>
   <div class="dr-head">
     <h3>Service Details</h3>
     <button class="dr-close" id="drClose"><i class="fas fa-times"></i></button>
   </div>
-  <div class="dr-body" id="drBody">
-    <!-- Populated dynamically -->
-  </div>
+  <div class="dr-body" id="drBody"></div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     CONFIRM MODAL
-     ═══════════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="confirmModal">
   <div class="confirm-modal">
-
     <div class="cm-header">
       <div class="cm-icon">✅</div>
       <h2 class="cm-title">Order Confirmed</h2>
       <p class="cm-sub">Boost is processing. Read the guidelines below.</p>
     </div>
-
     <div class="cm-body">
       <div class="cm-summary">
         <div class="cm-row"><span class="cm-lbl">Order ID</span><span class="cm-val" id="cmOrderId">—</span></div>
@@ -1872,7 +1644,6 @@
         <div class="cm-row"><span class="cm-lbl">Amount Paid</span><span class="cm-val cm-total" id="cmAmount">—</span></div>
         <div class="cm-row"><span class="cm-lbl">Est. Start</span><span class="cm-val" id="cmDelivery" style="color:var(--ok)">1–5 min</span></div>
       </div>
-
       <div class="cm-rules">
         <div class="cm-section cm-warn">
           <h4>⚠️ Account Requirements</h4>
@@ -1906,7 +1677,6 @@
           </ul>
         </div>
       </div>
-
       <button class="btn-cm-close" id="cmCloseBtn">
         <i class="fas fa-check"></i> Got It — View My Orders
       </button>
@@ -1916,11 +1686,7 @@
 
 <div class="app">
 
-  <!-- ═════════════════════════════════════════════════════════
-       SIDEBAR
-       ═════════════════════════════════════════════════════════ -->
   <aside class="sidebar" id="sb">
-
     <div class="sb-brand">
       <div class="sb-lic">
         <img src="/images/miles.png" alt="MilesSpace" onerror="this.style.display='none'">
@@ -1962,29 +1728,21 @@
         </button>
       </div>
     </div>
-
   </aside>
 
-  <!-- ═════════════════════════════════════════════════════════
-       MAIN
-       ═════════════════════════════════════════════════════════ -->
   <div class="main">
-
-    <!-- ── Topbar ─────────────────────────────────────────── -->
     <header class="topbar">
       <button class="tb-hbg" id="hbg" aria-label="Open menu"><i class="fas fa-bars"></i></button>
       <p class="tb-title">MilesSpace</p>
       <div class="tb-right">
-        <a href="history.html" class="tb-btn" aria-label="Transaction history" title="Transaction history"><i class="fas fa-clock-rotate-left"></i></a>
+        <button type="button" class="tb-btn" id="boostHistBtn" title="Boost history" aria-label="Boost history"><i class="fas fa-clock-rotate-left"></i></button>
         <a href="notifications.html" class="tb-btn" aria-label="Notifications"><i class="fas fa-bell"></i></a>
         <a href="usersettings.html" class="tb-av" id="tbAv" aria-label="Account">U</a>
       </div>
     </header>
 
-    <!-- ── Content ────────────────────────────────────────── -->
     <main class="content">
 
-      <!-- ── Page header ──────────────────────────────────── -->
       <div class="page-header fu d1">
         <div class="page-header-inner">
           <div>
@@ -1998,7 +1756,6 @@
         </div>
       </div>
 
-      <!-- ── Platform filters ─────────────────────────────── -->
       <div class="plat-scroller fu d2">
         <div class="plat-row" id="platRow">
           <button class="plat-pill p-all active" data-plat="all"><i class="fas fa-th-large"></i> All</button>
@@ -2014,13 +1771,8 @@
         </div>
       </div>
 
-      <!-- ── Boost layout ─────────────────────────────────── -->
       <div class="boost-layout fu d3">
-
-        <!-- ── LEFT COLUMN ───────────────────────────────── -->
         <div class="boost-left">
-
-          <!-- Service list -->
           <div class="panel">
             <div class="panel-hd">
               <div class="panel-hd-ic"><i class="fas fa-list-ul"></i></div>
@@ -2040,7 +1792,6 @@
             </div>
           </div>
 
-          <!-- Order form -->
           <div class="order-form">
             <div class="of-hd">
               <div class="of-hd-ic"><i class="fas fa-bolt"></i></div>
@@ -2083,7 +1834,6 @@
                 <div class="wallet-section" id="walletSection" style="display:none">
                   <span class="wallet-section-lbl">Pay from wallet</span>
                   <div class="wal-sel">
-
                     <div class="ws-opt selected" id="wsNGN" data-wallet="NGN" role="button" tabindex="0">
                       <div class="ws-top">
                         <div class="ws-ic" style="background:var(--pl);color:var(--p)"><i class="fas fa-naira-sign"></i></div>
@@ -2107,7 +1857,6 @@
                       </div>
                       <p class="ws-insuf" id="wsUSDinsuf">Insufficient balance</p>
                     </div>
-
                   </div>
                 </div>
 
@@ -2123,17 +1872,12 @@
                 <p style="text-align:center;font-size:.68rem;color:var(--t3);margin-top:10px">
                   <i class="fas fa-lock" style="color:var(--p)"></i> Secure · Real accounts · 30-day refill
                 </p>
-
               </div>
             </div>
           </div>
-
         </div>
 
-        <!-- ── RIGHT COLUMN ──────────────────────────────── -->
         <div class="boost-right">
-
-          <!-- Stats card -->
           <div class="card">
             <p class="card-title"><i class="fas fa-chart-bar"></i> Your Stats</p>
             <div class="stat-grid">
@@ -2144,7 +1888,6 @@
             </div>
           </div>
 
-          <!-- Popular services -->
           <div class="card">
             <p class="card-title"><i class="fas fa-fire-flame-curved"></i> Popular</p>
 
@@ -2192,17 +1935,14 @@
               </div>
               <i class="fas fa-chevron-right pop-arr"></i>
             </div>
-
           </div>
-
         </div>
       </div>
 
-      <!-- ── Recent orders ────────────────────────────────── -->
       <div class="orders-card fu">
         <div class="oc-hd">
           <h3><i class="fas fa-receipt"></i> Recent Orders</h3>
-          <a href="history.html" style="font-size:.74rem;font-weight:600;color:var(--pm)">View all →</a>
+          <button type="button" id="viewAllBoostBtn" style="font-size:.74rem;font-weight:600;color:var(--pm);background:none;border:none;cursor:pointer">View all →</button>
         </div>
         <div class="tbl-scroll">
           <table>
@@ -2227,19 +1967,11 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     TOASTS
-     ═══════════════════════════════════════════════════════════ -->
 <div class="toasts" id="toastWrap"></div>
 
 <script>
 'use strict';
 
-/* ═══════════════════════════════════════════════════════════════
-   AUTH MODEL — access token in memory, refresh cookie, userFetch.
-   ═══════════════════════════════════════════════════════════════ */
-
-/* ─── Config ──────────────────────────────────────────────── */
 const DEFAULTS = {
   usdToNgn: 1600,
   markupPct: 0.18
@@ -2252,7 +1984,6 @@ const CONFIG = {
   maxQtyCap: 10_000_000
 };
 
-/* ─── State ───────────────────────────────────────────────── */
 const State = {
   balNGN: 0,
   balUSD: 0,
@@ -2271,10 +2002,10 @@ const State = {
     totalSpentNGN: 0,
     totalSpentUSD: 0
   },
-  drawerSvc: null
+  drawerSvc: null,
+  orderIdemKey: null
 };
 
-/* ─── DOM helpers ─────────────────────────────────────────── */
 const $  = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
@@ -2296,7 +2027,6 @@ function escapeHtml(s) {
   }[c]));
 }
 
-/* ─── Formatters ──────────────────────────────────────────── */
 const fNGN = (n) => '₦' + (Number(n) || 0).toLocaleString('en-NG', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2
@@ -2322,7 +2052,6 @@ function formatDate(d) {
   });
 }
 
-/* ─── Auth helpers ────────────────────────────────────────── */
 function getCurrentUser() {
   return (typeof window.getUser === 'function') ? window.getUser() : null;
 }
@@ -2332,7 +2061,6 @@ function redirectToLogin() {
   else window.location.replace('/login.html');
 }
 
-/* ─── Session-ready gate ──────────────────────────────────── */
 function waitForSession(timeoutMs = 8000) {
   return new Promise((resolve) => {
     if (typeof window.getAccessToken === 'function' && window.getAccessToken()) {
@@ -2362,7 +2090,6 @@ function waitForSession(timeoutMs = 8000) {
   });
 }
 
-/* ─── API wrapper ─────────────────────────────────────────── */
 async function api(path, opts = {}) {
   const fetcher = (typeof window.userFetch === 'function')
     ? window.userFetch
@@ -2391,7 +2118,6 @@ async function api(path, opts = {}) {
   return json;
 }
 
-/* ─── Toast ───────────────────────────────────────────────── */
 function toast(msg, type = 'info') {
   const wrap = $('#toastWrap');
   if (!wrap) return;
@@ -2417,7 +2143,6 @@ function toast(msg, type = 'info') {
   }, 3400);
 }
 
-/* ─── Platform registry ───────────────────────────────────── */
 const PLAT = {
   instagram: { icon: 'fab fa-instagram', bg: 'linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)' },
   tiktok:    { icon: 'fab fa-tiktok',    bg: '#111' },
@@ -2449,9 +2174,6 @@ function platIcon(platform, name) {
   return PLAT[platform] || PLAT[detectPlat(name)] || PLAT.other;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   SIDEBAR
-   ═══════════════════════════════════════════════════════════════ */
 function initSidebar() {
   const sb  = $('#sb');
   const ov  = $('#ov');
@@ -2493,9 +2215,6 @@ function initSidebar() {
   });
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   USER — initials only.
-   ═══════════════════════════════════════════════════════════════ */
 function populateUser(u) {
   if (!u) return;
   const name = u.username || u.full_name || u.name || (u.email ? u.email.split('@')[0] : 'User');
@@ -2532,14 +2251,17 @@ async function loadUser() {
 
     if (typeof window.saveUserSession === 'function') window.saveUserSession(data);
     updateWalletUI();
+
+    try {
+      sessionStorage.setItem('ms:boost:balances', JSON.stringify({
+        NGN: State.balNGN, USD: State.balUSD
+      }));
+    } catch (_) {}
   } catch (e) {
     console.warn('[BOOST] loadUser failed:', e.message);
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   CONFIG
-   ═══════════════════════════════════════════════════════════════ */
 async function loadConfig() {
   try {
     const res = await api('/boost/config');
@@ -2558,13 +2280,27 @@ async function loadConfig() {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   SERVICES
-   ═══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   SERVICES — cache-first for FAST load
+   ═══════════════════════════════════════════════════════════ */
 async function loadServices() {
-  State.loadingServices = true;
+  /* Paint from sessionStorage first */
+  try {
+    const cached = JSON.parse(sessionStorage.getItem('ms:boost:services') || 'null');
+    if (cached && Array.isArray(cached) && cached.length) {
+      State.allSvcs = cached;
+      State.loadingServices = false;
+      renderServices();
+    } else {
+      State.loadingServices = true;
+      renderServices();
+    }
+  } catch (_) {
+    State.loadingServices = true;
+    renderServices();
+  }
+
   State.serviceError = null;
-  renderServices();
 
   try {
     const res = await api(`/boost/services?limit=${CONFIG.servicesLimit}`);
@@ -2606,6 +2342,10 @@ async function loadServices() {
     }).filter((s) => s.id && s.name && s.rateUsd > 0);
 
     State.loadingServices = false;
+
+    try {
+      sessionStorage.setItem('ms:boost:services', JSON.stringify(State.allSvcs));
+    } catch (_) {}
   } catch (e) {
     console.error('[BOOST] loadServices failed:', e);
     State.loadingServices = false;
@@ -2689,9 +2429,6 @@ const renderServices = debounce(function () {
   });
 }, 100);
 
-/* ═══════════════════════════════════════════════════════════════
-   SERVICE DETAILS DRAWER
-   ═══════════════════════════════════════════════════════════════ */
 function openDrawer(svcId) {
   const s = State.allSvcs.find((x) => x.id === svcId);
   if (!s) return;
@@ -2702,7 +2439,8 @@ function openDrawer(svcId) {
     ? escapeHtml(s.description).replace(/\n/g, '<br>')
     : 'Detailed description for this service is not available yet. Please contact support if you need more information before ordering.';
 
-  $('#drBody').innerHTML = `
+  const drBody = $('#drBody');
+  drBody.innerHTML = `
     <div class="dr-hero">
       <div class="dr-ic" style="background:${pi.bg}"><i class="${pi.icon}"></i></div>
       <div>
@@ -2733,12 +2471,16 @@ function openDrawer(svcId) {
 
   $('#svcDrawer').classList.add('open');
   $('#drOverlay').classList.add('open');
+  $('#svcDrawer').hidden = false;
+  $('#drOverlay').hidden = false;
   document.body.style.overflow = 'hidden';
 }
 
 function closeDrawer() {
   $('#svcDrawer').classList.remove('open');
   $('#drOverlay').classList.remove('open');
+  $('#svcDrawer').hidden = true;
+  $('#drOverlay').hidden = true;
   document.body.style.overflow = '';
 }
 
@@ -2747,9 +2489,6 @@ function initDrawer() {
   $('#drOverlay')?.addEventListener('click', closeDrawer);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PLATFORM FILTERS
-   ═══════════════════════════════════════════════════════════════ */
 function initPlatformFilters() {
   $$('.plat-pill').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -2761,14 +2500,12 @@ function initPlatformFilters() {
   });
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   SERVICE SELECTION
-   ═══════════════════════════════════════════════════════════════ */
 function selectService(id) {
   const s = State.allSvcs.find((x) => x.id === id);
   if (!s) return;
 
   State.selSvc = s;
+  State.orderIdemKey = null;
   const pi = platIcon(s.platform, s.name);
 
   $('#chipIc').style.background = pi.bg;
@@ -2824,6 +2561,7 @@ function selectService(id) {
 
 function clearSelection() {
   State.selSvc = null;
+  State.orderIdemKey = null;
   $('#selChip').classList.add('hidden');
   $('#pickHint').style.display = 'flex';
   $('#orderFields').style.display = 'none';
@@ -2839,9 +2577,6 @@ function clearSelection() {
   if (detailsBtn) detailsBtn.remove();
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PRICING
-   ═══════════════════════════════════════════════════════════════ */
 function calcPrice() {
   if (!State.selSvc) return;
 
@@ -2868,9 +2603,6 @@ function calcPrice() {
   checkBalance();
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   WALLET SELECTOR
-   ═══════════════════════════════════════════════════════════════ */
 function updateWalletUI() {
   const ngnEl = $('#wsNGNbal');
   const usdEl = $('#wsUSDBal');
@@ -2905,9 +2637,6 @@ function setWallet(w) {
   calcPrice();
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   BALANCE CHECK
-   ═══════════════════════════════════════════════════════════════ */
 function checkBalance() {
   if (!State.selSvc) return;
 
@@ -2954,9 +2683,6 @@ function hideBalNotice() {
   $('#orderBtn').disabled = false;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PLACE ORDER
-   ═══════════════════════════════════════════════════════════════ */
 async function placeOrder() {
   if (!State.selSvc) { toast('Select a service first', 'err'); return; }
 
@@ -2988,7 +2714,11 @@ async function placeOrder() {
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Placing order…';
 
-  const idemKey = `boost-${State.selSvc.providerServiceId}-${qty}-${Date.now()}`;
+  /* Generate ONCE per attempt — reused if user retries without changing service/qty */
+  if (!State.orderIdemKey) {
+    State.orderIdemKey = `boost-${State.selSvc.providerServiceId}-${qty}-${Date.now()}`;
+  }
+  const idemKey = State.orderIdemKey;
 
   try {
     const res = await api('/boost/order', {
@@ -3021,6 +2751,8 @@ async function placeOrder() {
     $('#confirmModal').classList.add('open');
     document.body.style.overflow = 'hidden';
 
+    /* Reset on success so a new order gets a fresh key */
+    State.orderIdemKey = null;
     clearSelection();
   } catch (e) {
     console.error('[BOOST] placeOrder failed:', e);
@@ -3038,13 +2770,24 @@ async function placeOrder() {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   STATS
-   ═══════════════════════════════════════════════════════════════ */
 async function loadStats() {
+  /* Cache-first paint */
+  try {
+    const cached = JSON.parse(sessionStorage.getItem('ms:boost:stats') || 'null');
+    if (cached && cached.stats) {
+      State.stats = { ...State.stats, ...cached.stats };
+      renderStats();
+    }
+  } catch (_) {}
+
   try {
     const res = await api('/boost/stats');
-    if (res?.stats) State.stats = { ...State.stats, ...res.stats };
+    if (res?.stats) {
+      State.stats = { ...State.stats, ...res.stats };
+      try {
+        sessionStorage.setItem('ms:boost:stats', JSON.stringify({ stats: State.stats }));
+      } catch (_) {}
+    }
   } catch (e) {
     console.warn('[BOOST] stats failed:', e.message);
   }
@@ -3070,16 +2813,28 @@ function renderStats() {
   });
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   RECENT ORDERS
-   ═══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   RECENT ORDERS — cache-first for FAST load
+   ═══════════════════════════════════════════════════════════ */
 async function loadRecentOrders() {
+  /* Paint cache first */
+  try {
+    const cached = JSON.parse(sessionStorage.getItem('ms:boost:orders') || 'null');
+    if (cached && Array.isArray(cached) && cached.length) {
+      State.recentOrders = cached;
+      renderOrders();
+    }
+  } catch (_) {}
+
   try {
     const res = await api(`/boost/orders?limit=${CONFIG.ordersLimit}`);
     State.recentOrders = Array.isArray(res?.orders) ? res.orders : [];
+    try {
+      sessionStorage.setItem('ms:boost:orders', JSON.stringify(State.recentOrders));
+    } catch (_) {}
   } catch (e) {
     console.warn('[BOOST] orders failed:', e.message);
-    State.recentOrders = [];
+    if (!State.recentOrders.length) State.recentOrders = [];
   }
   renderOrders();
 }
@@ -3102,19 +2857,21 @@ function renderOrders() {
     failed:           'bdg-err',
     cancelled:        'bdg-err',
     refunded:         'bdg-err',
-    provider_unknown: 'bdg-proc'
+    provider_unknown: 'bdg-proc',
+    under_review:     'bdg-pend',
+    manual_review:    'bdg-pend'
   };
 
-  tbody.innerHTML = State.recentOrders.map((o) => {
+  tbody.innerHTML = State.recentOrders.map((o, idx) => {
     const status = String(o.status || 'pending').toLowerCase();
-    const statusLabel = status.replace(/_/g, ' ');
+    const statusLabel = window.MS && MS.statusLabel ? MS.statusLabel(status) : status.replace(/_/g, ' ');
     const amt = Number(o.total_amount || 0);
     const currency = String(o.currency || 'NGN').toUpperCase();
     const amountHtml = currency === 'USD'
       ? `<span class="amt-usd">${fUSD(amt)}</span>`
       : `<span class="amt-ngn">${fNGN(amt)}</span>`;
 
-    return `<tr>
+    return `<tr data-oi="${idx}">
       <td style="font-family:monospace;font-size:.7rem">#${escapeHtml(o.order_ref || o.id || '—')}</td>
       <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(o.service_name || o.name || '—')}</td>
       <td>${Number(o.quantity || 0).toLocaleString()}</td>
@@ -3125,9 +2882,6 @@ function renderOrders() {
   }).join('');
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   QUICK PICKS
-   ═══════════════════════════════════════════════════════════════ */
 function initQuickPicks() {
   $$('[data-quick]').forEach((el) => {
     const handler = () => {
@@ -3155,9 +2909,6 @@ function initQuickPicks() {
   });
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   MODAL
-   ═══════════════════════════════════════════════════════════════ */
 function initModal() {
   const modal = $('#confirmModal');
   modal?.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
@@ -3176,9 +2927,6 @@ function closeModal() {
   loadUser();
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   LOGOUT
-   ═══════════════════════════════════════════════════════════════ */
 function initLogout() {
   $('#logoutBtn')?.addEventListener('click', (e) => {
     e.preventDefault();
@@ -3188,9 +2936,66 @@ function initLogout() {
   });
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   BOOT
-   ═══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   PER-PAGE HISTORY DRAWER (boost only — no redirect)
+   ═══════════════════════════════════════════════════════════ */
+let boostHist = null;
+
+function initBoostHistory() {
+  if (!window.MS || !MS.historyDrawer) return;
+
+  boostHist = MS.historyDrawer({
+    id: 'boostHist',
+    title: 'Boost history',
+    subtitle: 'Your social media boost orders',
+    load: async (page, n) => {
+      const res = await api(`/boost/orders?limit=${n || 50}&page=${page || 1}`);
+      const items = Array.isArray(res?.orders) ? res.orders : [];
+      const total = res?.meta?.total;
+      return {
+        items,
+        hasMore: items.length === (n || 50) && (total == null || (page || 1) * (n || 50) < total)
+      };
+    },
+    keyOf: (o) => o.id || o.order_ref,
+    render: (o) => {
+      const status = String(o.status || 'pending').toLowerCase();
+      const stLabel = window.MS && MS.statusLabel ? MS.statusLabel(status) : status.replace(/_/g, ' ');
+      const stKey = window.MS && MS.statusKey ? MS.statusKey(status) : status;
+      const cur = String(o.currency || 'NGN').toUpperCase();
+      const amt = Number(o.total_amount || 0);
+      const amtStr = cur === 'USD' ? fUSD(amt) : fNGN(amt);
+      return '<div class="ms-hd-item">' +
+        '<div class="ms-hd-row1">' +
+        '<span class="ms-hd-title">' + MS.esc(o.service_name || o.name || 'Boost order') + '</span>' +
+        '<span class="ms-pill ' + MS.esc(stKey) + '">' + MS.esc(stLabel) + '</span>' +
+        '</div>' +
+        '<div class="ms-hd-meta">' + MS.esc((o.order_ref || o.id || '').slice(0, 28)) + '</div>' +
+        '<div class="ms-hd-meta">Qty: ' + MS.esc(Number(o.quantity || 0).toLocaleString()) + ' · ' + MS.esc(amtStr) + ' · ' + MS.esc(formatDate(o.created_at)) + '</div>' +
+        '</div>';
+    },
+    onItemClick: () => {},
+    emptyText: 'No boost orders yet.'
+  });
+
+  const histBtn = $('#boostHistBtn');
+  if (histBtn) histBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); boostHist.open(); });
+
+  const viewAll = $('#viewAllBoostBtn');
+  if (viewAll) viewAll.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); boostHist.open(); });
+
+  /* Stale banner for the drawer */
+  MS.stale.init({
+    rows: '#boostHist-list .ms-hd-item',
+    record: el => boostHist.items[Number(el.dataset.i)] || null,
+    staleMs: 3600000,
+    stalable: ['pending', 'provider_unknown', 'manual_review', 'under_review'],
+    refresh: () => { boostHist.reload(); loadStats(); loadUser(); },
+    toast: (m, k) => toast(m, k === 'ok' ? 'ok' : (k === 'err' ? 'err' : 'info')),
+    observe: '#boostHist-list'
+  });
+}
+
 async function init() {
   await new Promise(r => setTimeout(r, 0));
 
@@ -3215,6 +3020,7 @@ async function init() {
   initWalletSelector();
   initQuickPicks();
   initDrawer();
+  initBoostHistory();
 
   $('#svcSearch')?.addEventListener('input', renderServices);
 
@@ -3231,10 +3037,23 @@ async function init() {
   $('#chipClear')?.addEventListener('click', clearSelection);
   $('#orderBtn')?.addEventListener('click', placeOrder);
 
-  await loadUser();
+  /* Cache-first balance paint before any fetch */
+  try {
+    const cached = JSON.parse(sessionStorage.getItem('ms:boost:balances') || 'null');
+    if (cached && cached.NGN != null) {
+      State.balNGN = cached.NGN || 0;
+      State.balUSD = cached.USD || 0;
+      updateWalletUI();
+    }
+  } catch (_) {}
+
+  /* Fetch in parallel for speed */
+  await Promise.all([
+    loadUser(),
+    loadConfig()
+  ]);
 
   await Promise.all([
-    loadConfig(),
     loadServices(),
     loadStats(),
     loadRecentOrders()
@@ -3242,6 +3061,33 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+</script>
+
+<script>
+/* Stale banner — Recent Orders table */
+(function () {
+  'use strict';
+
+  function wire() {
+    if (!window.MS || !MS.stale) return;
+    MS.stale.init({
+      rows: '#ordersBody tr[data-oi]',
+      record: el => State.recentOrders[Number(el.dataset.oi)] || null,
+      mount: 'tr',
+      colspan: 6,
+      staleMs: 3600000,
+      stalable: ['pending', 'provider_unknown', 'manual_review', 'under_review'],
+      refresh: () => { loadRecentOrders(); loadStats(); loadUser(); },
+      toast: (m, k) => toast(m, k === 'ok' ? 'ok' : (k === 'err' ? 'err' : 'info')),
+      observe: '#ordersBody'
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(wire, 100), { once: true });
+  } else {
+    setTimeout(wire, 100);
+  }
+})();
 </script>
 </body>
 </html>

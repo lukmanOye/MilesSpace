@@ -10,7 +10,6 @@
   <link rel="icon" href="/images/miles.png" type="image/png" />
   <link rel="apple-touch-icon" href="/images/miles.png" />
 
-  <!-- Open Graph -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="MilesSpace" />
   <meta property="og:title" content="MilesSpace — Digital Wallet & Digital Services" />
@@ -22,7 +21,6 @@
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
 
-  <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="MilesSpace — Digital Wallet & Digital Services" />
   <meta name="twitter:description" content="Fund your wallet, buy airtime and data, pay bills, get gift cards, use eSIM and more." />
@@ -30,33 +28,34 @@
 
   <title>MilesSpace | Virtual Numbers</title>
 
-  <!-- Preconnects -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" as="style" />
   <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" as="style" />
 
-  <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <script src="/js/session.js"></script>
+  <script src="/js/presence.js" defer></script>
+  <script src="/js/miles-widget.js" defer></script>
+  <link rel="stylesheet" href="/css/ms-shell.css?v=1">
+  <script src="/js/ms-shell.js?v=1" defer></script>
 
   <style>
     /* ═══════════════════════════════════════════════════════════
        DESIGN TOKENS
        ═══════════════════════════════════════════════════════════ */
     :root {
-      /* Brand colors */
       --p:   #0B1220;
       --pm:  #1A2C3E;
       --pl:  #eef1f6;
       --pxl: #f5f7fa;
 
-      /* Accent */
       --acc: #F5A623;
       --acd: #d98c12;
       --acl: #fff6e6;
 
-      /* Status */
       --ok:    #10b981;
       --okl:   #d1fae5;
       --err:   #ef4444;
@@ -64,44 +63,34 @@
       --warn:  #f59e0b;
       --warnl: #fef3c7;
 
-      /* Surfaces */
       --bg:   #f0f2f5;
       --srf:  #fff;
       --srf2: #f7f8fa;
 
-      /* Text & borders */
       --bdr: #e2e8ee;
       --t1:  #0d1b26;
       --t2:  #445d6e;
       --t3:  #8ea8b4;
 
-      /* Layout */
       --sw:  264px;
       --r:   10px;
       --rl:  16px;
       --rxl: 22px;
       --rp:  999px;
 
-      /* Shadows */
       --s0: 0 1px 4px rgba(0,0,0,.05);
       --s1: 0 6px 20px rgba(0,0,0,.08);
       --s2: 0 16px 44px rgba(0,0,0,.13);
 
-      /* Fonts */
-    --fd: 'Inter', system-ui, sans-serif;
+      --fd: 'Inter', system-ui, sans-serif;
       --fb: 'Inter', system-ui, sans-serif;
 
-      /* Motion */
       --ease: cubic-bezier(.25,.8,.25,1);
 
-      /* Safe areas */
       --safe-b: env(safe-area-inset-bottom, 0px);
       --safe-t: env(safe-area-inset-top, 0px);
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       RESET
-       ═══════════════════════════════════════════════════════════ */
     *, *::before, *::after {
       box-sizing: border-box;
       margin: 0;
@@ -142,7 +131,6 @@
       font-size: inherit;
     }
 
-    /* Prevent iOS auto-zoom: inputs must be >= 16px */
     input, select, textarea {
       font-family: inherit;
       font-size: 16px;
@@ -156,9 +144,6 @@
       border-radius: 4px;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       SKELETON
-       ═══════════════════════════════════════════════════════════ */
     .skeleton { animation: shimmer 1.5s ease-in-out infinite; }
     @keyframes shimmer {
       0%   { opacity: .35; }
@@ -169,9 +154,6 @@
     .skel-cc { height: 44px; margin-bottom: 4px; }
     .skel-svc{ height: 62px; margin-bottom: 5px; }
 
-    /* ═══════════════════════════════════════════════════════════
-       OVERLAY
-       ═══════════════════════════════════════════════════════════ */
     .ov {
       display: none;
       position: fixed;
@@ -190,9 +172,6 @@
       pointer-events: auto;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       SIDEBAR
-       ═══════════════════════════════════════════════════════════ */
     .sidebar {
       position: fixed;
       top: 0;
@@ -291,18 +270,9 @@
       flex-shrink: 0;
       opacity: .75;
     }
-    .sb-lnk:hover {
-      background: var(--bg);
-      color: var(--t1);
-    }
-    .sb-lnk.active {
-      background: var(--pl);
-      color: var(--p);
-    }
-    .sb-lnk.active i {
-      opacity: 1;
-      color: var(--p);
-    }
+    .sb-lnk:hover { background: var(--bg); color: var(--t1); }
+    .sb-lnk.active { background: var(--pl); color: var(--p); }
+    .sb-lnk.active i { opacity: 1; color: var(--p); }
 
     .sb-foot {
       margin-top: auto;
@@ -311,22 +281,8 @@
       border-top: 1px solid var(--bdr);
       flex-shrink: 0;
     }
-    .sb-prof {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px;
-      border-radius: 12px;
-    }
-    .sb-prof-link {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex: 1;
-      min-width: 0;
-      text-decoration: none;
-      cursor: pointer;
-    }
+    .sb-prof { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 12px; }
+    .sb-prof-link { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; text-decoration: none; cursor: pointer; }
     .sb-av {
       width: 34px;
       height: 34px;
@@ -342,21 +298,8 @@
       border: 2px solid var(--acc);
     }
     .sb-ui { flex: 1; min-width: 0; }
-    .sb-un {
-      font-size: .82rem;
-      font-weight: 700;
-      color: var(--t1);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .sb-ue {
-      font-size: .7rem;
-      color: var(--t3);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+    .sb-un { font-size: .82rem; font-weight: 700; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sb-ue { font-size: .7rem; color: var(--t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sb-out {
       width: 36px;
       height: 36px;
@@ -369,18 +312,9 @@
       cursor: pointer;
       flex-shrink: 0;
     }
-    .sb-out:hover {
-      background: var(--erl);
-      color: var(--err);
-    }
+    .sb-out:hover { background: var(--erl); color: var(--err); }
 
-    /* ═══════════════════════════════════════════════════════════
-       APP / MAIN
-       ═══════════════════════════════════════════════════════════ */
-    .app {
-      display: flex;
-      min-height: 100vh;
-    }
+    .app { display: flex; min-height: 100vh; }
     .main {
       margin-left: 0;
       flex: 1;
@@ -389,9 +323,6 @@
       min-width: 0;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       TOPBAR
-       ═══════════════════════════════════════════════════════════ */
     .topbar {
       background: var(--srf);
       border-bottom: 1px solid var(--bdr);
@@ -418,10 +349,7 @@
       transition: all .2s;
       border: none;
     }
-    .tb-hbg:hover {
-      background: var(--p);
-      color: #fff;
-    }
+    .tb-hbg:hover { background: var(--p); color: #fff; }
     .tb-title {
       font-family: var(--fd);
       font-size: .88rem;
@@ -455,10 +383,7 @@
       position: relative;
       text-decoration: none;
     }
-    .tb-btn:hover {
-      background: var(--pl);
-      color: var(--p);
-    }
+    .tb-btn:hover { background: var(--pl); color: var(--p); }
     .notif-dot {
       position: absolute;
       top: 8px;
@@ -487,29 +412,18 @@
       text-decoration: none;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       CONTENT
-       ═══════════════════════════════════════════════════════════ */
     .content {
       padding: 16px;
       padding-bottom: calc(90px + var(--safe-b));
       flex: 1;
     }
     @media (min-width: 641px) {
-      .content {
-        padding: 22px;
-        padding-bottom: 60px;
-      }
+      .content { padding: 22px; padding-bottom: 60px; }
     }
     @media (min-width: 1025px) {
-      .content {
-        padding: 26px 28px 40px;
-      }
+      .content { padding: 26px 28px 40px; }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       PAGE HEADER
-       ═══════════════════════════════════════════════════════════ */
     .page-header { margin-bottom: 22px; }
     .page-header h1 {
       font-family: var(--fd);
@@ -542,10 +456,7 @@
       font-weight: 600;
       color: var(--t2);
     }
-    .ph-pill i {
-      font-size: .68rem;
-      color: var(--acc);
-    }
+    .ph-pill i { font-size: .68rem; color: var(--acc); }
     .live-dot {
       display: inline-block;
       width: 7px;
@@ -560,9 +471,6 @@
       50%      { box-shadow: 0 0 0 5px rgba(16,185,129,0); }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       STEP BAR
-       ═══════════════════════════════════════════════════════════ */
     .steps-bar {
       display: flex;
       align-items: center;
@@ -608,14 +516,8 @@
       z-index: 1;
       transition: all .3s;
     }
-    .step-dot.active .step-dot-ic {
-      background: var(--p);
-      color: #fff;
-    }
-    .step-dot.done .step-dot-ic {
-      background: var(--ok);
-      color: #fff;
-    }
+    .step-dot.active .step-dot-ic { background: var(--p); color: #fff; }
+    .step-dot.done .step-dot-ic { background: var(--ok); color: #fff; }
     .step-dot-lbl {
       font-size: .65rem;
       font-weight: 600;
@@ -632,9 +534,6 @@
       .steps-bar    { padding: 12px 14px; }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       CURRENCY / WALLET BAR
-       ═══════════════════════════════════════════════════════════ */
     .cw-bar {
       display: flex;
       align-items: center;
@@ -661,10 +560,7 @@
       font-size: .74rem;
       color: var(--t2);
     }
-    .cw-wallet i {
-      font-size: .66rem;
-      color: var(--t3);
-    }
+    .cw-wallet i { font-size: .66rem; color: var(--t3); }
     .cw-wallet b {
       font-weight: 700;
       color: var(--t1);
@@ -672,16 +568,8 @@
       transition: color .2s;
     }
     .cw-wallet.hi b { color: var(--acd); }
-    .cw-curr {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .cw-curr-lbl {
-      font-size: .68rem;
-      color: var(--t3);
-      font-weight: 600;
-    }
+    .cw-curr { display: flex; align-items: center; gap: 8px; }
+    .cw-curr-lbl { font-size: .68rem; color: var(--t3); font-weight: 600; }
     .seg {
       display: flex;
       background: var(--srf2);
@@ -702,21 +590,12 @@
       display: inline-flex;
       align-items: center;
     }
-    .seg-opt.on {
-      background: var(--p);
-      color: #fff;
-    }
+    .seg-opt.on { background: var(--p); color: #fff; }
     @media (max-width: 560px) {
-      .cw-bar {
-        flex-direction: column;
-        align-items: stretch;
-      }
+      .cw-bar { flex-direction: column; align-items: stretch; }
       .cw-wallets { justify-content: space-between; }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       RECENT COUNTRIES
-       ═══════════════════════════════════════════════════════════ */
     .recent-row {
       display: flex;
       align-items: center;
@@ -754,9 +633,6 @@
       color: var(--p);
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       ORDER CARD ERROR / SUCCESS
-       ═══════════════════════════════════════════════════════════ */
     .oc-error {
       margin: 13px;
       padding: 11px 13px;
@@ -768,16 +644,8 @@
       align-items: flex-start;
     }
     .oc-error.on { display: flex; }
-    .oc-error i {
-      color: var(--err);
-      margin-top: 1px;
-      flex-shrink: 0;
-    }
-    .oc-error span {
-      font-size: .76rem;
-      color: #991b1b;
-      line-height: 1.5;
-    }
+    .oc-error i { color: var(--err); margin-top: 1px; flex-shrink: 0; }
+    .oc-error span { font-size: .76rem; color: #991b1b; line-height: 1.5; }
 
     .success-panel {
       margin: 13px;
@@ -862,9 +730,6 @@
     }
     .sp-copy:hover { background: #fff; }
 
-    /* ═══════════════════════════════════════════════════════════
-       LAYOUT
-       ═══════════════════════════════════════════════════════════ */
     .virtual-layout {
       display: grid;
       grid-template-columns: 1fr 360px;
@@ -875,9 +740,6 @@
       .virtual-layout { grid-template-columns: 1fr; }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       PANELS
-       ═══════════════════════════════════════════════════════════ */
     .panel {
       background: var(--srf);
       border: 1px solid var(--bdr);
@@ -903,10 +765,7 @@
       color: #fff;
       flex-shrink: 0;
     }
-    .panel-hd-main {
-      flex: 1;
-      min-width: 0;
-    }
+    .panel-hd-main { flex: 1; min-width: 0; }
     .panel-hd-main h2 {
       font-family: var(--fd);
       font-size: .86rem;
@@ -933,9 +792,6 @@
     .pb-err  { background: var(--erl);   color: #991b1b; }
     .panel-bd { padding: 14px; }
 
-    /* ═══════════════════════════════════════════════════════════
-       SEARCH
-       ═══════════════════════════════════════════════════════════ */
     .search-wrap {
       position: relative;
       margin-bottom: 12px;
@@ -954,7 +810,7 @@
       padding: 10px 32px;
       border: 1.5px solid var(--bdr);
       border-radius: var(--r);
-      font-size: 16px; /* prevents iOS zoom */
+      font-size: 16px;
       color: var(--t1);
       background: var(--srf2);
       outline: none;
@@ -982,9 +838,6 @@
     .search-clr:hover { color: var(--err); }
     .search-clr.show { display: block; }
 
-    /* ═══════════════════════════════════════════════════════════
-       COUNTRY GRID
-       ═══════════════════════════════════════════════════════════ */
     .country-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(142px, 1fr));
@@ -1048,9 +901,6 @@
     }
     .c-card.sel .c-chk { display: grid; }
 
-    /* ═══════════════════════════════════════════════════════════
-       SERVICE LIST
-       ═══════════════════════════════════════════════════════════ */
     .svc-list {
       display: flex;
       flex-direction: column;
@@ -1094,10 +944,7 @@
       font-size: .85rem;
       flex-shrink: 0;
     }
-    .svc-info {
-      flex: 1;
-      min-width: 0;
-    }
+    .svc-info { flex: 1; min-width: 0; }
     .svc-name {
       font-size: .79rem;
       font-weight: 600;
@@ -1110,11 +957,7 @@
       font-family: monospace;
       letter-spacing: .04em;
     }
-    .svc-right {
-      text-align: right;
-      flex-shrink: 0;
-      min-width: 80px;
-    }
+    .svc-right { text-align: right; flex-shrink: 0; min-width: 80px; }
     .svc-usd {
       font-size: .82rem;
       font-weight: 700;
@@ -1134,9 +977,6 @@
     .av-hi { color: var(--ok); }
     .av-lo { color: var(--warn); }
 
-    /* ═══════════════════════════════════════════════════════════
-       STATES
-       ═══════════════════════════════════════════════════════════ */
     .state-empty {
       text-align: center;
       padding: 32px 16px;
@@ -1193,14 +1033,8 @@
       transition: all .2s;
       min-height: 40px;
     }
-    .btn-retry:hover {
-      background: var(--p);
-      color: #fff;
-    }
+    .btn-retry:hover { background: var(--p); color: #fff; }
 
-    /* ═══════════════════════════════════════════════════════════
-       ORDER CARD
-       ═══════════════════════════════════════════════════════════ */
     .order-card {
       background: var(--srf);
       border: 1px solid var(--bdr);
@@ -1269,11 +1103,7 @@
       z-index: 1;
       margin-bottom: 13px;
     }
-    .oc-flag {
-      font-size: 1.6rem;
-      flex-shrink: 0;
-      line-height: 1;
-    }
+    .oc-flag { font-size: 1.6rem; flex-shrink: 0; line-height: 1; }
     .oc-country {
       font-family: var(--fd);
       font-size: .95rem;
@@ -1382,10 +1212,7 @@
       line-height: 1.5;
       margin-bottom: 12px;
     }
-    .warn-box i {
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
+    .warn-box i { flex-shrink: 0; margin-top: 1px; }
     .btn-rent {
       width: 100%;
       padding: 14px;
@@ -1420,9 +1247,6 @@
     }
     .btn-sec-lbl i { color: var(--p); }
 
-    /* ═══════════════════════════════════════════════════════════
-       ACTIVE BANNER
-       ═══════════════════════════════════════════════════════════ */
     .act-banner {
       border-radius: var(--rl);
       padding: 14px;
@@ -1506,11 +1330,7 @@
       min-height: 32px;
     }
     .ab-code-cp:hover { background: rgba(255,255,255,.3); }
-    .ab-acts {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 6px;
-    }
+    .ab-acts { display: flex; gap: 6px; margin-bottom: 6px; }
     .ab-btn {
       flex: 1;
       padding: 10px;
@@ -1533,19 +1353,13 @@
       background: rgba(239,68,68,.2);
       border-color: rgba(239,68,68,.38);
     }
-    .ab-btn:disabled {
-      opacity: .4;
-      cursor: not-allowed;
-    }
+    .ab-btn:disabled { opacity: .4; cursor: not-allowed; }
     .ab-timer {
       font-size: .6rem;
       color: rgba(255,255,255,.5);
       text-align: center;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       MINI HISTORY
-       ═══════════════════════════════════════════════════════════ */
     .mini-hist {
       padding: 13px 16px;
       border-top: 1px solid var(--bdr);
@@ -1583,10 +1397,7 @@
       background: var(--bg);
       border-radius: var(--r);
     }
-    .mh-flag {
-      font-size: 1.05rem;
-      flex-shrink: 0;
-    }
+    .mh-flag { font-size: 1.05rem; flex-shrink: 0; }
     .mh-info { flex: 1; min-width: 0; }
     .mh-name {
       font-size: .75rem;
@@ -1596,10 +1407,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .mh-meta {
-      font-size: .63rem;
-      color: var(--t3);
-    }
+    .mh-meta { font-size: .63rem; color: var(--t3); }
     .mh-price {
       font-size: .65rem;
       font-weight: 700;
@@ -1620,9 +1428,6 @@
     .bdg-active   { background: var(--pl);     color: var(--p); }
     .bdg-refunded { background: var(--bg);     color: var(--t3); }
 
-    /* ═══════════════════════════════════════════════════════════
-       TOASTS
-       ═══════════════════════════════════════════════════════════ */
     .toasts {
       position: fixed;
       bottom: calc(76px + var(--safe-b));
@@ -1636,10 +1441,7 @@
       pointer-events: none;
     }
     @media (min-width: 641px) {
-      .toasts {
-        left: auto;
-        max-width: 300px;
-      }
+      .toasts { left: auto; max-width: 300px; }
     }
     .toast {
       display: flex;
@@ -1657,19 +1459,12 @@
     .toast.ok   { background: var(--okl);   color: #065f46; }
     .toast.err  { background: var(--erl);   color: #991b1b; }
     .toast.warn { background: var(--warnl); color: #92400e; }
-    .toast.info {
-      background: var(--srf);
-      color: var(--t1);
-      border: 1px solid var(--bdr);
-    }
+    .toast.info { background: var(--srf); color: var(--t1); border: 1px solid var(--bdr); }
     @keyframes tIn {
       from { opacity: 0; transform: translateX(32px); }
       to   { opacity: 1; transform: none; }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       MOBILE NAV
-       ═══════════════════════════════════════════════════════════ */
     .mnav {
       display: none;
       position: fixed;
@@ -1710,22 +1505,14 @@
       transition: all .18s;
     }
     .mni.active { color: var(--p); }
-    .mni.active i {
-      background: var(--pl);
-      color: var(--p);
-    }
+    .mni.active i { background: var(--pl); color: var(--p); }
     @media (max-width: 768px) {
-      .content {
-        padding: 14px 13px calc(82px + var(--safe-b));
-      }
+      .content { padding: 14px 13px calc(82px + var(--safe-b)); }
       .topbar { min-height: 54px; }
-      .mnav   { display: flex; }
+      .mnav { display: flex; }
       .virtual-layout { grid-template-columns: 1fr; }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       ANIMATIONS
-       ═══════════════════════════════════════════════════════════ */
     .fu { animation: fadeUp .38s var(--ease) both; }
     .d1 { animation-delay: .03s; }
     .d2 { animation-delay: .07s; }
@@ -1735,83 +1522,69 @@
       to   { opacity: 1; transform: none; }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       MOBILE KEYBOARD / VIEWPORT FIXES
-       ═══════════════════════════════════════════════════════════ */
-    html {
-      width: 100%;
-      min-height: 100%;
-      -webkit-text-size-adjust: 100%;
-    }
-
+    html { width: 100%; min-height: 100%; -webkit-text-size-adjust: 100%; }
     body {
-      width: 100%;
-      min-width: 0;
-      min-height: 100vh;
-      min-height: 100dvh;
+      width: 100%; min-width: 0; min-height: 100vh; min-height: 100dvh;
       overflow-wrap: anywhere;
     }
-
-    .main {
-      width: 100%;
-      min-width: 0;
-      flex: 1 0 auto;
-    }
-
-    /* Prevent input zoom + avoid layout jump when keyboard opens */
+    .main { width: 100%; min-width: 0; flex: 1 0 auto; }
     .search-inp {
-      font-size: 16px;
-      -webkit-appearance: none;
-      appearance: none;
+      font-size: 16px; -webkit-appearance: none; appearance: none;
       scroll-margin-block: 16px;
     }
-
-    /* Toast container: safe area aware */
     .toasts {
-      width: auto;
-      max-width: calc(100% - 24px);
-      right: 12px;
+      width: auto; max-width: calc(100% - 24px); right: 12px;
       bottom: max(12px, env(safe-area-inset-bottom));
     }
-
-    /* Ensure the whole page can scroll when the keyboard is open */
-    .content {
-      overflow: visible;
-    }
-
-    /* Prevent the country/service lists from trapping focus on iOS */
-    .country-grid,
-    .svc-list {
-      -webkit-overflow-scrolling: touch;
-    }
-
-    /* Keep layout calm when keyboard reduces visible viewport */
+    .content { overflow: visible; }
+    .country-grid, .svc-list { -webkit-overflow-scrolling: touch; }
     @media (max-height: 600px) {
       .country-grid { max-height: 260px; }
       .svc-list     { max-height: 280px; }
       .order-card   { position: static; }
     }
-  </style>
 
-  <script src="/js/session.js"></script>
-  <script src="/js/presence.js" defer></script>
-  <script src="/js/miles-widget.js" defer></script>
+    /* Stale banner */
+    .tx-stale-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 14px;
+      margin: 8px 0;
+      border-radius: 10px;
+      background: rgba(245, 166, 35, 0.12);
+      border: 1px solid rgba(245, 166, 35, 0.35);
+      font-size: 12.5px;
+      color: var(--t2);
+    }
+    .tx-stale-banner strong { color: var(--t1); font-weight: 600; }
+    .tx-stale-banner button {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: none;
+      background: #0f4c5c;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .tx-stale-banner button:disabled { opacity: .55; cursor: not-allowed; }
+    @media (max-width: 420px) {
+      .tx-stale-banner { flex-direction: column; align-items: stretch; }
+      .tx-stale-banner button { width: 100%; min-height: 44px; }
+    }
+  </style>
 </head>
 
 <body>
 
-<!-- ═══════════════════════════════════════════════════════════
-     OVERLAY
-     ═══════════════════════════════════════════════════════════ -->
 <div class="ov" id="ov"></div>
 
 <div class="app">
 
-  <!-- ═════════════════════════════════════════════════════════
-       SIDEBAR
-       ═════════════════════════════════════════════════════════ -->
   <aside class="sidebar" id="sb">
-
     <div class="sb-brand">
       <div class="sb-lic">
         <img src="/images/miles.png" alt="MilesSpace" onerror="this.style.display='none'">
@@ -1851,30 +1624,21 @@
         <button class="sb-out" id="logoutBtn" title="Logout" aria-label="Logout"><i class="fas fa-sign-out-alt"></i></button>
       </div>
     </div>
-
   </aside>
 
-  <!-- ═════════════════════════════════════════════════════════
-       MAIN
-       ═════════════════════════════════════════════════════════ -->
   <div class="main">
-
-    <!-- ── Topbar ─────────────────────────────────────────── -->
     <header class="topbar">
       <button class="tb-hbg" id="hbg" aria-label="Open menu"><i class="fas fa-bars"></i></button>
       <p class="tb-title">MilesSpace</p>
       <div class="tb-right">
-        <!-- HISTORY BUTTON NOW OPENS THE VIRTUAL NUMBERS HISTORY PANEL (mini history on the right) -->
         <button class="tb-btn" id="histBtn" title="Virtual number history" aria-label="Virtual number history"><i class="fas fa-history"></i></button>
         <a href="notifications.html" class="tb-btn" aria-label="Notifications"><i class="fas fa-bell"></i><span class="notif-dot"></span></a>
         <a href="usersettings.html" class="tb-av" id="tbAv">U</a>
       </div>
     </header>
 
-    <!-- ── Content ────────────────────────────────────────── -->
     <main class="content">
 
-      <!-- ── Page header ──────────────────────────────────── -->
       <div class="page-header fu d1">
         <h1>Virtual Numbers</h1>
         <p>Rent real SIM-based phone numbers from 150+ countries for OTP verification. Auto-refund if no SMS arrives.</p>
@@ -1886,7 +1650,6 @@
         </div>
       </div>
 
-      <!-- ── Wallet / currency bar ─────────────────────────── -->
       <div class="cw-bar fu d2">
         <div class="cw-wallets">
           <span class="cw-wallet" id="cwNgn"><i class="fas fa-wallet"></i> NGN Wallet&nbsp;<b id="cwNgnVal">—</b></span>
@@ -1901,7 +1664,6 @@
         </div>
       </div>
 
-      <!-- ── Steps bar ─────────────────────────────────────── -->
       <div class="steps-bar fu d2">
         <div class="step-dot active" id="step1">
           <div class="step-dot-ic">1</div>
@@ -1917,13 +1679,9 @@
         </div>
       </div>
 
-      <!-- ── Layout ────────────────────────────────────────── -->
       <div class="virtual-layout fu d3">
 
-        <!-- ── LEFT COLUMN ─────────────────────────────────── -->
         <div>
-
-          <!-- Country panel -->
           <div class="panel" id="pCountries">
             <div class="panel-hd">
               <div class="panel-hd-ic" style="background:var(--p)"><i class="fas fa-globe"></i></div>
@@ -1951,7 +1709,6 @@
             </div>
           </div>
 
-          <!-- Service panel -->
           <div class="panel" id="pServices" style="display:none">
             <div class="panel-hd">
               <div class="panel-hd-ic" style="background:#7c3aed"><i class="fas fa-mobile-screen-button"></i></div>
@@ -1974,14 +1731,10 @@
               </div>
             </div>
           </div>
-
         </div>
 
-        <!-- ── RIGHT COLUMN ────────────────────────────────── -->
         <div>
           <div class="order-card" id="orderCard">
-
-            <!-- Active banner -->
             <div class="act-banner" id="actBanner">
               <div class="ab-lbl"><span class="live-dot"></span>&nbsp;Active Number</div>
               <div class="ab-num">
@@ -1999,7 +1752,6 @@
               <div class="ab-timer" id="abTimer">0:00 / 20:00</div>
             </div>
 
-            <!-- Success panel -->
             <div class="success-panel" id="successPanel">
               <div class="sp-head"><i class="fas fa-check"></i><span>Order confirmed</span></div>
               <div class="sp-grid">
@@ -2014,13 +1766,11 @@
               </div>
             </div>
 
-            <!-- Error -->
             <div class="oc-error" id="ocError">
               <i class="fas fa-triangle-exclamation"></i>
               <span id="ocErrorMsg">Something went wrong.</span>
             </div>
 
-            <!-- Hero -->
             <div class="oc-hero" id="ocHero">
               <div class="oc-top">
                 <span class="oc-lbl">Selected</span>
@@ -2039,7 +1789,6 @@
               </div>
             </div>
 
-            <!-- Body -->
             <div class="oc-body">
               <div id="ocEmpty" class="state-empty">
                 <i class="fas fa-phone-slash"></i>
@@ -2066,7 +1815,6 @@
               </div>
             </div>
 
-            <!-- Mini history -->
             <div class="mini-hist">
               <h4>Recent Rentals <span class="badge-count" id="orderCount">0</span></h4>
               <div id="recentOrdersList">
@@ -2086,34 +1834,19 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     MOBILE NAV
-     ═══════════════════════════════════════════════════════════ -->
 <nav class="mnav">
   <a href="dashboard.html" class="mni"><i class="fas fa-home"></i><span>Home</span></a>
   <a href="boost.html"     class="mni"><i class="fas fa-chart-line"></i><span>Boost</span></a>
   <a href="fund.html"      class="mni"><i class="fas fa-wallet"></i><span>Fund</span></a>
   <a href="virtual.html"   class="mni active"><i class="fas fa-phone-alt"></i><span>Numbers</span></a>
-  <a href="profile.html"   class="mni"><i class="fas fa-user"></i><span>Profile</span></a>
+  <a href="usersettings.html" class="mni"><i class="fas fa-user"></i><span>Profile</span></a>
 </nav>
 
-<!-- ═══════════════════════════════════════════════════════════
-     TOASTS
-     ═══════════════════════════════════════════════════════════ -->
 <div class="toasts" id="toastWrap" aria-live="polite"></div>
 
 <script>
 'use strict';
 
-/* ═══════════════════════════════════════════════════════════════
-   AUTH MODEL
-   • Access token lives in memory (managed by /js/session.js).
-   • Refresh token lives in an HttpOnly cookie.
-   • All authenticated requests go through window.userFetch().
-   • User metadata is available via window.getUser().
-   ═══════════════════════════════════════════════════════════════ */
-
-/* ─── Config ──────────────────────────────────────────────── */
 const CONFIG = {
   API: '/api/virtual',
   CACHE_TTL: 5 * 60 * 1000,
@@ -2124,7 +1857,6 @@ const CONFIG = {
   RECENT_MAX: 6
 };
 
-/* ─── State ───────────────────────────────────────────────── */
 const State = {
   countries: [],
   services: [],
@@ -2143,7 +1875,6 @@ const State = {
   pollTimeout: null
 };
 
-/* ─── Cache ───────────────────────────────────────────────── */
 const Cache = {
   _store: new Map(),
   _timestamps: new Map(),
@@ -2168,7 +1899,6 @@ const Cache = {
   }
 };
 
-/* ─── Helpers ─────────────────────────────────────────────── */
 function debounce(fn, delay = 300) {
   let timer = null;
   return function (...args) {
@@ -2190,9 +1920,6 @@ function redirectToLogin() {
   else window.location.replace('/login.html');
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   API WRAPPER (with retries + abort)
-   ═══════════════════════════════════════════════════════════════ */
 async function apiCall(path, opts = {}) {
   const fetcher = (typeof window.userFetch === 'function')
     ? window.userFetch
@@ -2252,9 +1979,6 @@ async function apiCall(path, opts = {}) {
   throw lastError || new Error('Request failed');
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ERROR MESSAGES
-   ═══════════════════════════════════════════════════════════════ */
 const ERROR_MESSAGES = {
   NO_INVENTORY:                 'No numbers are currently available for this service. Please choose another service.',
   SERVICE_NOT_FOUND:            'This service is no longer available. Please pick another.',
@@ -2274,9 +1998,6 @@ function friendlyError(error) {
   return error?.message || 'Something went wrong. Please try again.';
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   TOAST (safe DOM, no innerHTML for message text)
-   ═══════════════════════════════════════════════════════════════ */
 function toast(msg, type = 'info') {
   const container = document.getElementById('toastWrap');
   if (!container) return;
@@ -2307,9 +2028,6 @@ function toast(msg, type = 'info') {
   }, 3800);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   FLAGS
-   ═══════════════════════════════════════════════════════════════ */
 const FLAG_MAP = {
   'nigeria':'🇳🇬','united kingdom':'🇬🇧','germany':'🇩🇪','france':'🇫🇷',
   'spain':'🇪🇸','italy':'🇮🇹','netherlands':'🇳🇱','poland':'🇵🇱',
@@ -2330,9 +2048,6 @@ function getFlag(name) {
   return '🌐';
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   SERVICE ICONS
-   ═══════════════════════════════════════════════════════════════ */
 const SVC_ICONS = {
   wa: { icon: 'fab fa-whatsapp', bg: '#25d366' },
   tg: { icon: 'fab fa-telegram', bg: '#0088cc' },
@@ -2352,9 +2067,6 @@ function getSvcIcon(code) {
   return SVC_ICONS[key] || SVC_ICONS.default;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   FORMATTERS
-   ═══════════════════════════════════════════════════════════════ */
 const fUSD  = n => '$' + (Number(n) || 0).toFixed(2);
 const fNGN  = n => '₦' + (Number(n) || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fTime = s => {
@@ -2379,23 +2091,15 @@ function getStatusBadge(status) {
 }
 
 function getStatusLabel(status) {
+  if (window.MS && MS.statusLabel) return MS.statusLabel(status);
   const map = {
-    completed:    'Done',
-    sms_received: 'Done',
-    active:       'Active',
-    processing:   'Processing',
-    pending:      'Pending',
-    cancelled:    'Cancelled',
-    expired:      'Expired',
-    failed:       'Failed',
-    refunded:     'Refunded'
+    completed:    'Done', sms_received: 'Done', active: 'Active',
+    processing:   'Processing', pending: 'Pending', cancelled: 'Cancelled',
+    expired:      'Expired', failed: 'Failed', refunded: 'Refunded'
   };
   return map[status] || status;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ORDER STATE PANELS
-   ═══════════════════════════════════════════════════════════════ */
 function showOrderError(msg) {
   hideSuccessPanel();
   const box = document.getElementById('ocError');
@@ -2426,9 +2130,6 @@ function hideSuccessPanel() {
   document.getElementById('successPanel')?.classList.remove('on');
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   CURRENCY SELECTOR
-   ═══════════════════════════════════════════════════════════════ */
 function setCurrency(curr) {
   State.currency = curr;
   document.querySelectorAll('#currSeg .seg-opt').forEach(el => el.classList.toggle('on', el.dataset.curr === curr));
@@ -2463,10 +2164,20 @@ function updatePriceBox(usd, ngn) {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   WALLET
-   ═══════════════════════════════════════════════════════════════ */
 async function loadWallet() {
+  /* Fast paint from session cache */
+  try {
+    const cached = JSON.parse(sessionStorage.getItem('ms:virtual:wallet') || 'null');
+    if (cached && cached.ngn != null) {
+      State.wallet.ngn = cached.ngn || 0;
+      State.wallet.usd = cached.usd || 0;
+      const ngnEl = document.getElementById('cwNgnVal');
+      const usdEl = document.getElementById('cwUsdVal');
+      if (ngnEl) ngnEl.textContent = fNGN(State.wallet.ngn);
+      if (usdEl) usdEl.textContent = fUSD(State.wallet.usd);
+    }
+  } catch (_) {}
+
   try {
     const data = await apiCall('/me');
     if (data?.success && data.user) {
@@ -2477,21 +2188,22 @@ async function loadWallet() {
       const usdEl = document.getElementById('cwUsdVal');
       if (ngnEl) ngnEl.textContent = fNGN(State.wallet.ngn);
       if (usdEl) usdEl.textContent = fUSD(State.wallet.usd);
+
+      try {
+        sessionStorage.setItem('ms:virtual:wallet', JSON.stringify({
+          ngn: State.wallet.ngn, usd: State.wallet.usd
+        }));
+      } catch (_) {}
     }
   } catch (error) {
     console.warn('[wallet]', error.message);
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   RECENT COUNTRIES
-   ═══════════════════════════════════════════════════════════════ */
 function getRecentCountries() {
   try {
     return JSON.parse(localStorage.getItem(CONFIG.RECENT_KEY) || '[]');
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 function saveRecentCountry(c) {
@@ -2522,9 +2234,6 @@ function renderRecentCountries() {
   `).join('');
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   STEPS
-   ═══════════════════════════════════════════════════════════════ */
 function setStep(n) {
   for (let i = 1; i <= 3; i++) {
     const el = document.getElementById('step' + i);
@@ -2535,9 +2244,6 @@ function setStep(n) {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   LOGOUT
-   ═══════════════════════════════════════════════════════════════ */
 function initLogout() {
   const logoutBtn = document.getElementById('logoutBtn');
   if (!logoutBtn) return;
@@ -2550,9 +2256,6 @@ function initLogout() {
   });
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   SIDEBAR
-   ═══════════════════════════════════════════════════════════════ */
 function initSidebar() {
   const sb  = document.getElementById('sb');
   const ov  = document.getElementById('ov');
@@ -2580,9 +2283,7 @@ function initSidebar() {
   });
 
   ov.addEventListener('click', close);
-  sb.querySelectorAll('.sb-lnk').forEach(link => {
-    link.addEventListener('click', () => close());
-  });
+  sb.querySelectorAll('.sb-lnk').forEach(link => link.addEventListener('click', () => close()));
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && sb.classList.contains('open')) close();
@@ -2596,9 +2297,6 @@ function initSidebar() {
   });
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   USER
-   ═══════════════════════════════════════════════════════════════ */
 function loadUser() {
   try {
     const user = getCurrentUser();
@@ -2622,24 +2320,29 @@ function loadUser() {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   COUNTRIES (fast load with cache)
-   ═══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   COUNTRIES — cache-first (sessionStorage) for FAST load
+   ═══════════════════════════════════════════════════════════ */
 async function loadCountries() {
   const grid = document.getElementById('cGrid');
   if (!grid) return;
 
-  grid.innerHTML = Array(8).fill('<div class="skel skel-cc skeleton"></div>').join('');
-
+  /* Paint cached list immediately */
   try {
-    const cached = Cache.get('countries');
-    if (cached) {
+    const cached = JSON.parse(sessionStorage.getItem('ms:virtual:countries') || 'null');
+    if (cached && Array.isArray(cached) && cached.length) {
       State.countries = cached;
       renderCountries(cached);
-      document.getElementById('cntBadge').textContent = cached.length + ' countries';
-      return;
+      const badge = document.getElementById('cntBadge');
+      if (badge) badge.textContent = cached.length + ' countries';
+    } else {
+      grid.innerHTML = Array(8).fill('<div class="skel skel-cc skeleton"></div>').join('');
     }
+  } catch (_) {
+    grid.innerHTML = Array(8).fill('<div class="skel skel-cc skeleton"></div>').join('');
+  }
 
+  try {
     const data = await apiCall('/countries');
     const countries = Object.values(data).map(c => ({
       id: c.id,
@@ -2649,14 +2352,20 @@ async function loadCountries() {
 
     State.countries = countries;
     Cache.set('countries', countries);
+    try {
+      sessionStorage.setItem('ms:virtual:countries', JSON.stringify(countries));
+    } catch (_) {}
+
     document.getElementById('cntBadge').textContent = countries.length + ' countries';
     renderCountries(countries);
   } catch (error) {
     console.error('[countries]', error);
-    document.getElementById('cntBadge').textContent = 'Error';
-    document.getElementById('cntBadge').className = 'panel-badge pb-err';
-    grid.innerHTML = `<div class="state-err" style="grid-column:1/-1"><i class="fas fa-exclamation-triangle"></i><p>Could not load countries</p><span>${friendlyError(error)}</span><button class="btn-retry" onclick="loadCountries()"><i class="fas fa-rotate-right"></i> Retry</button></div>`;
-    toast('Failed to load countries: ' + friendlyError(error), 'err');
+    if (!State.countries.length) {
+      document.getElementById('cntBadge').textContent = 'Error';
+      document.getElementById('cntBadge').className = 'panel-badge pb-err';
+      grid.innerHTML = `<div class="state-err" style="grid-column:1/-1"><i class="fas fa-exclamation-triangle"></i><p>Could not load countries</p><span>${friendlyError(error)}</span><button class="btn-retry" onclick="loadCountries()"><i class="fas fa-rotate-right"></i> Retry</button></div>`;
+      toast('Failed to load countries: ' + friendlyError(error), 'err');
+    }
   }
 }
 
@@ -2686,9 +2395,6 @@ const filterCountries = debounce(() => {
   renderCountries(filtered);
 }, 300);
 
-/* ═══════════════════════════════════════════════════════════════
-   SELECT COUNTRY
-   ═══════════════════════════════════════════════════════════════ */
 async function selectCountry(id, name, flag) {
   State.selCountry = { id, eng: name, flag };
   State.selSvc = null;
@@ -2712,21 +2418,37 @@ async function selectCountry(id, name, flag) {
 
   document.getElementById('sSearch').value = '';
   const svcList = document.getElementById('svcList');
-  svcList.innerHTML = `<div class="skel skel-svc skeleton"></div><div class="skel skel-svc skeleton"></div><div class="skel skel-svc skeleton"></div>`;
 
-  const badge = document.getElementById('svcBadge');
-  badge.textContent = 'Loading…';
-  badge.className = 'panel-badge pb-live';
+  /* Check sessionStorage cache for this country's services */
+  let paintedFromCache = false;
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(`ms:virtual:svcs:${id}`) || 'null');
+    if (cached && Array.isArray(cached) && cached.length) {
+      State.services = cached;
+      document.getElementById('svcBadge').textContent = cached.length + ' available';
+      document.getElementById('svcBadge').className = 'panel-badge pb-live';
+      renderServices(cached);
+      paintedFromCache = true;
+    }
+  } catch (_) {}
+
+  if (!paintedFromCache) {
+    svcList.innerHTML = `<div class="skel skel-svc skeleton"></div><div class="skel skel-svc skeleton"></div><div class="skel skel-svc skeleton"></div>`;
+    const badge = document.getElementById('svcBadge');
+    badge.textContent = 'Loading…';
+    badge.className = 'panel-badge pb-live';
+  }
 
   resetOrderBody();
 
   try {
     const cacheKey = `services_${id}`;
-    const cached = Cache.get(cacheKey);
-    if (cached) {
-      State.services = cached;
-      badge.textContent = cached.length + ' available';
-      renderServices(cached);
+    const memCached = Cache.get(cacheKey);
+    if (memCached) {
+      State.services = memCached;
+      document.getElementById('svcBadge').textContent = memCached.length + ' available';
+      renderServices(memCached);
+      if (sp) sp.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       return;
     }
 
@@ -2736,7 +2458,11 @@ async function selectCountry(id, name, flag) {
     const services = data.services || [];
     State.services = services;
     Cache.set(cacheKey, services);
+    try {
+      sessionStorage.setItem(`ms:virtual:svcs:${id}`, JSON.stringify(services));
+    } catch (_) {}
 
+    const badge = document.getElementById('svcBadge');
     badge.textContent = services.length + ' available';
     badge.className = services.length > 0 ? 'panel-badge pb-live' : 'panel-badge pb-warn';
     renderServices(services);
@@ -2745,16 +2471,16 @@ async function selectCountry(id, name, flag) {
   } catch (error) {
     if (error.aborted) return;
     console.error('[services]', error);
-    badge.textContent = 'Error';
-    badge.className = 'panel-badge pb-err';
-    svcList.innerHTML = `<div class="state-err"><i class="fas fa-exclamation-circle"></i><p>Could not load services</p><span>${friendlyError(error)}</span></div>`;
-    toast('Failed to load services: ' + friendlyError(error), 'err');
+    if (!paintedFromCache) {
+      const badge = document.getElementById('svcBadge');
+      badge.textContent = 'Error';
+      badge.className = 'panel-badge pb-err';
+      svcList.innerHTML = `<div class="state-err"><i class="fas fa-exclamation-circle"></i><p>Could not load services</p><span>${friendlyError(error)}</span></div>`;
+      toast('Failed to load services: ' + friendlyError(error), 'err');
+    }
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   RENDER SERVICES
-   ═══════════════════════════════════════════════════════════════ */
 function renderServices(list) {
   const el = document.getElementById('svcList');
   if (!el) return;
@@ -2797,9 +2523,6 @@ const filterServices = debounce(() => {
   renderServices(filtered);
 }, 300);
 
-/* ═══════════════════════════════════════════════════════════════
-   SELECT SERVICE
-   ═══════════════════════════════════════════════════════════════ */
 function selectService(code, name, count, usd, ngn) {
   State.selSvc = { code, name, count, sellingUSD: usd, sellingNGN: ngn };
 
@@ -2849,9 +2572,6 @@ function resetSelection() {
   document.getElementById('pCountries').scrollIntoView({ behavior: 'smooth' });
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   RENT NUMBER
-   ═══════════════════════════════════════════════════════════════ */
 async function rentNumber() {
   if (!State.selCountry || !State.selSvc) {
     toast('Select a country and service first', 'err');
@@ -2899,9 +2619,6 @@ async function rentNumber() {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   RENTAL TIMER + POLLING
-   ═══════════════════════════════════════════════════════════════ */
 function startRental() {
   const banner = document.getElementById('actBanner');
   if (banner) banner.classList.add('on');
@@ -2966,7 +2683,7 @@ async function poll() {
       State.rental = null;
       loadOrders();
     }
-  } catch (error) { /* silent - keep polling */ }
+  } catch (error) { /* silent */ }
 }
 
 function stopAll() {
@@ -2977,9 +2694,6 @@ function stopAll() {
   State.pollStep = 0;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   COPY HELPERS
-   ═══════════════════════════════════════════════════════════════ */
 function copyPhone() {
   if (!State.rental?.phone) return;
   navigator.clipboard?.writeText(State.rental.phone)
@@ -2993,9 +2707,6 @@ function copyCode(code) {
     .catch(() => toast('Could not copy', 'err'));
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   RETRY / CANCEL
-   ═══════════════════════════════════════════════════════════════ */
 async function doRetry() {
   if (!State.rental?.id) {
     toast('No active rental', 'err');
@@ -3032,14 +2743,24 @@ async function doCancel() {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ORDERS
-   ═══════════════════════════════════════════════════════════════ */
 async function loadOrders() {
+  /* Fast paint from session cache */
+  try {
+    const cached = JSON.parse(sessionStorage.getItem('ms:virtual:orders') || 'null');
+    if (cached && Array.isArray(cached) && cached.length) {
+      State.orders = cached;
+      renderOrders(cached);
+      document.getElementById('orderCount').textContent = cached.length;
+    }
+  } catch (_) {}
+
   try {
     const data = await apiCall('/orders?limit=20');
     if (data.success && data.orders) {
       State.orders = data.orders;
+      try {
+        sessionStorage.setItem('ms:virtual:orders', JSON.stringify(data.orders.slice(0, 20)));
+      } catch (_) {}
       renderOrders(data.orders);
       document.getElementById('orderCount').textContent = data.orders.length;
 
@@ -3068,14 +2789,14 @@ function renderOrders(orders) {
     return;
   }
 
-  container.innerHTML = orders.slice(0, 10).map(o => {
+  container.innerHTML = orders.slice(0, 10).map((o, idx) => {
     const flag = getFlag(o.country || '');
     const service = o.service || o.service_code || 'Unknown';
     const statusBadge = getStatusBadge(o.status);
     const statusLabel = getStatusLabel(o.status);
     const price = o.price_ngn ? `₦${Number(o.price_ngn).toFixed(2)}` : '';
 
-    return `<div class="mh-row">
+    return `<div class="mh-row" data-vi="${idx}" onclick="openVirtualDetails && openVirtualDetails(${idx})">
       <span class="mh-flag">${flag}</span>
       <div class="mh-info">
         <div class="mh-name">${service} · ${o.country || 'Unknown'}</div>
@@ -3097,37 +2818,58 @@ function timeAgo(date) {
   return Math.floor(diff / 604800) + 'w ago';
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   HISTORY BUTTON
-   ═══════════════════════════════════════════════════════════════ */
+/* Virtual number history drawer */
 function initHistoryButton() {
   const histBtn = document.getElementById('histBtn');
   if (!histBtn) return;
+  if (!window.MS || !MS.historyDrawer) return;
+
+  const vHist = MS.historyDrawer({
+    id: 'vHist',
+    title: 'Virtual number history',
+    subtitle: 'Your rented numbers',
+    load: async () => {
+      const d = await apiCall('/orders?limit=50');
+      return { items: d.orders || [], hasMore: false };
+    },
+    keyOf: (o) => o.id,
+    render: (o) => {
+      const flag = getFlag(o.country || '');
+      const service = o.service || o.service_code || 'Unknown';
+      const stLabel = getStatusLabel(o.status);
+      const stKey = window.MS && MS.statusKey ? MS.statusKey(o.status) : (o.status || 'pending');
+      const price = o.price_ngn ? `₦${Number(o.price_ngn).toFixed(2)}` : (o.price_usd ? `$${Number(o.price_usd).toFixed(2)}` : '');
+      return '<div class="ms-hd-item">' +
+        '<div class="ms-hd-row1">' +
+        '<span style="font-size:1.1rem">' + MS.esc(flag) + '</span>' +
+        '<span class="ms-hd-title">' + MS.esc(service) + ' · ' + MS.esc(o.country || 'Unknown') + '</span>' +
+        '<span class="ms-pill ' + MS.esc(stKey) + '">' + MS.esc(stLabel) + '</span>' +
+        '</div>' +
+        '<div class="ms-hd-meta">' + MS.esc(o.phone || '—') + ' · ' + MS.esc(timeAgo(o.created_at)) + '</div>' +
+        (price ? '<div class="ms-hd-meta">' + MS.esc(price) + '</div>' : '') +
+        '</div>';
+    },
+    onItemClick: () => { /* no detail view for virtual */ },
+    emptyText: 'No virtual number rentals yet.'
+  });
 
   histBtn.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
+    vHist.open();
+  });
 
-    loadOrders().finally(() => {
-      const target = document.querySelector('.mini-hist');
-      if (!target) return;
-
-      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-      const orig = target.style.transition;
-      target.style.transition = 'background .25s ease';
-      target.style.background = 'var(--pl)';
-      setTimeout(() => {
-        target.style.background = '';
-        setTimeout(() => { target.style.transition = orig; }, 300);
-      }, 900);
-    });
+  /* Stale banner — drawer */
+  MS.stale.init({
+    rows: '#vHist-list .ms-hd-item',
+    record: el => vHist.items[Number(el.dataset.i)] || null,
+    stalable: ['pending', 'processing'],
+    refresh: () => { vHist.reload(); loadOrders(); loadWallet(); },
+    toast: (m, k) => toast(m, k === 'ok' ? 'ok' : (k === 'err' ? 'err' : 'info')),
+    observe: '#vHist-list'
   });
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   DOM LISTENERS
-   ═══════════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
   const cSearch = document.getElementById('cSearch');
   cSearch?.addEventListener('input', filterCountries);
@@ -3153,24 +2895,18 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-/* ═══════════════════════════════════════════════════════════════
-   PUBLIC API
-   ═══════════════════════════════════════════════════════════════ */
-window.selectCountry    = selectCountry;
-window.selectService    = selectService;
-window.resetSelection   = resetSelection;
-window.loadCountries    = loadCountries;
-window.rentNumber       = rentNumber;
-window.doRetry          = doRetry;
-window.doCancel         = doCancel;
-window.copyPhone        = copyPhone;
-window.copyCode         = copyCode;
-window.loadOrders       = loadOrders;
-window.setCurrency      = setCurrency;
+window.selectCountry  = selectCountry;
+window.selectService  = selectService;
+window.resetSelection = resetSelection;
+window.loadCountries  = loadCountries;
+window.rentNumber     = rentNumber;
+window.doRetry        = doRetry;
+window.doCancel       = doCancel;
+window.copyPhone      = copyPhone;
+window.copyCode       = copyCode;
+window.loadOrders     = loadOrders;
+window.setCurrency    = setCurrency;
 
-/* ═══════════════════════════════════════════════════════════════
-   BOOT
-   ═══════════════════════════════════════════════════════════════ */
 (async function init() {
   await new Promise(r => setTimeout(r, 0));
 
@@ -3185,8 +2921,33 @@ window.setCurrency      = setCurrency;
   loadUser();
   renderRecentCountries();
 
+  /* Parallel: countries + wallet at the same time. Orders refresh after. */
   await Promise.all([loadCountries(), loadWallet()]);
   await loadOrders();
+})();
+</script>
+
+<script>
+/* Stale banner — recent rentals mini list */
+(function () {
+  'use strict';
+
+  function wire() {
+    if (!window.MS || !MS.stale) return;
+    MS.stale.init({
+      rows: '#recentOrdersList .mh-row[data-vi]',
+      record: el => State.orders[Number(el.dataset.vi)] || null,
+      stalable: ['pending', 'processing'],
+      refresh: () => loadOrders(),
+      toast: (m, k) => toast(m, k === 'ok' ? 'ok' : (k === 'err' ? 'err' : 'info')),
+      observe: '#recentOrdersList'
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(wire, 100), { once: true });
+  } else {
+    setTimeout(wire, 100);
+  }
 })();
 </script>
 </body>

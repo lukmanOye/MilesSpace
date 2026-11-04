@@ -9,10 +9,16 @@
   <link rel="icon" href="/images/miles.png" type="image/png">
   <link rel="apple-touch-icon" href="/images/miles.png">
   <title>MilesSpace | Notifications</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
   <script src="/js/session.js"></script>
   <script src="/js/presence.js" defer></script>
+
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { max-width: 100vw; overflow-x: hidden; }
@@ -92,7 +98,7 @@
       margin-bottom: 12px;
       display: flex;
       gap: 14px;
-      transition: all .2s;
+      transition: background .15s, border-color .15s;
       align-items: flex-start;
     }
     .notification-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
@@ -236,25 +242,42 @@
 <script>
 'use strict';
 
-/* ═══════════════════════════════════════════════════════════════════
-   AUTH MODEL
-   ───────────────────────────────────────────────────────────────
-   • Access token lives in memory (managed by /js/session.js).
-   • Refresh token lives in an HttpOnly cookie.
-   • All authenticated requests go through window.userFetch().
-   • User metadata is available via window.getUser().
-   ═══════════════════════════════════════════════════════════════════ */
-
 const API_BASE = '/api';
+const CACHE_KEY = 'ms:notifs:v1';
+const CACHE_TTL = 60000; // 60 s
 
-// ── TOAST ──
+const State = {
+  notifs: [],
+  lastSignature: null,
+  inFlight: false
+};
+
+/* ═══════════════════════════════════════════════════════════
+   HTML ESCAPE
+   ═══════════════════════════════════════════════════════════ */
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str).replace(/[&<>"']/g, function (m) {
+    if (m === '&') return '&amp;';
+    if (m === '<') return '&lt;';
+    if (m === '>') return '&gt;';
+    if (m === '"') return '&quot;';
+    if (m === "'") return '&#39;';
+    return m;
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════════════════════ */
 function showToast(message, type = 'info') {
   const toast = document.getElementById('toast');
   const icon =
     type === 'success' ? 'fa-check-circle' :
     type === 'error' ? 'fa-times-circle' :
     'fa-info-circle';
-  toast.innerHTML = `<i class="fas ${icon}"></i> ${escapeHtml(message)}`;
+  toast.innerHTML = `<i class="fas ${icon}"></i> <span></span>`;
+  toast.querySelector('span').textContent = String(message || '');
   toast.className = 'toast show ' + type;
   clearTimeout(window.__toastTimer);
   window.__toastTimer = setTimeout(() => {
@@ -262,7 +285,9 @@ function showToast(message, type = 'info') {
   }, 3000);
 }
 
-// ── API CALL — uses window.userFetch ──
+/* ═══════════════════════════════════════════════════════════
+   API WRAPPER
+   ═══════════════════════════════════════════════════════════ */
 async function apiCall(path, options = {}) {
   const fetcher = (typeof window.userFetch === 'function')
     ? window.userFetch
@@ -297,98 +322,50 @@ async function apiCall(path, options = {}) {
   return data;
 }
 
-// ── ESCAPE HTML ──
-function escapeHtml(str) {
-  if (str == null) return '';
-  return String(str).replace(/[&<>"']/g, function (m) {
-    if (m === '&') return '&amp;';
-    if (m === '<') return '&lt;';
-    if (m === '>') return '&gt;';
-    if (m === '"') return '&quot;';
-    if (m === "'") return '&#39;';
-    return m;
-  });
+/* ═══════════════════════════════════════════════════════════
+   NORMALIZER — same shape whether it came from the API
+   or sessionStorage
+   ═══════════════════════════════════════════════════════════ */
+function normalizeNotif(n) {
+  const isRead = (n.is_read === true || n.read === true);
+  return {
+    id: n.id,
+    type: n.type || 'other',
+    title: n.title || 'Notification',
+    message: n.message || '',
+    created_at: n.created_at || null,
+    is_read: isRead
+  };
 }
 
-// ── LOAD NOTIFICATIONS ──
-async function loadNotifications() {
-  const container = document.getElementById('notificationsList');
-
+/* ═══════════════════════════════════════════════════════════
+   SESSION CACHE (read/write, TTL-aware)
+   ═══════════════════════════════════════════════════════════ */
+function readCache() {
   try {
-    const result = await apiCall('/notifications');
-    const notifications = result.data || [];
-    
-    // Safely handle both `is_read` and `read` fields
-    const unreadCount = notifications.filter(n => {
-      const isRead = (n.is_read === true || n.read === true);
-      return !isRead;
-    }).length;
-
-    document.getElementById('unreadCount').textContent = unreadCount;
-
-    if (!notifications.length) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <i class="fas fa-bell-slash"></i>
-          <h3>No notifications yet</h3>
-          <p>When you receive notifications, they'll appear here.</p>
-        </div>
-      `;
-      return;
-    }
-
-    container.innerHTML = notifications.map(n => {
-      const iconName =
-        n.type === 'wallet'   ? 'fa-wallet' :
-        n.type === 'order'    ? 'fa-shopping-cart' :
-        n.type === 'boost'    ? 'fa-chart-line' :
-        n.type === 'giftcard' ? 'fa-gift' :
-        'fa-bell';
-        
-      // Standardize read status
-      const isRead = (n.is_read === true || n.read === true);
-
-      return `
-        <div class="notification-item ${!isRead ? 'unread' : ''}" data-id="${escapeHtml(n.id)}">
-          <div class="notif-icon">
-            <i class="fas ${iconName}"></i>
-          </div>
-          <div class="notif-content">
-            <div class="notif-title">${escapeHtml(n.title || 'Notification')}</div>
-            <div class="notif-message">${escapeHtml(n.message || '')}</div>
-            <div class="notif-time">
-              <i class="far fa-clock"></i> ${formatTime(n.created_at)}
-            </div>
-          </div>
-          <div class="notif-actions">
-            ${!isRead
-              ? `<button class="mark-read-btn" onclick="markRead('${escapeHtml(n.id)}')" title="Mark as read" aria-label="Mark as read"><i class="fas fa-check"></i></button>`
-              : ''}
-            <button class="delete-btn" onclick="deleteNotif('${escapeHtml(n.id)}')" title="Delete" aria-label="Delete notification"><i class="fas fa-trash"></i></button>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-  } catch (err) {
-    console.error('Load notifications error:', err);
-    container.innerHTML = `
-      <div class="empty-state">
-        <i class="fas fa-exclamation-triangle"></i>
-        <h3>Could not load notifications</h3>
-        <p>Please refresh the page to try again.</p>
-      </div>
-    `;
-  }
+    const raw = sessionStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.items)) return null;
+    if (parsed.ts && Date.now() - parsed.ts > CACHE_TTL) return null;
+    return parsed.items.map(normalizeNotif);
+  } catch (_) { return null; }
 }
 
-// ── FORMAT TIME ──
+function writeCache(items) {
+  try {
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), items }));
+  } catch (_) {}
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RENDER
+   ═══════════════════════════════════════════════════════════ */
 function formatTime(dateStr) {
   if (!dateStr) return 'Just now';
   const date = new Date(dateStr);
   const now = new Date();
   const diff = now - date;
-
   if (diff < 60000) return 'Just now';
   if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
   if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
@@ -400,47 +377,267 @@ function formatTime(dateStr) {
   });
 }
 
-// ── MARK AS READ ──
-async function markRead(id) {
+function iconForType(type) {
+  return (
+    type === 'wallet'   ? 'fa-wallet' :
+    type === 'order'    ? 'fa-shopping-cart' :
+    type === 'boost'    ? 'fa-chart-line' :
+    type === 'giftcard' ? 'fa-gift' :
+    'fa-bell'
+  );
+}
+
+function renderNotifications(items) {
+  const container = document.getElementById('notificationsList');
+  const unreadEl = document.getElementById('unreadCount');
+
+  const unread = items.filter(n => !n.is_read).length;
+  if (unreadEl) unreadEl.textContent = String(unread);
+
+  if (!items.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-bell-slash"></i>
+        <h3>No notifications yet</h3>
+        <p>When you receive notifications, they'll appear here.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = items.map(n => {
+    const iconName = iconForType(n.type);
+    return `
+      <div class="notification-item ${!n.is_read ? 'unread' : ''}"
+           data-id="${escapeHtml(n.id)}"
+           data-read="${n.is_read ? '1' : '0'}">
+        <div class="notif-icon">
+          <i class="fas ${iconName}"></i>
+        </div>
+        <div class="notif-content">
+          <div class="notif-title">${escapeHtml(n.title)}</div>
+          <div class="notif-message">${escapeHtml(n.message)}</div>
+          <div class="notif-time">
+            <i class="far fa-clock"></i> ${formatTime(n.created_at)}
+          </div>
+        </div>
+        <div class="notif-actions">
+          ${!n.is_read
+            ? `<button class="mark-read-btn" data-action="read" data-id="${escapeHtml(n.id)}" title="Mark as read" aria-label="Mark as read"><i class="fas fa-check"></i></button>`
+            : ''}
+          <button class="delete-btn" data-action="delete" data-id="${escapeHtml(n.id)}" title="Delete" aria-label="Delete notification"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LOAD — cache-first, then fetch, then diff by signature
+   ═══════════════════════════════════════════════════════════ */
+function signatureOf(items) {
+  return items.map(n => `${n.id}|${n.is_read ? 1 : 0}|${n.title}|${n.created_at || ''}`).join('::');
+}
+
+async function loadNotifications({ background = false } = {}) {
+  if (State.inFlight) return;
+  State.inFlight = true;
+
+  const container = document.getElementById('notificationsList');
+
+  /* FAST PAINT: sessionStorage cache on first load only */
+  if (!background) {
+    const cached = readCache();
+    if (cached) {
+      State.notifs = cached;
+      State.lastSignature = signatureOf(cached);
+      renderNotifications(cached);
+    } else if (container && !container.querySelector('.notification-item')) {
+      container.innerHTML = `
+        <div class="loading-state">
+          <i class="fas fa-spinner fa-spin"></i>
+          Loading notifications...
+        </div>
+      `;
+    }
+  }
+
   try {
-    await apiCall(`/notifications/${encodeURIComponent(id)}/read`, { method: 'PUT' });
-    await loadNotifications();
-    showToast('Notification marked as read', 'success');
+    const result = await apiCall('/notifications');
+    const raw = Array.isArray(result.data) ? result.data : [];
+    const items = raw.map(normalizeNotif);
+    const sig = signatureOf(items);
+
+    /* Skip re-render if nothing changed AND we already have a painted list */
+    if (sig === State.lastSignature && State.notifs.length) {
+      State.inFlight = false;
+      return;
+    }
+
+    State.notifs = items;
+    State.lastSignature = sig;
+    writeCache(items);
+    renderNotifications(items);
   } catch (err) {
-    showToast('Failed to mark as read', 'error');
+    console.error('Load notifications error:', err);
+    if (!State.notifs.length) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-exclamation-triangle"></i>
+          <h3>Could not load notifications</h3>
+          <p>Please refresh the page to try again.</p>
+        </div>
+      `;
+    }
+  } finally {
+    State.inFlight = false;
   }
 }
 
-// ── DELETE NOTIFICATION ──
-async function deleteNotif(id) {
-  if (!confirm('Delete this notification?')) return;
-  try {
-    await apiCall(`/notifications/${encodeURIComponent(id)}`, { method: 'DELETE' });
-    await loadNotifications();
-    showToast('Notification deleted', 'success');
-  } catch (err) {
-    showToast('Failed to delete notification', 'error');
-  }
+/* ═══════════════════════════════════════════════════════════
+   OPTIMISTIC MUTATIONS (no full list reload)
+   ═══════════════════════════════════════════════════════════ */
+function findNotif(id) {
+  return State.notifs.find(n => String(n.id) === String(id)) || null;
 }
 
-// ── MARK ALL AS READ ──
+function markLocal(id, isRead) {
+  const n = findNotif(id);
+  if (!n) return;
+  n.is_read = isRead;
+
+  const row = document.querySelector(`.notification-item[data-id="${cssEscape(id)}"]`);
+  if (!row) return;
+
+  if (isRead) {
+    row.classList.remove('unread');
+    row.setAttribute('data-read', '1');
+    const btn = row.querySelector('.mark-read-btn');
+    if (btn) btn.remove();
+  } else {
+    row.classList.add('unread');
+    row.setAttribute('data-read', '0');
+  }
+
+  const unread = State.notifs.filter(x => !x.is_read).length;
+  const unreadEl = document.getElementById('unreadCount');
+  if (unreadEl) unreadEl.textContent = String(unread);
+
+  State.lastSignature = signatureOf(State.notifs);
+  writeCache(State.notifs);
+}
+
+function removeLocal(id) {
+  State.notifs = State.notifs.filter(n => String(n.id) !== String(id));
+
+  const row = document.querySelector(`.notification-item[data-id="${cssEscape(id)}"]`);
+  if (row) {
+    row.style.opacity = '0';
+    row.style.transition = 'opacity .15s';
+    setTimeout(() => row.remove(), 160);
+  }
+
+  const unread = State.notifs.filter(x => !x.is_read).length;
+  const unreadEl = document.getElementById('unreadCount');
+  if (unreadEl) unreadEl.textContent = String(unread);
+
+  if (!State.notifs.length) {
+    const container = document.getElementById('notificationsList');
+    if (container) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-bell-slash"></i>
+          <h3>No notifications yet</h3>
+          <p>When you receive notifications, they'll appear here.</p>
+        </div>
+      `;
+    }
+  }
+
+  State.lastSignature = signatureOf(State.notifs);
+  writeCache(State.notifs);
+}
+
+function cssEscape(s) {
+  return String(s).replace(/["\\]/g, '\\$&');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   EVENT DELEGATION — replaces inline onclick
+   ═══════════════════════════════════════════════════════════ */
+document.getElementById('notificationsList').addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const action = btn.getAttribute('data-action');
+  const id = btn.getAttribute('data-id');
+  if (!id) return;
+
+  if (action === 'read') {
+    markLocal(id, true);
+    try {
+      await apiCall(`/notifications/${encodeURIComponent(id)}/read`, { method: 'PUT' });
+    } catch (err) {
+      markLocal(id, false);
+      showToast('Failed to mark as read', 'error');
+    }
+  } else if (action === 'delete') {
+    if (!confirm('Delete this notification?')) return;
+    removeLocal(id);
+    try {
+      await apiCall(`/notifications/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      showToast('Notification deleted', 'success');
+    } catch (err) {
+      /* Best effort — on error, force a reload so state is correct */
+      await loadNotifications();
+      showToast('Failed to delete notification', 'error');
+    }
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════
+   MARK ALL AS READ
+   ═══════════════════════════════════════════════════════════ */
 document.getElementById('markAllBtn').addEventListener('click', async () => {
+  const unreadBefore = State.notifs.filter(n => !n.is_read).length;
+  if (!unreadBefore) { showToast('Nothing to mark as read'); return; }
+
+  /* Optimistic: flip every unread to read, strip the action buttons */
+  State.notifs.forEach(n => { n.is_read = true; });
+  renderNotifications(State.notifs);
+  writeCache(State.notifs);
+
   try {
     await apiCall('/notifications/read/all', { method: 'PUT' });
-    await loadNotifications();
     showToast('All notifications marked as read', 'success');
+    State.lastSignature = signatureOf(State.notifs);
   } catch (err) {
+    await loadNotifications({ background: true });
     showToast('Failed to mark all as read', 'error');
   }
 });
 
-// ── AUTO-REFRESH EVERY 30 SECONDS ──
-let refreshInterval = setInterval(loadNotifications, 30000);
+/* ═══════════════════════════════════════════════════════════
+   BACKGROUND REFRESH — replaces the 30 s poll
+   Only re-renders if the payload changed (signature check)
+   ═══════════════════════════════════════════════════════════ */
+let refreshInterval = setInterval(() => {
+  if (!document.hidden) loadNotifications({ background: true });
+}, 30000);
 
-// ── BOOT ──
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) loadNotifications({ background: true });
+});
+
+window.addEventListener('beforeunload', () => {
+  clearInterval(refreshInterval);
+});
+
+/* ═══════════════════════════════════════════════════════════
+   BOOT
+   ═══════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', async () => {
-  // Wait a tick for session.js to hydrate before checking.
   await new Promise(r => setTimeout(r, 0));
+
   if (typeof window.getUser === 'function' && !window.getUser()) {
     setTimeout(() => {
       if (!window.getUser()) {
@@ -453,17 +650,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 1500);
     return;
   }
+
   loadNotifications();
 });
-
-// Cleanup interval on page unload
-window.addEventListener('beforeunload', () => {
-  clearInterval(refreshInterval);
-});
-
-// Expose handlers for the inline onclick attributes.
-window.markRead = markRead;
-window.deleteNotif = deleteNotif;
 </script>
 </body>
 </html>

@@ -36,6 +36,8 @@
   <script src="/js/session.js"></script>
   <script src="/js/presence.js" defer></script>
   <script src="/js/miles-widget.js" defer></script>
+  <link rel="stylesheet" href="/css/ms-shell.css?v=1">
+  <script src="/js/ms-shell.js?v=1" defer></script>
 
   <style>
     /* ═══════════════════════════════════════════════════════════
@@ -754,7 +756,7 @@
     .step-view.active { display: block; }
 
     /* ═══════════════════════════════════════════════════════════
-       PIN MODAL — single 4-digit input (shared with other pages)
+       PIN MODAL
        ═══════════════════════════════════════════════════════════ */
     .pin-modal {
       position: fixed;
@@ -1024,9 +1026,6 @@
     @media (min-width: 641px) { .toast { left: auto; right: 22px; max-width: 340px; } }
     .toast.show { transform: translateY(0); opacity: 1; }
 
-    /* ═══════════════════════════════════════════════════════════
-       RESPONSIVE
-       ═══════════════════════════════════════════════════════════ */
     @media (max-width: 640px) {
       .gc-controls { flex-direction: column; }
       .country-btn { width: 100%; height: 44px; }
@@ -1070,6 +1069,40 @@
     @media (max-height: 600px) {
       .country-menu { max-height: 220px; }
       .drawer-body { padding-bottom: 120px; }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       Stale transaction banner (from the pasted spec)
+       ═══════════════════════════════════════════════════════════ */
+    .tx-stale-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 14px;
+      margin: 8px 0;
+      border-radius: 10px;
+      background: rgba(245, 166, 35, 0.12);
+      border: 1px solid rgba(245, 166, 35, 0.35);
+      font-size: 12.5px;
+      color: var(--t2);
+    }
+    .tx-stale-banner strong { color: var(--t1); font-weight: 600; }
+    .tx-stale-banner button {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: none;
+      background: #0f4c5c;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .tx-stale-banner button:disabled { opacity: .55; cursor: not-allowed; }
+    @media (max-width: 420px) {
+      .tx-stale-banner { flex-direction: column; align-items: stretch; }
+      .tx-stale-banner button { width: 100%; min-height: 44px; }
     }
   </style>
 </head>
@@ -1180,9 +1213,6 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     DRAWER — gift card purchase
-     ═══════════════════════════════════════════════════════════ -->
 <div class="drawer-overlay" id="drawerOverlay"></div>
 <div class="drawer" id="giftDrawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
   <div class="drawer-head">
@@ -1312,9 +1342,6 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     PIN MODAL — single 4-digit input (shared with other pages)
-     ═══════════════════════════════════════════════════════════ -->
 <div class="pin-modal" id="pinModal" role="dialog" aria-modal="true" aria-labelledby="pmTitleText">
   <div class="pm-box">
     <div class="pm-head">
@@ -1353,7 +1380,6 @@
   </div>
 </div>
 
-<!-- HISTORY DRAWER -->
 <div class="hist-drawer" id="histDrawer" role="dialog" aria-modal="true" aria-labelledby="histTitle">
   <button class="hist-close" id="histClose" aria-label="Close history"><i class="fas fa-times"></i></button>
   <h3 id="histTitle">Gift Card History</h3>
@@ -1366,9 +1392,6 @@
 <script>
 'use strict';
 
-/* ═══════════════════════════════════════════════════════════════════════
-   CONFIG
-   ═══════════════════════════════════════════════════════════════════════ */
 const CONFIG = {
   api: {
     products:        (page = 1, limit = 500) => `/api/giftcards/products?page=${page}&limit=${limit}`,
@@ -1569,12 +1592,10 @@ const State = {
   pollTimer: null,
   purchaseInFlight: false,
   hydrating: false,
-  purchaseIdempotencyKey: null
+  purchaseIdempotencyKey: null,
+  histItems: []
 };
 
-/* ══════════════════════════════════════════════════════════════
-   SIDEBAR
-   ══════════════════════════════════════════════════════════════ */
 function initSidebar() {
   const sb  = $('#sb');
   const ov  = $('#ov');
@@ -1616,9 +1637,6 @@ function initSidebar() {
   });
 }
 
-/* ══════════════════════════════════════════════════════════════
-   USER
-   ══════════════════════════════════════════════════════════════ */
 function renderUserFromSession() {
   const u = getCurrentUser();
   if (!u) return;
@@ -1639,9 +1657,9 @@ function renderUserFromSession() {
   if (delivery && !delivery.value) delivery.value = u.email || '';
 }
 
-/* ══════════════════════════════════════════════════════════════
-   PRODUCTS CATALOG — Stale-While-Revalidate
-   ══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   PRODUCTS CATALOG — Stale-While-Revalidate (FAST LOAD)
+   ═══════════════════════════════════════════════════════════ */
 async function loadProducts() {
   let paintedFromCache = false;
 
@@ -1877,9 +1895,6 @@ function renderList() {
   }
 }
 
-/* ══════════════════════════════════════════════════════════════
-   COUNTRY FILTER MENU
-   ══════════════════════════════════════════════════════════════ */
 function renderCountryMenu(filterText) {
   const wrap = $('#countryMenuList');
   if (!wrap) return;
@@ -1946,9 +1961,6 @@ function initCountryMenu() {
   });
 }
 
-/* ══════════════════════════════════════════════════════════════
-   SEARCH & TABS
-   ══════════════════════════════════════════════════════════════ */
 function initSearchAndTabs() {
   const input = $('#gcSearch');
 
@@ -1988,11 +2000,22 @@ function setTab(tab) {
   renderList();
 }
 
-/* ══════════════════════════════════════════════════════════════
-   WALLET BALANCES
-   ══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   WALLET BALANCES — parallel fetch, cache-first
+   ═══════════════════════════════════════════════════════════ */
 async function loadBalances() {
   if (State.balancesLoaded) return;
+
+  /* Paint last-known balances from sessionStorage immediately. */
+  try {
+    const cached = JSON.parse(sessionStorage.getItem('ms:gc:balances') || 'null');
+    if (cached && (cached.NGN != null || cached.USD != null)) {
+      State.balances.NGN = cached.NGN ?? null;
+      State.balances.USD = cached.USD ?? null;
+      State.balancesLoaded = true;
+      renderWalletSection();
+    }
+  } catch (_) {}
 
   const tryFetch = async (url) => {
     const { data } = await apiGet(url);
@@ -2007,12 +2030,14 @@ async function loadBalances() {
     State.balances.NGN = ngn;
     State.balances.USD = usd;
     State.balancesLoaded = true;
+    try { sessionStorage.setItem('ms:gc:balances', JSON.stringify({ NGN: ngn, USD: usd })); } catch (_) {}
   } catch (e1) {
     try {
       const { ngn, usd } = await tryFetch(CONFIG.api.balancesFallback);
       State.balances.NGN = ngn;
       State.balances.USD = usd;
       State.balancesLoaded = true;
+      try { sessionStorage.setItem('ms:gc:balances', JSON.stringify({ NGN: ngn, USD: usd })); } catch (_) {}
     } catch (e2) {
       console.warn('Wallet balance unavailable:', e2.message);
     }
@@ -2065,9 +2090,6 @@ function updateInsufficientBanner() {
   }
 }
 
-/* ══════════════════════════════════════════════════════════════
-   DRAWER CONTROLS
-   ══════════════════════════════════════════════════════════════ */
 function openDrawer(product) {
   State.selectedProduct = product;
   State.quantity = 1;
@@ -2267,9 +2289,6 @@ function populateConfirmStep() {
   $('#cfEmail').textContent = $('#deliveryEmail').value.trim();
 }
 
-/* ══════════════════════════════════════════════════════════════
-   PIN MODAL — single 4-digit input (shared with other pages)
-   ══════════════════════════════════════════════════════════════ */
 let _pinResolver = null;
 let _pinBound = false;
 
@@ -2415,9 +2434,6 @@ function showPinNotSet() {
   modal.classList.add('show');
 }
 
-/* ══════════════════════════════════════════════════════════════
-   PURCHASE FLOW
-   ══════════════════════════════════════════════════════════════ */
 function _newPurchaseKey() {
   return `gc-${uuidv4()}`;
 }
@@ -2518,9 +2534,6 @@ async function submitPurchase() {
   }
 }
 
-/* ══════════════════════════════════════════════════════════════
-   STATUS & POLLING
-   ══════════════════════════════════════════════════════════════ */
 function showProcessingState() {
   $('#statusIcon').className = 'status-icon processing';
   $('#statusIcon').innerHTML = '<i class="fas fa-circle-notch spin"></i>';
@@ -2644,49 +2657,79 @@ async function loadProductsSilently() {
   } catch { /* keep current list */ }
 }
 
-/* ══════════════════════════════════════════════════════════════
-   HISTORY DRAWER
-   ══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   HISTORY DRAWER — with cache-first paint
+   ═══════════════════════════════════════════════════════════ */
 async function openHistory() {
   const drawer = $('#histDrawer');
   const list = $('#histList');
   drawer.classList.add('open');
-  list.innerHTML = '<div class="hist-empty">Loading…</div>';
+
+  /* Fast paint: last-known history from sessionStorage. */
+  try {
+    const cached = JSON.parse(sessionStorage.getItem('ms:gc:history') || 'null');
+    if (cached && Array.isArray(cached.items) && cached.items.length) {
+      State.histItems = cached.items;
+      list.innerHTML = cached.items.map((t, idx) => renderHistItemHtml(t, idx)).join('');
+      bindHistItemClicks();
+      $('#histSub').textContent = `${cached.items.length} purchase${cached.items.length === 1 ? '' : 's'}`;
+    } else {
+      list.innerHTML = '<div class="hist-empty">Loading…</div>';
+    }
+  } catch (_) {
+    list.innerHTML = '<div class="hist-empty">Loading…</div>';
+  }
 
   try {
     const { data } = await apiGet(CONFIG.api.history);
     const items = Array.isArray(data) ? data : [];
+    State.histItems = items;
 
     if (!items.length) {
       list.innerHTML = '<div class="hist-empty">You haven\'t purchased any gift cards yet.</div>';
       $('#histSub').textContent = 'No purchases yet';
+      try { sessionStorage.setItem('ms:gc:history', JSON.stringify({ items: [] })); } catch (_) {}
       return;
     }
 
     $('#histSub').textContent = `${items.length} purchase${items.length === 1 ? '' : 's'}`;
 
-    list.innerHTML = items.map(t => {
-      const st = (t.status || 'processing').replace('_', ' ');
-      return `
-        <div class="hist-item">
-          <div class="row1">
-            <div class="hlogo">${escapeHtml(initials(t.cardName || t.name))}</div>
-            <div class="title">${escapeHtml(t.cardName || t.name || 'Gift Card')}</div>
-            <span class="pill ${t.status || 'processing'}">${escapeHtml(st)}</span>
-          </div>
-          <div class="meta">${escapeHtml(t.countryName || '')} ${t.faceValue ? '· ' + escapeHtml(String(t.faceValue)) + ' ' + escapeHtml(t.faceCurrency || '') : ''}</div>
-          <div class="meta" style="margin-top:2px;">${t.totalUsd != null ? moneyUSD(t.totalUsd) : ''} · ${t.createdAt ? new Date(t.createdAt).toLocaleDateString() : ''}</div>
-          ${t.status === 'completed' ? `<button class="viewcode" data-order-id="${escapeHtml(t.id || t.transactionId || '')}"><i class="fas fa-eye"></i> View Code</button>` : ''}
-        </div>
-      `;
-    }).join('');
-
-    list.querySelectorAll('.viewcode').forEach(btn => {
-      btn.addEventListener('click', () => revealHistoryCode(btn.dataset.orderId, btn));
-    });
+    list.innerHTML = items.map((t, idx) => renderHistItemHtml(t, idx)).join('');
+    bindHistItemClicks();
+    try { sessionStorage.setItem('ms:gc:history', JSON.stringify({ items })); } catch (_) {}
   } catch (e) {
-    list.innerHTML = '<div class="hist-empty">Could not load history.</div>';
+    if (!State.histItems.length) {
+      list.innerHTML = '<div class="hist-empty">Could not load history.</div>';
+    }
   }
+}
+
+function renderHistItemHtml(t, idx) {
+  const st = (t.status || 'processing').toLowerCase();
+  const stLabel = window.MS && MS.statusLabel ? MS.statusLabel(st) : st.replace('_', ' ');
+  const stKey = window.MS && MS.statusKey ? MS.statusKey(st) : st;
+  return `
+    <div class="hist-item" data-hi="${idx}">
+      <div class="row1">
+        <div class="hlogo">${escapeHtml(initials(t.cardName || t.name))}</div>
+        <div class="title">${escapeHtml(t.cardName || t.name || 'Gift Card')}</div>
+        <span class="pill ${escapeHtml(stKey)}">${escapeHtml(stLabel)}</span>
+      </div>
+      <div class="meta">${escapeHtml(t.countryName || '')} ${t.faceValue ? '· ' + escapeHtml(String(t.faceValue)) + ' ' + escapeHtml(t.faceCurrency || '') : ''}</div>
+      <div class="meta" style="margin-top:2px;">${t.totalUsd != null ? moneyUSD(t.totalUsd) : ''} · ${t.createdAt ? new Date(t.createdAt).toLocaleDateString() : ''}</div>
+      ${t.status === 'completed' ? `<button class="viewcode" data-order-id="${escapeHtml(t.id || t.transactionId || '')}"><i class="fas fa-eye"></i> View Code</button>` : ''}
+    </div>
+  `;
+}
+
+function bindHistItemClicks() {
+  const list = $('#histList');
+  list.querySelectorAll('.viewcode').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      revealHistoryCode(btn.dataset.orderId, btn);
+    });
+  });
 }
 
 async function revealHistoryCode(orderId, btn) {
@@ -2714,9 +2757,6 @@ function closeHistory() {
   $('#histDrawer').classList.remove('open');
 }
 
-/* ══════════════════════════════════════════════════════════════
-   INIT
-   ══════════════════════════════════════════════════════════════ */
 function init() {
   try {
     for (const k of CONFIG.legacyCacheKeys) localStorage.removeItem(k);
@@ -2741,6 +2781,168 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   Stale transaction banner + "Check status" button.
+   Appended exactly per the pasted spec for giftcards.html.
+
+   PAGE ADAPTER
+   ────────────
+   1. ROW_SELECTOR = '#histList .hist-item[data-hi]'
+   2. RECORD_LOOKUP = el => State.histItems[Number(el.dataset.hi)] || null
+   3. Record fields: id, transactionId, reference (fall back to id),
+      status, createdAt (used as created_at fallback). All present on
+      the shape returned by /api/giftcards/history.
+   4. Token fetcher: window.userFetch (falls back to fetch with cookies).
+   5. Toast: local toast(msg, isError) — takes a BOOLEAN second arg.
+   ═══════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  const ROW_SELECTOR  = '#histList .hist-item[data-hi]';
+  const RECORD_LOOKUP = (el) => {
+    const idx = el.getAttribute('data-hi');
+    if (idx == null) return null;
+    return State.histItems[Number(idx)] || null;
+  };
+  const ESCAPE_HTML   = escapeHtml;
+  /* giftcards.html toast(msg, isError) — map 'ok'/'err' to boolean */
+  const SHOW_TOAST    = (msg, kind) => toast(msg, kind === 'err' || kind === 'error');
+
+  const API_BASE = '/api/transactions';
+  const STALE_MS = 10 * 60 * 1000;
+  const STALEABLE = new Set(['pending','processing','under_review','provider_unknown','manual_review']);
+  const TERMINAL  = new Set(['completed','failed','refunded','cancelled','reversed']);
+
+  function userLabel(s) {
+    s = String(s || '').toLowerCase();
+    if (['completed','success','finished'].includes(s)) return 'completed';
+    if (['failed','declined','expired'].includes(s)) return 'failed';
+    if (['cancelled','canceled'].includes(s)) return 'cancelled';
+    if (['refunded','reversed'].includes(s)) return 'refunded';
+    if (['under_review','manual_review','partially_paid'].includes(s)) return 'under_review';
+    if (['processing','provider_unknown','confirming'].includes(s)) return 'processing';
+    return 'pending';
+  }
+
+  function refFor(rec) {
+    if (!rec) return null;
+    return rec.reference || rec.transactionId || rec.id || rec.ref || null;
+  }
+
+  function createdFor(rec) {
+    if (!rec) return null;
+    return rec.created_at || rec.createdAt || rec.created || null;
+  }
+
+  function isStale(rec) {
+    const created = createdFor(rec);
+    if (!created) return false;
+    if (!STALEABLE.has(String(rec.status || '').toLowerCase())) return false;
+    return (Date.now() - new Date(created).getTime()) > STALE_MS;
+  }
+
+  function bannerMessage(rec) {
+    const label = userLabel(rec.status);
+    if (label === 'under_review') return { main: 'A specialist is checking this for you.', tail: '' };
+    if (label === 'processing')  return { main: 'Confirming with the provider.',          tail: ' Most complete within a few more minutes.' };
+    return                              { main: 'Taking longer than expected.',            tail: ' Most complete within a few more minutes.' };
+  }
+
+  async function callCheck(reference) {
+    const fetcher = (typeof window.userFetch === 'function') ? window.userFetch : fetch;
+    try {
+      const resp = await fetcher(
+        `${API_BASE}/${encodeURIComponent(reference)}/check`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include' }
+      );
+      let body = null;
+      try { body = await resp.json(); } catch (_) {}
+      return { ok: resp.ok, status: resp.status, body };
+    } catch (err) {
+      return { ok: false, status: 0, body: { error: err.message || 'Network error' } };
+    }
+  }
+
+  function inject(rowEl, rec) {
+    const sib = rowEl.nextElementSibling;
+    if (sib && sib.classList && sib.classList.contains('tx-stale-banner')) return;
+    if (rowEl.querySelector && rowEl.querySelector('.tx-stale-banner')) return;
+
+    const reference = refFor(rec);
+    if (!reference) return;
+
+    const { main, tail } = bannerMessage(rec);
+    const banner = document.createElement('div');
+    banner.className = 'tx-stale-banner';
+    banner.innerHTML =
+      '<span><strong>' + ESCAPE_HTML(main) + '</strong>' + ESCAPE_HTML(tail) + '</span>' +
+      '<button type="button" data-check="' + ESCAPE_HTML(String(reference)) + '">Check status</button>';
+
+    rowEl.parentNode.insertBefore(banner, rowEl.nextSibling);
+
+    const btn = banner.querySelector('button');
+    btn.addEventListener('click', async () => {
+      if (btn.disabled) return;
+      btn.disabled = true;
+      btn.textContent = 'Checking\u2026';
+
+      const r = await callCheck(reference);
+      if (r.ok && r.body && r.body.data) {
+        const s = r.body.data;
+        const label = userLabel(s.status);
+        const span = banner.querySelector('span');
+        if (span) span.innerHTML = '<strong>' + ESCAPE_HTML(s.status_message || 'Updated.') + '</strong>';
+        if (TERMINAL.has(label)) {
+          btn.remove();
+          SHOW_TOAST('Status updated.', 'ok');
+          setTimeout(() => {
+            try { openHistory(); State.balancesLoaded = false; loadBalances(); } catch (_) {}
+          }, 400);
+        } else {
+          btn.disabled = false;
+          btn.textContent = 'Check status';
+        }
+      } else if (r.status === 429) {
+        btn.textContent = 'Wait a moment';
+        const wait = (r.body && r.body.retry_after_ms) || 30000;
+        setTimeout(() => { btn.disabled = false; btn.textContent = 'Check status'; }, wait);
+      } else {
+        btn.textContent = 'Check status';
+        btn.disabled = false;
+        SHOW_TOAST((r.body && r.body.error) || 'Could not check status right now.', 'err');
+      }
+    });
+  }
+
+  let isScanning = false;
+  function scan() {
+    if (isScanning) return;
+    isScanning = true;
+    try {
+      document.querySelectorAll(ROW_SELECTOR).forEach(el => {
+        if (el.getClientRects().length === 0) return;
+        const rec = RECORD_LOOKUP(el);
+        if (!isStale(rec)) return;
+        inject(el, rec);
+      });
+    } finally { isScanning = false; }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(scan, 800), { once: true });
+  } else {
+    setTimeout(scan, 800);
+  }
+
+  let debounce = null;
+  new MutationObserver(() => {
+    clearTimeout(debounce);
+    debounce = setTimeout(scan, 300);
+  }).observe(document.body, { childList: true, subtree: true });
+})();
 </script>
 </body>
 </html>

@@ -1,32 +1,9 @@
+'use strict';
+
 // routes/admin/refundAdminRoutes.js
 // ─────────────────────────────────────────────────────────────────
 // Admin Refunds — ROUTES.
-//
-// This is the dedicated /admin/refunds surface. It exposes the
-// refunds table as a first-class operational queue: everything
-// that Finance needs to work through, without having to open each
-// transaction drawer.
-//
-// Responsibilities:
-//   GET  /api/admin/refunds               — paginated list with filters
-//   GET  /api/admin/refunds/summary       — pending / processing / completed counts
-//   GET  /api/admin/refunds/:id           — single refund with full context
-//   POST /api/admin/refunds/:id/cancel    — cancel a REQUESTED / PENDING_APPROVAL refund
-//   POST /api/admin/refunds/:id/approve   — approve a PENDING_APPROVAL refund (second approver)
-//   POST /api/admin/refunds/:id/retry     — retry a FAILED provider refund
-//
-// Every mutation:
-//   • requires the appropriate permission
-//   • requires a reason (min 4 chars)
-//   • requires step-up MFA
-//   • writes to admin_audit_logs with request_id
-//
-// The actual financial execution is delegated to refundService.
-// This file never touches the wallet, the ledger, or the provider
-// directly.
 // ─────────────────────────────────────────────────────────────────
-
-'use strict';
 
 const express = require('express');
 const crypto = require('crypto');
@@ -38,7 +15,7 @@ const { supabaseAdmin } = require('../../db/supabase');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// ─── Response helpers ────────────────────────────────────────────
+// ─── Helpers ────────────────────────────────────────────────────
 
 function sendOk(res, payload) { if (!res.headersSent) res.json({ success: true, ...payload }); }
 function sendErr(res, err) {
@@ -46,18 +23,23 @@ function sendErr(res, err) {
     const status = err?.status || 500;
     const code = err?.code || 'REFUND_ADMIN_ERROR';
     const message = err?.message || 'Refund request failed';
-    const safe = { success: false, code, error: message };
+    
+    const body = { success: false, code, error: message, request_id: err?.request_id || null };
+    if (err?.remaining_amount) body.remaining_amount = err.remaining_amount;
+    if (err?.ledger_transaction_id) body.ledger_transaction_id = err.ledger_transaction_id;
+
     if (status >= 500) console.error('[ADMIN REFUND]', code, message);
-    res.status(status).json(safe);
+    res.status(status).json(body);
 }
 
 function adminCtx(req) {
     return {
-        adminId: req.adminContext?.id || null,
-        adminEmail: req.adminContext?.email || null,
-        ip: req.ip || req.headers['x-forwarded-for'] || null,
-        userAgent: req.headers['user-agent'] || null,
-        requestId: req.requestId || null
+        adminId: req.adminContext?.id,
+        adminEmail: req.adminContext?.email,
+        role: req.adminContext?.role,
+        ip: req.ip,
+        userAgent: req.headers['user-agent'],
+        requestId: req.requestId
     };
 }
 
@@ -67,31 +49,46 @@ function attachRequestId(req, res, next) {
     next();
 }
 
-router.use('/refunds', attachRequestId);
-
-// ─── Audit helper ────────────────────────────────────────────────
-
-async function recordAudit({ ctx, action, refundId, before, after, reason }) {
-    const { error } = await supabaseAdmin.from('admin_audit_logs').insert({
-        admin_id: ctx.adminId || null,
-        action,
-        target_type: 'refund',
-        target_id: refundId,
-        before: before || null,
-        after: after || null,
-        reason: reason ? String(reason).slice(0, 500) : null,
-        ip_address: ctx.ip || null,
-        user_agent: ctx.userAgent || null,
-        request_id: ctx.requestId || null,
-        created_at: new Date().toISOString()
-    });
-    if (error) {
-        const e = new Error('Failed to record audit entry.');
-        e.code = 'AUDIT_INSERT_FAILED';
-        e.status = 500;
-        throw e;
+function requireIdempotencyKey(req) {
+    const key = req.headers['idempotency-key'];
+    if (!key || key.length < 8 || key.length > 200) {
+        throw Object.assign(new Error('A valid Idempotency-Key header is required.'), { status: 422, code: 'IDEMPOTENCY_KEY_REQUIRED' });
     }
+    return key;
 }
+
+/**
+ * Add two decimal strings without using Number() arithmetic.
+ * "1234.56" + "0.44"  →  "1235.00"
+ * "999.99"  + "0.02"  →  "1000.01"
+ *
+ * Both inputs are interpreted as positive. Sign is preserved on the
+ * result if either input is negative.
+ */
+function addDecimalStrings(a, b) {
+    const parse = (s) => {
+        const str = String(s ?? '0').trim();
+        const neg = str.startsWith('-');
+        const clean = str.replace('-', '');
+        const [intPart, fracPart = ''] = clean.split('.');
+        const intNum = BigInt(intPart || '0');
+        const fracPadded = (fracPart + '00').slice(0, 2);
+        const fracNum = BigInt(fracPadded);
+        const totalMinor = intNum * 100n + fracNum;
+        return neg ? -totalMinor : totalMinor;
+    };
+
+    const totalMinor = parse(a) + parse(b);
+    const neg = totalMinor < 0n;
+    const abs = neg ? -totalMinor : totalMinor;
+    const whole = abs / 100n;
+    const frac = (abs % 100n).toString().padStart(2, '0');
+    return `${neg ? '-' : ''}${whole.toString()}.${frac}`;
+}
+
+router.use('/refunds', attachRequestId);
+console.log('[REFUND ADMIN] Module loaded');
+
 
 // ═════════════════════════════════════════════════════════════════
 //  GET /api/admin/refunds
@@ -112,7 +109,7 @@ router.get(
                     'id, original_transaction_id, refund_transaction_id, user_id, ' +
                     'refund_type, amount, currency, reason, status, ' +
                     'provider, provider_refund_ref, requested_by, approved_by, ' +
-                    'failure_reason, created_at, updated_at, approved_at, ' +
+                    'rejection_reason, failure_reason, created_at, updated_at, approved_at, ' +
                     'completed_at, failed_at',
                     { count: 'exact' }
                 )
@@ -128,56 +125,17 @@ router.get(
             if (req.query.currency && req.query.currency !== 'all') {
                 q = q.eq('currency', String(req.query.currency).toUpperCase());
             }
-            if (req.query.provider && req.query.provider !== 'all') {
-                q = q.eq('provider', req.query.provider);
+            if (req.query.from) q = q.gte('created_at', new Date(req.query.from).toISOString());
+            if (req.query.to) {
+                const d = new Date(req.query.to); d.setHours(23, 59, 59, 999);
+                q = q.lte('created_at', d.toISOString());
             }
-
-            const fromIso = req.query.from ? new Date(req.query.from).toISOString() : null;
-            const toIso = req.query.to ? new Date(req.query.to).toISOString() : null;
-            if (fromIso) q = q.gte('created_at', fromIso);
-            if (toIso) q = q.lte('created_at', toIso);
 
             const { data, error, count } = await q;
-            if (error) {
-                if (error.code === '42P01') {
-                    return sendErr(res, Object.assign(new Error('Refunds table not deployed.'), {
-                        status: 503, code: 'REFUNDS_TABLE_NOT_DEPLOYED'
-                    }));
-                }
-                throw error;
-            }
-
-            // Enrich with user + original transaction reference in one round-trip each.
-            const userIds = [...new Set((data || []).map(r => r.user_id).filter(Boolean))];
-            const txIds = [...new Set((data || []).map(r => r.original_transaction_id).filter(Boolean))];
-
-            let profilesById = {};
-            if (userIds.length) {
-                const { data: profiles } = await supabaseAdmin
-                    .from('profiles')
-                    .select('id, username, email')
-                    .in('id', userIds);
-                (profiles || []).forEach(p => { profilesById[p.id] = p; });
-            }
-
-            let txById = {};
-            if (txIds.length) {
-                const { data: txs } = await supabaseAdmin
-                    .from('transactions')
-                    .select('id, reference, type, status, amount, currency, provider, provider_reference')
-                    .in('id', txIds);
-                (txs || []).forEach(t => { txById[t.id] = t; });
-            }
-
-            const refunds = (data || []).map(r => ({
-                ...r,
-                amount: r.amount != null ? String(r.amount) : null,
-                user: profilesById[r.user_id] || null,
-                original_transaction: txById[r.original_transaction_id] || null
-            }));
+            if (error) throw error;
 
             sendOk(res, {
-                refunds,
+                refunds: data || [],
                 count: count || 0,
                 page,
                 limit,
@@ -191,50 +149,219 @@ router.get(
 //  GET /api/admin/refunds/summary
 // ═════════════════════════════════════════════════════════════════
 
+
 router.get(
     '/refunds/summary',
     requirePermission(PERMISSIONS.TRANSACTIONS_READ),
     async (req, res) => {
         try {
-            const countFor = async (statusSet) => {
-                let q = supabaseAdmin
-                    .from('refunds')
-                    .select('id', { count: 'exact', head: true });
-                if (statusSet) q = q.in('status', [...statusSet]);
-                const { count, error } = await q;
-                if (error) {
-                    if (error.code === '42P01') {
-                        const e = new Error('Refunds table not deployed.');
-                        e.code = 'REFUNDS_TABLE_NOT_DEPLOYED';
-                        e.status = 503;
-                        throw e;
-                    }
-                    throw error;
-                }
-                return count || 0;
+            const fromIso = req.query.from ? new Date(req.query.from).toISOString() : null;
+            const toIso = req.query.to
+                ? (() => { const d = new Date(req.query.to); d.setHours(23, 59, 59, 999); return d.toISOString(); })()
+                : null;
+
+            // Empty shell — used both as the fallback's starting point
+            // and to ensure the response always has the same keys,
+            // even on an empty table.
+            const emptyShape = {
+                total: 0,
+                requested: 0,
+                pending_approval: 0,
+                approved: 0,
+                processing: 0,
+                completed: 0,
+                failed: 0,
+                rejected: 0,
+                cancelled: 0,
+                expired: 0,
+                amounts: { NGN: {}, USD: {} },
+                oldest_pending_seconds: 0,
+                over_sla_count: 0,
+                source: 'rpc',
             };
 
-            const [total, pendingApproval, processing, completed, failed, requested] =
-                await Promise.all([
-                    countFor(null),
-                    countFor(new Set(['PENDING_APPROVAL'])),
-                    countFor(new Set(['PROCESSING'])),
-                    countFor(new Set(['COMPLETED'])),
-                    countFor(new Set(['FAILED'])),
-                    countFor(new Set(['REQUESTED']))
-                ]);
+            // ─── Primary path: RPC ───────────────────────────────
+            const { data: rpcData, error: rpcErr } = await supabaseAdmin.rpc(
+                'admin_refund_summary',
+                { p_from: fromIso, p_to: toIso }
+            );
 
-            sendOk(res, {
-                summary: {
-                    total,
-                    pending_approval: pendingApproval,
-                    processing,
-                    completed,
-                    failed,
-                    requested
+            // Treat missing-RPC and permission-denied as "fall through
+            // to JS aggregation" rather than surfacing a 500. This
+            // makes the endpoint resilient to pre-migration deploys
+            // and to DB users whose search_path doesn't include the
+            // function.
+            const rpcMissing =
+                rpcErr &&
+                (rpcErr.code === 'PGRST202' ||
+                 rpcErr.code === '42883' ||
+                 /function .* does not exist/i.test(rpcErr.message || ''));
+
+            if (!rpcMissing && rpcErr) {
+                // Real DB error (not "missing function"). Fail closed
+                // — we do not want to report zeros when the DB is
+                // broken.
+                console.error('[REFUND SUMMARY] RPC error:', rpcErr.code, rpcErr.message);
+                throw Object.assign(
+                    new Error('Failed to load refund summary.'),
+                    { status: 500, code: 'REFUND_SUMMARY_FAILED' }
+                );
+            }
+
+            if (!rpcMissing && rpcData) {
+                // RPC returned successfully. It returns a single jsonb
+                // object keyed by STATUS (uppercase, as stored in the
+                // table).
+                const summary = { ...emptyShape, amounts: { NGN: {}, USD: {} } };
+
+                for (const [statusKey, payload] of Object.entries(rpcData || {})) {
+                    const lower = String(statusKey).toLowerCase();
+                    const count = Number(payload?.count) || 0;
+
+                    // Accumulate the total count across all statuses.
+                    summary.total += count;
+
+                    // Map uppercase DB status to the lowercase keys
+                    // the frontend expects.
+                    if (Object.prototype.hasOwnProperty.call(summary, lower)) {
+                        summary[lower] = count;
+                    }
+
+                    // Preserve the raw amounts per currency as decimal
+                    // strings. The RPC returns numbers (jsonb numeric);
+                    // convert to string so JS never does float math.
+                    const amounts = payload?.amounts || {};
+                    for (const [ccy, amt] of Object.entries(amounts)) {
+                        const upperCcy = String(ccy).toUpperCase();
+                        if (!summary.amounts[upperCcy]) {
+                            summary.amounts[upperCcy] = {};
+                        }
+                        summary.amounts[upperCcy][String(statusKey).toUpperCase()] =
+                            typeof amt === 'number' ? String(amt) : String(amt ?? '0');
+                    }
                 }
-            });
-        } catch (err) { sendErr(res, err); }
+
+                // Compute "oldest pending" and SLA breach in the RPC
+                // path via a dedicated cheap query. We do this
+                // separately so the main RPC stays aggregate-only.
+                try {
+                    const { data: oldestRow } = await supabaseAdmin
+                        .from('refunds')
+                        .select('created_at')
+                        .eq('status', 'PENDING_APPROVAL')
+                        .order('created_at', { ascending: true })
+                        .limit(1)
+                        .maybeSingle();
+
+                    if (oldestRow?.created_at) {
+                        const ageSec = Math.max(
+                            0,
+                            Math.floor((Date.now() - new Date(oldestRow.created_at).getTime()) / 1000)
+                        );
+                        summary.oldest_pending_seconds = ageSec;
+                    }
+
+                    const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+                    const { count: overSlaCount } = await supabaseAdmin
+                        .from('refunds')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('status', 'PENDING_APPROVAL')
+                        .lt('created_at', fourHoursAgo);
+                    summary.over_sla_count = overSlaCount || 0;
+                } catch (_) {
+                    // SLA computation failure is non-fatal.
+                }
+
+                summary.source = 'rpc';
+                return sendOk(res, { summary });
+            }
+
+            // ─── Fallback path: JS aggregation ───────────────────
+            // Only reachable when the RPC is missing.
+            console.warn(
+                '[REFUND SUMMARY] RPC admin_refund_summary missing — falling back to JS aggregation. ' +
+                'Run migrations/20261104_admin_refund_summary.sql to fix.'
+            );
+
+            const summary = { ...emptyShape, amounts: { NGN: {}, USD: {} }, source: 'fallback' };
+            const CHUNK = 1000;
+            const MAX_ROWS = 100_000;
+            let offset = 0;
+            let truncated = false;
+
+            while (offset < MAX_ROWS) {
+                const { data: rows, error } = await supabaseAdmin
+                    .from('refunds')
+                    .select('id, status, currency, amount, created_at')
+                    .gte('created_at', fromIso || '1970-01-01')
+                    .lte('created_at', toIso || '2099-12-31')
+                    .order('created_at', { ascending: false })
+                    .range(offset, offset + CHUNK - 1);
+
+                if (error) {
+                    console.error('[REFUND SUMMARY] fallback read error:', error.message);
+                    throw Object.assign(
+                        new Error('Failed to load refund summary.'),
+                        { status: 500, code: 'REFUND_SUMMARY_FAILED' }
+                    );
+                }
+
+                if (!rows || rows.length === 0) break;
+
+                for (const r of rows) {
+                    const lower = String(r.status || '').toLowerCase();
+                    const count = 1;
+                    summary.total += count;
+                    if (Object.prototype.hasOwnProperty.call(summary, lower)) {
+                        summary[lower] += count;
+                    }
+
+                    const ccy = String(r.currency || '').toUpperCase();
+                    if (!['NGN', 'USD'].includes(ccy)) continue;
+
+                    const key = String(r.status || '').toUpperCase();
+                    if (!summary.amounts[ccy]) summary.amounts[ccy] = {};
+
+                    // Decimal-string addition. We parse as integers of
+                    // minor units to avoid float drift.
+                    const amtStr = String(r.amount ?? '0');
+                    const prevStr = String(summary.amounts[ccy][key] || '0');
+                    summary.amounts[ccy][key] = addDecimalStrings(prevStr, amtStr);
+
+                    if (r.status === 'PENDING_APPROVAL') {
+                        const ageSec = Math.max(
+                            0,
+                            Math.floor((Date.now() - new Date(r.created_at).getTime()) / 1000)
+                        );
+                        if (ageSec > summary.oldest_pending_seconds) {
+                            summary.oldest_pending_seconds = ageSec;
+                        }
+                        if (ageSec > 4 * 60 * 60) {
+                            summary.over_sla_count += 1;
+                        }
+                    }
+                }
+
+                if (rows.length < CHUNK) break;
+                offset += CHUNK;
+
+                if (offset >= MAX_ROWS) {
+                    truncated = true;
+                    break;
+                }
+            }
+
+            if (truncated) {
+                summary.truncated = true;
+                summary.note =
+                    `Fallback aggregate capped at ${MAX_ROWS} rows. ` +
+                    `Run migrations/20261104_admin_refund_summary.sql to enable exact aggregation.`;
+            }
+
+            return sendOk(res, { summary });
+        } catch (err) {
+            sendErr(res, err);
+        }
     }
 );
 
@@ -250,236 +377,161 @@ router.get(
         try {
             const refund = await refundSvc.getRefund(req.params.id);
 
-            // Enrich.
-            let user = null, originalTx = null, refundTx = null, audit = [];
+            let user = null, originalTx = null, refundTx = null, audit = [], approvals = [];
 
             if (refund.user_id) {
-                const { data } = await supabaseAdmin
-                    .from('profiles')
-                    .select('id, username, email, phone, status')
-                    .eq('id', refund.user_id)
-                    .maybeSingle();
+                const { data } = await supabaseAdmin.from('profiles').select('id, username, email').eq('id', refund.user_id).maybeSingle();
                 user = data || null;
             }
             if (refund.original_transaction_id) {
-                const { data } = await supabaseAdmin
-                    .from('transactions')
-                    .select('id, reference, type, status, amount, currency, provider, provider_reference, description, created_at')
-                    .eq('id', refund.original_transaction_id)
-                    .maybeSingle();
+                const { data } = await supabaseAdmin.from('transactions').select('id, reference, type, status, amount, currency, provider, provider_reference').eq('id', refund.original_transaction_id).maybeSingle();
                 originalTx = data || null;
             }
             if (refund.refund_transaction_id) {
-                const { data } = await supabaseAdmin
-                    .from('transactions')
-                    .select('id, reference, type, status, amount, currency, created_at')
-                    .eq('id', refund.refund_transaction_id)
-                    .maybeSingle();
+                const { data } = await supabaseAdmin.from('transactions').select('id, reference, type, status, amount, currency').eq('id', refund.refund_transaction_id).maybeSingle();
                 refundTx = data || null;
             }
+            const { data: apprs } = await supabaseAdmin.from('refund_approvals').select('*').eq('refund_id', refund.id);
+            approvals = apprs || [];
 
-            const { data: auditRows } = await supabaseAdmin
-                .from('admin_audit_logs')
-                .select('id, admin_id, action, reason, before, after, created_at, request_id')
-                .eq('target_type', 'refund')
-                .eq('target_id', refund.id)
-                .order('created_at', { ascending: false })
-                .limit(50);
-            audit = auditRows || [];
+            const { data: audits } = await supabaseAdmin.from('admin_audit_logs').select('*').eq('target_type', 'refund').eq('target_id', refund.id).order('created_at', { ascending: false }).limit(50);
+            audit = audits || [];
 
-            const adminIds = [...new Set(audit.map(a => a.admin_id).filter(Boolean))];
-            let adminsById = {};
-            if (adminIds.length) {
-                const { data: admins } = await supabaseAdmin
-                    .from('profiles')
-                    .select('id, username, email')
-                    .in('id', adminIds);
-                (admins || []).forEach(a => { adminsById[a.id] = a; });
-            }
+            // Calculate approval state
+            const approvalsCount = approvals.filter(a => a.decision === 'approve').length;
+            const canApprove = (refund.status === 'PENDING_APPROVAL' && refund.requested_by !== req.adminContext.id);
 
             sendOk(res, {
                 refund: { ...refund, amount: refund.amount != null ? String(refund.amount) : null },
                 user,
                 original_transaction: originalTx,
                 refund_transaction: refundTx,
-                audit: audit.map(a => ({
-                    ...a,
-                    admin_username: adminsById[a.admin_id]?.username || null,
-                    admin_email: adminsById[a.admin_id]?.email || null
-                }))
+                approvals,
+                audit,
+                approval_state: {
+                    approvals_count: approvalsCount,
+                    approvals_required: refund.approvals_required,
+                    expires_at: refund.expires_at,
+                    can_approve: canApprove,
+                    blocked_reason: refund.requested_by === req.adminContext.id ? 'Cannot approve your own request.' : null
+                }
             });
+        } catch (err) { sendErr(res, err); }
+    }
+);
+
+// ═════════════════════════════════════════════════════════════════
+//  POST /api/admin/refunds
+// ═════════════════════════════════════════════════════════════════
+
+router.post(
+    '/refunds',
+    requirePermission(PERMISSIONS.TRANSACTIONS_REFUND),
+    requireStepUpAuth({ maxAgeSeconds: 300 }),
+    async (req, res) => {
+        try {
+            const { transaction_id, amount, reason, refund_type } = req.body || {};
+            if (!UUID_RE.test(String(transaction_id || ''))) {
+                throw Object.assign(new Error('Valid transaction_id is required.'), { status: 422, code: 'INVALID_TRANSACTION_ID' });
+            }
+            if (!refund_type || !['wallet', 'reversal', 'provider'].includes(refund_type)) {
+                throw Object.assign(new Error('Invalid refund_type.'), { status: 422, code: 'INVALID_REFUND_TYPE' });
+            }
+            const idem = requireIdempotencyKey(req);
+
+            const result = await refundSvc.createRefundRequest({
+                transactionId: transaction_id,
+                amount, reason,
+                refundType: refund_type,
+                ctx: adminCtx(req),
+                idempotencyKey: idem
+            });
+
+            sendOk(res, result);
         } catch (err) { sendErr(res, err); }
     }
 );
 
 // ═════════════════════════════════════════════════════════════════
 //  POST /api/admin/refunds/:id/approve
-//
-//  Second-approver action for refunds that require dual control.
-//  Executes the refund via refundService only if the current admin
-//  is NOT the one who requested it.
 // ═════════════════════════════════════════════════════════════════
 
 router.post(
     '/refunds/:id/approve',
-    requirePermission(PERMISSIONS.TRANSACTIONS_REFUND),
+    requirePermission(PERMISSIONS.REFUNDS_APPROVE || PERMISSIONS.TRANSACTIONS_REFUND),
     requireStepUpAuth({ maxAgeSeconds: 300 }),
     async (req, res, next) => {
         if (!UUID_RE.test(String(req.params.id || ''))) return next();
         try {
             const reason = String(req.body?.reason || '').trim();
-            if (reason.length < 4) {
-                throw Object.assign(new Error('A reason is required (min 4 characters).'), {
-                    status: 422, code: 'REASON_REQUIRED'
-                });
-            }
+            if (reason.length < 4) throw Object.assign(new Error('Reason required.'), { status: 422, code: 'REASON_REQUIRED' });
+            
+            const idem = requireIdempotencyKey(req);
 
-            const ctx = adminCtx(req);
-            const { data: refund, error } = await supabaseAdmin
-                .from('refunds')
-                .select('*')
-                .eq('id', req.params.id)
-                .maybeSingle();
-            if (error) throw error;
-            if (!refund) {
-                throw Object.assign(new Error('Refund not found.'), { status: 404, code: 'REFUND_NOT_FOUND' });
-            }
-            if (refund.status !== 'PENDING_APPROVAL') {
-                throw Object.assign(new Error(`Cannot approve a refund in status "${refund.status}".`), {
-                    status: 409, code: 'INVALID_STATE'
-                });
-            }
-            if (refund.requested_by && refund.requested_by === ctx.adminId) {
-                throw Object.assign(new Error('The approver must differ from the requester.'), {
-                    status: 403, code: 'SELF_APPROVAL_FORBIDDEN'
-                });
-            }
+            const result = await refundSvc.approveRefund({
+                refundId: req.params.id,
+                ctx: adminCtx(req),
+                reason,
+                idempotencyKey: idem
+            });
 
-            // Mark approved, then execute.
-            await supabaseAdmin
-                .from('refunds')
-                .update({
-                    status: 'APPROVED',
-                    approved_by: ctx.adminId,
-                    approved_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', refund.id);
+            sendOk(res, result);
+        } catch (err) { sendErr(res, err); }
+    }
+);
 
-            await recordAudit({
-                ctx,
-                action: 'refund.approved',
-                refundId: refund.id,
-                before: { status: 'PENDING_APPROVAL' },
-                after: { status: 'APPROVED' },
+// ═════════════════════════════════════════════════════════════════
+//  POST /api/admin/refunds/:id/reject
+// ═════════════════════════════════════════════════════════════════
+
+router.post(
+    '/refunds/:id/reject',
+    requirePermission(PERMISSIONS.REFUNDS_APPROVE || PERMISSIONS.TRANSACTIONS_REFUND),
+    requireStepUpAuth({ maxAgeSeconds: 300 }),
+    async (req, res, next) => {
+        if (!UUID_RE.test(String(req.params.id || ''))) return next();
+        try {
+            const reason = String(req.body?.reason || '').trim();
+            if (reason.length < 4) throw Object.assign(new Error('Reason required.'), { status: 422, code: 'REASON_REQUIRED' });
+
+            const result = await refundSvc.rejectRefund({
+                refundId: req.params.id,
+                ctx: adminCtx(req),
                 reason
             });
 
-            // Execute based on the refund_type that was recorded.
-            let result;
-            const idem = refund.idempotency_key || `admin-refund-${refund.id}`;
-            if (refund.refund_type === 'wallet') {
-                result = await refundSvc.executeWalletRefund({
-                    transactionId: refund.original_transaction_id,
-                    amount: Number(refund.amount),
-                    reason: refund.reason,
-                    ctx,
-                    idempotencyKey: idem
-                });
-            } else if (refund.refund_type === 'provider') {
-                result = await refundSvc.executeProviderRefund({
-                    transactionId: refund.original_transaction_id,
-                    amount: Number(refund.amount),
-                    reason: refund.reason,
-                    ctx,
-                    idempotencyKey: idem
-                });
-            } else if (refund.refund_type === 'reversal') {
-                result = await refundSvc.executeDepositReversal({
-                    transactionId: refund.original_transaction_id,
-                    amount: Number(refund.amount),
-                    reason: refund.reason,
-                    ctx,
-                    idempotencyKey: idem
-                });
-            } else {
-                throw Object.assign(new Error(`Unknown refund type "${refund.refund_type}".`), {
-                    status: 500, code: 'REFUND_TYPE_UNKNOWN'
-                });
-            }
-
-            sendOk(res, { executed: true, refund: result.refund });
+            sendOk(res, result);
         } catch (err) { sendErr(res, err); }
     }
 );
 
 // ═════════════════════════════════════════════════════════════════
 //  POST /api/admin/refunds/:id/cancel
-//
-//  Cancels a REQUESTED or PENDING_APPROVAL refund. Only the
-//  requester (or a super admin) can cancel.
 // ═════════════════════════════════════════════════════════════════
 
 router.post(
     '/refunds/:id/cancel',
     requirePermission(PERMISSIONS.TRANSACTIONS_REFUND),
+    requireStepUpAuth({ maxAgeSeconds: 300 }),
     async (req, res, next) => {
         if (!UUID_RE.test(String(req.params.id || ''))) return next();
         try {
             const reason = String(req.body?.reason || '').trim();
-            if (reason.length < 4) {
-                throw Object.assign(new Error('A reason is required (min 4 characters).'), {
-                    status: 422, code: 'REASON_REQUIRED'
-                });
-            }
+            if (reason.length < 4) throw Object.assign(new Error('Reason required.'), { status: 422, code: 'REASON_REQUIRED' });
 
-            const ctx = adminCtx(req);
-            const { data: refund, error } = await supabaseAdmin
-                .from('refunds')
-                .select('id, status, requested_by')
-                .eq('id', req.params.id)
-                .maybeSingle();
-            if (error) throw error;
-            if (!refund) {
-                throw Object.assign(new Error('Refund not found.'), { status: 404, code: 'REFUND_NOT_FOUND' });
-            }
-            if (!['REQUESTED', 'PENDING_APPROVAL'].includes(refund.status)) {
-                throw Object.assign(new Error(`Cannot cancel a refund in status "${refund.status}".`), {
-                    status: 409, code: 'INVALID_STATE'
-                });
-            }
-
-            await supabaseAdmin
-                .from('refunds')
-                .update({
-                    status: 'CANCELLED',
-                    failure_reason: reason,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', refund.id)
-                .in('status', ['REQUESTED', 'PENDING_APPROVAL']);
-
-            await recordAudit({
-                ctx,
-                action: 'refund.cancelled',
-                refundId: refund.id,
-                before: { status: refund.status },
-                after: { status: 'CANCELLED' },
+            const result = await refundSvc.cancelRefund({
+                refundId: req.params.id,
+                ctx: adminCtx(req),
                 reason
             });
 
-            sendOk(res, { cancelled: true });
+            sendOk(res, result);
         } catch (err) { sendErr(res, err); }
     }
 );
 
 // ═════════════════════════════════════════════════════════════════
 //  POST /api/admin/refunds/:id/retry
-//
-//  Retries a FAILED provider refund. Wallet refunds are handled
-//  via the transaction drawer — those failures should be escalated,
-//  not retried, because they mean the ledger was posted but the
-//  record didn't attach.
 // ═════════════════════════════════════════════════════════════════
 
 router.post(
@@ -490,62 +542,13 @@ router.post(
         if (!UUID_RE.test(String(req.params.id || ''))) return next();
         try {
             const reason = String(req.body?.reason || '').trim();
-            if (reason.length < 4) {
-                throw Object.assign(new Error('A reason is required (min 4 characters).'), {
-                    status: 422, code: 'REASON_REQUIRED'
-                });
-            }
+            if (reason.length < 4) throw Object.assign(new Error('Reason required.'), { status: 422, code: 'REASON_REQUIRED' });
+            const idem = requireIdempotencyKey(req);
 
-            const ctx = adminCtx(req);
-            const { data: refund, error } = await supabaseAdmin
-                .from('refunds')
-                .select('*')
-                .eq('id', req.params.id)
-                .maybeSingle();
-            if (error) throw error;
-            if (!refund) {
-                throw Object.assign(new Error('Refund not found.'), { status: 404, code: 'REFUND_NOT_FOUND' });
-            }
-            if (refund.status !== 'FAILED') {
-                throw Object.assign(new Error(`Only FAILED refunds can be retried (current: ${refund.status}).`), {
-                    status: 409, code: 'INVALID_STATE'
-                });
-            }
-            if (refund.refund_type !== 'provider') {
-                throw Object.assign(new Error('Only provider refunds can be retried from this page. Escalate wallet refund failures.'), {
-                    status: 422, code: 'RETRY_NOT_ALLOWED'
-                });
-            }
-
-            // Mark back to PROCESSING and re-invoke the adapter.
-            await supabaseAdmin
-                .from('refunds')
-                .update({
-                    status: 'PROCESSING',
-                    failure_reason: null,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', refund.id);
-
-            await recordAudit({
-                ctx,
-                action: 'refund.retry_requested',
-                refundId: refund.id,
-                before: { status: 'FAILED' },
-                after: { status: 'PROCESSING' },
-                reason
-            });
-
-            // Re-run through refundService, which will call the provider adapter again.
-            const result = await refundSvc.executeProviderRefund({
-                transactionId: refund.original_transaction_id,
-                amount: Number(refund.amount),
-                reason: refund.reason || reason,
-                ctx,
-                idempotencyKey: `retry-${refund.id}-${Date.now()}`
-            });
-
-            sendOk(res, { retried: true, refund: result.refund });
+            // Retry is not fully implemented for Phase 1 (provider adapters missing).
+            // It will throw a clean error until an adapter is registered.
+            throw Object.assign(new Error('Provider retries are not configured.'), { status: 503, code: 'NOT_IMPLEMENTED' });
+            
         } catch (err) { sendErr(res, err); }
     }
 );

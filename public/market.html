@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="description" content="MilesSpace brings your wallet and everyday digital services together. Fund your wallet, buy airtime and data, pay bills, get gift cards, use eSIM and more." />
   <meta name="robots" content="index, follow" />
   <meta name="theme-color" content="#fbfaf7" />
@@ -10,7 +10,6 @@
   <link rel="icon" href="/images/miles.png" type="image/png" />
   <link rel="apple-touch-icon" href="/images/miles.png" />
 
-  <!-- Open Graph -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="MilesSpace" />
   <meta property="og:title" content="MilesSpace — Digital Wallet & Digital Services" />
@@ -22,7 +21,6 @@
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
 
-  <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="MilesSpace — Digital Wallet & Digital Services" />
   <meta name="twitter:description" content="Fund your wallet, buy airtime and data, pay bills, get gift cards, use eSIM and more." />
@@ -30,83 +28,71 @@
 
   <title>MilesSpace | Marketplace</title>
 
-  <!-- Preconnects -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" as="style" />
   <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" as="style" />
 
-  <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <script src="/js/session.js"></script>
+  <script src="/js/presence.js" defer></script>
+  <script src="/js/miles-widget.js" defer></script>
+  <link rel="stylesheet" href="/css/ms-shell.css?v=1">
+  <script src="/js/ms-shell.js?v=1" defer></script>
 
   <style>
     /* ═══════════════════════════════════════════════════════════
        DESIGN TOKENS
        ═══════════════════════════════════════════════════════════ */
     :root {
-      /* Brand colors */
       --p:   #0f4c5c;
       --pm:  #1a6b80;
       --pl:  #e8f4f8;
       --pxl: #f2fafb;
 
-      /* Accent */
       --acc: #f59e0b;
       --acd: #d97706;
       --acl: #fef3c7;
 
-      /* Status */
       --ok:  #10b981;
       --okl: #d1fae5;
       --err: #ef4444;
       --erl: #fee2e2;
 
-      /* USD */
       --usd:  #1652f0;
       --usdl: #eef2ff;
 
-      /* Surfaces */
       --bg:   #edf1f4;
       --srf:  #fff;
       --srf2: #f7f9fb;
 
-      /* Text & borders */
       --bdr: #dde4e9;
       --t1:  #0a2530;
       --t2:  #456475;
       --t3:  #8aa4ae;
 
-      /* Layout */
       --sw:  268px;
       --r:   10px;
       --rl:  14px;
       --rxl: 20px;
       --rp:  999px;
 
-      /* Shadows */
       --s0: 0 1px 3px rgba(0,0,0,.04);
       --s1: 0 4px 14px rgba(0,0,0,.07);
       --s2: 0 8px 28px rgba(0,0,0,.1);
       --s3: 0 20px 52px rgba(0,0,0,.14);
 
-      /* Fonts */
- /* Fonts */
-     --fd: 'Inter', system-ui, sans-serif;
+      --fd: 'Inter', system-ui, sans-serif;
       --fb: 'Inter', system-ui, sans-serif;
 
-
-      /* Motion */
       --tr: all .25s cubic-bezier(.25,.8,.25,1);
 
-      /* Safe areas */
       --safe-b: env(safe-area-inset-bottom, 0px);
       --safe-t: env(safe-area-inset-top, 0px);
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       RESET
-       ═══════════════════════════════════════════════════════════ */
     *, *::before, *::after {
       box-sizing: border-box;
       margin: 0;
@@ -155,13 +141,7 @@
       color: inherit;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       APP / MAIN LAYOUT
-       ═══════════════════════════════════════════════════════════ */
-    .app {
-      display: flex;
-      min-height: 100vh;
-    }
+    .app { display: flex; min-height: 100vh; }
     .main {
       flex: 1;
       display: flex;
@@ -192,7 +172,7 @@
     }
 
     /* ═══════════════════════════════════════════════════════════
-       SIDEBAR — matches history.html
+       SIDEBAR
        ═══════════════════════════════════════════════════════════ */
     .sidebar {
       position: fixed;
@@ -287,14 +267,8 @@
       font-size: .9rem;
       flex-shrink: 0;
     }
-    .sb-lnk:hover {
-      background: var(--bg);
-      color: var(--t1);
-    }
-    .sb-lnk.active {
-      background: var(--pl);
-      color: var(--p);
-    }
+    .sb-lnk:hover { background: var(--bg); color: var(--t1); }
+    .sb-lnk.active { background: var(--pl); color: var(--p); }
 
     .sb-foot {
       margin-top: auto;
@@ -303,21 +277,8 @@
       border-top: 1px solid var(--bdr);
       flex-shrink: 0;
     }
-    .sb-prof {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px;
-    }
-    .sb-prof-link {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex: 1;
-      min-width: 0;
-      text-decoration: none;
-      cursor: pointer;
-    }
+    .sb-prof { display: flex; align-items: center; gap: 10px; padding: 8px; }
+    .sb-prof-link { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; text-decoration: none; cursor: pointer; }
     .sb-av {
       width: 34px;
       height: 34px;
@@ -361,10 +322,7 @@
       background: none;
       flex-shrink: 0;
     }
-    .sb-out:hover {
-      background: var(--erl);
-      color: var(--err);
-    }
+    .sb-out:hover { background: var(--erl); color: var(--err); }
 
     /* ═══════════════════════════════════════════════════════════
        TOPBAR
@@ -395,10 +353,7 @@
       transition: all .2s;
       border: none;
     }
-    .tb-hbg:hover {
-      background: var(--p);
-      color: #fff;
-    }
+    .tb-hbg:hover { background: var(--p); color: #fff; }
     .tb-title {
       font-family: var(--fd);
       font-size: .88rem;
@@ -430,10 +385,7 @@
       transition: all .2s;
       cursor: pointer;
     }
-    .tb-btn:hover {
-      background: var(--pl);
-      color: var(--p);
-    }
+    .tb-btn:hover { background: var(--pl); color: var(--p); }
     .tb-av {
       width: 40px;
       height: 40px;
@@ -460,9 +412,7 @@
       width: 100%;
     }
     @media (min-width: 768px) {
-      .content {
-        padding: 20px 22px 40px;
-      }
+      .content { padding: 20px 22px 40px; }
     }
 
     /* ═══════════════════════════════════════════════════════════
@@ -588,15 +538,8 @@
       min-height: 38px;
     }
     .cat-tab i { font-size: .75rem; }
-    .cat-tab:hover {
-      border-color: var(--p);
-      color: var(--p);
-    }
-    .cat-tab.active {
-      background: var(--p);
-      color: #fff;
-      border-color: var(--p);
-    }
+    .cat-tab:hover { border-color: var(--p); color: var(--p); }
+    .cat-tab.active { background: var(--p); color: #fff; border-color: var(--p); }
 
     /* ═══════════════════════════════════════════════════════════
        SORT ROW
@@ -957,10 +900,7 @@
     }
     .modal-bg.open { display: flex; }
     @media (min-width: 600px) {
-      .modal-bg {
-        align-items: center;
-        padding: 16px;
-      }
+      .modal-bg { align-items: center; padding: 16px; }
     }
     .modal {
       background: var(--srf);
@@ -1017,10 +957,7 @@
       border: none;
       flex-shrink: 0;
     }
-    .modal-x:hover {
-      background: var(--erl);
-      color: var(--err);
-    }
+    .modal-x:hover { background: var(--erl); color: var(--err); }
     .modal-bd {
       padding: 16px;
       padding-bottom: calc(16px + var(--safe-b));
@@ -1034,7 +971,7 @@
     }
 
     /* ═══════════════════════════════════════════════════════════
-       PRODUCT DETAIL — matches the screenshot layout
+       PRODUCT DETAIL — screenshot layout
        ═══════════════════════════════════════════════════════════ */
     .pd-icon {
       width: 64px;
@@ -1060,7 +997,6 @@
       text-transform: capitalize;
     }
 
-    /* Hero price card — dark rounded block at the top */
     .pd-hero-price {
       background: linear-gradient(135deg, var(--p) 0%, #0a2530 100%);
       border-radius: var(--rl);
@@ -1085,10 +1021,7 @@
       filter: blur(20px);
       pointer-events: none;
     }
-    .pd-hero-left {
-      position: relative;
-      z-index: 1;
-    }
+    .pd-hero-left { position: relative; z-index: 1; }
     .pd-hero-label {
       font-size: .58rem;
       font-weight: 700;
@@ -1132,7 +1065,6 @@
       color: var(--acc);
     }
 
-    /* Section block for long descriptions and lists */
     .pd-block {
       background: var(--srf2);
       border: 1px solid var(--bdr);
@@ -1141,7 +1073,6 @@
       margin-bottom: 12px;
     }
 
-    /* Title inside a block — bold, ALL CAPS style from screenshot */
     .pd-block-title {
       font-size: .82rem;
       font-weight: 800;
@@ -1151,7 +1082,6 @@
       letter-spacing: -.1px;
     }
 
-    /* List of features — each line starts with a dash */
     .pd-list {
       list-style: none;
       padding: 0;
@@ -1177,7 +1107,6 @@
       font-weight: 700;
     }
 
-    /* Login details line — inline pipe-separated values */
     .pd-login-line {
       font-size: .86rem;
       font-weight: 600;
@@ -1186,7 +1115,6 @@
       word-break: break-word;
     }
 
-    /* Mail access box — light lavender block from screenshot */
     .pd-mail-box {
       display: flex;
       gap: 10px;
@@ -1214,7 +1142,6 @@
       margin-bottom: 2px;
     }
 
-    /* Full guide block — prose paragraphs */
     .pd-guide {
       font-size: .84rem;
       line-height: 1.7;
@@ -1223,7 +1150,6 @@
       word-break: break-word;
     }
 
-    /* Generic details rows */
     .pd-section { margin-bottom: 16px; }
     .pd-section h4 {
       font-size: .72rem;
@@ -1260,66 +1186,6 @@
       text-align: right;
       word-break: break-word;
       max-width: 60%;
-    }
-
-    .pd-price {
-      text-align: center;
-      padding: 12px;
-      background: var(--pl);
-      border-radius: var(--rl);
-      margin-bottom: 14px;
-    }
-    .pd-price-usd {
-      font-family: var(--fd);
-      font-size: 1.5rem;
-      font-weight: 800;
-      color: var(--p);
-    }
-    .pd-price-ngn {
-      font-size: .75rem;
-      color: var(--t2);
-      margin-top: 2px;
-    }
-
-    .pd-long-desc {
-      font-size: .85rem;
-      line-height: 1.75;
-      color: var(--t1);
-      background: var(--srf2);
-      border: 1px solid var(--bdr);
-      border-radius: var(--rl);
-      padding: 14px 16px;
-      max-height: 60vh;
-      overflow-y: auto;
-      overflow-x: hidden;
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-      word-break: break-word;
-      white-space: pre-wrap;
-      -webkit-overflow-scrolling: touch;
-    }
-    .pd-long-desc::-webkit-scrollbar { width: 6px; }
-    .pd-long-desc::-webkit-scrollbar-thumb {
-      background: var(--bdr);
-      border-radius: 99px;
-    }
-    .pd-long-desc::-webkit-scrollbar-track { background: transparent; }
-    .pd-long-desc strong,
-    .pd-long-desc b {
-      color: var(--p);
-      font-weight: 700;
-    }
-    .pd-long-desc i {
-      color: var(--t2);
-      font-style: italic;
-    }
-    @media (max-width: 600px) {
-      .pd-long-desc {
-        font-size: .8rem;
-        padding: 12px 14px;
-        max-height: 50vh;
-        line-height: 1.7;
-      }
     }
 
     .pd-loading {
@@ -1408,14 +1274,8 @@
       min-height: 96px;
     }
     .wc-opt:active { transform: scale(.97); }
-    .wc-opt.selected.ngn {
-      border-color: var(--p);
-      background: var(--pl);
-    }
-    .wc-opt.selected.usd {
-      border-color: var(--usd);
-      background: var(--usdl);
-    }
+    .wc-opt.selected.ngn { border-color: var(--p); background: var(--pl); }
+    .wc-opt.selected.usd { border-color: var(--usd); background: var(--usdl); }
     .wc-ico {
       width: 32px;
       height: 32px;
@@ -1425,14 +1285,8 @@
       margin: 0 auto 6px;
       font-size: .85rem;
     }
-    .wc-opt.ngn .wc-ico {
-      background: var(--pl);
-      color: var(--p);
-    }
-    .wc-opt.usd .wc-ico {
-      background: var(--usdl);
-      color: var(--usd);
-    }
+    .wc-opt.ngn .wc-ico { background: var(--pl); color: var(--p); }
+    .wc-opt.usd .wc-ico { background: var(--usdl); color: var(--usd); }
     .wc-lbl {
       font-size: .75rem;
       font-weight: 700;
@@ -1465,10 +1319,7 @@
       padding-top: 8px;
     }
     .mo-tval { color: var(--t2); }
-    .mo-tamount {
-      color: var(--t1);
-      font-weight: 600;
-    }
+    .mo-tamount { color: var(--t1); font-weight: 600; }
     .mo-tamount.ok { color: var(--ok); }
     .btn-confirm {
       width: 100%;
@@ -1512,10 +1363,7 @@
       margin-top: 8px;
       min-height: 44px;
     }
-    .btn-ghost:hover {
-      background: var(--srf2);
-      color: var(--t1);
-    }
+    .btn-ghost:hover { background: var(--srf2); color: var(--t1); }
 
     /* ═══════════════════════════════════════════════════════════
        SUCCESS / RECEIPT
@@ -1604,9 +1452,6 @@
       word-break: break-all;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       RECEIPT HERO
-       ═══════════════════════════════════════════════════════════ */
     .receipt-hero {
       text-align: center;
       padding: 14px 0 12px;
@@ -1641,19 +1486,10 @@
       text-transform: uppercase;
       letter-spacing: .03em;
     }
-    .receipt-hero .rh-status.completed {
-      background: var(--okl);
-      color: #065f46;
-    }
-    .receipt-hero .rh-status.pending {
-      background: var(--acl);
-      color: var(--acd);
-    }
+    .receipt-hero .rh-status.completed { background: var(--okl); color: #065f46; }
+    .receipt-hero .rh-status.pending { background: var(--acl); color: var(--acd); }
     .receipt-hero .rh-status.failed,
-    .receipt-hero .rh-status.refunded {
-      background: var(--erl);
-      color: #991b1b;
-    }
+    .receipt-hero .rh-status.refunded { background: var(--erl); color: #991b1b; }
 
     /* ═══════════════════════════════════════════════════════════
        HISTORY DRAWER
@@ -1700,10 +1536,7 @@
       transition: var(--tr);
       border: none;
     }
-    .hist-close:hover {
-      background: var(--erl);
-      color: var(--err);
-    }
+    .hist-close:hover { background: var(--erl); color: var(--err); }
     .hist-body {
       flex: 1;
       overflow-y: auto;
@@ -1779,19 +1612,10 @@
       text-transform: uppercase;
       white-space: nowrap;
     }
-    .hist-item .hi-status.completed {
-      background: var(--okl);
-      color: #065f46;
-    }
-    .hist-item .hi-status.pending {
-      background: var(--acl);
-      color: var(--acd);
-    }
+    .hist-item .hi-status.completed { background: var(--okl); color: #065f46; }
+    .hist-item .hi-status.pending { background: var(--acl); color: var(--acd); }
     .hist-item .hi-status.failed,
-    .hist-item .hi-status.refunded {
-      background: var(--erl);
-      color: #991b1b;
-    }
+    .hist-item .hi-status.refunded { background: var(--erl); color: #991b1b; }
     .hist-item .hi-meta {
       display: flex;
       justify-content: space-between;
@@ -1831,10 +1655,7 @@
       background: var(--pl);
       color: var(--p);
     }
-    .hist-item .hi-view:hover {
-      background: var(--p);
-      color: #fff;
-    }
+    .hist-item .hi-view:hover { background: var(--p); color: #fff; }
     .hist-item .hi-download {
       background: var(--ok);
       color: #fff;
@@ -1884,9 +1705,6 @@
       to   { opacity: 1; transform: none; }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       ANIMATIONS
-       ═══════════════════════════════════════════════════════════ */
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(10px); }
       to   { opacity: 1; transform: none; }
@@ -1900,9 +1718,6 @@
     .d3 { animation-delay: .11s; }
     .d4 { animation-delay: .15s; }
 
-    /* ═══════════════════════════════════════════════════════════
-       SKELETONS
-       ═══════════════════════════════════════════════════════════ */
     .skeleton { animation: shimmer 1.5s ease-in-out infinite; }
     @keyframes shimmer {
       0%   { opacity: .4; }
@@ -1998,10 +1813,7 @@
       transition: var(--tr);
     }
     .mni.active { color: var(--p); }
-    .mni.active i {
-      background: var(--pl);
-      color: var(--p);
-    }
+    .mni.active i { background: var(--pl); color: var(--p); }
     .mni span {
       white-space: nowrap;
       overflow: hidden;
@@ -2009,9 +1821,6 @@
       max-width: 44px;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       RESPONSIVE
-       ═══════════════════════════════════════════════════════════ */
     @media (max-width: 1024px) {
       .tb-hbg { display: grid; }
     }
@@ -2049,27 +1858,49 @@
       .pc-price-box .pc-ngn { font-size: .5rem; }
       .pc-qty    { font-size: .5rem; }
     }
-  </style>
 
-  <script src="/js/session.js"></script>
-  <script src="/js/presence.js" defer></script>
-  <script src="/js/miles-widget.js" defer></script>
+    /* ═══════════════════════════════════════════════════════════
+       Stale transaction banner (from the pasted spec)
+       ═══════════════════════════════════════════════════════════ */
+    .tx-stale-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 14px;
+      margin: 8px 0;
+      border-radius: 10px;
+      background: rgba(245, 166, 35, 0.12);
+      border: 1px solid rgba(245, 166, 35, 0.35);
+      font-size: 12.5px;
+      color: var(--t2);
+    }
+    .tx-stale-banner strong { color: var(--t1); font-weight: 600; }
+    .tx-stale-banner button {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: none;
+      background: #0f4c5c;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .tx-stale-banner button:disabled { opacity: .55; cursor: not-allowed; }
+    @media (max-width: 420px) {
+      .tx-stale-banner { flex-direction: column; align-items: stretch; }
+      .tx-stale-banner button { width: 100%; min-height: 44px; }
+    }
+  </style>
 </head>
 
 <body>
 
-<!-- ═══════════════════════════════════════════════════════════
-     OVERLAY
-     ═══════════════════════════════════════════════════════════ -->
 <div class="ov" id="ov"></div>
 
 <div class="app">
-
-  <!-- ═════════════════════════════════════════════════════════
-       SIDEBAR
-       ═════════════════════════════════════════════════════════ -->
   <aside class="sidebar" id="sb">
-
     <div class="sb-brand">
       <div class="sb-lic">
         <img src="/images/miles.png" alt="MilesSpace" onerror="this.style.display='none'">
@@ -2111,19 +1942,12 @@
         </button>
       </div>
     </div>
-
   </aside>
 
-  <!-- ═════════════════════════════════════════════════════════
-       MAIN
-       ═════════════════════════════════════════════════════════ -->
   <div class="main">
-
-    <!-- ── Topbar ─────────────────────────────────────────── -->
     <header class="topbar">
       <button class="tb-hbg" id="hbg" aria-label="Menu"><i class="fas fa-bars"></i></button>
-      <p class="tb-title">
-MilesSpace</p>
+      <p class="tb-title">MilesSpace</p>
       <div class="tb-right">
         <button class="tb-btn" id="historyBtn" title="Purchase History" aria-label="Purchase History">
           <i class="fas fa-clock-rotate-left"></i>
@@ -2131,14 +1955,12 @@ MilesSpace</p>
         <a href="notifications.html" class="tb-btn" title="Notifications" aria-label="Notifications">
           <i class="fas fa-bell"></i>
         </a>
-        <a href="profile.html" class="tb-av" id="tbAv" title="Profile">U</a>
+        <a href="usersettings.html" class="tb-av" id="tbAv" title="Profile">U</a>
       </div>
     </header>
 
-    <!-- ── Content ────────────────────────────────────────── -->
     <main class="content">
 
-      <!-- Search hero -->
       <div class="search-hero fu d1">
         <p class="sh-title">🛒 Marketplace</p>
         <p class="sh-sub">Browse digital products & accounts</p>
@@ -2151,7 +1973,6 @@ MilesSpace</p>
         </div>
       </div>
 
-      <!-- Category tabs -->
       <div class="cat-tabs fu d2" id="catTabs">
         <button class="cat-tab active" data-cat="all"><i class="fas fa-th-large"></i> All</button>
         <button class="cat-tab" data-cat="gmail"><i class="fab fa-google"></i> Gmail</button>
@@ -2164,7 +1985,6 @@ MilesSpace</p>
         <button class="cat-tab" data-cat="other"><i class="fas fa-ellipsis-h"></i> Other</button>
       </div>
 
-      <!-- Sort row -->
       <div class="sort-row fu d3">
         <div class="sort-left">
           <span class="result-count" id="resultCount">Loading…</span>
@@ -2182,16 +2002,12 @@ MilesSpace</p>
         </div>
       </div>
 
-      <!-- Products container -->
       <div id="productsContainer" class="fu d4"></div>
 
     </main>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     PRODUCT DETAIL MODAL
-     ═══════════════════════════════════════════════════════════ -->
 <div class="modal-bg" id="productModal">
   <div class="modal">
     <div class="modal-hd">
@@ -2202,9 +2018,6 @@ MilesSpace</p>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     CHECKOUT MODAL
-     ═══════════════════════════════════════════════════════════ -->
 <div class="modal-bg" id="checkoutModal">
   <div class="modal">
     <div class="modal-hd">
@@ -2212,7 +2025,6 @@ MilesSpace</p>
       <button class="modal-x" onclick="closeModal('checkoutModal')" aria-label="Close"><i class="fas fa-xmark"></i></button>
     </div>
     <div class="modal-bd">
-
       <div class="mo-product">
         <div class="mo-prod-icon" id="moIcon"></div>
         <div>
@@ -2246,14 +2058,10 @@ MilesSpace</p>
       <button class="btn-ghost" onclick="closeModal('checkoutModal')">
         <i class="fas fa-xmark"></i> Cancel
       </button>
-
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     SUCCESS MODAL
-     ═══════════════════════════════════════════════════════════ -->
 <div class="modal-bg" id="successModal">
   <div class="modal">
     <div class="modal-hd">
@@ -2264,9 +2072,6 @@ MilesSpace</p>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     ORDER / RECEIPT MODAL
-     ═══════════════════════════════════════════════════════════ -->
 <div class="modal-bg" id="orderModal">
   <div class="modal">
     <div class="modal-hd">
@@ -2277,9 +2082,6 @@ MilesSpace</p>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     HISTORY DRAWER
-     ═══════════════════════════════════════════════════════════ -->
 <aside class="hist-drawer" id="histDrawer" role="dialog" aria-modal="true">
   <div class="hist-hd">
     <h3><i class="fas fa-clock-rotate-left" style="color:var(--p);margin-right:6px"></i>Purchase History</h3>
@@ -2290,28 +2092,18 @@ MilesSpace</p>
   </div>
 </aside>
 
-<!-- ═══════════════════════════════════════════════════════════
-     MOBILE NAV
-     ═══════════════════════════════════════════════════════════ -->
 <nav class="mnav">
   <a href="dashboard.html" class="mni"><i class="fas fa-home"></i><span>Home</span></a>
   <a href="boost.html"     class="mni"><i class="fas fa-chart-line"></i><span>Boost</span></a>
   <a href="fund.html"      class="mni"><i class="fas fa-wallet"></i><span>Fund</span></a>
   <a href="market.html"    class="mni active"><i class="fas fa-store"></i><span>Market</span></a>
-  <a href="profile.html"   class="mni"><i class="fas fa-user"></i><span>Profile</span></a>
+  <a href="usersettings.html" class="mni"><i class="fas fa-user"></i><span>Profile</span></a>
 </nav>
 
-<!-- ═══════════════════════════════════════════════════════════
-     TOASTS
-     ═══════════════════════════════════════════════════════════ -->
 <div class="toasts" id="toastWrap" role="status" aria-live="polite"></div>
 
 <script>
 'use strict';
-
-/* ═══════════════════════════════════════════════════════════════
-   AUTH MODEL — access token in memory, refresh cookie, userFetch.
-   ═══════════════════════════════════════════════════════════════ */
 
 const API_BASE = '/api';
 
@@ -2327,7 +2119,6 @@ function redirectToLogin() {
   }
 }
 
-/* ─── API wrapper ─────────────────────────────────────────── */
 async function api(path, opts = {}) {
   const fetcher = (typeof window.userFetch === 'function')
     ? window.userFetch
@@ -2356,7 +2147,6 @@ async function api(path, opts = {}) {
   return json;
 }
 
-/* ─── Error mapping ───────────────────────────────────────── */
 function friendlyError(err) {
   if (!err) return 'Something went wrong';
   if (err.status === 401) return 'Session expired. Please log in again.';
@@ -2369,7 +2159,6 @@ function friendlyError(err) {
   return err.message || 'Something went wrong';
 }
 
-/* ─── Formatters ──────────────────────────────────────────── */
 const fNGN = n => '₦' + (Number(n) || 0).toLocaleString('en-NG', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2
@@ -2412,7 +2201,6 @@ const fmtTime = iso => {
 
 const fmtDateTime = iso => `${fmtDate(iso)} · ${fmtTime(iso)}`;
 
-/* ─── Long description formatting ─────────────────────────── */
 function renderLongDescription(text) {
   if (!text) return '';
   const html = esc(text);
@@ -2425,12 +2213,8 @@ function renderLongDescription(text) {
     if (/^[A-Z][A-Z0-9 &'\-:,.!?()]+$/.test(trimmed) && trimmed.length >= 4) {
       return `<strong>${trimmed}</strong>`;
     }
-    if (/^(Q|A):/i.test(trimmed)) {
-      return `<strong>${trimmed}</strong>`;
-    }
-    if (/^Step\s+\d+/i.test(trimmed)) {
-      return `<strong>${trimmed}</strong>`;
-    }
+    if (/^(Q|A):/i.test(trimmed)) return `<strong>${trimmed}</strong>`;
+    if (/^Step\s+\d+/i.test(trimmed)) return `<strong>${trimmed}</strong>`;
     if (/^(Problem|Solution|Tip|Note|Warning|Important|FAQ|WHAT|WHY|HOW|COMMON|FREQUENTLY|TIPS|TROUBLESHOOTING|LEGAL|WARRANTY|SUPPORT)/i.test(trimmed)) {
       return `<strong>${trimmed}</strong>`;
     }
@@ -2440,7 +2224,6 @@ function renderLongDescription(text) {
   return out.join('\n').replace(/\n{3,}/g, '\n\n');
 }
 
-/* ─── Toast ───────────────────────────────────────────────── */
 function toast(msg, type = 'info') {
   const container = document.getElementById('toastWrap');
   if (!container) return;
@@ -2464,7 +2247,6 @@ function toast(msg, type = 'info') {
   }, 3500);
 }
 
-/* ─── Category config ─────────────────────────────────────── */
 const CATS = {
   gmail:     { label: 'Gmail',     icon: '<i class="fab fa-google"></i>',     bg: '#fce8e6', clr: '#d93025' },
   facebook:  { label: 'Facebook',  icon: '<i class="fab fa-facebook-f"></i>', bg: '#e7f3ff', clr: '#1877f2' },
@@ -2481,7 +2263,6 @@ function catConfig(cat) {
   return CATS[cat] || CATS.other;
 }
 
-/* ─── State ───────────────────────────────────────────────── */
 const State = {
   products: [],
   filtered: [],
@@ -2491,12 +2272,9 @@ const State = {
   balUSD: 0,
   checkout: { product: null, wallet: 'ngn', idempotencyKey: null },
   lastOrder: null,
-  history: { page: 1, items: [], hasMore: false, loading: false }
+  history: { page: 1, items: [], hasMore: false, loading: false, loaded: false }
 };
 
-/* ═══════════════════════════════════════════════════════════════
-   SIDEBAR — matches history.html exactly.
-   ═══════════════════════════════════════════════════════════════ */
 function initSidebar() {
   const sb  = document.getElementById('sb');
   const ov  = document.getElementById('ov');
@@ -2538,10 +2316,6 @@ function initSidebar() {
   });
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   USER — sidebar + topbar avatars use initials (matches history).
-   Dashboard is the ONLY page that keeps the profile-photo behaviour.
-   ═══════════════════════════════════════════════════════════════ */
 function populateUI() {
   const u = getCurrentUser();
   if (!u) return;
@@ -2549,7 +2323,6 @@ function populateUI() {
   const name = u.username || u.full_name || u.email?.split('@')[0] || 'User';
   const initial = name.charAt(0).toUpperCase() || 'U';
 
-  // Always render the initial — never an avatar image.
   ['sbAv', 'tbAv'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = initial;
@@ -2561,10 +2334,20 @@ function populateUI() {
   if (sbEmail) sbEmail.textContent = u.email || '';
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   BALANCES
-   ═══════════════════════════════════════════════════════════════ */
 async function loadBalances() {
+  /* Fast paint from cache */
+  try {
+    const cached = JSON.parse(sessionStorage.getItem('ms:market:balances') || 'null');
+    if (cached && (cached.NGN != null || cached.USD != null)) {
+      State.balNGN = cached.NGN || 0;
+      State.balUSD = cached.USD || 0;
+      const elNGN = document.getElementById('wcNGNBal');
+      const elUSD = document.getElementById('wcUSDBal');
+      if (elNGN) elNGN.textContent = fNGN(State.balNGN);
+      if (elUSD) elUSD.textContent = fUSD(State.balUSD);
+    }
+  } catch (_) {}
+
   try {
     const res = await api('/auth/me');
     const data = res.data || res;
@@ -2576,35 +2359,51 @@ async function loadBalances() {
     const elUSD = document.getElementById('wcUSDBal');
     if (elNGN) elNGN.textContent = fNGN(State.balNGN);
     if (elUSD) elUSD.textContent = fUSD(State.balUSD);
+
+    try {
+      sessionStorage.setItem('ms:market:balances', JSON.stringify({
+        NGN: State.balNGN, USD: State.balUSD
+      }));
+    } catch (_) {}
   } catch (e) {
     console.warn('Balance load:', e.message);
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PRODUCTS
-   ═══════════════════════════════════════════════════════════════ */
 async function loadProducts() {
   const container = document.getElementById('productsContainer');
   if (!container) return;
 
-  container.innerHTML = `
-    <div class="prod-grid">
-      ${Array(6).fill(`
-        <div class="prod-card skeleton">
-          <div class="pc-img" style="background:var(--bdr)"></div>
-          <div class="pc-body">
-            <div class="pc-title"></div>
-            <div class="pc-meta"></div>
-            <div class="pc-footer">
-              <div class="pc-price-box"><div class="pc-usd"></div><div class="pc-ngn"></div></div>
-              <div class="btn-buy"></div>
+  /* Paint cached first */
+  let paintedFromCache = false;
+  try {
+    const cached = JSON.parse(sessionStorage.getItem('ms:market:products') || 'null');
+    if (cached && Array.isArray(cached.products) && cached.products.length) {
+      State.products = cached.products;
+      applyFilters();
+      paintedFromCache = true;
+    }
+  } catch (_) {}
+
+  if (!paintedFromCache) {
+    container.innerHTML = `
+      <div class="prod-grid">
+        ${Array(6).fill(`
+          <div class="prod-card skeleton">
+            <div class="pc-img" style="background:var(--bdr)"></div>
+            <div class="pc-body">
+              <div class="pc-title"></div>
+              <div class="pc-meta"></div>
+              <div class="pc-footer">
+                <div class="pc-price-box"><div class="pc-usd"></div><div class="pc-ngn"></div></div>
+                <div class="btn-buy"></div>
+              </div>
             </div>
           </div>
-        </div>
-      `).join('')}
-    </div>
-  `;
+        `).join('')}
+      </div>
+    `;
+  }
 
   try {
     const res = await api('/market/products?page=1&limit=100');
@@ -2626,30 +2425,35 @@ async function loadProducts() {
       sold: parseInt(p.sold || 0) || 0,
       tags: Array.isArray(p.tags) ? p.tags : [],
       badge: p.badge || '',
-      deliveryType: p.deliveryType || 'structured'
+      deliveryType: p.deliveryType || 'structured',
+      loginFormat: p.loginFormat || p.login_format || '',
+      mailAccess: p.mailAccess || p.mail_access || '',
+      loginTutorial: p.loginTutorial || p.login_tutorial || ''
     }));
+
+    try {
+      sessionStorage.setItem('ms:market:products', JSON.stringify({ products: State.products }));
+    } catch (_) {}
 
     applyFilters();
   } catch (e) {
     console.error('Products load:', e);
-    const is404 = e.status === 404;
-
-    container.innerHTML = `
-      <div class="empty-state">
-        <i class="fas fa-exclamation-triangle" style="color:var(--err)"></i>
-        <h3>Could not load products</h3>
-        <p>${esc(is404 ? 'The marketplace API endpoint is not available yet.' : friendlyError(e))}</p>
-        <button class="btn-buy" onclick="loadProducts()" style="margin-top:12px;padding:8px 20px">
-          <i class="fas fa-redo"></i> Retry
-        </button>
-      </div>
-    `;
+    if (!paintedFromCache) {
+      const is404 = e.status === 404;
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-exclamation-triangle" style="color:var(--err)"></i>
+          <h3>Could not load products</h3>
+          <p>${esc(is404 ? 'The marketplace API endpoint is not available yet.' : friendlyError(e))}</p>
+          <button class="btn-buy" onclick="loadProducts()" style="margin-top:12px;padding:8px 20px">
+            <i class="fas fa-redo"></i> Retry
+          </button>
+        </div>
+      `;
+    }
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   FILTER / SORT
-   ═══════════════════════════════════════════════════════════════ */
 let searchDebounce = null;
 
 function applyFilters() {
@@ -2695,9 +2499,6 @@ function setView(v) {
   renderProducts();
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   RENDER PRODUCTS
-   ═══════════════════════════════════════════════════════════════ */
 function renderProducts() {
   const container = document.getElementById('productsContainer');
   if (!container) return;
@@ -2718,7 +2519,6 @@ function renderProducts() {
     return;
   }
 
-  // Group by category
   const groups = {};
   State.filtered.forEach(p => {
     if (!groups[p.cat]) groups[p.cat] = [];
@@ -2809,15 +2609,12 @@ function listItem(p) {
   `;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PRODUCT MODAL
-   ═══════════════════════════════════════════════════════════════ */
 async function openProductModal(id) {
-  const listItem = State.products.find(x => String(x.id) === String(id));
-  if (!listItem) return;
+  const listItemRef = State.products.find(x => String(x.id) === String(id));
+  if (!listItemRef) return;
 
   document.getElementById('productModal').classList.add('open');
-  renderProductModal(listItem);
+  renderProductModal(listItemRef);
 
   try {
     const res = await api('/market/products/' + encodeURIComponent(id));
@@ -2826,56 +2623,40 @@ async function openProductModal(id) {
 
     const fresh = {
       id: p.id,
-      name: p.name || listItem.name,
-      cat: (p.category || p.cat || listItem.cat).toLowerCase(),
+      name: p.name || listItemRef.name,
+      cat: (p.category || p.cat || listItemRef.cat).toLowerCase(),
       catName: p.categoryName || p.catName || '',
-      desc: p.description || p.desc || listItem.desc,
-      longDesc: p.longDescription || p.long_description || listItem.longDesc || '',
-      howToUse: p.howToUse || p.how_to_use || listItem.howToUse || '',
-      features: p.features || listItem.features || '',
-      country: p.country || listItem.country,
-      price: parseFloat(p.priceUsd || p.price) || listItem.price,
-      priceNGN: parseFloat(p.priceNgn || p.priceNGN) || listItem.priceNGN,
-      qty: parseInt(p.stock || p.qty) || listItem.qty,
+      desc: p.description || p.desc || listItemRef.desc,
+      longDesc: p.longDescription || p.long_description || listItemRef.longDesc || '',
+      howToUse: p.howToUse || p.how_to_use || listItemRef.howToUse || '',
+      features: p.features || listItemRef.features || '',
+      country: p.country || listItemRef.country,
+      price: parseFloat(p.priceUsd || p.price) || listItemRef.price,
+      priceNGN: parseFloat(p.priceNgn || p.priceNGN) || listItemRef.priceNGN,
+      qty: parseInt(p.stock || p.qty) || listItemRef.qty,
       sold: parseInt(p.sold || 0) || 0,
-      tags: Array.isArray(p.tags) ? p.tags : listItem.tags,
+      tags: Array.isArray(p.tags) ? p.tags : listItemRef.tags,
       badge: p.badge || '',
-      deliveryType: p.deliveryType || listItem.deliveryType,
-      loginFormat: p.loginFormat || p.login_format || '',
-      mailAccess: p.mailAccess || p.mail_access || '',
-      loginTutorial: p.loginTutorial || p.login_tutorial || ''
+      deliveryType: p.deliveryType || listItemRef.deliveryType,
+      loginFormat: p.loginFormat || p.login_format || listItemRef.loginFormat || '',
+      mailAccess: p.mailAccess || p.mail_access || listItemRef.mailAccess || '',
+      loginTutorial: p.loginTutorial || p.login_tutorial || listItemRef.loginTutorial || ''
     };
 
-    if (String(State.checkout?.product?.id || id) === String(id)) {
-      const idx = State.products.findIndex(x => String(x.id) === String(id));
-      if (idx !== -1) State.products[idx] = { ...State.products[idx], ...fresh };
-      renderProductModal(fresh);
-    }
+    const idx = State.products.findIndex(x => String(x.id) === String(id));
+    if (idx !== -1) State.products[idx] = { ...State.products[idx], ...fresh };
+    renderProductModal(fresh);
   } catch (e) {
     console.warn('Product detail fetch failed (using list data):', e.message);
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   RENDER PRODUCT MODAL — matches the reference screenshot
-   ═══════════════════════════════════════════════════════════════
-   Layout:
-     1. Icon + Name + Category
-     2. Dark hero price card ("Price Per Unit" + amount | stock)
-     3. Overview (bold title + dash-list of features)
-     4. Login Details (bold title + inline pipe-separated formats)
-     5. Mail Access (lavender info box with envelope emoji)
-     6. Login Tutorial (bold title + guide prose)
-     7. Full Product Guide (if longDesc present)
-     8. Buy button
-   ═══════════════════════════════════════════════════════════════ */
 function renderProductModal(p) {
   const cfg = catConfig(p.cat);
   const oos = p.qty === 0;
   const ngn = p.priceNGN > 0 ? p.priceNGN : 0;
   const body = document.getElementById('productModalBody');
 
-  /* ── Turn a multi-line description into <li> items ── */
   const toList = (text) => {
     if (!text) return [];
     return String(text)
@@ -2884,25 +2665,15 @@ function renderProductModal(p) {
       .filter(Boolean);
   };
 
-  /* ── Detect login-details line like "ID | Password | Cookies | Email Access" ── */
   const isPipeLine = (s) => /\|/.test(s) && s.split('|').length >= 2;
 
-  /* ── Build the overview block from p.desc ── */
   const descLines = toList(p.desc);
   const descTitle = descLines[0] || '';
   const descItems = descLines.slice(1);
 
-  /* ── Detect if a line looks like "LOGIN DETAILS PROVIDED" or "LOGIN TUTORIAL" ── */
-  const isHeaderLine = (s) =>
-    /^[A-Z0-9 &'\-:,.!?()]+$/.test(s) && s.length >= 6;
-
-  /* ── Build "Full Guide" prose from longDesc ── */
   const guideText = p.longDesc ? renderLongDescription(p.longDesc) : '';
-
-  /* ── Build features list from p.features (if separate) ── */
   const featureLines = toList(p.features);
 
-  /* ── Mail access box ── */
   const mailAccess = p.mailAccess || '';
   const loginTutorial = p.loginTutorial || '';
 
@@ -2911,7 +2682,6 @@ function renderProductModal(p) {
     <p class="pd-name">${esc(p.name)}</p>
     <p class="pd-cat">${esc(cfg.label)}</p>
 
-    <!-- HERO PRICE -->
     <div class="pd-hero-price">
       <div class="pd-hero-left">
         <p class="pd-hero-label">Price Per Unit</p>
@@ -2926,7 +2696,6 @@ function renderProductModal(p) {
       </div>
     </div>
 
-    <!-- OVERVIEW -->
     ${descTitle ? `
       <div class="pd-block">
         <p class="pd-block-title">${esc(descTitle)}</p>
@@ -2941,7 +2710,6 @@ function renderProductModal(p) {
       </div>
     ` : ''}
 
-    <!-- LOGIN DETAILS -->
     ${p.loginFormat ? `
       <div class="pd-block">
         <p class="pd-block-title">LOGIN DETAILS PROVIDED</p>
@@ -2949,7 +2717,6 @@ function renderProductModal(p) {
       </div>
     ` : ''}
 
-    <!-- MAIL ACCESS -->
     ${mailAccess ? `
       <div class="pd-mail-box">
         <div class="pd-mail-icon">📩</div>
@@ -2960,7 +2727,6 @@ function renderProductModal(p) {
       </div>
     ` : ''}
 
-    <!-- LOGIN TUTORIAL -->
     ${loginTutorial ? `
       <div class="pd-block">
         <p class="pd-block-title">LOGIN TUTORIAL</p>
@@ -2968,7 +2734,6 @@ function renderProductModal(p) {
       </div>
     ` : ''}
 
-    <!-- FULL GUIDE -->
     ${guideText ? `
       <div class="pd-block">
         <p class="pd-block-title">FULL PRODUCT GUIDE</p>
@@ -2976,7 +2741,6 @@ function renderProductModal(p) {
       </div>
     ` : ''}
 
-    <!-- FEATURES (if provided separately) -->
     ${featureLines.length ? `
       <div class="pd-block">
         <p class="pd-block-title">FEATURES</p>
@@ -2986,7 +2750,6 @@ function renderProductModal(p) {
       </div>
     ` : ''}
 
-    <!-- DETAILS -->
     <div class="pd-section">
       <h4>Details</h4>
       ${p.country ? `<div class="pd-row"><span class="lbl">Region</span><span class="val">${esc(p.country)}</span></div>` : ''}
@@ -3000,9 +2763,6 @@ function renderProductModal(p) {
   `;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   CHECKOUT
-   ═══════════════════════════════════════════════════════════════ */
 function openCheckout(id) {
   const p = State.products.find(x => String(x.id) === String(id));
   if (!p || p.qty === 0) return;
@@ -3082,6 +2842,7 @@ async function confirmPurchase() {
     loadBalances();
     renderProducts();
     State.history.items = [];
+    State.history.loaded = false;
   } catch (e) {
     console.error('Purchase error:', e);
     toast(friendlyError(e), 'err');
@@ -3126,9 +2887,6 @@ function showSuccessModal(p, purchase) {
   document.getElementById('successModal').classList.add('open');
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ORDER RECEIPT
-   ═══════════════════════════════════════════════════════════════ */
 async function viewOrderDelivery(orderId) {
   if (!orderId || orderId === '—') {
     toast('Order ID unavailable', 'err');
@@ -3159,6 +2917,8 @@ async function viewOrderDelivery(orderId) {
 function renderReceiptModal(order) {
   const body = document.getElementById('orderModalBody');
   const status = (order.status || 'pending').toLowerCase();
+  const statusLabel = window.MS && MS.statusLabel ? MS.statusLabel(status) : status;
+  const statusKey = window.MS && MS.statusKey ? MS.statusKey(status) : status;
   const wallet = order.currency || 'NGN';
   const amountUsd = order.amountUsd || 0;
   const amountNgn = order.amountNgn || 0;
@@ -3177,7 +2937,7 @@ function renderReceiptModal(order) {
     <div class="receipt-hero">
       <div class="rh-icon" style="background:${cfg.bg};color:${cfg.clr}">${cfg.icon}</div>
       <p class="rh-name">${esc(order.productName || 'Order')}</p>
-      <span class="rh-status ${esc(status)}"><i class="fas ${statusIcon}"></i> ${esc(status)}</span>
+      <span class="rh-status ${esc(statusKey)}"><i class="fas ${statusIcon}"></i> ${esc(statusLabel)}</span>
     </div>
     <div class="pd-section">
       <h4>Order</h4>
@@ -3231,9 +2991,6 @@ function renderReceiptModal(order) {
   `;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   DOWNLOAD
-   ═══════════════════════════════════════════════════════════════ */
 async function downloadOrder(orderId) {
   if (!orderId) {
     toast('Order ID unavailable', 'err');
@@ -3270,6 +3027,7 @@ async function downloadOrder(orderId) {
 
     if (document.getElementById('histDrawer')?.classList.contains('open')) {
       State.history.items = [];
+      State.history.loaded = false;
       loadHistory(true);
     }
   } catch (e) {
@@ -3278,12 +3036,9 @@ async function downloadOrder(orderId) {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   HISTORY DRAWER
-   ═══════════════════════════════════════════════════════════════ */
 function openHistory() {
   document.getElementById('histDrawer').classList.add('open');
-  if (!State.history.items.length) loadHistory(true);
+  if (!State.history.loaded) loadHistory(true);
 }
 
 function closeHistory() {
@@ -3298,9 +3053,24 @@ async function loadHistory(reset = false) {
     State.history.page = 1;
     State.history.items = [];
     State.history.hasMore = false;
-    body.innerHTML = Array(3).fill(
-      `<div class="hist-skel"><div class="line" style="width:60%"></div><div class="line short"></div></div>`
-    ).join('');
+
+    /* Fast paint from session cache */
+    try {
+      const cached = JSON.parse(sessionStorage.getItem('ms:market:history') || 'null');
+      if (cached && Array.isArray(cached.items) && cached.items.length) {
+        State.history.items = cached.items;
+        State.history.loaded = true;
+        renderHistory();
+      } else {
+        body.innerHTML = Array(3).fill(
+          `<div class="hist-skel"><div class="line" style="width:60%"></div><div class="line short"></div></div>`
+        ).join('');
+      }
+    } catch (_) {
+      body.innerHTML = Array(3).fill(
+        `<div class="hist-skel"><div class="line" style="width:60%"></div><div class="line short"></div></div>`
+      ).join('');
+    }
   }
 
   if (State.history.loading) return;
@@ -3314,11 +3084,16 @@ async function loadHistory(reset = false) {
     if (reset) State.history.items = [];
     State.history.items = State.history.items.concat(items);
     State.history.hasMore = !!meta.hasMore;
+    State.history.loaded = true;
+
+    try {
+      sessionStorage.setItem('ms:market:history', JSON.stringify({ items: State.history.items }));
+    } catch (_) {}
 
     renderHistory();
   } catch (e) {
     console.error('History load:', e);
-    if (reset) {
+    if (reset && !State.history.items.length) {
       body.innerHTML = `
         <div class="hist-empty">
           <i class="fas fa-exclamation-triangle" style="color:var(--err)"></i>
@@ -3342,18 +3117,20 @@ function renderHistory() {
     return;
   }
 
-  let html = State.history.items.map(o => {
+  let html = State.history.items.map((o, idx) => {
     const status = (o.status || 'pending').toLowerCase();
+    const stLabel = window.MS && MS.statusLabel ? MS.statusLabel(status) : status;
+    const stKey = window.MS && MS.statusKey ? MS.statusKey(status) : status;
     const wallet = o.currency || 'NGN';
     const amount = wallet === 'USD' ? (o.amountUsd || 0) : (o.amountNgn || 0);
     const amountStr = wallet === 'USD' ? fUSD(amount) : fNGN(amount);
 
     return `
-      <div class="hist-item" onclick="viewOrderDelivery('${esc(o.id)}')" role="button" tabindex="0">
+      <div class="hist-item" data-hi="${idx}" onclick="viewOrderDelivery('${esc(o.id)}')" role="button" tabindex="0">
         <div class="hi-top">
           <div class="hi-icon"><i class="fas fa-box"></i></div>
           <div class="hi-name">${esc(o.productName || 'Order')}</div>
-          <span class="hi-status ${esc(status)}">${esc(status)}</span>
+          <span class="hi-status ${esc(stKey)}">${esc(stLabel)}</span>
         </div>
         <div class="hi-meta"><span>${amountStr}</span><span>${fmtDateTime(o.createdAt)}</span></div>
         <div class="hi-ref">${esc(o.orderRef || '')}</div>
@@ -3378,9 +3155,6 @@ async function loadMoreHistory() {
   await loadHistory(false);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   MODAL HELPERS
-   ═══════════════════════════════════════════════════════════════ */
 function closeModal(id) {
   const el = document.getElementById(id);
   if (el) el.classList.remove('open');
@@ -3397,9 +3171,6 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-/* ═══════════════════════════════════════════════════════════════
-   DOM WIRING
-   ═══════════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('searchQ')?.addEventListener('input', applyFilters);
   document.getElementById('searchBtn')?.addEventListener('click', applyFilters);
@@ -3423,9 +3194,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-/* ═══════════════════════════════════════════════════════════════
-   BOOT
-   ═══════════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', async () => {
   await new Promise(r => setTimeout(r, 0));
 
@@ -3439,20 +3207,182 @@ document.addEventListener('DOMContentLoaded', async () => {
   Promise.all([loadProducts(), loadBalances()]).catch(e => console.warn('Init error:', e));
 });
 
-/* ═══════════════════════════════════════════════════════════════
-   PUBLIC API
-   ═══════════════════════════════════════════════════════════════ */
-window.openProductModal = openProductModal;
-window.openCheckout     = openCheckout;
-window.selectWallet     = selectWallet;
-window.confirmPurchase  = confirmPurchase;
-window.closeModal       = closeModal;
-window.viewOrderDelivery = viewOrderDelivery;
-window.downloadOrder    = downloadOrder;
-window.loadHistory      = loadHistory;
-window.loadMoreHistory  = loadMoreHistory;
-window.loadProducts     = loadProducts;
-window.loadBalances     = loadBalances;
+window.openProductModal   = openProductModal;
+window.openCheckout       = openCheckout;
+window.selectWallet       = selectWallet;
+window.confirmPurchase    = confirmPurchase;
+window.closeModal         = closeModal;
+window.viewOrderDelivery  = viewOrderDelivery;
+window.downloadOrder      = downloadOrder;
+window.loadHistory        = loadHistory;
+window.loadMoreHistory    = loadMoreHistory;
+window.loadProducts       = loadProducts;
+window.loadBalances       = loadBalances;
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   Stale transaction banner + "Check status" button.
+   Appended per the pasted spec for market.html.
+
+   PAGE ADAPTER
+   ────────────
+   1. ROW_SELECTOR = '#histBody .hist-item[data-hi]'
+   2. RECORD_LOOKUP = el => State.history.items[Number(el.dataset.hi)] || null
+   3. Record fields: id, orderRef, status, createdAt. The /check endpoint
+      resolves market orders from transactions.reference — we pass
+      rec.orderRef (fall back to rec.id) to it.
+   4. Token fetcher: window.userFetch (falls back to fetch with cookies).
+   5. Toast: local toast(msg, type) — 'ok' | 'err' | 'warn' | 'info'.
+   ═══════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  const ROW_SELECTOR  = '#histBody .hist-item[data-hi]';
+  const RECORD_LOOKUP = (el) => {
+    const idx = el.getAttribute('data-hi');
+    if (idx == null) return null;
+    return State.history.items[Number(idx)] || null;
+  };
+  const ESCAPE_HTML   = esc;
+  const SHOW_TOAST    = (msg, kind) => toast(msg, kind === 'ok' ? 'ok' : (kind === 'err' ? 'err' : 'info'));
+
+  const API_BASE = '/api/transactions';
+  const STALE_MS = 10 * 60 * 1000;
+  const STALEABLE = new Set(['pending','processing','under_review','provider_unknown','manual_review']);
+  const TERMINAL  = new Set(['completed','failed','refunded','cancelled','reversed']);
+
+  function userLabel(s) {
+    s = String(s || '').toLowerCase();
+    if (['completed','success','finished','delivered'].includes(s)) return 'completed';
+    if (['failed','declined','expired'].includes(s)) return 'failed';
+    if (['cancelled','canceled'].includes(s)) return 'cancelled';
+    if (['refunded','reversed'].includes(s)) return 'refunded';
+    if (['under_review','manual_review','partially_paid'].includes(s)) return 'under_review';
+    if (['processing','provider_unknown','confirming'].includes(s)) return 'processing';
+    return 'pending';
+  }
+
+  function refFor(rec) {
+    if (!rec) return null;
+    return rec.orderRef || rec.reference || rec.id || rec.transactionId || null;
+  }
+
+  function createdFor(rec) {
+    if (!rec) return null;
+    return rec.createdAt || rec.created_at || rec.created || null;
+  }
+
+  function isStale(rec) {
+    const created = createdFor(rec);
+    if (!created) return false;
+    if (!STALEABLE.has(String(rec.status || '').toLowerCase())) return false;
+    return (Date.now() - new Date(created).getTime()) > STALE_MS;
+  }
+
+  function bannerMessage(rec) {
+    const label = userLabel(rec.status);
+    if (label === 'under_review') return { main: 'A specialist is checking this for you.', tail: '' };
+    if (label === 'processing')  return { main: 'Confirming with the provider.',          tail: ' Most complete within a few more minutes.' };
+    return                              { main: 'Taking longer than expected.',            tail: ' Most complete within a few more minutes.' };
+  }
+
+  async function callCheck(reference) {
+    const fetcher = (typeof window.userFetch === 'function') ? window.userFetch : fetch;
+    try {
+      const resp = await fetcher(
+        `${API_BASE}/${encodeURIComponent(reference)}/check`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include' }
+      );
+      let body = null;
+      try { body = await resp.json(); } catch (_) {}
+      return { ok: resp.ok, status: resp.status, body };
+    } catch (err) {
+      return { ok: false, status: 0, body: { error: err.message || 'Network error' } };
+    }
+  }
+
+  function inject(rowEl, rec) {
+    const sib = rowEl.nextElementSibling;
+    if (sib && sib.classList && sib.classList.contains('tx-stale-banner')) return;
+    if (rowEl.querySelector && rowEl.querySelector('.tx-stale-banner')) return;
+
+    const reference = refFor(rec);
+    if (!reference) return;
+
+    const { main, tail } = bannerMessage(rec);
+    const banner = document.createElement('div');
+    banner.className = 'tx-stale-banner';
+    banner.innerHTML =
+      '<span><strong>' + ESCAPE_HTML(main) + '</strong>' + ESCAPE_HTML(tail) + '</span>' +
+      '<button type="button" data-check="' + ESCAPE_HTML(String(reference)) + '">Check status</button>';
+
+    rowEl.parentNode.insertBefore(banner, rowEl.nextSibling);
+
+    const btn = banner.querySelector('button');
+    btn.addEventListener('click', async () => {
+      if (btn.disabled) return;
+      btn.disabled = true;
+      btn.textContent = 'Checking\u2026';
+
+      const r = await callCheck(reference);
+      if (r.ok && r.body && r.body.data) {
+        const s = r.body.data;
+        const label = userLabel(s.status);
+        const span = banner.querySelector('span');
+        if (span) span.innerHTML = '<strong>' + ESCAPE_HTML(s.status_message || 'Updated.') + '</strong>';
+        if (TERMINAL.has(label)) {
+          btn.remove();
+          SHOW_TOAST('Status updated.', 'ok');
+          setTimeout(() => {
+            try {
+              State.history.items = [];
+              State.history.loaded = false;
+              loadHistory(true);
+            } catch (_) {}
+          }, 400);
+        } else {
+          btn.disabled = false;
+          btn.textContent = 'Check status';
+        }
+      } else if (r.status === 429) {
+        btn.textContent = 'Wait a moment';
+        const wait = (r.body && r.body.retry_after_ms) || 30000;
+        setTimeout(() => { btn.disabled = false; btn.textContent = 'Check status'; }, wait);
+      } else {
+        btn.textContent = 'Check status';
+        btn.disabled = false;
+        SHOW_TOAST((r.body && r.body.error) || 'Could not check status right now.', 'err');
+      }
+    });
+  }
+
+  let isScanning = false;
+  function scan() {
+    if (isScanning) return;
+    isScanning = true;
+    try {
+      document.querySelectorAll(ROW_SELECTOR).forEach(el => {
+        if (el.getClientRects().length === 0) return;
+        const rec = RECORD_LOOKUP(el);
+        if (!isStale(rec)) return;
+        inject(el, rec);
+      });
+    } finally { isScanning = false; }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(scan, 800), { once: true });
+  } else {
+    setTimeout(scan, 800);
+  }
+
+  let debounce = null;
+  new MutationObserver(() => {
+    clearTimeout(debounce);
+    debounce = setTimeout(scan, 300);
+  }).observe(document.body, { childList: true, subtree: true });
+})();
 </script>
 </body>
 </html>

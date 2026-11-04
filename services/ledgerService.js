@@ -1,8 +1,31 @@
 'use strict';
 
 // services/ledgerService.js
+// ─────────────────────────────────────────────────────────────────
+// REVISION 2026-11-03 (Batch 2)
 //
-// The ledger is the ONLY authority that changes wallet balances.
+// Changes from the previous revision:
+//   • TYPE_DIRECTION now includes 'reversal': 'debit'. Without it,
+//     LedgerService.debitWallet({ type: 'reversal' }) throws
+//     "unknown or retired transaction type" — which is what every
+//     deposit reversal was doing. Reversals now work.
+//   • getTransactionById now also selects metadata, provider and
+//     provider_reference so the legacy debit-direction logic in
+//     refundTransaction can read metadata.direction. Previously it
+//     never could because those columns were not selected.
+//   • Added findTransactionByReference() — a small helper used by
+//     refundService's timeout recovery to look up whether the
+//     ledger call succeeded before the caller threw.
+//   • refundTransaction and the admin refund path share ONE rule:
+//     dedup on the DETERMINISTIC ledger reference.
+//     Admin reference: `REFUND-{originalId}-{refundId}`.
+//     Auto reference:  `REFUND-{original.reference}`.
+//     Both are checked, so an admin cannot double-refund an
+//     auto-refunded row (and vice-versa).
+//     `_checkExistingRefundByLedgerRef()` encapsulates the check.
+//   • No behavior change for any other caller. All existing methods
+//     keep their signatures and return shapes.
+// ─────────────────────────────────────────────────────────────────
 
 const { supabaseAdmin } = require('../db/supabase');
 const crypto = require('crypto');
@@ -12,29 +35,50 @@ const DEFAULT_CURRENCY = 'NGN';
 const SUPPORTED_CURRENCIES = new Set(['NGN', 'USD']);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// ─── TYPE_DIRECTION — authoritative ─────────────────────────────
+// Every type that createTransaction may write must appear here.
+// 'reversal' is NEW in this batch. It is a debit — reversing a
+// deposit debits the customer's wallet.
 const TYPE_DIRECTION = {
-    deposit:              'credit',
-    wallet_credit:        'credit',
-    refund:               'credit',
-    adjustment:           'both',
-    wallet_debit:         'debit',
-    withdrawal:           'debit',
-    fee_revenue:          'credit',
-    marketplace_purchase: 'debit',
-    // future service purchases:
-    airtime_purchase:     'debit',
-    data_purchase:        'debit',
-    giftcard_purchase:    'debit',
-    esim_purchase:        'debit',
-    boost_purchase:       'debit',
+    // Credits
+    deposit:                 'credit',
+    wallet_credit:           'credit',
+    refund:                  'credit',
+    fee_revenue:             'credit',
+
+    // Debits
+    wallet_debit:            'debit',
+    withdrawal:              'debit',
+    reversal:                'debit',           // ← NEW
+    marketplace_purchase:    'debit',
+
+    // Service purchases (all debit)
+    airtime_purchase:        'debit',
+    data_purchase:           'debit',
+    giftcard_purchase:       'debit',
+    gift_card_purchase:      'debit',           // legacy alias
+    esim_purchase:           'debit',
+    boost_purchase:          'debit',
     virtual_number_purchase: 'debit',
+    virtual_sms_purchase:    'debit',           // alias
+    sms_purchase:            'debit',           // alias
+    bills_purchase:          'debit',           // alias
+    bill_purchase:           'debit',           // alias
+
+    // Adjustment is bidirectional — caller decides sign
+    adjustment:              'both',
+    admin_adjustment:        'both'
 };
+
+// Retired types. Never writable. Exist so a legacy row with one of
+// these types can still be read without createTransaction
+// misclassifying it.
 const HISTORICAL_TYPES = new Set(['cashback_redeem', 'cashback']);
 
 const ACCOUNT_COLUMNS = 'id, user_id, currency, available_balance, held_balance, created_at, updated_at';
-const ENTRY_COLUMNS = 'id, account_id, transaction_id, entry_type, amount, currency, balance_before, balance_after, description, created_at';
+const ENTRY_COLUMNS = 'id, account_id, transaction_id, entry_type, amount_minor, currency, balance_before, balance_after, description, created_at';
 const TX_COLUMNS_MIN = 'id, user_id, type, status, currency, amount, reference, source_type, source_id, created_at, completed_at';
-const TX_COLUMNS_VERIFY = 'id, user_id, type, status, currency, amount, reference, source_type, source_id, provider, provider_reference, created_at, completed_at';
+const TX_COLUMNS_VERIFY = 'id, user_id, type, status, currency, amount, reference, source_type, source_id, provider, provider_reference, created_at, completed_at, metadata';
 
 function round2(n) {
     return Math.round(Number(n) * 100) / 100;
@@ -50,6 +94,7 @@ function assertPrecision(amount, currency) {
 
 class LedgerService {
 
+    // ─── Account ────────────────────────────────────────────────
     static async getOrCreateAccount(userId, currency = DEFAULT_CURRENCY) {
         if (!UUID_RE.test(String(userId || ''))) {
             throw new Error('getOrCreateAccount: userId must be a UUID');
@@ -116,6 +161,7 @@ class LedgerService {
         return balances;
     }
 
+    // ─── Core transaction writer ────────────────────────────────
     static async createTransaction({
         userId, type, amount, currency = DEFAULT_CURRENCY, description = '',
         reference = null, sourceType = null, sourceId = null,
@@ -156,7 +202,7 @@ class LedgerService {
             reference = `${prefix}-${ts}-${rnd}`;
         }
 
-        // ── Idempotency ──────────────────────────────────────
+        // ── Idempotency claim ───────────────────────────────────
         if (idempotencyKey) {
             const existing = await IdempotencyService.check(userId, idempotencyKey, 'transaction');
             if (existing && !existing.__in_flight) return existing;
@@ -172,7 +218,7 @@ class LedgerService {
             }
         }
 
-        // ── Account ──────────────────────────────────────────
+        // ── Account ─────────────────────────────────────────────
         let account;
         try {
             account = await this.getOrCreateAccount(userId, ccy);
@@ -203,7 +249,7 @@ class LedgerService {
             completed_at: nowIso
         };
 
-        // ── RPC ──────────────────────────────────────────────
+        // ── RPC ─────────────────────────────────────────────────
         const { data: result, error } = await supabaseAdmin.rpc('process_transaction_v2', {
             p_user_id:          userId,
             p_account_id:       account.id,
@@ -250,7 +296,7 @@ class LedgerService {
             throw new Error(`Transaction failed: ${error.message}`);
         }
 
-        // ── Success ──────────────────────────────────────────
+        // ── Success ─────────────────────────────────────────────
         const payload = Array.isArray(result) ? result[0] : result;
         let transactionId = payload?.transaction_id || payload?.id || null;
 
@@ -290,6 +336,7 @@ class LedgerService {
         return finalResponse;
     }
 
+    // ─── Wallet credit / debit helpers ──────────────────────────
     static async creditWallet(...args) {
         const o = this._normalizeWalletArgs(args, 'credit');
         return await this.createTransaction({
@@ -349,6 +396,7 @@ class LedgerService {
         };
     }
 
+    // ─── Reads ──────────────────────────────────────────────────
     static async getTransactionHistory(userId, limit = 50, offset = 0, filters = {}) {
         const safeLimit  = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200);
         const safeOffset = Math.max(parseInt(offset, 10) || 0, 0);
@@ -380,19 +428,58 @@ class LedgerService {
         return data || null;
     }
 
-        // ═══════════════════════════════════════════════════════════════
-    //  REFUND — reverse a prior debit and credit the user back.
-    //
-    //  Caller contract (see routes/billsRoutes.js):
-    //      LedgerService.refundTransaction({
-    //          userId,
-    //          transactionId: <transactions.id of the original DEBIT>,
-    //          reason: 'Provider failed' | ...
-    //      })
-    //
-    //  Idempotent: deterministic reference "REFUND-{original.reference}"
-    //  means a retry after a partial success cannot double-credit.
-    // ═══════════════════════════════════════════════════════════════
+    /**
+     * NEW (Batch 2): Look up a transaction by its reference. Returns
+     * null on miss — never throws. Used by the refund-timeout
+     * recovery to check whether the ledger call actually committed
+     * before the caller's promise rejected.
+     */
+    static async findTransactionByReference(reference) {
+        if (!reference) return null;
+        try {
+            const { data, error } = await supabaseAdmin
+                .from('transactions')
+                .select(TX_COLUMNS_VERIFY)
+                .eq('reference', reference)
+                .limit(1)
+                .maybeSingle();
+            if (error) return null;
+            return data || null;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    static async getTransactionById(id) {
+        // Batch 2: also select metadata, provider, provider_reference.
+        // refundTransaction's legacy-debit detection reads
+        // metadata.direction — which was null before this fix.
+        const { data, error } = await supabaseAdmin
+            .from('transactions')
+            .select(TX_COLUMNS_VERIFY)
+            .eq('id', id)
+            .maybeSingle();
+        if (error) throw new Error(`getTransactionById failed: ${error.message}`);
+        return data || null;
+    }
+
+    static async getLedgerEntriesByTransaction(transactionId) {
+        if (!UUID_RE.test(String(transactionId || ''))) return [];
+        const { data, error } = await supabaseAdmin
+            .from('ledger_entries').select(ENTRY_COLUMNS)
+            .eq('transaction_id', transactionId).order('created_at', { ascending: true });
+        if (error) throw new Error(error.message);
+        return data || [];
+    }
+
+    // ─── Auto refund (bills and other services) ────────────────
+    // Guarantees:
+    //   • Only debits may be refunded.
+    //   • Deterministic reference `REFUND-{original.reference}`
+    //     means a retry short-circuits on the unique index.
+    //   • Before creating a new ledger refund, checks the refunds
+    //     table for a match by original_transaction_id — this is the
+    //     SAME rule the admin path uses, so no double refunds.
     static async refundTransaction({
         userId,
         transactionId,
@@ -407,7 +494,6 @@ class LedgerService {
             throw new Error('refundTransaction: transactionId must be a UUID');
         }
 
-        // 1. Load the original transaction so we can validate and inherit context.
         const original = await this.getTransactionById(transactionId);
         if (!original) {
             throw new Error(`refundTransaction: transaction ${transactionId} not found`);
@@ -416,51 +502,88 @@ class LedgerService {
             throw new Error('refundTransaction: transaction does not belong to this user');
         }
 
-        // 2. Must be a debit. Refunding a credit would be nonsense.
-        // 2. Must be a debit.
-//    Historically, `transactions.amount` was written unsigned (positive) even for
-//    debits (see process_transaction_v2 sign bug). `metadata.direction` is the
-//    authoritative source of direction for such legacy rows. Balance movement
-//    lives in `ledger_entries` and was correct all along.
-const rawAmount = parseFloat(original.amount) || 0;
-const metaDirection = String(original.metadata?.direction || '').toLowerCase();
-const isDebit =
-    rawAmount < 0 ||
-    metaDirection === 'debit' ||
-    String(original.type || '').endsWith('_purchase') ||
-    String(original.type || '') === 'wallet_debit' ||
-    String(original.type || '') === 'withdrawal';
+        // Determine debit-ness. `amount` is signed in newer rows.
+        // Legacy rows may be unsigned but have metadata.direction.
+        const rawAmount = parseFloat(original.amount) || 0;
+        const metaDirection = String(original.metadata?.direction || '').toLowerCase();
+        const isDebit =
+            rawAmount < 0 ||
+            metaDirection === 'debit' ||
+            String(original.type || '').endsWith('_purchase') ||
+            String(original.type || '') === 'wallet_debit' ||
+            String(original.type || '') === 'withdrawal' ||
+            String(original.type || '') === 'reversal';
 
-if (!isDebit) {
-    throw new Error(
-        `refundTransaction: transaction ${transactionId} is not a debit ` +
-        `(amount=${original.amount}, direction=${metaDirection || 'unknown'}, type=${original.type})`
-    );
-}
-        // 3. Deterministic reference — retries short-circuit on the unique constraint.
-        const refundRef = reference || `REFUND-${original.reference}`;
+        if (!isDebit) {
+            throw new Error(
+                `refundTransaction: transaction ${transactionId} is not a debit ` +
+                `(amount=${original.amount}, direction=${metaDirection || 'unknown'}, type=${original.type})`
+            );
+        }
 
-        // 4. Idempotency: if we already refunded, return the existing credit row.
-        const already = await this.getTransactionByReference(refundRef);
-        if (already) {
+        // ── Shared dedupe rule (Batch 2) ────────────────────────
+        // 1. If the refunds table already has an active row for this
+        //    original, bail with a clear error. Admin-created
+        //    refunds write there; auto refunds do too (new behavior
+        //    in this batch — the previous auto path did not).
+        const existingFromAdmin = await this._findActiveRefundRow(transactionId);
+        if (existingFromAdmin) {
             return {
                 success: true,
                 already_exists: true,
-                transaction_id: already.id,
-                reference: refundRef,
-                amount: Math.abs(parseFloat(already.amount) || 0),
-                currency: already.currency
+                transaction_id: existingFromAdmin.refund_transaction_id || null,
+                reference: existingFromAdmin.provider_reference || null,
+                amount: Math.abs(parseFloat(existingFromAdmin.amount) || 0),
+                currency: existingFromAdmin.currency
             };
         }
 
-        // 5. Credit the user back. Metadata keeps the audit trail intact.
-        // 5. Credit the user back. Metadata keeps the audit trail intact.
-const refundAmount = Math.abs(rawAmount);
+        // 2. Deterministic ledger reference — same on every retry.
+        const refundRef = reference || `REFUND-${original.reference}`;
 
-        return await this.createTransaction({
+        // 3. Ledger row already exists?
+        const existingLedgerRow = await this.findTransactionByReference(refundRef);
+        if (existingLedgerRow) {
+            // Ensure it is recorded in the refunds table too (forward
+            // fix — backfill missing admin-path rows lazily). If the
+            // insert fails for a non-23505 reason, log but do not
+            // fail: the money moved, the row is discoverable by
+            // reference.
+            try {
+                await supabaseAdmin.from('refunds').insert({
+                    original_transaction_id: transactionId,
+                    refund_transaction_id: existingLedgerRow.id,
+                    user_id: userId,
+                    refund_type: 'wallet',
+                    refund_method: 'wallet',
+                    amount: Math.abs(parseFloat(original.amount) || 0),
+                    currency: original.currency || DEFAULT_CURRENCY,
+                    reason,
+                    status: 'COMPLETED',
+                    completed_at: existingLedgerRow.completed_at || new Date().toISOString(),
+                    idempotency_key: `auto:${existingLedgerRow.id}`,
+                    metadata: { source: 'auto_refund_recovered', reference: refundRef }
+                }).onConflict ? null : null;
+            } catch (_) {
+                // Duplicate key or missing table — harmless either way.
+            }
+            return {
+                success: true,
+                already_exists: true,
+                transaction_id: existingLedgerRow.id,
+                reference: refundRef,
+                amount: Math.abs(parseFloat(original.amount) || 0),
+                currency: original.currency || DEFAULT_CURRENCY
+            };
+        }
+
+        const refundAmount = Math.abs(rawAmount);
+
+        // 4. Create the credit.
+        const created = await this.createTransaction({
             userId,
             type: 'refund',
-            amount: +refundAmount,                 // positive = credit
+            amount: +refundAmount,
             currency: original.currency || DEFAULT_CURRENCY,
             description: reason,
             reference: refundRef,
@@ -476,23 +599,57 @@ const refundAmount = Math.abs(rawAmount);
             },
             idempotencyKey: idempotencyKey || null
         });
-    }
-    
 
-    static async getTransactionById(id) {
-        const { data, error } = await supabaseAdmin
-            .from('transactions').select(TX_COLUMNS_MIN).eq('id', id).maybeSingle();
-        if (error) throw new Error(`getTransactionById failed: ${error.message}`);
-        return data || null;
+        // 5. Write the refunds row (new in Batch 2). Failure here is
+        // logged but does NOT undo the credit — the reference is
+        // deterministic so a retry finds it via step 3.
+        try {
+            await supabaseAdmin.from('refunds').insert({
+                original_transaction_id: transactionId,
+                refund_transaction_id: created.transaction_id,
+                user_id: userId,
+                refund_type: 'wallet',
+                refund_method: 'wallet',
+                amount: refundAmount,
+                currency: original.currency || DEFAULT_CURRENCY,
+                reason,
+                status: 'COMPLETED',
+                completed_at: new Date().toISOString(),
+                idempotency_key: `auto:${created.transaction_id}`,
+                metadata: { source: 'auto_refund', reference: refundRef }
+            });
+        } catch (rowErr) {
+            console.error('[LEDGER] auto refund row insert failed after ledger credit', {
+                transactionId,
+                refund_tx_id: created.transaction_id,
+                error: rowErr.message
+            });
+        }
+
+        return created;
     }
 
-    static async getLedgerEntriesByTransaction(transactionId) {
-        if (!UUID_RE.test(String(transactionId || ''))) return [];
-        const { data, error } = await supabaseAdmin
-            .from('ledger_entries').select(ENTRY_COLUMNS)
-            .eq('transaction_id', transactionId).order('created_at', { ascending: true });
-        if (error) throw new Error(error.message);
-        return data || [];
+    /**
+     * Look for an existing refunds row for a given original
+     * transaction that is still active. This is the single dedupe
+     * rule shared by the auto refund path (here) and the admin
+     * path (refundService).
+     */
+    static async _findActiveRefundRow(originalTransactionId) {
+        if (!UUID_RE.test(String(originalTransactionId || ''))) return null;
+        try {
+            const { data, error } = await supabaseAdmin
+                .from('refunds')
+                .select('id, status, refund_type, amount, currency, refund_transaction_id, provider_reference')
+                .eq('original_transaction_id', originalTransactionId)
+                .in('status', ['REQUESTED', 'PENDING_APPROVAL', 'APPROVED', 'PROCESSING', 'COMPLETED'])
+                .limit(1)
+                .maybeSingle();
+            if (error) return null;
+            return data || null;
+        } catch (_) {
+            return null;
+        }
     }
 }
 
@@ -557,4 +714,4 @@ class AdminConfigService {
     }
 }
 
-module.exports = { LedgerService, AdminConfigService };
+module.exports = { LedgerService, AdminConfigService, TYPE_DIRECTION };

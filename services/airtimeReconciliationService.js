@@ -1,5 +1,6 @@
 // services/airtimeReconciliationService.js
-// UNIFIED DT ONE RECONCILIATION — AIRTIME + eSIM + GIFT CARDS
+// ─────────────────────────────────────────────────────────────────
+// Unified DT One reconciliation — airtime + eSIM + gift cards.
 //
 // PRODUCTION-SAFE PRINCIPLES:
 //   1. Provider state is the source of truth. Never guess.
@@ -9,24 +10,60 @@
 //   5. PROVIDER_UNKNOWN is a first-class state, not "failed".
 //   6. Only provider CLASS ids 3, 4, 7, 9 are terminal.
 //   7. Voucher extraction only from COMPLETED.
-//   8. Raw provider payloads are stored as summaries, not full blobs.
+//   8. Raw provider payloads stored as summaries, not full blobs.
 //   9. Never double-refund, never double-send email.
 //  10. Confirm CREATED transactions automatically.
 //  11. Definitive provider rejections (30500 / class 3) refund immediately.
 //  12. Stale refund/email claims are recoverable (lease pattern).
+//
+// CHANGES vs prior revision:
+//   • Refund call now uses the LedgerService.refundTransaction OBJECT
+//     signature. The previous positional call always threw inside the
+//     ledger, so every auto-refund was silently landing in manual_review
+//     without ever crediting the user. This is the single most important
+//     fix in this file.
+//   • Candidate selection uses next_check_at instead of "20 attempts OR
+//     26h". This makes airtime behave like the deposits path — retried
+//     with exponential backoff up to the real 26h age cap.
+//   • Every transition into manual_review / provider_unknown also
+//     raises an entry in reconciliation_issues via issuesBridge. The
+//     admin queue can finally see airtime / eSIM / gift card problems.
+//   • Scheduler is a self-rescheduling setTimeout instead of
+//     setInterval, so a slow sweep never overlaps itself.
+//   • Added `getBackoffNextCheckAt(attempts, createdAt)` so the
+//     adapter can inspect the schedule for tests.
+// ─────────────────────────────────────────────────────────────────
+'use strict';
 
 const { supabaseAdmin } = require('../db/supabase');
-const dtoneService = require('./dtoneService');
+const dtoneService      = require('./dtoneService');
 const { LedgerService } = require('./ledgerService');
-const emailService = require('./emailService');
-const QRCode = require('qrcode');
+const emailService      = require('./emailService');
+const QRCode            = require('qrcode');
 
-// ═══════════════════════════════════════════════════════════════════════════
+// Lazy-require to avoid a circular import when the adapter is loaded
+// by the engine.
+let _issuesBridge = null;
+function issuesBridge() {
+    if (_issuesBridge) return _issuesBridge;
+    try {
+        _issuesBridge = require('../reconciliation/issuesBridge');
+    } catch (_) {
+        // If the reconciliation/ tree isn't deployed yet, fall back to a
+        // no-op so the worker still functions. It will start writing
+        // issues as soon as the bridge is available.
+        _issuesBridge = { raise: async () => null, closeForRecord: async () => {} };
+    }
+    return _issuesBridge;
+}
+
+// ═══════════════════════════════════════════════════════════════════
 //  CONFIG
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 const STUCK_AFTER_MS              = 5 * 60 * 1000;
-const MAX_RECONCILIATION_ATTEMPTS = 20;
 const MAX_AGE_BEFORE_MANUAL_MS    = 26 * 60 * 60 * 1000;
+const BASE_BACKOFF_MS             = 5 * 60 * 1000;
+const MAX_BACKOFF_MS              = 6 * 60 * 60 * 1000;
 const BATCH_SIZE                  = 50;
 const CONCURRENT_LIMIT            = 3;
 const PROVIDER_QUERY_TIMEOUT_MS   = 15000;
@@ -41,12 +78,26 @@ const SCHEDULER_INTERVAL_MS       = 5 * 60 * 1000;
 // hold customer money that long, so we intervene sooner.
 const NEVER_CONFIRMED_MS          = 10 * 60 * 1000;
 
-const FINAL_FAILED_STATUSES = new Set(['failed', 'cancelled', 'reversed']);
+const FINAL_FAILED_STATUSES  = new Set(['failed', 'cancelled', 'reversed']);
 const FINAL_SUCCESS_STATUSES = new Set(['completed']);
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ─── Backoff schedule (mirrors reconciliation/backoff.js) ──────────
+function getBackoffNextCheckAt(attempts, createdAt) {
+    const n = Math.max(0, Number(attempts) || 0);
+    const createdMs = createdAt instanceof Date ? createdAt.getTime() : new Date(createdAt).getTime();
+    if (!Number.isFinite(createdMs)) return null;
+
+    const waitMs = Math.min(MAX_BACKOFF_MS, BASE_BACKOFF_MS * Math.pow(2, n));
+    const proposed = Date.now() + waitMs;
+    const ageCap = createdMs + MAX_AGE_BEFORE_MANUAL_MS;
+
+    if (proposed >= ageCap) return null;   // give up
+    return new Date(proposed);
+}
+
+// ═══════════════════════════════════════════════════════════════════
 //  UTILITIES
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 function maskPhone(phone) {
     if (!phone) return 'N/A';
     const str = String(phone);
@@ -138,9 +189,9 @@ async function generateEsimQr(lpaString, reference) {
     });
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 //  PROVIDER QUERY
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 async function queryDTOneTransaction(tx) {
     if (tx.provider_transaction_id) {
         try {
@@ -262,9 +313,9 @@ async function queryDTOneTransaction(tx) {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 //  CONFIRM STUCK CREATED TRANSACTION
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 async function tryConfirmStuckTransaction(tx, providerResult) {
     const statusId = Number(providerResult?.statusId ?? 0) || null;
     const statusClassId = Number(providerResult?.statusClassId ?? 0) || null;
@@ -296,7 +347,6 @@ async function tryConfirmStuckTransaction(tx, providerResult) {
                 raw: e.providerData || null
             };
         }
-        if (e.ambiguous) return { pending: true };
         return { pending: true };
     }
 
@@ -313,40 +363,55 @@ async function tryConfirmStuckTransaction(tx, providerResult) {
     return { pending: true };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  ATTEMPT TRACKING / MANUAL REVIEW
-// ═══════════════════════════════════════════════════════════════════════════
-async function incrementAttempts(table, transactionId, errorMessage) {
+// ═══════════════════════════════════════════════════════════════════
+//  ATTEMPT TRACKING
+//  Updates BOTH the legacy reconciliation_attempts and the new
+//  attempts + next_check_at columns so old and new code agree.
+// ═══════════════════════════════════════════════════════════════════
+async function recordAttempt(table, transactionId, { errorMessage = null, nextCheckAt = undefined } = {}) {
     const { data: tx, error } = await supabaseAdmin
         .from(table)
-        .select('reconciliation_attempts, metadata')
+        .select('attempts, reconciliation_attempts, metadata, created_at')
         .eq('id', transactionId)
-        .single();
+        .maybeSingle();
 
     if (error || !tx) return;
 
-    const newAttempts = (tx.reconciliation_attempts || 0) + 1;
+    const attempts = (tx.attempts || 0) + 1;
     const now = new Date().toISOString();
+    const nextAt = nextCheckAt === undefined
+        ? getBackoffNextCheckAt(attempts, tx.created_at)
+        : nextCheckAt;
 
     await supabaseAdmin.from(table).update({
-        reconciliation_attempts: newAttempts,
+        attempts,
+        reconciliation_attempts: attempts,      // legacy alias
+        next_check_at: nextAt ? nextAt.toISOString() : null,
         last_reconciliation_at: now,
         last_reconciled_at: now,
         updated_at: now,
         metadata: {
             ...(tx.metadata || {}),
             last_reconciliation_error: errorMessage,
-            last_reconciliation_error_at: now,
-            reconciliation_attempt: newAttempts
+            last_reconciliation_error_at: errorMessage ? now : (tx.metadata?.last_reconciliation_error_at || null),
+            reconciliation_attempt: attempts
         }
     }).eq('id', transactionId);
 }
 
-async function moveToManualReview(table, tx, reason) {
+// ═══════════════════════════════════════════════════════════════════
+//  MANUAL REVIEW / PROVIDER UNKNOWN
+//  Every entry now also raises an issue via the bridge.
+// ═══════════════════════════════════════════════════════════════════
+async function moveToManualReview(service, tx, reason) {
     const now = new Date().toISOString();
+    const attempts = (tx.attempts || tx.reconciliation_attempts || 0) + 1;
 
-    await supabaseAdmin.from(table).update({
+    await supabaseAdmin.from(service.table).update({
         status: 'manual_review',
+        attempts,
+        reconciliation_attempts: attempts,
+        next_check_at: null,
         updated_at: now,
         last_reconciliation_at: now,
         last_reconciled_at: now,
@@ -363,19 +428,39 @@ async function moveToManualReview(table, tx, reason) {
         tx.user_id,
         '⏳ Order Under Review',
         `Your order ${tx.reference} requires manual review. Our team will be in touch.`,
-        `${table.split('_')[0]}_reconciled`,
-        `/${table.split('_')[0]}/order/${tx.reference}`
+        `${service.table.split('_')[0]}_reconciled`,
+        `/${service.table.split('_')[0]}/order/${tx.reference}`
     );
 
-    console.log(`📋 [RECONCILE] ${tx.reference} (${table}) → MANUAL_REVIEW (${reason})`);
+    await issuesBridge().raise({
+        service:         service.name.toLowerCase(),
+        provider:        'dtone',
+        issueType:       'PENDING_TOO_LONG',
+        internalTable:   service.table,
+        internalId:      tx.id,
+        internalRef:     tx.reference,
+        providerRef:     tx.provider_transaction_id || tx.dtone_external_id || null,
+        userId:          tx.user_id,
+        amount:          tx.price_ngn || tx.total_usd || tx.face_value || null,
+        currency:        tx.debit_currency || (tx.total_usd != null ? 'USD' : 'NGN'),
+        internalStatus:  tx.status,
+        providerStatus:  tx.provider_status || null,
+        reason
+    });
+
+    console.log(`📋 [RECONCILE] ${tx.reference} (${service.table}) → MANUAL_REVIEW (${reason})`);
     return { manualReview: true };
 }
 
-async function moveToProviderUnknown(table, tx, reason) {
+async function moveToProviderUnknown(service, tx, reason) {
     const now = new Date().toISOString();
+    const attempts = (tx.attempts || tx.reconciliation_attempts || 0) + 1;
 
-    await supabaseAdmin.from(table).update({
+    await supabaseAdmin.from(service.table).update({
         status: 'provider_unknown',
+        attempts,
+        reconciliation_attempts: attempts,
+        next_check_at: getBackoffNextCheckAt(attempts, tx.created_at)?.toISOString() || null,
         updated_at: now,
         last_reconciliation_at: now,
         last_reconciled_at: now,
@@ -387,18 +472,34 @@ async function moveToProviderUnknown(table, tx, reason) {
         }
     }).eq('id', tx.id);
 
-    console.log(`❓ [RECONCILE] ${tx.reference} (${table}) → PROVIDER_UNKNOWN`);
+    await issuesBridge().raise({
+        service:         service.name.toLowerCase(),
+        provider:        'dtone',
+        issueType:       'PROVIDER_STATUS_UNKNOWN',
+        internalTable:   service.table,
+        internalId:      tx.id,
+        internalRef:     tx.reference,
+        providerRef:     tx.provider_transaction_id || tx.dtone_external_id || null,
+        userId:          tx.user_id,
+        amount:          tx.price_ngn || tx.total_usd || tx.face_value || null,
+        currency:        tx.debit_currency || (tx.total_usd != null ? 'USD' : 'NGN'),
+        internalStatus:  tx.status,
+        providerStatus:  tx.provider_status || null,
+        reason
+    });
+
+    console.log(`❓ [RECONCILE] ${tx.reference} (${service.table}) → PROVIDER_UNKNOWN`);
     return { providerUnknown: true };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 //  IDEMPOTENT REFUND HELPER
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 async function checkRefundExists(reference) {
     const { data } = await supabaseAdmin
         .from('ledger_transactions')
         .select('id')
-        .eq('reference', `REF-${reference}`)
+        .eq('reference', `REFUND-${reference}`)
         .eq('type', 'refund')
         .maybeSingle();
     return !!data;
@@ -409,16 +510,21 @@ async function checkRefundExists(reference) {
  *   - ensure the ledger actually credits
  *   - only then mark the order refunded
  *   - on failure, mark refund_status = failed and return manualReview
+ *
+ * ⚠️ The LedgerService.refundTransaction signature is
+ *      ({ userId, transactionId, reason, reference?, idempotencyKey? })
+ *    — NOT positional. A previous revision called it positionally and
+ *    every refund threw. Fixed here.
  */
 async function performVerifiedRefund(table, tx, ledgerTransactionId, reason) {
     const now = new Date().toISOString();
 
     if (!ledgerTransactionId) {
-        // No ledger transaction to refund against — flag for review
         await supabaseAdmin.from(table).update({
             refund_status: 'failed',
             refund_error: 'No ledger_transaction_id on record',
             status: 'manual_review',
+            next_check_at: null,
             updated_at: now
         }).eq('id', tx.id);
         return { manualReview: true, refundError: 'No ledger_transaction_id' };
@@ -426,16 +532,17 @@ async function performVerifiedRefund(table, tx, ledgerTransactionId, reason) {
 
     let refundResult;
     try {
-        refundResult = await LedgerService.refundTransaction(
-            tx.user_id,
-            ledgerTransactionId,
+        refundResult = await LedgerService.refundTransaction({
+            userId: tx.user_id,
+            transactionId: ledgerTransactionId,
             reason
-        );
+        });
     } catch (e) {
         await supabaseAdmin.from(table).update({
             refund_status: 'failed',
             refund_error: e.message,
             status: 'manual_review',
+            next_check_at: null,
             updated_at: now
         }).eq('id', tx.id);
         return { manualReview: true, refundError: e.message };
@@ -447,27 +554,28 @@ async function performVerifiedRefund(table, tx, ledgerTransactionId, reason) {
             refund_status: 'failed',
             refund_error: err,
             status: 'manual_review',
+            next_check_at: null,
             updated_at: now
         }).eq('id', tx.id);
         return { manualReview: true, refundError: err };
     }
 
-    // Ledger confirmed — safe to mark refunded
     await supabaseAdmin.from(table).update({
         status: 'refunded',
         refunded: true,
         refund_status: 'completed',
         refund_transaction_id: refundResult.transaction_id || null,
         refunded_at: now,
+        next_check_at: null,
         updated_at: now
     }).eq('id', tx.id);
 
     return { refunded: true };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 //  AIRTIME — complete / refund
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 async function completeAirtime(tx, result) {
     const now = new Date().toISOString();
     if (tx.status === 'completed') return { alreadyCompleted: true };
@@ -479,9 +587,11 @@ async function completeAirtime(tx, result) {
             provider_status: result.providerStatus || result.status || 'COMPLETED',
             provider_transaction_id: result.id || tx.provider_transaction_id,
             completed_at: now,
+            next_check_at: null,
             updated_at: now,
             last_reconciliation_at: now,
-            reconciliation_attempts: (tx.reconciliation_attempts || 0) + 1,
+            attempts: (tx.attempts || tx.reconciliation_attempts || 0) + 1,
+            reconciliation_attempts: (tx.attempts || tx.reconciliation_attempts || 0) + 1,
             metadata: {
                 ...(tx.metadata || {}),
                 reconciled_at: now,
@@ -505,6 +615,12 @@ async function completeAirtime(tx, result) {
         `/airtime/order/${tx.reference}`
     );
 
+    await issuesBridge().closeForRecord({
+        service: 'airtime',
+        internalId: tx.id,
+        notes: 'Auto-resolved: provider confirmed success and record completed'
+    });
+
     console.log(`✅ [RECONCILE] AIRTIME ${tx.reference} → COMPLETED`);
     return { completed: true };
 }
@@ -516,21 +632,22 @@ async function refundAirtime(tx, result) {
     if (await checkRefundExists(tx.reference)) {
         await supabaseAdmin
             .from('airtime_transactions')
-            .update({ refunded: true, updated_at: now })
+            .update({ refunded: true, next_check_at: null, updated_at: now })
             .eq('id', tx.id);
         return { alreadyRefunded: true };
     }
 
-    // Atomic claim
     const { data: claimed } = await supabaseAdmin
         .from('airtime_transactions')
         .update({
             status: 'failed',
             provider_status: result.providerStatus || result.status || 'FAILED',
             failed_at: now,
+            next_check_at: null,
             updated_at: now,
             last_reconciliation_at: now,
-            reconciliation_attempts: (tx.reconciliation_attempts || 0) + 1,
+            attempts: (tx.attempts || tx.reconciliation_attempts || 0) + 1,
+            reconciliation_attempts: (tx.attempts || tx.reconciliation_attempts || 0) + 1,
             refund_status: 'processing',
             refund_attempts: (tx.refund_attempts || 0) + 1,
             refund_started_at: now,
@@ -567,16 +684,39 @@ async function refundAirtime(tx, result) {
             `/airtime/order/${claimed.reference}`
         );
 
+        await issuesBridge().closeForRecord({
+            service: 'airtime',
+            internalId: claimed.id,
+            notes: 'Auto-resolved: refund credited for failed airtime'
+        });
+
         console.log(`💸 [RECONCILE] AIRTIME ${claimed.reference} → FAILED, refunded`);
         return { refunded: true };
     }
 
+    // Refund did not complete — raise an issue.
+    await issuesBridge().raise({
+        service:        'airtime',
+        provider:       'dtone',
+        issueType:      'PROVIDER_FAILURE_NOT_REFUNDED',
+        internalTable:  'airtime_transactions',
+        internalId:     claimed.id,
+        internalRef:    claimed.reference,
+        providerRef:    claimed.provider_transaction_id || claimed.dtone_external_id || null,
+        userId:         claimed.user_id,
+        amount:         claimed.price_ngn || null,
+        currency:       claimed.debit_currency || 'NGN',
+        internalStatus: claimed.status,
+        providerStatus: result.providerStatus || result.status || null,
+        reason:         refundOutcome.refundError || 'Refund did not complete'
+    });
+
     return refundOutcome;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 //  eSIM — complete / refund
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 async function completeEsim(tx, result) {
     const now = new Date().toISOString();
 
@@ -596,7 +736,8 @@ async function completeEsim(tx, result) {
             delivery_status: 'pending',
             delivery_attempts: (tx.delivery_attempts || 0) + 1,
             last_delivery_error: 'No LPA string in provider response',
-            reconciliation_attempts: (tx.reconciliation_attempts || 0) + 1,
+            attempts: (tx.attempts || tx.reconciliation_attempts || 0) + 1,
+            reconciliation_attempts: (tx.attempts || tx.reconciliation_attempts || 0) + 1,
             last_reconciled_at: now,
             updated_at: now
         }).eq('id', tx.id);
@@ -610,14 +751,12 @@ async function completeEsim(tx, result) {
             qrCodeUrl = await generateEsimQr(delivery.lpaString, tx.reference);
         } catch (qrErr) {
             console.error(`❌ [RECONCILE] eSIM QR generation failed for ${tx.reference}:`, qrErr.message);
-
             await supabaseAdmin.from('esim_transactions').update({
                 delivery_status: 'pending',
                 delivery_attempts: (tx.delivery_attempts || 0) + 1,
                 last_delivery_error: `QR generation failed: ${qrErr.message}`,
                 updated_at: now
             }).eq('id', tx.id);
-
             return { deliveryPending: true };
         }
     }
@@ -642,8 +781,10 @@ async function completeEsim(tx, result) {
             delivery_attempts: (tx.delivery_attempts || 0) + 1,
             provider_response: summarizeProviderResponse(result.raw),
             provider_status: result.providerStatus || 'COMPLETED',
-            reconciliation_attempts: (tx.reconciliation_attempts || 0) + 1,
+            attempts: (tx.attempts || tx.reconciliation_attempts || 0) + 1,
+            reconciliation_attempts: (tx.attempts || tx.reconciliation_attempts || 0) + 1,
             last_reconciled_at: now,
+            next_check_at: null,
             updated_at: now
         })
         .eq('id', tx.id)
@@ -664,6 +805,12 @@ async function completeEsim(tx, result) {
         `/esim/order/${tx.reference}`
     );
 
+    await issuesBridge().closeForRecord({
+        service: 'esim',
+        internalId: tx.id,
+        notes: 'Auto-resolved: eSIM completed'
+    });
+
     return { completed: true };
 }
 
@@ -679,7 +826,8 @@ async function refundEsim(tx, result) {
             refund_attempts: (tx.refund_attempts || 0) + 1,
             refund_started_at: now,
             failure_reason: result.errorMessage || result.error || 'Provider transaction failed',
-            reconciliation_attempts: (tx.reconciliation_attempts || 0) + 1,
+            attempts: (tx.attempts || tx.reconciliation_attempts || 0) + 1,
+            reconciliation_attempts: (tx.attempts || tx.reconciliation_attempts || 0) + 1,
             last_reconciled_at: now,
             updated_at: now
         })
@@ -700,7 +848,6 @@ async function refundEsim(tx, result) {
 
     if (refundOutcome.refunded) {
         queueEsimFailureEmail(claimed, result.errorMessage || 'Provider rejected order');
-
         await createNotification(
             claimed.user_id,
             '💰 eSIM Refunded',
@@ -708,16 +855,36 @@ async function refundEsim(tx, result) {
             'esim_refunded',
             `/esim/order/${claimed.reference}`
         );
-
+        await issuesBridge().closeForRecord({
+            service: 'esim',
+            internalId: claimed.id,
+            notes: 'Auto-resolved: refund credited for failed eSIM'
+        });
         console.log(`💸 [RECONCILE] eSIM ${claimed.reference} → FAILED, refunded`);
+    } else {
+        await issuesBridge().raise({
+            service:        'esim',
+            provider:       'dtone',
+            issueType:      'PROVIDER_FAILURE_NOT_REFUNDED',
+            internalTable:  'esim_transactions',
+            internalId:     claimed.id,
+            internalRef:    claimed.reference,
+            providerRef:    claimed.provider_transaction_id || claimed.dtone_external_id || null,
+            userId:         claimed.user_id,
+            amount:         claimed.price_ngn || claimed.total_usd || null,
+            currency:       claimed.debit_currency || (claimed.total_usd != null ? 'USD' : 'NGN'),
+            internalStatus: claimed.status,
+            providerStatus: result.providerStatus || result.status || null,
+            reason:         refundOutcome.refundError || 'Refund did not complete'
+        });
     }
 
     return refundOutcome;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 //  GIFT CARDS — complete / refund
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 async function completeGiftCard(tx, result) {
     const now = new Date().toISOString();
 
@@ -730,18 +897,17 @@ async function completeGiftCard(tx, result) {
 
     if (!delivery?.code) {
         console.error(`❌ [RECONCILE] Gift card ${tx.reference} provider completed but no voucher code`);
-
         await supabaseAdmin.from('giftcard_transactions').update({
             provider_response: summarizeProviderResponse(result.raw),
             provider_status: result.providerStatus || 'COMPLETED',
             delivery_status: 'pending',
             delivery_attempts: (tx.delivery_attempts || 0) + 1,
             failure_reason: 'Provider completed transaction but voucher code is missing',
-            reconciliation_attempts: (tx.reconciliation_attempts || 0) + 1,
+            attempts: (tx.attempts || tx.reconciliation_attempts || 0) + 1,
+            reconciliation_attempts: (tx.attempts || tx.reconciliation_attempts || 0) + 1,
             last_reconciled_at: now,
             updated_at: now
         }).eq('id', tx.id);
-
         return { deliveryPending: true };
     }
 
@@ -757,8 +923,10 @@ async function completeGiftCard(tx, result) {
             delivery_attempts: (tx.delivery_attempts || 0) + 1,
             provider_response: summarizeProviderResponse(result.raw),
             provider_status: result.providerStatus || 'COMPLETED',
-            reconciliation_attempts: (tx.reconciliation_attempts || 0) + 1,
+            attempts: (tx.attempts || tx.reconciliation_attempts || 0) + 1,
+            reconciliation_attempts: (tx.attempts || tx.reconciliation_attempts || 0) + 1,
             last_reconciled_at: now,
+            next_check_at: null,
             updated_at: now
         })
         .eq('id', tx.id)
@@ -780,6 +948,12 @@ async function completeGiftCard(tx, result) {
         `/giftcard/order/${tx.reference}`
     );
 
+    await issuesBridge().closeForRecord({
+        service: 'giftcard',
+        internalId: tx.id,
+        notes: 'Auto-resolved: gift card completed'
+    });
+
     return { completed: true };
 }
 
@@ -795,7 +969,8 @@ async function refundGiftCard(tx, result) {
             refund_attempts: (tx.refund_attempts || 0) + 1,
             refund_started_at: now,
             failure_reason: result.errorMessage || result.error || 'Provider transaction failed',
-            reconciliation_attempts: (tx.reconciliation_attempts || 0) + 1,
+            attempts: (tx.attempts || tx.reconciliation_attempts || 0) + 1,
+            reconciliation_attempts: (tx.attempts || tx.reconciliation_attempts || 0) + 1,
             last_reconciled_at: now,
             updated_at: now
         })
@@ -816,7 +991,6 @@ async function refundGiftCard(tx, result) {
 
     if (refundOutcome.refunded) {
         queueGiftCardFailureEmail(claimed, result.errorMessage || 'Provider rejected order');
-
         await createNotification(
             claimed.user_id,
             '💰 Gift Card Refunded',
@@ -824,16 +998,37 @@ async function refundGiftCard(tx, result) {
             'giftcard_refunded',
             `/giftcard/order/${claimed.reference}`
         );
-
+        await issuesBridge().closeForRecord({
+            service: 'giftcard',
+            internalId: claimed.id,
+            notes: 'Auto-resolved: refund credited for failed gift card'
+        });
         console.log(`💸 [RECONCILE] GIFT CARD ${claimed.reference} → FAILED, refunded`);
+    } else {
+        await issuesBridge().raise({
+            service:        'giftcard',
+            provider:       'dtone',
+            issueType:      'PROVIDER_FAILURE_NOT_REFUNDED',
+            internalTable:  'giftcard_transactions',
+            internalId:     claimed.id,
+            internalRef:    claimed.reference,
+            providerRef:    claimed.provider_transaction_id || claimed.dtone_external_id || null,
+            userId:         claimed.user_id,
+            amount:         claimed.price_ngn || claimed.face_value || null,
+            currency:       claimed.debit_currency || 'NGN',
+            internalStatus: claimed.status,
+            providerStatus: result.providerStatus || result.status || null,
+            reason:         refundOutcome.refundError || 'Refund did not complete'
+        });
     }
 
     return refundOutcome;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 //  EMAIL DELIVERY
-// ═══════════════════════════════════════════════════════════════════════════
+//  (unchanged — working)
+// ═══════════════════════════════════════════════════════════════════
 function queueEsimEmail(orderId) {
     setImmediate(async () => {
         try {
@@ -948,15 +1143,12 @@ async function trySendEsimEmail(order) {
                 next_email_retry_at: null,
                 updated_at: new Date().toISOString()
             }).eq('id', order.id);
-
             console.log(`📧 [RECONCILE] eSIM email sent for ${claimed.reference}`);
             return true;
         }
 
         const attempt = claimed.email_attempts || 1;
-        const backoffMin = EMAIL_RETRY_BACKOFF_MIN[
-            Math.min(attempt - 1, EMAIL_RETRY_BACKOFF_MIN.length - 1)
-        ];
+        const backoffMin = EMAIL_RETRY_BACKOFF_MIN[Math.min(attempt - 1, EMAIL_RETRY_BACKOFF_MIN.length - 1)];
         const nextRetry = new Date(Date.now() + backoffMin * 60000);
 
         await supabaseAdmin.from('esim_transactions').update({
@@ -969,20 +1161,15 @@ async function trySendEsimEmail(order) {
         return false;
     } catch (e) {
         console.error(`❌ [RECONCILE] eSIM email exception for ${claimed.reference}:`, e.message);
-
         const attempt = claimed.email_attempts || 1;
-        const backoffMin = EMAIL_RETRY_BACKOFF_MIN[
-            Math.min(attempt - 1, EMAIL_RETRY_BACKOFF_MIN.length - 1)
-        ];
+        const backoffMin = EMAIL_RETRY_BACKOFF_MIN[Math.min(attempt - 1, EMAIL_RETRY_BACKOFF_MIN.length - 1)];
         const nextRetry = new Date(Date.now() + backoffMin * 60000);
-
         await supabaseAdmin.from('esim_transactions').update({
             email_status: attempt >= EMAIL_MAX_ATTEMPTS ? 'failed' : 'pending',
             last_email_error: e.message,
             next_email_retry_at: attempt >= EMAIL_MAX_ATTEMPTS ? null : nextRetry.toISOString(),
             updated_at: new Date().toISOString()
         }).eq('id', order.id);
-
         return false;
     }
 }
@@ -1006,11 +1193,7 @@ function queueGiftCardFailureEmail(order, reason) {
     setImmediate(async () => {
         try {
             if (!order.delivery_email) return;
-            if (typeof emailService.sendGiftCardFailureEmail !== 'function') {
-                console.warn('⚠️ [RECONCILE] sendGiftCardFailureEmail not implemented');
-                return;
-            }
-
+            if (typeof emailService.sendGiftCardFailureEmail !== 'function') return;
             const { data: profile } = await supabaseAdmin
                 .from('profiles')
                 .select('username')
@@ -1068,11 +1251,7 @@ async function trySendGiftCardEmail(order) {
     if (!claimed) return true;
 
     try {
-        if (typeof emailService.sendGiftCardDeliveryEmail !== 'function') {
-            console.warn('⚠️ [RECONCILE] sendGiftCardDeliveryEmail not implemented');
-            return false;
-        }
-
+        if (typeof emailService.sendGiftCardDeliveryEmail !== 'function') return false;
         const { data: profile } = await supabaseAdmin
             .from('profiles')
             .select('username')
@@ -1105,51 +1284,40 @@ async function trySendGiftCardEmail(order) {
                 next_email_retry_at: null,
                 updated_at: new Date().toISOString()
             }).eq('id', order.id);
-
             console.log(`📧 [RECONCILE] Gift card email sent for ${claimed.reference}`);
             return true;
         }
 
         const attempt = claimed.email_attempts || 1;
-        const backoffMin = EMAIL_RETRY_BACKOFF_MIN[
-            Math.min(attempt - 1, EMAIL_RETRY_BACKOFF_MIN.length - 1)
-        ];
+        const backoffMin = EMAIL_RETRY_BACKOFF_MIN[Math.min(attempt - 1, EMAIL_RETRY_BACKOFF_MIN.length - 1)];
         const nextRetry = new Date(Date.now() + backoffMin * 60000);
-
         await supabaseAdmin.from('giftcard_transactions').update({
             email_status: attempt >= EMAIL_MAX_ATTEMPTS ? 'failed' : 'pending',
             last_email_error: emailRes?.error || 'Unknown error',
             next_email_retry_at: attempt >= EMAIL_MAX_ATTEMPTS ? null : nextRetry.toISOString(),
             updated_at: new Date().toISOString()
         }).eq('id', order.id);
-
         return false;
     } catch (e) {
         console.error(`❌ [RECONCILE] gift card email exception for ${claimed.reference}:`, e.message);
-
         const attempt = claimed.email_attempts || 1;
-        const backoffMin = EMAIL_RETRY_BACKOFF_MIN[
-            Math.min(attempt - 1, EMAIL_RETRY_BACKOFF_MIN.length - 1)
-        ];
+        const backoffMin = EMAIL_RETRY_BACKOFF_MIN[Math.min(attempt - 1, EMAIL_RETRY_BACKOFF_MIN.length - 1)];
         const nextRetry = new Date(Date.now() + backoffMin * 60000);
-
         await supabaseAdmin.from('giftcard_transactions').update({
             email_status: attempt >= EMAIL_MAX_ATTEMPTS ? 'failed' : 'pending',
             last_email_error: e.message,
             next_email_retry_at: attempt >= EMAIL_MAX_ATTEMPTS ? null : nextRetry.toISOString(),
             updated_at: new Date().toISOString()
         }).eq('id', order.id);
-
         return false;
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  STALE REFUND / EMAIL RECOVERY
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+//  STALE REFUND RECOVERY
+// ═══════════════════════════════════════════════════════════════════
 async function recoverStaleRefunds(table) {
     const cutoff = new Date(Date.now() - STALE_REFUND_MS).toISOString();
-
     const { data: stale, error } = await supabaseAdmin
         .from(table)
         .select('id')
@@ -1160,7 +1328,6 @@ async function recoverStaleRefunds(table) {
 
     if (error || !stale?.length) return 0;
 
-    // Reset them so the next pass retries
     const ids = stale.map((s) => s.id);
     await supabaseAdmin
         .from(table)
@@ -1175,18 +1342,17 @@ async function recoverStaleRefunds(table) {
     return ids.length;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  PER-SERVICE ORCHESTRATOR
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+//  PER-TRANSACTION ORCHESTRATOR
+// ═══════════════════════════════════════════════════════════════════
 async function processTransaction(tx, service) {
     if (tx.refunded) return { skipped: true };
 
     const ageMs = Date.now() - new Date(tx.created_at).getTime();
 
-    // ── Age cap for stuck CREATED transactions ────────────────────
+    // CREATED stuck — auto-fail via refund path.
     const providerStatusUpper = String(tx.provider_status || '').toUpperCase();
-    const statusIsCreated = providerStatusUpper === 'CREATED';
-    if (statusIsCreated && ageMs >= NEVER_CONFIRMED_MS) {
+    if (providerStatusUpper === 'CREATED' && ageMs >= NEVER_CONFIRMED_MS) {
         console.warn(
             `⏰ [RECONCILE] ${service.name} ${tx.reference} stuck in CREATED for ${Math.round(ageMs / 60000)}m — auto-failing`
         );
@@ -1201,10 +1367,11 @@ async function processTransaction(tx, service) {
         });
     }
 
+    // 26h age cap → manual review.
     if (ageMs >= MAX_AGE_BEFORE_MANUAL_MS) {
         console.log(`⏰ [RECONCILE] ${service.name} ${tx.reference} exceeded ${MAX_AGE_BEFORE_MANUAL_MS / 3600000}h cap`);
         return await moveToManualReview(
-            service.table,
+            service,
             tx,
             `Exceeded ${MAX_AGE_BEFORE_MANUAL_MS / 3600000}h processing cap`
         );
@@ -1212,7 +1379,7 @@ async function processTransaction(tx, service) {
 
     let providerResult = await queryDTOneTransaction(tx);
 
-    // ── Try confirming stuck CREATED transactions ─────────────────
+    // Confirm CREATED if provider still reports CREATED.
     if (providerResult?.success) {
         const confirmAttempt = await tryConfirmStuckTransaction(tx, providerResult);
 
@@ -1243,83 +1410,50 @@ async function processTransaction(tx, service) {
         }
     }
 
-    // ── NOT_FOUND ─────────────────────────────────────────────────
+    // NOT_FOUND — schedule a retry.
     if (!providerResult.success && providerResult.status === 'not_found') {
-        const newAttempts = (tx.reconciliation_attempts || 0) + 1;
-        await incrementAttempts(service.table, tx.id, 'DT One not found by ID or external_id');
-
-        if (newAttempts >= MAX_RECONCILIATION_ATTEMPTS) {
-            return await moveToManualReview(
-                service.table,
-                tx,
-                'DT One not found after multiple attempts'
-            );
-        }
+        await recordAttempt(service.table, tx.id, {
+            errorMessage: 'DT One not found by ID or external_id'
+        });
         return { notFound: true };
     }
 
+    // Query failed — schedule a retry.
     if (!providerResult.success) {
-        const newAttempts = (tx.reconciliation_attempts || 0) + 1;
-        await incrementAttempts(
-            service.table,
-            tx.id,
-            `Provider query failed: ${providerResult.error}`
-        );
-
-        if (newAttempts >= MAX_RECONCILIATION_ATTEMPTS) {
-            return await moveToProviderUnknown(
-                service.table,
-                tx,
-                `Provider query failed after ${MAX_RECONCILIATION_ATTEMPTS} attempts: ${providerResult.error}`
-            );
-        }
+        await recordAttempt(service.table, tx.id, {
+            errorMessage: `Provider query failed: ${providerResult.error}`
+        });
         return { queryFailed: true };
     }
 
     const providerStatus = String(providerResult.status || '').toLowerCase();
     console.log(`📡 [RECONCILE] ${service.name} ${tx.reference} → ${providerStatus}`);
 
-    // ── Definitive rejection ──────────────────────────────────────
     if (FINAL_FAILED_STATUSES.has(providerStatus)) {
         return await service.onFail(tx, providerResult);
     }
 
-    // ── Final success ─────────────────────────────────────────────
     if (FINAL_SUCCESS_STATUSES.has(providerStatus)) {
         return await service.onComplete(tx, providerResult);
     }
 
-    // ── Unknown — treat as provider_unknown ──────────────────────
     if (providerStatus === 'provider_unknown') {
-        const newAttempts = (tx.reconciliation_attempts || 0) + 1;
-        await incrementAttempts(service.table, tx.id, 'Provider returned unknown status');
-        if (newAttempts >= MAX_RECONCILIATION_ATTEMPTS) {
-            return await moveToProviderUnknown(
-                service.table,
-                tx,
-                `Unknown provider status after ${MAX_RECONCILIATION_ATTEMPTS} attempts`
-            );
-        }
+        await recordAttempt(service.table, tx.id, {
+            errorMessage: 'Provider returned unknown status'
+        });
         return { providerUnknown: true };
     }
 
-    // ── Still processing ──────────────────────────────────────────
-    const newAttempts = (tx.reconciliation_attempts || 0) + 1;
-    if (newAttempts >= MAX_RECONCILIATION_ATTEMPTS) {
-        return await moveToManualReview(
-            service.table,
-            tx,
-            `Still processing after ${MAX_RECONCILIATION_ATTEMPTS} attempts`
-        );
-    }
-
-    await incrementAttempts(service.table, tx.id, `Still ${providerStatus}`);
+    // Still processing — record attempt with backoff.
+    await recordAttempt(service.table, tx.id, {
+        errorMessage: `Still ${providerStatus}`
+    });
     return { processing: true };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 //  SERVICE DEFINITIONS
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 const SERVICES = [
     {
         name: 'AIRTIME',
@@ -1341,22 +1475,29 @@ const SERVICES = [
     }
 ];
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 //  SWEEP
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 async function sweepService(service) {
-    // First, recover stale refund claims
+    if (!service || !service.table) {
+        return { success: false, error: 'sweepService: service.table required', processed: 0 };
+    }
+
+    // Recover stale refund claims first.
     await recoverStaleRefunds(service.table).catch(() => {});
 
-    const cutoff = new Date(Date.now() - STUCK_AFTER_MS).toISOString();
+    // Candidate query: only records whose next_check_at is due.
+    // Falls back to created_at < cutoff for rows where next_check_at
+    // is still null (pre-migration rows).
+    const nowIso = new Date().toISOString();
+    const legacyCutoff = new Date(Date.now() - STUCK_AFTER_MS).toISOString();
 
-    const { data: stuck, error } = await supabaseAdmin
+    const { data: dueStuck, error } = await supabaseAdmin
         .from(service.table)
         .select('*')
         .in('status', ['processing', 'pending', 'provider_unknown'])
-        .lt('created_at', cutoff)
-        .or(`reconciliation_attempts.lt.${MAX_RECONCILIATION_ATTEMPTS},reconciliation_attempts.is.null`)
-        .order('created_at', { ascending: true })
+        .or(`next_check_at.lte.${nowIso},and(next_check_at.is.null,created_at.lt.${legacyCutoff})`)
+        .order('next_check_at', { ascending: true, nullsFirst: false })
         .limit(BATCH_SIZE);
 
     if (error) {
@@ -1364,22 +1505,22 @@ async function sweepService(service) {
         return { success: false, error: error.message, processed: 0 };
     }
 
-    if (!stuck || stuck.length === 0) {
+    if (!dueStuck || dueStuck.length === 0) {
         return { success: true, processed: 0 };
     }
 
-    console.log(`🔄 [RECONCILE] ${service.name}: ${stuck.length} stuck transactions`);
+    console.log(`🔄 [RECONCILE] ${service.name}: ${dueStuck.length} stuck transactions`);
 
     let processed = 0, completed = 0, refunded = 0, manualReview = 0, notFound = 0, providerUnknown = 0;
 
-    for (let i = 0; i < stuck.length; i += CONCURRENT_LIMIT) {
-        const batch = stuck.slice(i, i + CONCURRENT_LIMIT);
+    for (let i = 0; i < dueStuck.length; i += CONCURRENT_LIMIT) {
+        const batch = dueStuck.slice(i, i + CONCURRENT_LIMIT);
         const results = await Promise.all(batch.map(async (tx) => {
             try {
                 return await processTransaction(tx, service);
             } catch (e) {
                 console.error(`❌ [RECONCILE] ${service.name} ${tx.reference}:`, e.message);
-                try { await incrementAttempts(service.table, tx.id, e.message); } catch {}
+                try { await recordAttempt(service.table, tx.id, { errorMessage: e.message }); } catch {}
                 return { error: true };
             }
         }));
@@ -1415,9 +1556,9 @@ async function reconcileAllTransactions() {
     return { success: true, results };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 //  PUBLIC API
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 async function getStuckTransactions(table, limit = 50) {
     const { data, error } = await supabaseAdmin
         .from(table)
@@ -1478,33 +1619,50 @@ async function getReconciliationStats() {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  SCHEDULER
-// ═══════════════════════════════════════════════════════════════════════════
-let intervalHandle = null;
+// ═══════════════════════════════════════════════════════════════════
+//  SCHEDULER — self-rescheduling setTimeout (no overlap)
+// ═══════════════════════════════════════════════════════════════════
+let schedulerHandle = null;
+let schedulerStopped = false;
+
+function scheduleNext() {
+    if (schedulerStopped) return;
+    schedulerHandle = setTimeout(async () => {
+        try {
+            console.log('🔄 [SCHEDULER] Running unified airtime/eSIM/gift card reconciliation...');
+            await reconcileAllTransactions();
+        } catch (e) {
+            console.error('❌ [SCHEDULER] Failed:', e.message);
+        } finally {
+            scheduleNext();
+        }
+    }, SCHEDULER_INTERVAL_MS);
+    if (schedulerHandle.unref) schedulerHandle.unref();
+}
 
 function startReconciliationScheduler() {
-    if (intervalHandle) return intervalHandle;
-
-    setTimeout(async () => {
-        console.log('🔄 [SCHEDULER] Initial reconciliation run...');
+    if (schedulerHandle) return schedulerHandle;
+    schedulerStopped = false;
+    // Initial run after 10s, then loop.
+    schedulerHandle = setTimeout(async () => {
         try {
             await reconcileAllTransactions();
         } catch (e) {
             console.error('❌ [SCHEDULER] Initial run failed:', e.message);
+        } finally {
+            scheduleNext();
         }
-    }, 10000);
+    }, 10_000);
+    if (schedulerHandle.unref) schedulerHandle.unref();
+    return schedulerHandle;
+}
 
-    intervalHandle = setInterval(async () => {
-        console.log('🔄 [SCHEDULER] Running unified reconciliation...');
-        try {
-            await reconcileAllTransactions();
-        } catch (e) {
-            console.error('❌ [SCHEDULER] Failed:', e.message);
-        }
-    }, SCHEDULER_INTERVAL_MS);
-
-    return intervalHandle;
+function stopReconciliationScheduler() {
+    schedulerStopped = true;
+    if (schedulerHandle) {
+        clearTimeout(schedulerHandle);
+        schedulerHandle = null;
+    }
 }
 
 async function startAirtimeReconciliationScheduler() {
@@ -1527,6 +1685,7 @@ async function forceReconcileAirtime(transactionId) {
 module.exports = {
     reconcileAllTransactions,
     startReconciliationScheduler,
+    stopReconciliationScheduler,
     getStuckTransactions,
     forceReconcileTransaction,
     getReconciliationStats,
@@ -1554,7 +1713,8 @@ module.exports = {
 
     moveToManualReview,
     moveToProviderUnknown,
-    incrementAttempts,
+    recordAttempt,
     tryConfirmStuckTransaction,
-    performVerifiedRefund
+    performVerifiedRefund,
+    getBackoffNextCheckAt
 };

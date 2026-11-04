@@ -3,11 +3,10 @@
 // GENERAL ACTIVITY history — service orders and purchases.
 //
 // SCOPE — what this file returns:
-//   • Airtime orders (VTpass — bill_payment_transactions)
-//   • Data orders (VTpass — bill_payment_transactions)
-//   • Electricity / TV / bills (VTpass — bill_payment_transactions)
-//   • eSIM orders
-//   • Gift-card orders
+//   • Airtime orders (DT One — airtime_transactions)
+//   • Airtime / Data / Electricity / TV / bills (VTpass — bill_payment_transactions)
+//   • eSIM orders (DT One — esim_transactions)
+//   • Gift-card orders (DT One — giftcard_transactions)   ← NEW
 //   • Virtual SMS orders
 //   • Marketplace purchases
 //   • Social-boosting orders
@@ -26,43 +25,6 @@
 //   POST /download/:reference               atomic download count
 //   GET  /export/csv                        bounded CSV
 //   GET  /:id                               MUST be registered LAST
-//
-// CHANGES vs the previous version:
-//   • Every response uses a customer-safe allowlist via `toCustomer()`.
-//     Raw `metadata`, `provider`, `provider_reference`, `provider_cost`,
-//     `provider_status`, `download_token`, `credentials` are NOT returned
-//     from list / detail / stats endpoints.
-//   • `firstPositive()` no longer picks any random money column. The
-//     row mappers now use a per-type authority order: the exact customer
-//     debit column first, then safe fallbacks, and only ever a same-
-//     currency amount.
-//   • `/stats` no longer loads every row into Node. It runs bounded
-//     aggregate queries via the `transaction_stats_for_user` RPC, with a
-//     Node fallback that caps the scanned rows.
-//   • Per-table fetch cap reduced and made explicit. When a cap is hit
-//     the response is flagged `truncated: true` for that source so the
-//     UI can say "older history may exist" instead of quietly dropping
-//     it.
-//   • `/export/csv` is bounded (max 10k rows, max 366-day window),
-//     validates date filters, checks every query error, and streams the
-//     body.
-//   • `POST /download/:reference` now uses an atomic RPC
-//     `increment_download_count` (falls back to an optimistic check).
-//   • `/purchases/:reference/deliverable` remains the ONLY place
-//     `download_token`, credentials, and delivered_data are returned.
-//   • Search input is validated: length ≤ 64, no PostgREST-breaking
-//     characters, and the same sanitized value is reused for every
-//     source.
-//   • Every "source failed" case now returns a warning the frontend
-//     can surface, instead of silently substituting an empty array.
-//
-//   • VTpass purchases (airtime / data / electricity / TV) now come
-//     from `bill_payment_transactions` in addition to the other
-//     sources. They are de-duped against `transactions` rows that
-//     share the same reference. This is why bill rows were missing
-//     from the general feed before — the previous version only
-//     consulted `transactions` (which excludes wallet_debit), plus
-//     `airtime_transactions` (DT One, which is a different service).
 // ─────────────────────────────────────────────────────────────────
 
 'use strict';
@@ -75,11 +37,11 @@ const { authMiddleware } = require('../middleware/auth');
 
 // ═══ CONFIG ═══
 const DEFAULT_LIMIT = 20;
-const MAX_LIMIT     = 50;             // Hard cap — no more unbounded requests.
-const PER_SOURCE_CAP = 200;           // Fetch at most 200 rows per source.
-const MERGE_CAP     = 400;            // Total merged rows we will sort.
-const EXPORT_MAX_ROWS = 10000;        // Hard cap for CSV.
-const EXPORT_MAX_DAYS = 366;          // Hard cap for the CSV date window.
+const MAX_LIMIT     = 50;
+const PER_SOURCE_CAP = 200;
+const MERGE_CAP     = 500;
+const EXPORT_MAX_ROWS = 10000;
+const EXPORT_MAX_DAYS = 366;
 
 // ─── SERVICE-ONLY TYPES ───────────────────────────────────────────
 const SERVICE_TYPES = Object.freeze([
@@ -90,9 +52,6 @@ const SERVICE_TYPES = Object.freeze([
     'bills', 'electricity', 'cable', 'internet', 'water', 'education'
 ]);
 
-// Public statuses we expose to customers. Everything else maps to
-// 'processing' so internal states never leak. This is intentionally
-// conservative — add to it only when the UI actually needs the value.
 const CUSTOMER_STATUS_MAP = Object.freeze({
     completed:  'completed',
     success:    'completed',
@@ -113,46 +72,34 @@ const CUSTOMER_STATUS_MAP = Object.freeze({
 });
 
 // ═══ HELPERS ═══
-
 function parseLimit(value) {
     const parsed = parseInt(value, 10);
     if (isNaN(parsed) || parsed < 1) return DEFAULT_LIMIT;
     return Math.min(parsed, MAX_LIMIT);
 }
-
 function parsePage(value) {
     const parsed = parseInt(value, 10);
     if (isNaN(parsed) || parsed < 1) return 1;
     return parsed;
 }
-
 function num(v) {
     const n = Number(v);
     return Number.isFinite(n) ? n : 0;
 }
-
 function up(v) { return String(v || '').toUpperCase(); }
 function lower(v) { return String(v || '').toLowerCase(); }
-
 function toIso(v) {
     if (!v) return null;
     try { return new Date(v).toISOString(); } catch { return null; }
 }
-
 function newReqId() {
     return 'tx-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
 }
-
 function csvCell(v) {
     const s = String(v == null ? '' : v);
     return `"${s.replace(/"/g, '""')}"`;
 }
 
-// ─── SEARCH SANITISATION ─────────────────────────────────────────
-// PostgREST `.or()` treats commas, dots, and parens as syntax. We
-// reject anything outside a conservative allowlist rather than try
-// to escape it — this file is a customer endpoint, not a search
-// engine.
 const SEARCH_RE = /^[A-Za-z0-9_\- ]{1,64}$/;
 function sanitizeSearch(value) {
     if (!value) return null;
@@ -162,10 +109,6 @@ function sanitizeSearch(value) {
     return s;
 }
 
-// ─── CURRENCY-SAFE AMOUNT PICKER ─────────────────────────────────
-// Given the currency we believe the row is in, return the first
-// non-zero value from the SAME-currency columns only. Never crosses
-// currencies. This is the fix for the "displayed ₦0.00" bug.
 function amountForCurrency(row, currency) {
     const ccy = up(currency) || 'NGN';
     const order = ccy === 'USD'
@@ -192,9 +135,6 @@ function feeForCurrency(row, currency) {
     return 0;
 }
 
-// ─── CUSTOMER-SAFE DESCRIPTION ───────────────────────────────────
-// Never include provider names, provider statuses, or raw error text.
-// Build a short human-readable string from safe fields only.
 function customerSafeDescription(record, fallback) {
     const type = lower(record.type || record.service_type);
 
@@ -240,7 +180,6 @@ function customerSafeDescription(record, fallback) {
     return record.description || fallback || 'Transaction';
 }
 
-// ─── CUSTOMER-SAFE STATUS ────────────────────────────────────────
 function toCustomerStatus(status) {
     const s = lower(status);
     return CUSTOMER_STATUS_MAP[s] || 'processing';
@@ -248,18 +187,10 @@ function toCustomerStatus(status) {
 
 // ═══════════════════════════════════════════════════════════════════
 //  CUSTOMER-SAFE OUTPUT
-//
-//  This is the ONLY shape we return from list/detail/stats endpoints.
-//  Provider fields, raw metadata, delivery secrets, and internal
-//  diagnostics are stripped here. They remain in the database and
-//  are available to admin/support routes, which are separate.
 // ═══════════════════════════════════════════════════════════════════
 function toCustomer(record) {
     if (!record) return null;
 
-    // Build a small, safe delivery summary. For airtime we allow the
-    // last-4 phone digits; for eSIM we allow the plan; for marketplace
-    // we allow nothing beyond the title. NO credentials, NO tokens.
     const delivery = {};
     const type = lower(record.type);
 
@@ -277,14 +208,16 @@ function toCustomer(record) {
         if (record.metadata?.validity_days) delivery.validity_days = record.metadata.validity_days;
     } else if (type === 'marketplace' || type === 'purchase') {
         if (record.product_title) delivery.product_title = record.product_title;
-        // Deliberately do NOT include download_token, delivered_data, or
-        // credentials here. Those live behind /purchases/:reference/deliverable.
     } else if (type === 'electricity') {
         if (record.metadata?.token) delivery.token = record.metadata.token;
         if (record.metadata?.units) delivery.units = record.metadata.units;
     } else if (type === 'data' || type === 'tv' || type === 'bills') {
         if (record.metadata?.network) delivery.network = record.metadata.network;
         if (record.metadata?.recipient) delivery.recipient_masked = `****${String(record.metadata.recipient).slice(-4)}`;
+    } else if (type === 'giftcard' || type === 'gift' || type === 'gift_card') {
+        if (record.metadata?.card_name) delivery.card_name = record.metadata.card_name;
+        if (record.metadata?.face_value) delivery.face_value = record.metadata.face_value;
+        if (record.metadata?.face_currency) delivery.face_currency = record.metadata.face_currency;
     }
 
     return {
@@ -364,7 +297,6 @@ function mapAirtimeToTransaction(a) {
         source_type: 'airtime',
         source_id: a.id,
         phone_number: phone,
-        // Airtime mapper keeps recipient delivery info only; no provider fields.
         metadata: {
             country_code: a.country_code || null,
             phone_number: phone || null,
@@ -425,9 +357,6 @@ function mapMarketplace(o, linkedTx = null) {
         'NGN'
     );
 
-    // Authoritative amount: prefer what the linked transactions row
-    // actually charged, then the order's own amount columns in the
-    // matching currency, in a fixed, documented order.
     let amount = 0;
     if (linkedTx) amount = amountForCurrency(linkedTx, currency);
     if (amount === 0) amount = amountForCurrency(o, currency);
@@ -449,9 +378,6 @@ function mapMarketplace(o, linkedTx = null) {
         source_type: 'marketplace',
         source_id: o.id,
         product_title: o.product_title || null,
-        // Delivery secrets are NOT included here. See
-        // /purchases/:reference/deliverable for the ownership-checked
-        // download_token + credentials.
         metadata: {
             product_title: o.product_title || null,
             product_id: o.product_id || null,
@@ -467,17 +393,9 @@ function mapMarketplace(o, linkedTx = null) {
     };
 }
 
-// ── NEW: map a VTpass bill_payment_transactions row to canonical shape ──
-// Covers airtime, data, electricity, tv, and generic `bills`.
-// Provider fields (provider_request_id, provider_status, provider_code,
-// provider_response) are intentionally NOT included — those live behind
-// admin/support routes only.
 function mapBillPaymentToTransaction(b) {
     const currency = up(b.currency || 'NGN');
 
-    // customer_amount is what the user was charged. base_amount and
-    // provider_amount are the pre-markup figures. Prefer the customer
-    // figure.
     let amount = num(b.customer_amount);
     if (amount === 0) amount = amountForCurrency(b, currency);
 
@@ -486,7 +404,6 @@ function mapBillPaymentToTransaction(b) {
     const serviceType = lower(b.service_type) || 'bills';
     const reference = b.reference || b.id;
 
-    // Build metadata for delivery summary — safe, masked values only.
     const metadata = {
         network: b.network || null,
         recipient: b.recipient || null,
@@ -494,8 +411,6 @@ function mapBillPaymentToTransaction(b) {
         units: b.units || null
     };
     if (b.metadata && typeof b.metadata === 'object') {
-        // Only carry through the fields we explicitly allow in the safe
-        // description builder.
         if (b.metadata.plan_name) metadata.plan_name = b.metadata.plan_name;
         if (b.metadata.customer_name) metadata.customer_name = b.metadata.customer_name;
     }
@@ -534,8 +449,53 @@ function mapBillPaymentToTransaction(b) {
     };
 }
 
-// ─── Hydrate marketplace orders with their linked transactions ────
-// Same as before but selects only the columns we actually read.
+// ── map a DT One giftcard_transactions row to canonical shape ────
+// Provider fields (provider_response, provider_status,
+// provider_transaction_id, voucher_code, voucher_serial,
+// email_message_id) are NOT included here — voucher codes live behind
+// /purchases/:reference/deliverable. Admin/support routes get their
+// own shape from the admin endpoints.
+function mapGiftCardToTransaction(g) {
+    const currency = up(g.currency || g.debit_currency || 'USD');
+
+    let amount = num(g.amount);
+    if (amount === 0) amount = amountForCurrency(g, currency);
+
+    const fee = num(g.fee) || feeForCurrency(g, currency);
+
+    return {
+        id: g.id,
+        reference: g.reference || g.id,
+        type: 'giftcard',
+        status: g.status || 'pending',
+        currency,
+        wallet_used: currency,
+        amount,
+        fee,
+        net_amount: Math.max(0, amount - fee),
+        description: customerSafeDescription(
+            { type: 'giftcard', card_name: g.card_name },
+            'Gift card order'
+        ),
+        category: null,
+        source_type: 'dtone',
+        source_id: g.id,
+        metadata: {
+            card_name: g.card_name || null,
+            face_value: g.face_value ?? null,
+            face_currency: g.face_currency || null,
+            delivered: !!g.email_sent,
+            delivered_at: g.email_sent_at || null
+        },
+        created_at: g.created_at,
+        updated_at: g.updated_at,
+        completed_at: g.completed_at || null,
+        failed_at: g.failed_at || null,
+        cancelled_at: null,
+        refunded_at: g.refunded ? (g.refunded_at || g.updated_at) : null
+    };
+}
+
 async function attachLinkedTransactions(userId, orders) {
     if (!orders || orders.length === 0) return new Map();
 
@@ -678,7 +638,33 @@ router.get('/', authMiddleware, async (req, res) => {
             }
         }
 
-        // ─── 4. Marketplace orders ────────────────────────────────
+        // ─── 4. Gift card rows ────────────────────────────────────
+        let giftRows = [];
+        const includeGift = !type || ['gift', 'giftcard', 'gift_card'].includes(type);
+        if (includeGift) {
+            let gQ = supabaseAdmin
+                .from('giftcard_transactions')
+                .select('*')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false })
+                .limit(PER_SOURCE_CAP);
+
+            if (status) gQ = gQ.eq('status', status);
+            if (search) gQ = gQ.or(
+                `reference.ilike.%${search}%,card_name.ilike.%${search}%`
+            );
+
+            const { data: rows, error: gErr } = await gQ;
+            if (gErr && gErr.code !== '42P01') {
+                console.warn('[TX] giftcard query error (non-fatal):', gErr.message);
+                warnings.push('giftcard source unavailable');
+            } else if (!gErr) {
+                giftRows = rows || [];
+                if (giftRows.length === PER_SOURCE_CAP) truncated.giftcard = true;
+            }
+        }
+
+        // ─── 5. Marketplace orders ────────────────────────────────
         let marketRows = [];
         const includeMarket = !type || type === 'marketplace' || type === 'purchase';
         if (includeMarket) {
@@ -701,11 +687,7 @@ router.get('/', authMiddleware, async (req, res) => {
             }
         }
 
-        // ─── 5. VTpass bill payments (airtime / data / electricity / tv / bills) ─
-        // This is what powers bills purchases in the general feed. The
-        // `transactions` table has the corresponding wallet_debit but
-        // wallet_debit is not a SERVICE_TYPE — so bills only appear here
-        // if we query bill_payment_transactions directly.
+        // ─── 6. VTpass bill payments ──────────────────────────────
         let billRows = [];
         const includeBills = !type || ['airtime', 'data', 'electricity', 'tv', 'bills'].includes(type);
         if (includeBills) {
@@ -721,7 +703,6 @@ router.get('/', authMiddleware, async (req, res) => {
             }
             if (status) bQ = bQ.eq('status', status);
             if (search) {
-                // bill_payment_transactions has: reference, recipient, service_id
                 bQ = bQ.or(
                     `reference.ilike.%${search}%,recipient.ilike.%${search}%,service_id.ilike.%${search}%`
                 );
@@ -737,30 +718,30 @@ router.get('/', authMiddleware, async (req, res) => {
             }
         }
 
-        // ─── 6. Merge + map ───────────────────────────────────────
+        // ─── 7. Merge + map ───────────────────────────────────────
         const linkMap = await attachLinkedTransactions(userId, marketRows);
 
         const mainMapped   = (mainTx || []).map(mapTransaction);
         const airMapped    = airtimeRows.map(mapAirtimeToTransaction);
         const esimMapped   = esimRows.map(mapEsimToTransaction);
+        const giftMapped   = giftRows.map(mapGiftCardToTransaction);
         const marketMapped = marketRows.map(o => {
             const linkedTx = linkMap.get(String(o.id)) || linkMap.get(String(o.order_ref)) || null;
             return mapMarketplace(o, linkedTx);
         });
         const billMapped   = billRows.map(mapBillPaymentToTransaction);
 
-        // De-dupe: prefer the marketplace order shape over a `transactions`
-        // row with the same reference.
+        // De-dupe: marketplace orders win over a `transactions` row
+        // with the same reference.
         const marketRefs = new Set(marketMapped.map(m => String(m.reference)));
         const filteredMain = mainMapped.filter(m => {
             if (!['marketplace', 'purchase'].includes(lower(m.type))) return true;
             return !marketRefs.has(String(m.reference));
         });
 
-        // Also de-dupe bills against main transactions by reference
-        // (the wallet_debit for a bill is a different reference, so this
-        // is only defensive against the unified tx row that some flows
-        // may write with the same reference).
+        // De-dupe: bill_payment_transactions win over `transactions`
+        // rows that share the same reference for airtime/data/tv/
+        // electricity/bills types.
         const billRefs = new Set(billMapped.map(b => String(b.reference)));
         const filteredMainAfterBills = filteredMain.filter(m => {
             const t = lower(m.type);
@@ -768,20 +749,28 @@ router.get('/', authMiddleware, async (req, res) => {
             return !billRefs.has(String(m.reference));
         });
 
-        // Similarly, DT One airtime and VTpass airtime can share the same
-        // reference in theory. Prefer billMapped (VTpass) in that case
-        // because it's the one the user just purchased through bills.html.
+        // De-dupe: giftcard_transactions win over `transactions` rows
+        // for gift/giftcard/gift_card types.
+        const giftRefs = new Set(giftMapped.map(g => String(g.reference)));
+        const filteredMainAfterGifts = filteredMainAfterBills.filter(m => {
+            const t = lower(m.type);
+            if (!['gift', 'giftcard', 'gift_card'].includes(t)) return true;
+            return !giftRefs.has(String(m.reference));
+        });
+
+        // De-dupe DT One airtime against VTpass airtime (VTpass wins
+        // when the same reference exists in both).
         const filteredAir = airMapped.filter(a => !billRefs.has(String(a.reference)));
 
         const merged = [
-            ...filteredMainAfterBills,
+            ...filteredMainAfterGifts,
             ...marketMapped,
             ...billMapped,
+            ...giftMapped,
             ...esimMapped,
             ...filteredAir
         ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-        // Hard cap on merged set. If we exceeded it we tell the user.
         if (merged.length > MERGE_CAP) {
             warnings.push('history truncated — refine filters or date range');
             merged.length = MERGE_CAP;
@@ -789,10 +778,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
         const totalCount = merged.length;
         const paged = merged.slice(offset, offset + limit);
-
-        // ─── 7. Sanitize via allowlist ────────────────────────────
         const safePaged = paged.map(toCustomer);
-
         const partial = warnings.length > 0;
 
         res.json({
@@ -822,23 +808,12 @@ router.get('/', authMiddleware, async (req, res) => {
 
 // ═══════════════════════════════════════════════════════════════════
 //  GET /stats
-//
-//  Uses a server-side aggregate RPC when available:
-//      transaction_stats_for_user(p_user_id uuid)
-//      → jsonb { totalTransactions, giftOrders, marketOrders,
-//                boostOrders, smsOrders, airtimeOrders, esimOrders,
-//                totalOrders, monthlyCount }
-//
-//  Falls back to a bounded Node-side aggregation of the same
-//  capped rows used by the list route — still far cheaper than
-//  loading entire tables.
 // ═══════════════════════════════════════════════════════════════════
 router.get('/stats', authMiddleware, async (req, res) => {
     try {
         const userId = req.user.id;
         const warnings = [];
 
-        // Preferred path: server-side aggregate.
         try {
             const { data, error } = await supabaseAdmin.rpc('transaction_stats_for_user', {
                 p_user_id: userId
@@ -855,8 +830,7 @@ router.get('/stats', authMiddleware, async (req, res) => {
             warnings.push('server-side stats unavailable');
         }
 
-        // ── Fallback: bounded Node aggregation ────────────────────
-        const [mainRes, airRes, esimRes, marketRes, billRes] = await Promise.all([
+        const [mainRes, airRes, esimRes, giftRes, marketRes, billRes] = await Promise.all([
             supabaseAdmin
                 .from('transactions')
                 .select('id, type, status, created_at')
@@ -877,6 +851,12 @@ router.get('/stats', authMiddleware, async (req, res) => {
                 .order('created_at', { ascending: false })
                 .limit(PER_SOURCE_CAP),
             supabaseAdmin
+                .from('giftcard_transactions')
+                .select('id, status, created_at')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false })
+                .limit(PER_SOURCE_CAP),
+            supabaseAdmin
                 .from('marketplace_orders')
                 .select('id, status, created_at')
                 .eq('user_id', userId)
@@ -890,26 +870,18 @@ router.get('/stats', authMiddleware, async (req, res) => {
                 .limit(PER_SOURCE_CAP)
         ]);
 
-        if (mainRes.error && mainRes.error.code !== '42P01') {
-            warnings.push('transactions source unavailable');
-        }
-        if (airRes.error && airRes.error.code !== '42P01') {
-            warnings.push('airtime source unavailable');
-        }
-        if (esimRes.error && esimRes.error.code !== '42P01') {
-            warnings.push('esim source unavailable');
-        }
-        if (marketRes.error && marketRes.error.code !== '42P01') {
-            warnings.push('marketplace source unavailable');
-        }
-        if (billRes.error && billRes.error.code !== '42P01') {
-            warnings.push('bills source unavailable');
-        }
+        if (mainRes.error && mainRes.error.code !== '42P01') warnings.push('transactions source unavailable');
+        if (airRes.error && airRes.error.code !== '42P01') warnings.push('airtime source unavailable');
+        if (esimRes.error && esimRes.error.code !== '42P01') warnings.push('esim source unavailable');
+        if (giftRes.error && giftRes.error.code !== '42P01') warnings.push('giftcard source unavailable');
+        if (marketRes.error && marketRes.error.code !== '42P01') warnings.push('marketplace source unavailable');
+        if (billRes.error && billRes.error.code !== '42P01') warnings.push('bills source unavailable');
 
         const rows = [
             ...((mainRes.data || []).map(r => ({ type: r.type, status: r.status, created_at: r.created_at }))),
             ...((airRes.data || []).map(r => ({ type: 'airtime', status: r.status, created_at: r.created_at }))),
             ...((esimRes.data || []).map(r => ({ type: 'esim', status: r.status, created_at: r.created_at }))),
+            ...((giftRes.data || []).map(r => ({ type: 'giftcard', status: r.status, created_at: r.created_at }))),
             ...((marketRes.data || []).map(r => ({ type: 'marketplace', status: r.status, created_at: r.created_at }))),
             ...((billRes.data || []).map(r => ({ type: r.service_type || 'bills', status: r.status, created_at: r.created_at })))
         ];
@@ -977,11 +949,6 @@ router.get('/purchases', authMiddleware, async (req, res) => {
 
 // ═══════════════════════════════════════════════════════════════════
 //  GET /purchases/:reference/deliverable
-//
-//  This is the ONLY customer endpoint that returns delivery secrets:
-//  download_token, credentials, delivered_data. It is ownership-checked
-//  via `user_id = req.user.id`, and it enforces that the order is
-//  actually `completed` and `delivered`.
 // ═══════════════════════════════════════════════════════════════════
 router.get('/purchases/:reference/deliverable', authMiddleware, async (req, res) => {
     try {
@@ -1059,9 +1026,6 @@ router.get('/purchases/:reference/deliverable', authMiddleware, async (req, res)
 
 // ═══════════════════════════════════════════════════════════════════
 //  GET /purchase-map
-//
-//  Returns ONLY reference + status + safe amount + safe description.
-//  No metadata, no tokens.
 // ═══════════════════════════════════════════════════════════════════
 router.get('/purchase-map', authMiddleware, async (req, res) => {
     try {
@@ -1120,8 +1084,6 @@ router.get('/purchase-map', authMiddleware, async (req, res) => {
             };
         });
 
-        // Also include VTpass bills so the frontend can resolve those
-        // references (airtime / data / electricity / tv pages).
         const { data: billRows } = await supabaseAdmin
             .from('bill_payment_transactions')
             .select('id, reference, service_type, status, currency, customer_amount, base_amount, network, recipient, created_at')
@@ -1155,6 +1117,33 @@ router.get('/purchase-map', authMiddleware, async (req, res) => {
             };
         });
 
+        const { data: giftRows } = await supabaseAdmin
+            .from('giftcard_transactions')
+            .select('id, reference, status, currency, amount, card_name, created_at')
+            .eq('user_id', userId)
+            .in('status', ['completed', 'processing', 'pending'])
+            .order('created_at', { ascending: false })
+            .limit(100);
+
+        (giftRows || []).forEach(g => {
+            const ref = g.reference;
+            if (!ref || map[ref]) return;
+            const currency = up(g.currency || 'USD');
+            map[ref] = {
+                transaction_id: g.id,
+                reference: ref,
+                type: 'giftcard',
+                status: toCustomerStatus(g.status),
+                amount: amountForCurrency(g, currency),
+                currency,
+                description: customerSafeDescription(
+                    { type: 'giftcard', card_name: g.card_name },
+                    'Gift card order'
+                ),
+                purchased_at: g.created_at
+            };
+        });
+
         res.json({ success: true, map });
     } catch (error) {
         console.error('❌ Purchase map error:', error);
@@ -1164,10 +1153,6 @@ router.get('/purchase-map', authMiddleware, async (req, res) => {
 
 // ═══════════════════════════════════════════════════════════════════
 //  POST /download/:reference
-//
-//  Uses an atomic download-count RPC when available. If the RPC is
-//  missing we fall back to a read-modify-write guarded by an
-//  optimistic check on the previous count.
 // ═══════════════════════════════════════════════════════════════════
 router.post('/download/:reference', authMiddleware, async (req, res) => {
     const reqId = newReqId();
@@ -1217,7 +1202,6 @@ router.post('/download/:reference', authMiddleware, async (req, res) => {
             });
         }
 
-        // Preferred path: atomic RPC.
         let newCount = num(order.download_count) + 1;
         let rpcOk = false;
         try {
@@ -1237,9 +1221,6 @@ router.post('/download/:reference', authMiddleware, async (req, res) => {
             console.warn(`[TX/download] increment RPC threw reqId=${reqId}:`, rpcErr.message);
         }
 
-        // Fallback: optimistic update. Only succeeds if the row still
-        // has the count we read. This prevents two concurrent downloads
-        // from both writing the same value.
         if (!rpcOk) {
             const { error: updErr } = await supabaseAdmin
                 .from('marketplace_orders')
@@ -1269,9 +1250,6 @@ router.post('/download/:reference', authMiddleware, async (req, res) => {
 
 // ═══════════════════════════════════════════════════════════════════
 //  GET /export/csv
-//
-//  Bounded: max EXPORT_MAX_ROWS rows, max EXPORT_MAX_DAYS day window.
-//  Validates every date input and checks every query error.
 // ═══════════════════════════════════════════════════════════════════
 router.get('/export/csv', authMiddleware, async (req, res) => {
     try {
@@ -1352,7 +1330,6 @@ router.get('/export/csv', authMiddleware, async (req, res) => {
             console.error('[TX/export] airtime query error:', airErr.message);
         }
 
-        // Bills (VTpass) — same bounding as the other sources.
         let bq = supabaseAdmin
             .from('bill_payment_transactions')
             .select('reference, service_type, status, currency, customer_amount, base_amount, service_fee, network, recipient, created_at')
@@ -1371,6 +1348,26 @@ router.get('/export/csv', authMiddleware, async (req, res) => {
         const { data: billTx, error: billErr } = await bq;
         if (billErr && billErr.code !== '42P01') {
             console.error('[TX/export] bills query error:', billErr.message);
+        }
+
+        let gq = supabaseAdmin
+            .from('giftcard_transactions')
+            .select('reference, status, currency, amount, fee, card_name, face_value, face_currency, created_at')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(EXPORT_MAX_ROWS);
+
+        if (currency && currency !== 'all') gq = gq.eq('currency', currency);
+        if (fromDate) gq = gq.gte('created_at', fromDate.toISOString());
+        if (toDate) {
+            const end = new Date(toDate.getTime());
+            end.setDate(end.getDate() + 1);
+            gq = gq.lt('created_at', end.toISOString());
+        }
+
+        const { data: giftTx, error: giftErr } = await gq;
+        if (giftErr && giftErr.code !== '42P01') {
+            console.error('[TX/export] giftcard query error:', giftErr.message);
         }
 
         const mainRows = (transactions || []).map(t => {
@@ -1429,7 +1426,24 @@ router.get('/export/csv', authMiddleware, async (req, res) => {
             };
         });
 
-        const all = [...mainRows, ...airRows, ...billExportRows]
+        const giftExportRows = (giftTx || []).map(g => {
+            const currency2 = up(g.currency || 'USD');
+            return {
+                reference: g.reference || '',
+                type: 'giftcard',
+                status: toCustomerStatus(g.status),
+                currency: currency2,
+                amount: amountForCurrency(g, currency2),
+                fee: feeForCurrency(g, currency2),
+                description: customerSafeDescription(
+                    { type: 'giftcard', card_name: g.card_name },
+                    'Gift card'
+                ),
+                created_at: g.created_at ? new Date(g.created_at).toISOString() : ''
+            };
+        });
+
+        const all = [...mainRows, ...airRows, ...billExportRows, ...giftExportRows]
             .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
             .slice(0, EXPORT_MAX_ROWS);
 
@@ -1441,39 +1455,36 @@ router.get('/export/csv', authMiddleware, async (req, res) => {
             });
         }
 
-        // Stream the CSV to avoid building one huge string in memory.
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader(
             'Content-Disposition',
             `attachment; filename=milesspace-transactions-${Date.now()}.csv`
         );
 
-        // Header row.
         res.write(
             ['Reference', 'Type', 'Status', 'Currency', 'Amount', 'Fee', 'Description', 'Date']
                 .map(csvCell)
                 .join(',') + '\n'
         );
 
-        // Data rows.
         for (const t of all) {
-            const line = [
-                csvCell(t.reference),
-                csvCell(t.type),
-                csvCell(t.status),
-                csvCell(t.currency),
-                csvCell(num(t.amount).toFixed(2)),
-                csvCell(num(t.fee).toFixed(2)),
-                csvCell(t.description),
-                csvCell(t.created_at)
-            ].join(',') + '\n';
-            res.write(line);
+            res.write(
+                [
+                    csvCell(t.reference),
+                    csvCell(t.type),
+                    csvCell(t.status),
+                    csvCell(t.currency),
+                    csvCell(num(t.amount).toFixed(2)),
+                    csvCell(num(t.fee).toFixed(2)),
+                    csvCell(t.description),
+                    csvCell(t.created_at)
+                ].join(',') + '\n'
+            );
         }
 
         return res.end();
     } catch (error) {
         console.error('❌ CSV export error:', error);
-        // Only send JSON if headers haven't been sent yet.
         if (!res.headersSent) {
             res.status(500).json({
                 success: false,
@@ -1577,7 +1588,6 @@ router.get('/:id', authMiddleware, async (req, res) => {
             return res.json({ success: true, transaction: toCustomer(mapAirtimeToTransaction(airtimeByRef)) });
         }
 
-        // Bills (VTpass) — by UUID then by reference.
         if (isUuid) {
             const { data: bill } = await supabaseAdmin
                 .from('bill_payment_transactions')
@@ -1602,6 +1612,30 @@ router.get('/:id', authMiddleware, async (req, res) => {
             return res.json({ success: true, transaction: toCustomer(mapBillPaymentToTransaction(billByRef)) });
         }
 
+        if (isUuid) {
+            const { data: gift } = await supabaseAdmin
+                .from('giftcard_transactions')
+                .select('*')
+                .eq('id', id)
+                .eq('user_id', userId)
+                .maybeSingle();
+
+            if (gift) {
+                return res.json({ success: true, transaction: toCustomer(mapGiftCardToTransaction(gift)) });
+            }
+        }
+
+        const { data: giftByRef } = await supabaseAdmin
+            .from('giftcard_transactions')
+            .select('*')
+            .eq('reference', id)
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        if (giftByRef) {
+            return res.json({ success: true, transaction: toCustomer(mapGiftCardToTransaction(giftByRef)) });
+        }
+
         return res.status(404).json({
             success: false,
             code: 'TRANSACTION_NOT_FOUND',
@@ -1618,7 +1652,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════
-//  STATS HELPER  (used only by the fallback path in GET /stats)
+//  STATS HELPER
 // ═══════════════════════════════════════════════════════════════════
 function calculateStats(rows) {
     let giftOrders = 0, marketOrders = 0, boostOrders = 0;
@@ -1643,8 +1677,6 @@ function calculateStats(rows) {
             'giftcard', 'gift_card', 'gift',
             'marketplace', 'purchase',
             'boost', 'virtual_sms', 'airtime', 'esim',
-            // VTpass service types — now counted because they're now
-            // fed into this aggregation by the /stats fallback.
             'data', 'electricity', 'tv', 'bills'
         ].includes(type)) {
             totalOrders++;

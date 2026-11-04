@@ -2,8 +2,8 @@
 // ─────────────────────────────────────────────────────────────────
 // Order of routes matters. Reading top to bottom:
 //   1. env, security, cors, parsers
-//   2. auth + admin auth
-//   3. user routes
+//   2. auth + admin auth + specific admin routes (reconciliation)
+//   3. user routes (transaction status BEFORE transactionRoutes)
 //   4. admin API routes (transactions → money → dashboard → misc)
 //   5. admin page routes (static)
 //   6. reconciliation schedulers + background loops
@@ -28,10 +28,11 @@ const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 
-// ─── SHARED SERVICES (used by background reconciliation loops) ───
+// ─── SHARED SERVICES ─────────────────────────────────────────────
+// Only supabaseAdmin is used directly in this file. korapayService
+// and depositService are called by the individual services they
+// belong to, not by server.js.
 const { supabaseAdmin } = require('./db/supabase');
-const korapayService    = require('./services/korapayService');
-const depositService    = require('./services/depositService');
 
 // ─── ENVIRONMENT CHECK ───────────────────────────────────────────
 const requiredEnvVars = [
@@ -57,15 +58,11 @@ const PORT = process.env.PORT || 5000;
 const isProduction = process.env.NODE_ENV === 'production';
 const maintenanceGuard = require('./middleware/maintenance');
 app.use(maintenanceGuard);
+
 // ─── TRUST PROXY ─────────────────────────────────────────────────
 app.set('trust proxy', 1);
 
 // ─── SECURITY HEADERS ────────────────────────────────────────────
-// CSP kept functionally identical to what the existing frontend
-// requires. connectSrc now includes the Render origin so that
-// pages served by Render (admin, fallback index) can open Socket.IO
-// to the same origin, and the Vercel frontend's API calls are
-// allowed to reach Render from any Render-served page.
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -76,7 +73,7 @@ app.use(helmet({
                 "'unsafe-eval'",
                 "https://cdn.jsdelivr.net",
                 "https://cdnjs.cloudflare.com",
-                  "https://korablobstorage.blob.core.windows.net"
+                "https://korablobstorage.blob.core.windows.net"
             ],
             scriptSrcAttr: ["'unsafe-inline'"],
             styleSrc: [
@@ -100,16 +97,14 @@ app.use(helmet({
                 "https://milesspace-public.vercel.app",
                 "https://milesspace.com",
                 "https://www.milesspace.com",
-                 "https://www.milesspace.com",
-                "https://api.korapay.com",            // <-- ADD THIS (Korapay API calls)
-                "https://*.korapay.com", 
+                "https://api.korapay.com",
+                "https://*.korapay.com",
                 "ws://localhost:*",
                 "http://localhost:*",
-                "https://cdn.jsdelivr.net",
-                
+                "https://cdn.jsdelivr.net"
             ],
             frameAncestors: ["'none'"],
-            frameSrc: ["'self'", "https://*.korapay.com"], 
+            frameSrc: ["'self'", "https://*.korapay.com"],
             workerSrc: ["'self'", "blob:"]
         }
     }
@@ -122,8 +117,6 @@ app.use(compression());
 console.log('✅ Compression enabled');
 
 // ─── COOKIE PARSER ───────────────────────────────────────────────
-// Required by the HttpOnly refresh-token flow in /api/auth/refresh
-// and /api/auth/logout. Does not change any other route behaviour.
 app.use(cookieParser());
 console.log('✅ Cookie parser enabled');
 
@@ -161,23 +154,15 @@ console.log('✅ CORS configured');
 
 // ═══════════════════════════════════════════════════════════════════
 //  KORA WEBHOOK — MOUNTED BEFORE THE GLOBAL JSON PARSER
-// ───────────────────────────────────────────────────────────────────
+//
 // The Kora webhook route declares its own express.json({verify})
 // so it can capture the raw body bytes for signature verification.
-// If the global express.json() below runs first, the body is
-// already consumed by the time the webhook handler executes and
-// req.rawBody is undefined — the signature then has to be verified
-// against a re-serialized body, which occasionally fails on
-// non-ASCII payloads or unusual numeric formatting.
+// If the global express.json() runs first, the body is already
+// consumed and the signature has to be verified against a
+// re-serialized body — which occasionally fails on non-ASCII
+// payloads or unusual numeric formatting.
 //
-// By mounting the router BEFORE the global parser, the webhook
-// path gets its own parser and the raw body. Every other route in
-// that router uses Express's default JSON parsing (which the
-// router's own express.json({verify}) still provides), so their
-// behaviour is unchanged.
-//
-// IMPORTANT: This router must NOT be mounted again below. See
-// the user-routes section where the duplicate was removed.
+// IMPORTANT: This router must NOT be mounted again below.
 // ═══════════════════════════════════════════════════════════════════
 const koraDepositsRoutes = require('./routes/wallet/koraDeposits');
 app.use('/api/wallet', koraDepositsRoutes);
@@ -223,18 +208,33 @@ const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 const adminRolesRouter = require('./routes/adminRoles');
 
+// ─── ADMIN LOGIN RATE LIMITING ───────────────────────────────────
+// ⚠️ ORDER MATTERS: limiters MUST be mounted BEFORE adminAuthRoutes
+// so brute-force attempts on /api/admin/login are throttled BEFORE
+// the login handler runs. In the previous revision the limiters
+// were mounted after adminAuthRoutes, which made them dead code —
+// every login attempt bypassed the rate limit entirely.
+const { adminApiLimiter, adminLoginLimiter } = require('./middleware/adminRateLimit');
+app.use('/api/admin/login', adminLoginLimiter);
+app.use('/api/admin', adminApiLimiter);
+console.log('✅ Admin rate limiting enabled');
 
 // ─── ADMIN AUTH ROUTES ───────────────────────────────────────────
 const adminAuthRoutes = require('./routes/admin');
 app.use('/api/admin', adminAuthRoutes);
 console.log('✅ Admin auth routes loaded at /api/admin');
 
-// ─── ADMIN LOGIN RATE LIMITING ───────────────────────────────────
-const { adminApiLimiter, adminLoginLimiter } = require('./middleware/adminRateLimit');
-app.use('/api/admin/login', adminLoginLimiter);
-app.use('/api/admin', adminApiLimiter);
-console.log('✅ Admin rate limiting enabled');
+// ─── RECONCILIATION ADMIN ROUTES — MOUNTED SPECIFIC-AND-EARLY ───
+// ⚠️ This MUST come before any generic app.use('/api/admin', ...)
+// that might contain a router.all('*') catch-all. A catch-all
+// mounted earlier intercepts /api/admin/reconciliation/* and the
+// request never reaches this router — which is exactly what
+// produced the AUTH_CONTEXT_MISSING error in the earlier handoff.
+app.use('/api/admin/reconciliation', require('./routes/admin/reconciliationAdminRoutes'));
+console.log('  ✅ /api/admin/reconciliation → loaded');
+
 app.use('/api/admin', adminRolesRouter);     // NEW: roles
+
 // ═══════════════════════════════════════════════════════════════════
 //  ROUTE LOADER HELPERS
 // ═══════════════════════════════════════════════════════════════════
@@ -293,11 +293,32 @@ const esimRoutes           = require('./routes/esimRoutes');
 const ratesRoutes          = require('./routes/ratesRoutes');
 const airtimeRoutes        = require('./routes/airtime');
 const billsRoutes          = require('./routes/billsRoutes');
-const reconciliationRoutes = require('./routes/reconciliationRoutes');
 
 console.log('\n📦 Mounting user routes:');
 
 safeMount(app, '/api/support', supportRoutes);
+
+// ─── TRANSACTION STATUS — MUST be mounted BEFORE transactionRoutes ─
+// transactionRoutes has GET /:id at the end of its stack. If it
+// runs first, GET /api/transactions/:id/status returns the full
+// transaction detail instead of the status shape. Mounting the
+// status router first means /status and /check resolve to the
+// dedicated handler.
+try {
+    app.use('/api/transactions', require('./routes/transactionStatusRoute'));
+    console.log('  ✅ /api/transactions (status) → loaded');
+} catch (e) {
+    console.warn('  ⚠️ /api/transactions (status) → skipped:', e.message);
+}
+// ─── TRANSACTION STATUS — MUST be mounted BEFORE transactionRoutes ─
+try {
+    app.use('/api/transactions', require('./routes/transactionStatusRoute'));
+    console.log('  ✅ /api/transactions (status) → loaded');
+} catch (e) {
+    console.warn('  ⚠️ /api/transactions (status) → skipped:', e.message);
+}
+
+safeMount(app, '/api/transactions', transactionRoutes);
 safeMount(app, '/api/transactions', transactionRoutes);
 
 safeMount(app, '/api/boost', boostRoutes);
@@ -330,26 +351,28 @@ console.log('  ✅ /api/airtime → loaded');
 app.use('/api/bills', billsRoutes);
 console.log('  ✅ /api/bills → loaded');
 
-app.use('/api/reconciliation', reconciliationRoutes);
-console.log('  ✅ /api/reconciliation → loaded');
-
 // ═══════════════════════════════════════════════════════════════════
-//  ADMIN API ROUTES
+//  ADMIN API ROUTES — GENERIC /api/admin MOUNTS
 // ═══════════════════════════════════════════════════════════════════
+// The specific /api/admin/reconciliation mount is at the top of
+// this file, BEFORE this section. Do not re-add it here.
 
 console.log('\n📦 Mounting admin API routes:');
 
 const transactionAdminRoutes = require('./routes/admin/transactionAdminRoutes');
 const moneyAdminRoutes       = require('./routes/admin/moneyAdminRoutes');
-
+const refundAdminRoutes      = require('./routes/admin/refundAdminRoutes');
+safeMount(app, '/api/admin', refundAdminRoutes);
 safeMount(app, '/api/admin', transactionAdminRoutes);
 safeMount(app, '/api/admin', moneyAdminRoutes);
+
 
 const adminDashboardRoutes     = require('./routes/admin/dashboardRoutes');
 const adminPresenceRoutes      = require('./routes/admin/presenceAdminRoutes');
 const adminIntelligenceRoutes  = require('./routes/admin/intelligenceRoutes');
 const adminSettingsRoutes      = require('./routes/admin/adminSettings');
 const auditLogRoutes = require('./routes/admin/auditLogRoutes');
+
 
 safeMount(app, '/api/admin', adminDashboardRoutes);
 safeMount(app, '/api/admin/presence', adminPresenceRoutes);
@@ -362,6 +385,7 @@ const marketplaceRoutes      = safeRequire('./routes/admin/marketplaceRoutes');
 
 const giftcardAdminRoutes    = safeRequire('./routes/admin/giftcardAdminRoutes');
 const adminUserRoutes        = safeRequire('./routes/admin/userRoutes');
+
 
 app.use('/api/admin', require('./routes/admin/supportRoutes'));
 app.use('/api/admin', require('./routes/admin/boostAdminRoutes'));
@@ -383,6 +407,7 @@ const esimAdminRoutes = require('./routes/admin/esimAdminRoutes');
 app.use('/api/admin', esimAdminRoutes);
 app.use('/api/admin', require('./routes/admin/mfaRoutes'));
 
+
 const airtimeAdminRoutes = require('./routes/admin/airtimeAdminRoutes');
 app.use('/api/admin', airtimeAdminRoutes);
 app.use('/api/admin/reports', require('./routes/admin/reportsRoutes'));
@@ -398,125 +423,25 @@ if (giftcardAdminRoutes) app.use('/api/admin', giftcardAdminRoutes);
 if (adminUserRoutes)     app.use('/api/admin', adminUserRoutes);
 if (auditLogRoutes)      app.use('/api/admin', auditLogRoutes);
 if (messageRoutes)       app.use('/api/messages', messageRoutes);
-0-
+
+
 console.log('\n✅ All API routes mounted');
 
 // ═══════════════════════════════════════════════════════════════════
-//  BACKGROUND RECONCILIATION SCHEDULERS
+//  BACKGROUND RECONCILIATION SCHEDULER
 // ═══════════════════════════════════════════════════════════════════
+// One self-rescheduling loop covers:
+//   • sweeps               (every 5 min, one per service)
+//   • SLA check            (every 15 min)
+//   • daily audit          (~02:00 UTC)
+//   • daily summary alert  (~07:00 UTC)
+// See reconciliation/scheduler.js for details.
+const reconScheduler = require('./reconciliation/scheduler');
+reconScheduler.start();
 
-const reconciliationService = require('./services/reconciliationService');
+// DT One quote reaper — independent of reconciliation, still needed.
 const { startQuoteReaper } = require('./services/dtoneQuoteReaper');
 startQuoteReaper();
-console.log('✅ Quote reaper started');
-
-const { startReconciliationScheduler } = require('./services/airtimeReconciliationService');
-startReconciliationScheduler();
-console.log('✅ Airtime reconciliation scheduler started');
-
-const { startBillsReconciliationScheduler } = require('./services/billsReconciliationService');
-startBillsReconciliationScheduler();
-console.log('✅ Bills reconciliation scheduler started');
-
-// ─── Full reconciliation sweep: every 5 minutes ─────────────────
-setInterval(async () => {
-    try {
-        console.log('🔄 Running full reconciliation sweep...');
-        const result = await reconciliationService.runFullReconciliation();
-        if (result) {
-            console.log(
-                `✅ Reconciliation complete: Cashback: ${result.cashback?.processed || 0}, ` +
-                `Airtime: ${result.airtime?.processed || 0}`
-            );
-        }
-    } catch (error) {
-        console.error('❌ Reconciliation sweep error:', error);
-    }
-}, 5 * 60 * 1000);
-
-// ─── Initial sweep, 10s after boot ──────────────────────────────
-setTimeout(async () => {
-    console.log('🔄 Running initial reconciliation sweep...');
-    try {
-        const result = await reconciliationService.runFullReconciliation();
-        if (result) {
-            console.log(
-                `✅ Initial reconciliation complete: Cashback: ${result.cashback?.processed || 0}, ` +
-                `Airtime: ${result.airtime?.processed || 0}`
-            );
-        }
-    } catch (error) {
-        console.error('❌ Initial reconciliation error:', error);
-    }
-}, 10000);
-
-// ─── Deposit reconciliation: every 5 minutes ────────────────────
-// Uses the trusted-verification digest (the same one the webhook
-// route builds) so completeKoraDeposit accepts the payload without
-// re-verifying with Kora a second time. Every non-completion and
-// every failure is logged so silent stalls are visible.
-setInterval(async () => {
-    try {
-        const { data: stuck, error: stuckErr } = await supabaseAdmin
-            .from('deposit_requests')
-            .select('id, provider_reference, merchant_reference')
-            .eq('provider', 'korapay')
-            .in('status', ['pending', 'processing'])
-            .lt('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString())
-            .limit(50);
-
-        if (stuckErr) {
-            console.warn('[RECONCILE] query failed:', stuckErr.message);
-            return;
-        }
-
-        for (const dep of stuck || []) {
-            const ref = dep.provider_reference || dep.merchant_reference;
-            if (!ref) {
-                console.warn(`[RECONCILE] deposit ${dep.id} has no provider reference — skipping`);
-                continue;
-            }
-            try {
-                const verified = await korapayService.verifyTransaction(ref);
-
-                // Build the same trusted payload the webhook route builds.
-                const verifiedData = {
-                    provider_status: verified.provider_status,
-                    amount: verified.amount,
-                    currency: verified.currency,
-                    reference: verified.reference || verified.payment_reference
-                };
-                const digest = depositService.computeVerifiedDigest(verifiedData);
-
-                const result = await depositService.completeKoraDeposit({
-                    depositId: dep.id,
-                    providerTransaction: {
-                        ...verifiedData,
-                        _trustedVerified: true,
-                        _verifiedDigest: digest
-                    },
-                    source: 'reconciliation'
-                });
-
-                if (result.completed) {
-                    console.log(`[RECONCILE] deposit ${dep.id} recovered successfully`);
-                } else {
-                    console.log(`[RECONCILE] deposit ${dep.id} still pending — ${result.reason || 'unknown'}`);
-                }
-            } catch (e) {
-                console.warn(`[RECONCILE] deposit ${dep.id} failed: ${e.message}`);
-            }
-        }
-    } catch (e) {
-        console.error('[RECONCILE] outer error:', e.message);
-    }
-}, 5 * 60 * 1000);
-
-console.log('🔄 Deposit reconciliation service started (runs every 5 minutes)');
-
-// ═══════════════════════════════════════════════════════════════════
-//  FALLBACK LOGO
-// ═══════════════════════════════════════════════════════════════════
 
 app.get('/images/miles-logo.png', (req, res) => {
     res.setHeader('Content-Type', 'image/svg+xml');
@@ -624,20 +549,18 @@ app.get('/admin/settings', (req, res) => res.sendFile(path.join(__dirname, 'publ
 app.get('/admin/ticker-manager', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin', 'ticker-manager.html')));
 
 // Generic admin fallback.
-// Path traversal is now blocked: a request for "/admin/../server.js"
+// Path traversal is blocked: a request for "/admin/../server.js"
 // resolves inside public/admin/ only, never above it.
 const ADMIN_PUBLIC_DIR = path.join(__dirname, 'public', 'admin');
 app.get(/^\/admin\/(.+)$/, (req, res) => {
     const requestedPath = req.params[0] || '';
 
-    // Reject any traversal attempt outright.
     if (requestedPath.includes('..')) {
         return res.redirect('/admin/dashboard.html');
     }
 
     if (requestedPath && requestedPath.includes('.')) {
         const fullPath = path.join(ADMIN_PUBLIC_DIR, requestedPath);
-        // Confirm the resolved path is still inside public/admin.
         if (fullPath.startsWith(ADMIN_PUBLIC_DIR) && fs.existsSync(fullPath)) {
             return res.sendFile(fullPath);
         }
@@ -856,16 +779,6 @@ io.use(async (socket, next) => {
         // adminAuth.resolvePermissionsForUser() gives us the same
         // ctx shape buildAdminContext() produces, so anything that
         // consumes req.adminContext also consumes socket.adminCtx.
-        //
-        // Customer sockets: userType='user', adminCtx=null.
-        // Admin sockets: userType='admin', adminCtx=ctx (permissions
-        // resolved once here; revalidated every 5 min by the
-        // support socket service).
-        //
-        // We run this for EVERY socket, not just admins, because
-        // supportSession.authContext needs to know which side this
-        // socket is on for support events (ticket access checks
-        // branch on it).
         try {
             const adminAuth = require('./middleware/adminAuth');
             if (typeof adminAuth.resolvePermissionsForUser === 'function') {
@@ -877,9 +790,6 @@ io.use(async (socket, next) => {
                     socket.userType = 'admin';
                     socket.adminCtx = resolved.ctx;
                 } else {
-                    // Not an admin (or session revoked). Treat as a
-                    // customer socket. Support events will still
-                    // work for the user's own tickets.
                     socket.userType = 'user';
                     socket.adminCtx = null;
                 }
@@ -918,14 +828,9 @@ io.on('connection', (socket) => {
 
     io.emit('presence:update', presenceManager.getOnlineUsers());
 
-        socket.join(`user:${userId}`);
+    socket.join(`user:${userId}`);
 
     // ── Role-based room joins ────────────────────────────────
-    // `admins` is the legacy presence room — admin OR super_admin.
-    // `support:admins` is the support-wide room — anyone with
-    // SUPPORT_READ via their resolved permissions. Both are kept
-    // because presence already broadcasts to `admins` and the
-    // support UI listens on `support:admins` specifically.
     if (userRole === 'admin' || userRole === 'super_admin') {
         socket.join('admins');
         console.log(`Admin ${userName} joined admin room`);
@@ -987,11 +892,8 @@ io.on('connection', (socket) => {
 });
 
 console.log('✅ Socket.IO configured with presence manager');
+
 // ─── Support socket service ─────────────────────────────────────
-// Mounts the realtime support layer and exposes it on app.locals
-// so supportRoutes.js can call emitNewMessage / emitTicketUpdate.
-// Without this block, the page shows "Live" but no support events
-// fire, and no polling runs — new messages go silent.
 try {
     const SupportSocketService = require('./services/supportSocketService');
     app.locals.supportSocketService = new SupportSocketService(io);
@@ -1069,7 +971,6 @@ server.listen(PORT, () => {
     console.log(`   → GET    /api/airtime/history`);
 
     console.log(`\n🔐 Reconciliation API endpoints:`);
-    console.log(`   → GET    /api/reconciliation/airtime/pending`);
     console.log(`   → POST   /api/reconciliation/airtime/sweep`);
     console.log(`   → GET    /api/reconciliation/airtime/stats`);
 

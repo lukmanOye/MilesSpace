@@ -1430,7 +1430,7 @@
     }
 
     /* ═══════════════════════════════════════════════════════════
-       MODALS (shared base)
+       MODALS
        ═══════════════════════════════════════════════════════════ */
     .receipt-modal,
     .airtime-detail-modal,
@@ -1833,7 +1833,7 @@
     .receipt-btn-close:hover { background: var(--pm); }
 
     /* ═══════════════════════════════════════════════════════════
-       PIN MODAL — SINGLE INPUT (NEW)
+       PIN MODAL
        ═══════════════════════════════════════════════════════════ */
     .pm-box {
       position: relative;
@@ -2172,10 +2172,46 @@
       .operator-card    { min-height: 88px; }
       .operator-card .op-logo-wrap { width: 40px; height: 40px; }
     }
+
+    /* ═══════════════════════════════════════════════════════════
+       Stale transaction banner (from the pasted spec)
+       ═══════════════════════════════════════════════════════════ */
+    .tx-stale-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 14px;
+      margin: 8px 0;
+      border-radius: 10px;
+      background: rgba(245, 166, 35, 0.12);
+      border: 1px solid rgba(245, 166, 35, 0.35);
+      font-size: 12.5px;
+      color: var(--t2);
+    }
+    .tx-stale-banner strong { color: var(--t1); font-weight: 600; }
+    .tx-stale-banner button {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: none;
+      background: #0f4c5c;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .tx-stale-banner button:disabled { opacity: .55; cursor: not-allowed; }
+    @media (max-width: 420px) {
+      .tx-stale-banner { flex-direction: column; align-items: stretch; }
+      .tx-stale-banner button { width: 100%; min-height: 44px; }
+    }
   </style>
 
   <script src="/js/session.js"></script>
   <script src="/js/presence.js" defer></script>
+  <link rel="stylesheet" href="/css/ms-shell.css?v=1">
+  <script src="/js/ms-shell.js?v=1" defer></script>
   <script src="/js/miles-widget.js" defer></script>
 </head>
 
@@ -2235,7 +2271,7 @@
     <button class="tb-hbg" id="hbg" aria-label="Open menu"><i class="fas fa-bars"></i></button>
     <p class="tb-brand">MilesSpace</p>
     <div class="tb-right">
-      <a href="history.html" class="tb-icon-btn" title="Transaction history" aria-label="Transaction history"><i class="fas fa-history"></i></a>
+      <button type="button" class="tb-icon-btn" id="airHistBtn" title="Airtime history" aria-label="Airtime history"><i class="fas fa-history"></i></button>
       <a href="notifications.html" class="tb-icon-btn" aria-label="Notifications"><i class="fas fa-bell"></i><span class="notif-dot"></span></a>
       <a href="usersettings.html" class="tb-av" id="tbAv">U</a>
     </div>
@@ -3395,11 +3431,7 @@ on($('btnBackWallet'), 'click', () => {
   showStep('wallet');
 });
 
-/* ═══════════════════════════════════════════════════════════
-   PIN MODAL — SINGLE INPUT (NEW)
-   ═══════════════════════════════════════════════════════════ */
 function getFundingUrl() {
-  // Preserve wallet context where supported.
   const wallet = (state.selectedWallet || '').toLowerCase();
   return wallet === 'usd'
     ? `${CONFIG.FUND_PAGE}?wallet=usd`
@@ -3466,7 +3498,6 @@ function ensurePinModal() {
     if (closeId) $(closeId)?.classList.remove('on');
   });
 
-  // Prevent the top-up link from submitting the modal or the transaction.
   $('pmTopUpLink').addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -3504,7 +3535,6 @@ function openPinModal() {
 
   renderPinSummary();
 
-  // Insufficient-balance link
   const insuff = $('pmInsufficient');
   const link = $('pmTopUpLink');
   const isInsufficient = Number.isFinite(walletBalance) && walletBalance > 0 && walletBalance < requiredAmount;
@@ -3639,7 +3669,6 @@ async function processPayment(pin) {
       }, 500);
     } else if (error.code === 'INSUFFICIENT_BALANCE') {
       toast(error.message || 'Insufficient balance', 'err');
-      // Show the top-up link inline in the PIN modal
       ensurePinModal();
       openPinModal();
       $('pmInsufficient').classList.add('show');
@@ -3828,14 +3857,6 @@ async function loadHistory() {
     const response = await api('/airtime/history?limit=5');
     if (response.success && response.data && response.data.length > 0) {
       const frag = document.createDocumentFragment();
-      const statusMap = {
-        completed: 'Completed',
-        processing: 'Processing',
-        pending: 'Pending',
-        failed: 'Failed',
-        refunded: 'Refunded',
-        manual_review: 'Review'
-      };
 
       response.data.forEach(t => {
         const flag = t.flag || '📱';
@@ -3843,9 +3864,11 @@ async function loadHistory() {
         const row  = document.createElement('div');
         row.className = 'history-item';
         row.dataset.reference = t.reference;
+        row.dataset.status = t.status;
+        row.dataset.created = t.created_at;
         row.setAttribute('role', 'button');
         row.setAttribute('tabindex', '0');
-        row.innerHTML = `<span class="hi-flag">${flag}</span><div class="hi-info"><p class="hi-phone">${escapeHtml(formatPhone(t.phone_number))}</p><p class="hi-meta">${escapeHtml(t.country_code || '')} • ${new Date(t.created_at).toLocaleDateString()} • ${escapeHtml(t.operator_name || 'Auto')}</p></div><div style="text-align:right"><p class="hi-amt">${sym}${formatMoney(t.total_amount || 0)}</p><span class="hi-status ${escapeHtml(t.status)}">${statusMap[t.status] || t.status}</span></div>`;
+        row.innerHTML = `<span class="hi-flag">${flag}</span><div class="hi-info"><p class="hi-phone">${escapeHtml(formatPhone(t.phone_number))}</p><p class="hi-meta">${escapeHtml(t.country_code || '')} • ${new Date(t.created_at).toLocaleDateString()} • ${escapeHtml(t.operator_name || 'Auto')}</p></div><div style="text-align:right"><p class="hi-amt">${sym}${formatMoney(t.total_amount || 0)}</p><span class="hi-status ${escapeHtml(t.status)}">${escapeHtml(MS.statusLabel ? MS.statusLabel(t.status) : t.status)}</span></div>`;
         frag.appendChild(row);
       });
 
@@ -3981,7 +4004,9 @@ async function fetchAirtimeDetails(reference) {
         detailPollTimer = setTimeout(() => fetchAirtimeDetails(reference), delay);
       }
     }
-    loadHistory();
+
+    const terminal = ['completed', 'failed', 'refunded', 'cancelled', 'reversed'].includes(status);
+    if (terminal) loadHistory();
   } catch (error) {
     content.innerHTML = `<div class="atm-error"><i class="fas fa-exclamation-circle"></i><span>${escapeHtml(error.message || 'Failed to load')}</span><button type="button" class="atm-refresh" data-retry-ref="${escapeHtml(reference)}" style="padding:8px 16px;">Retry</button></div>`;
   }
@@ -3990,16 +4015,8 @@ async function fetchAirtimeDetails(reference) {
 function renderAirtimeDetails(tx) {
   const content = $('atmContent');
   const status = String(tx.status || 'processing').toLowerCase();
-
-  const statusLabels = {
-    completed: 'Completed',
-    processing: 'Processing',
-    pending: 'Pending',
-    failed: 'Failed',
-    refunded: 'Refunded',
-    manual_review: 'Under Review'
-  };
-  const statusLabel = statusLabels[status] || status;
+  const statusLabel = MS.statusLabel ? MS.statusLabel(status) : status;
+  const statusKey = MS.statusKey ? MS.statusKey(status) : status;
 
   const destAmount   = Number(tx.destination_amount || 0);
   const destCurrency = tx.destination_currency || '';
@@ -4020,7 +4037,7 @@ function renderAirtimeDetails(tx) {
         <div class="atm-network-name">${escapeHtml(tx.operator_name || 'Unknown network')}</div>
         <div class="atm-network-meta">${flag} ${escapeHtml(tx.country_code || '')} • ${escapeHtml(phone)}</div>
       </div>
-      <span class="atm-status ${escapeHtml(status)}">${escapeHtml(statusLabel)}</span>
+      <span class="atm-status ${escapeHtml(statusKey)}">${escapeHtml(statusLabel)}</span>
     </div>
     <div class="atm-destination">
       <div class="atm-destination-label">Recipient receives</div>
@@ -4126,8 +4143,8 @@ function openReceiptModal() {
   $('receiptDate').textContent = new Date().toLocaleString();
 
   const badge = $('receiptStatusBadge');
-  badge.className = `receipt-badge ${status}`;
-  badge.textContent = statusLabels[status] || status;
+  badge.className = `receipt-badge ${MS.statusKey ? MS.statusKey(status) : status}`;
+  badge.textContent = MS.statusLabel ? MS.statusLabel(status) : (statusLabels[status] || status);
 
   $('receiptAmount').textContent = formatMoneyWithSymbol(tx.destination_amount || 0, tx.destination_currency || '');
   $('receiptAmountSub').textContent = `To ${tx.phone || ''}`;
@@ -4203,6 +4220,67 @@ document.addEventListener('DOMContentLoaded', async () => {
     requestIdleCallback(() => prefetchCommonOperators());
   } else {
     setTimeout(prefetchCommonOperators, 2000);
+  }
+
+  /* Airtime history drawer — wired to the topbar button. */
+  if (window.MS && MS.historyDrawer) {
+    const airHist = MS.historyDrawer({
+      id: 'airHist',
+      title: 'Airtime history',
+      subtitle: 'Your global airtime purchases',
+      load: async (page, n) => {
+        const r = await api('/airtime/history?limit=' + n + '&page=' + page);
+        const items = r.data || [];
+        const total = r.pagination && r.pagination.total;
+        return { items, hasMore: items.length === n && (total == null || page * n < total) };
+      },
+      keyOf: (t) => t.reference,
+      render: (t) => {
+        const flag = t.flag || '📱';
+        const sym  = getSymbol(t.currency);
+        const stLabel = MS.statusLabel ? MS.statusLabel(t.status) : t.status;
+        const stKey = MS.statusKey ? MS.statusKey(t.status) : t.status;
+        return '<div class="ms-hd-item">' +
+          '<div class="ms-hd-row1">' +
+          '<span style="font-size:1.1rem">' + MS.esc(flag) + '</span>' +
+          '<span class="ms-hd-title">' + MS.esc(formatPhone(t.phone_number)) + '</span>' +
+          '<span class="ms-pill ' + stKey + '">' + MS.esc(stLabel) + '</span>' +
+          '</div>' +
+          '<div class="ms-hd-meta">' + MS.esc(t.country_code || '') + ' · ' + new Date(t.created_at).toLocaleDateString() + '</div>' +
+          '<div class="ms-hd-meta">' + MS.esc(sym + formatMoney(t.total_amount || 0)) + '</div>' +
+          '</div>';
+      },
+      onItemClick: (t) => {
+        airHist.close();
+        openAirtimeDetails(t.reference);
+      },
+      emptyText: 'No airtime purchases yet.'
+    });
+
+    const histBtn = $('airHistBtn');
+    if (histBtn) histBtn.addEventListener('click', () => airHist.open());
+
+    /* Stale banner — inline list */
+    MS.stale.init({
+      rows: '#historyList .history-item[data-reference]',
+      record: el => ({
+        reference: el.dataset.reference,
+        status: el.dataset.status,
+        created_at: el.dataset.created
+      }),
+      refresh: () => loadHistory(),
+      toast: (m, k) => toast(m, k === 'ok' ? 'ok' : (k === 'err' ? 'err' : 'info')),
+      observe: '#historyList'
+    });
+
+    /* Stale banner — drawer */
+    MS.stale.init({
+      rows: '#airHist-list .ms-hd-item',
+      record: el => airHist.items[Number(el.dataset.i)] || null,
+      refresh: () => airHist.reload(),
+      toast: (m, k) => toast(m, k === 'ok' ? 'ok' : (k === 'err' ? 'err' : 'info')),
+      observe: '#airHist-list'
+    });
   }
 });
 </script>

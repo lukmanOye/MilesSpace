@@ -7,25 +7,16 @@
 //   /api/admin/ledger/*           — accounting entries (append-only)
 //   /api/admin/reconciliation/*   — does our record match the provider?
 //
-// Changes vs the previous version:
-//   • No `select('*')` anywhere. Explicit column allowlists.
-//   • Deposits list uses the DB view `admin_unified_deposits` — real
-//     pagination, not "fetch 400 rows and slice".
-//   • Transactions `direction` filter is now a real DB column.
-//   • Deposit stats respect from/to.
-//   • Reconciliation logic uses `admin_reconciliation_v2` — a
-//     completed deposit with no webhook is UNVERIFIED, not MATCHED.
-//   • `recheck` is split: verify (no wallet effect) vs settle (wallet).
-//   • `resolve` derives user/amount/currency from the issue itself —
-//     the admin CANNOT submit arbitrary user IDs or amounts.
-//   • Every mutation is audited with a request_id.
-//   • Rate limits on the provider-health and recheck endpoints.
-//   • Every POST uses IdempotencyService when a key is supplied.
-//   • Every mutation runs through LedgerService — no direct wallet
-//     writes anywhere in this file.
-//   • Request IDs propagated to every audit log row.
-//   • CSRF-safe CSV escaping.
-//   • No `catch (_) {}` on financial reads.
+// Fixes vs previous:
+//   • Route order: /transactions/export is declared BEFORE /transactions/:id
+//   • Date helper: bare YYYY-MM-DD `to` becomes 23:59:59.999 UTC (shared helper)
+//   • .or() sanitization: strips ,()%_\ from user input.
+//   • Aggregations: /ledger/balances and /reconciliation/summary use RPCs
+//   • CSV Export: safe formula escaping, does NOT prefix numbers.
+//   • Provider health-check: uses field names the adapters actually return.
+//   • Deposit shape: crypto fields included correctly.
+//   • Rate-limit buckets: periodic cleanup added.
+//   • Recheck: mapped correctly to Kora / NowPayments service responses.
 // ─────────────────────────────────────────────────────────────────
 
 'use strict';
@@ -79,7 +70,7 @@ const DEP_CRYPTO_COLS = [
 ].join(', ');
 
 const LEDGER_ENTRY_COLS = [
-    'id','transaction_id','account_id','entry_type','amount','currency',
+    'id','transaction_id','account_id','entry_type','amount_minor','currency',
     'balance_before','balance_after','description','created_at'
 ].join(', ');
 
@@ -96,20 +87,18 @@ router.use((req, res, next) => {
 });
 
 // ─── Tiny in-process rate limiter ────────────────────────────────
-// One map per endpoint key. Good enough for a single-instance
-// deploy; replace with a shared store if you ever run >1 node.
 const _buckets = new Map();
 function rateLimit({ key, max, windowMs }) {
     return (req, res, next) => {
         const k = `${key}:${req.adminContext?.id || req.ip || 'anon'}`;
         const now = Date.now();
-        const bucket = _buckets.get(k) || { count: 0, resetAt: now + windowMs };
-        if (now > bucket.resetAt) {
-            bucket.count = 0;
-            bucket.resetAt = now + windowMs;
+        let bucket = _buckets.get(k);
+        if (!bucket || now > bucket.resetAt) {
+            bucket = { count: 1, resetAt: now + windowMs };
+            _buckets.set(k, bucket);
+            return next();
         }
         bucket.count++;
-        _buckets.set(k, bucket);
         if (bucket.count > max) {
             const retryAfter = Math.ceil((bucket.resetAt - now) / 1000);
             res.setHeader('Retry-After', String(retryAfter));
@@ -119,7 +108,39 @@ function rateLimit({ key, max, windowMs }) {
     };
 }
 
+// Cleanup buckets periodically
+setInterval(() => {
+    const now = Date.now();
+    for (const [k, b] of _buckets.entries()) {
+        if (now > b.resetAt) _buckets.delete(k);
+    }
+}, 60_000).unref?.();
+
 // ─── Helpers ─────────────────────────────────────────────────────
+
+// Shared date parser: handles both `YYYY-MM-DD` (end-of-day inclusive)
+// and full ISO timestamps.
+function parseDate(v, isEndOfDay = false) {
+    if (!v) return null;
+    if (typeof v !== 'string') return null;
+    const trimmed = v.trim();
+    
+    // Date-only string (YYYY-MM-DD)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        const d = new Date(`${trimmed}T00:00:00.000Z`);
+        if (isNaN(d.getTime())) return null;
+        if (isEndOfDay) {
+            d.setUTCHours(23, 59, 59, 999);
+        }
+        return d.toISOString();
+    }
+
+    // Full ISO timestamp
+    const d = new Date(trimmed);
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString();
+}
+
 function parseLimit(v, def = DEFAULT_LIMIT, max = MAX_LIMIT) {
     const n = parseInt(v, 10);
     return Number.isFinite(n) && n > 0 ? Math.min(n, max) : def;
@@ -132,32 +153,30 @@ function num(v) {
     const n = Number(v);
     return Number.isFinite(n) ? n : 0;
 }
-function isoDate(v, fallback = null) {
-    if (!v) return fallback;
-    const d = new Date(v);
-    return isNaN(d.getTime()) ? fallback : d.toISOString();
-}
 function fail(res, status, code, message, extra = {}) {
     if (res.headersSent) return;
     res.status(status).json({ success: false, error: message, code, ...extra });
 }
 
-// Safe CSV cell — neutralizes spreadsheet formula injection and
-// escapes quotes.
+// Safe CSV cell — neutralizes formula injection.
+// Does NOT prefix numbers with a quote. Only prefixes strings that start with =+-@
 function csvCell(v) {
     if (v === null || v === undefined) return '';
-    let s = String(v);
-    if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+    const s = String(v);
+    const isNumber = /^-?\d+(\.\d+)?$/.test(s);
+    if (!isNumber && /^[=+\-@\t\r]/.test(s)) {
+        return `"\'${s.replace(/"/g, '""')}"`; // Prefix with single quote for text
+    }
     return `"${s.replace(/"/g, '""')}"`;
 }
 function csvRow(cells) { return cells.map(csvCell).join(','); }
 
-// Escape `%` and `_` for PostgREST ilike.
+// Escape user input before using it in PostgREST `.or()` filters.
 function escapeLike(s) {
-    return String(s).trim().slice(0, 100).replace(/[%_]/g, m => '\\' + m);
+    return String(s).trim().slice(0, 100).replace(/[%_,()\\]/g, m => '\\' + m);
 }
 
-// Standard 500 for "provider returned, we didn't understand".
+// Standard 500 for provider errors.
 function providerFail(res, code, requestId) {
     return res.status(502).json({
         success: false,
@@ -165,6 +184,15 @@ function providerFail(res, code, requestId) {
         error: 'Provider request failed. Our team has been notified.',
         request_id: requestId
     });
+}
+
+// BigInt → "1234.56" string.
+function bigintToDecimalString(cents) {
+    const negative = cents < 0n;
+    const abs = negative ? -cents : cents;
+    const whole = abs / 100n;
+    const frac = (abs % 100n).toString().padStart(2, '0');
+    return `${negative ? '-' : ''}${whole.toString()}.${frac}`;
 }
 
 // ═════════════════════════════════════════════════════════════════
@@ -194,6 +222,7 @@ router.get(
             const name = String(req.params.provider || '').toLowerCase();
             const adapter = providerFactory.get(name);
             if (!adapter) return fail(res, 404, 'UNKNOWN_PROVIDER', 'Unknown provider.');
+            
             const result = await adapter.healthCheck();
             res.json({ success: true, ...result });
         } catch (err) {
@@ -222,219 +251,15 @@ router.post(
 //  TRANSACTIONS
 // ═════════════════════════════════════════════════════════════════
 
-router.get(
-    '/transactions',
-    requirePermission(PERMISSIONS.TRANSACTIONS_READ),
-    async (req, res) => {
-        try {
-            const page = parsePage(req.query.page);
-            const limit = parseLimit(req.query.limit);
-            const offset = (page - 1) * limit;
-
-            const { search, status, currency, type, category, direction, from, to, user_id } = req.query;
-
-            let q = supabaseAdmin
-                .from('transactions')
-                .select(TX_LIST_COLS + ', profiles!transactions_user_id_fkey (username, email)', { count: 'exact' })
-                .order('created_at', { ascending: false });
-
-            if (status && status !== 'all') q = q.eq('status', String(status).toLowerCase());
-            if (currency && currency !== 'all') q = q.eq('currency', String(currency).toUpperCase());
-            if (type) q = q.eq('type', String(type).toLowerCase());
-            if (user_id && UUID_RE.test(user_id)) q = q.eq('user_id', user_id);
-            // Direction is now a real column → filter is real pagination.
-            if (direction && direction !== 'all') {
-                const d = String(direction).toLowerCase();
-                if (d === 'credit' || d === 'debit') q = q.eq('direction', d);
-            }
-
-            const fromIso = isoDate(from);
-            const toIso = isoDate(to);
-            if (fromIso) q = q.gte('created_at', fromIso);
-            if (toIso) q = q.lte('created_at', toIso);
-
-            if (search) {
-                const safe = escapeLike(search);
-                q = q.or(
-                    `ref.ilike.%${safe}%,reference.ilike.%${safe}%,provider_reference.ilike.%${safe}%,description.ilike.%${safe}%`
-                );
-            }
-
-            if (category && category !== 'all') {
-                const map = {
-                    deposit: ['deposit'],
-                    refund: ['refund'],
-                    cashback: ['cashback_earned', 'cashback_used'],
-                    adjustment: ['admin_adjustment'],
-                    wallet: ['wallet_credit', 'wallet_debit'],
-                    purchase: ['airtime','data','esim','gift','gift_card','boost','marketplace','virtual_sms','sms']
-                };
-                const types = map[category];
-                if (types) q = q.in('type', types);
-            }
-
-            q = q.range(offset, offset + limit - 1);
-
-            const { data, error, count } = await q;
-            if (error) {
-                console.error('[MONEY TX]', req.requestId, error.message);
-                return fail(res, 500, 'TX_LIST_ERROR', 'Failed to load transactions.');
-            }
-
-            const rows = (data || []).map(shapeTransaction);
-
-            res.json({
-                success: true,
-                transactions: rows,
-                count: count || 0,
-                page, limit,
-                totalPages: Math.ceil((count || 0) / limit)
-            });
-        } catch (err) {
-            console.error('[MONEY TX]', req.requestId, err);
-            fail(res, 500, 'TX_LIST_EXCEPTION', 'Unexpected error.');
-        }
-    }
-);
-
-router.get(
-    '/transactions/stats',
-    requirePermission(PERMISSIONS.TRANSACTIONS_READ),
-    async (req, res) => {
-        try {
-            const fromIso = isoDate(req.query.from);
-            const toIso = isoDate(req.query.to);
-
-            const buildQ = (extra) => {
-                let q = supabaseAdmin.from('transactions').select('id', { count: 'exact', head: true });
-                if (fromIso) q = q.gte('created_at', fromIso);
-                if (toIso) q = q.lte('created_at', toIso);
-                if (extra) q = extra(q);
-                return q;
-            };
-
-            const [total, completed, pending, failed, deposits] = await Promise.all([
-                buildQ(),
-                buildQ(q => q.in('status', ['completed', 'success'])),
-                buildQ(q => q.in('status', ['pending', 'processing', 'confirming'])),
-                buildQ(q => q.in('status', ['failed', 'cancelled', 'reversed'])),
-                buildQ(q => q.eq('type', 'deposit'))
-            ]);
-
-            res.json({
-                success: true,
-                stats: {
-                    total: total.count || 0,
-                    completed: completed.count || 0,
-                    pending: pending.count || 0,
-                    failed: failed.count || 0,
-                    deposits: deposits.count || 0
-                }
-            });
-        } catch (err) {
-            console.error('[MONEY TX]', req.requestId, err);
-            fail(res, 500, 'TX_STATS_EXCEPTION', 'Unexpected error.');
-        }
-    }
-);
-
-router.get(
-    '/transactions/:id',
-    requirePermission(PERMISSIONS.TRANSACTIONS_READ),
-    async (req, res) => {
-        if (!UUID_RE.test(String(req.params.id || ''))) return fail(res, 400, 'INVALID_ID', 'Invalid transaction id.');
-        try {
-            const { id } = req.params;
-
-            const { data: tx, error } = await supabaseAdmin
-                .from('transactions')
-                .select(TX_DETAIL_COLS + ', profiles!transactions_user_id_fkey (id, username, email, phone, role, status)')
-                .eq('id', id)
-                .maybeSingle();
-            if (error) {
-                console.error('[MONEY TX]', req.requestId, error.message);
-                return fail(res, 500, 'TX_DETAIL_ERROR', 'Failed to load transaction.');
-            }
-            if (!tx) return fail(res, 404, 'TX_NOT_FOUND', 'Transaction not found.');
-
-            // Ledger entries — explicit columns, no swallowed errors.
-            const { data: le, error: leErr } = await supabaseAdmin
-                .from('ledger_entries')
-                .select(LEDGER_ENTRY_COLS)
-                .eq('transaction_id', id)
-                .order('created_at', { ascending: true });
-            if (leErr) {
-                console.error('[MONEY TX]', req.requestId, 'ledger read', leErr.message);
-                return fail(res, 500, 'TX_LEDGER_READ_ERROR', 'Failed to read ledger entries.');
-            }
-
-            // Webhooks (both tables) — explicit columns.
-            let webhooks = [];
-            let webhooksStatus = 'available';
-            const providerRef = tx.provider_reference || tx.ref || tx.reference;
-            if (providerRef) {
-                const [koraRes, genericRes] = await Promise.all([
-                    supabaseAdmin
-                        .from('kora_webhook_events')
-                        .select('id, event_type, provider_reference, signature_valid, processing_status, processing_error, received_at, processed_at')
-                        .eq('provider_reference', providerRef)
-                        .order('received_at', { ascending: false })
-                        .limit(20),
-                    supabaseAdmin
-                        .from('provider_webhook_events')
-                        .select('id, provider, event_type, payment_id, order_id, signature_valid, processing_status, processing_error, received_at, processed_at')
-                        .or(`payment_id.eq.${providerRef},order_id.eq.${providerRef}`)
-                        .order('received_at', { ascending: false })
-                        .limit(20)
-                ]);
-                if (koraRes.error && koraRes.error.code !== '42P01') webhooksStatus = 'unavailable';
-                if (genericRes.error && genericRes.error.code !== '42P01') webhooksStatus = 'unavailable';
-                webhooks = [...(koraRes.data || []), ...(genericRes.data || [])]
-                    .sort((a, b) => new Date(b.received_at) - new Date(a.received_at));
-            }
-
-            // Related deposit
-            let deposit = null;
-            if (tx.source_type === 'kora_deposit' || tx.provider === 'korapay') {
-                const { data: dep } = await supabaseAdmin
-                    .from('deposit_requests')
-                    .select(DEP_KORA_COLS)
-                    .or(`unified_transaction_id.eq.${id},ledger_transaction_id.eq.${id},internal_reference.eq.${tx.ref}`)
-                    .maybeSingle();
-                deposit = dep || null;
-            } else if (tx.provider === 'nowpayments' || tx.source_type === 'crypto_deposit') {
-                const { data: dep } = await supabaseAdmin
-                    .from('crypto_deposits')
-                    .select(DEP_CRYPTO_COLS)
-                    .or(`nowpayments_payment_id.eq.${tx.provider_reference},id.eq.${tx.source_id}`)
-                    .maybeSingle();
-                deposit = dep || null;
-            }
-
-            res.json({
-                success: true,
-                transaction: shapeTransaction(tx),
-                user: tx.profiles || null,
-                ledger_entries: le || [],
-                webhooks,
-                webhooks_status: webhooksStatus,
-                deposit
-            });
-        } catch (err) {
-            console.error('[MONEY TX]', req.requestId, err);
-            fail(res, 500, 'TX_DETAIL_EXCEPTION', 'Unexpected error.');
-        }
-    }
-);
-
+// IMPORTANT: /export MUST come before /:id
 router.get(
     '/transactions/export',
     requirePermission(PERMISSIONS.REPORTS_EXPORT),
     rateLimit({ key: 'tx-export', max: 5, windowMs: 60_000 }),
     async (req, res) => {
         try {
-            const fromIso = isoDate(req.query.from);
-            const toIso = isoDate(req.query.to);
+            const fromIso = parseDate(req.query.from);
+            const toIso = parseDate(req.query.to, true);
             const { status, currency } = req.query;
 
             let q = supabaseAdmin
@@ -442,6 +267,7 @@ router.get(
                 .select(TX_LIST_COLS)
                 .order('created_at', { ascending: false })
                 .limit(MAX_EXPORT_ROWS);
+                
             if (status && status !== 'all') q = q.eq('status', String(status).toLowerCase());
             if (currency && currency !== 'all') q = q.eq('currency', String(currency).toUpperCase());
             if (fromIso) q = q.gte('created_at', fromIso);
@@ -494,9 +320,269 @@ router.get(
     }
 );
 
+router.get(
+    '/transactions',
+    requirePermission(PERMISSIONS.TRANSACTIONS_READ),
+    async (req, res) => {
+        try {
+            const page = parsePage(req.query.page);
+            const limit = parseLimit(req.query.limit);
+            const offset = (page - 1) * limit;
+
+            const { search, status, currency, type, category, direction, from, to, user_id } = req.query;
+
+            let q = supabaseAdmin
+                .from('transactions')
+                .select(TX_LIST_COLS + ', profiles!transactions_user_id_fkey (username, email)', { count: 'exact' })
+                .order('created_at', { ascending: false });
+
+            if (status && status !== 'all') q = q.eq('status', String(status).toLowerCase());
+            if (currency && currency !== 'all') q = q.eq('currency', String(currency).toUpperCase());
+            if (type) q = q.eq('type', String(type).toLowerCase());
+            if (user_id && UUID_RE.test(user_id)) q = q.eq('user_id', user_id);
+            
+            if (direction && direction !== 'all') {
+                const d = String(direction).toLowerCase();
+                if (d === 'credit' || d === 'debit') q = q.eq('direction', d);
+            }
+
+            const fromIso = parseDate(from);
+            const toIso = parseDate(to, true);
+            if (fromIso) q = q.gte('created_at', fromIso);
+            if (toIso) q = q.lte('created_at', toIso);
+
+            if (search) {
+                const safe = escapeLike(search);
+                q = q.or(
+                    `ref.ilike.%${safe}%,reference.ilike.%${safe}%,provider_reference.ilike.%${safe}%,description.ilike.%${safe}%`
+                );
+            }
+
+            if (category && category !== 'all') {
+                const map = {
+                    deposit: ['deposit'],
+                    refund: ['refund'],
+                    cashback: ['cashback_earned', 'cashback_used'],
+                    adjustment: ['admin_adjustment'],
+                    wallet: ['wallet_credit', 'wallet_debit'],
+                    purchase: ['airtime','data','esim','gift','gift_card','boost','marketplace','virtual_sms','sms']
+                };
+                const types = map[category];
+                if (types) q = q.in('type', types);
+            }
+
+            q = q.range(offset, offset + limit - 1);
+
+            const { data, error, count } = await q;
+            if (error) {
+                console.error('[MONEY TX]', req.requestId, error.message);
+                return fail(res, 500, 'TX_LIST_ERROR', 'Failed to load transactions.');
+            }
+
+            const rows = (data || []).map(shapeTransaction);
+
+            res.json({
+                success: true,
+                transactions: rows,
+                count: count || 0,
+                page, limit,
+                totalPages: Math.ceil((count || 0) / limit)
+            });
+        } catch (err) {
+            console.error('[MONEY TX]', req.requestId, err);
+            fail(res, 500, 'TX_LIST_EXCEPTION', 'Unexpected error.');
+        }
+    }
+);
+
+router.get(
+    '/transactions/stats',
+    requirePermission(PERMISSIONS.TRANSACTIONS_READ),
+    async (req, res) => {
+        try {
+            const fromIso = parseDate(req.query.from);
+            const toIso = parseDate(req.query.to, true);
+
+            const buildQ = (extra) => {
+                let q = supabaseAdmin.from('transactions').select('id', { count: 'exact', head: true });
+                if (fromIso) q = q.gte('created_at', fromIso);
+                if (toIso) q = q.lte('created_at', toIso);
+                if (extra) q = extra(q);
+                return q;
+            };
+
+            const [total, completed, pending, failed, deposits] = await Promise.all([
+                buildQ(),
+                buildQ(q => q.in('status', ['completed', 'success'])),
+                buildQ(q => q.in('status', ['pending', 'processing', 'confirming'])),
+                buildQ(q => q.in('status', ['failed', 'cancelled', 'reversed'])),
+                buildQ(q => q.eq('type', 'deposit'))
+            ]);
+
+            res.json({
+                success: true,
+                stats: {
+                    total: total.count || 0,
+                    completed: completed.count || 0,
+                    pending: pending.count || 0,
+                    failed: failed.count || 0,
+                    deposits: deposits.count || 0
+                }
+            });
+        } catch (err) {
+            console.error('[MONEY TX]', req.requestId, err);
+            fail(res, 500, 'TX_STATS_EXCEPTION', 'Unexpected error.');
+        }
+    }
+);
+
+// /transactions/:id
+router.get(
+    '/transactions/:id',
+    requirePermission(PERMISSIONS.TRANSACTIONS_READ),
+    async (req, res) => {
+        if (!UUID_RE.test(String(req.params.id || ''))) return fail(res, 400, 'INVALID_ID', 'Invalid transaction id.');
+        try {
+            const { id } = req.params;
+
+            const { data: tx, error } = await supabaseAdmin
+                .from('transactions')
+                .select(TX_DETAIL_COLS + ', profiles!transactions_user_id_fkey (id, username, email, phone, role, status)')
+                .eq('id', id)
+                .maybeSingle();
+            if (error) {
+                console.error('[MONEY TX]', req.requestId, error.message);
+                return fail(res, 500, 'TX_DETAIL_ERROR', 'Failed to load transaction.');
+            }
+            if (!tx) return fail(res, 404, 'TX_NOT_FOUND', 'Transaction not found.');
+
+            const { data: le, error: leErr } = await supabaseAdmin
+                .from('ledger_entries')
+                .select(LEDGER_ENTRY_COLS)
+                .eq('transaction_id', id)
+                .order('created_at', { ascending: true });
+            if (leErr) {
+                console.error('[MONEY TX]', req.requestId, 'ledger read', leErr.message);
+                return fail(res, 500, 'TX_LEDGER_READ_ERROR', 'Failed to read ledger entries.');
+            }
+
+            // Webhooks
+            let webhooks = [];
+            let webhooksStatus = 'available';
+            const providerRef = tx.provider_reference || tx.ref || tx.reference;
+            if (providerRef) {
+                const [koraRes, genericRes] = await Promise.all([
+                    supabaseAdmin
+                        .from('kora_webhook_events')
+                        .select('id, event_type, provider_reference, signature_valid, processing_status, processing_error, received_at, processed_at')
+                        .eq('provider_reference', providerRef)
+                        .order('received_at', { ascending: false })
+                        .limit(20),
+                    supabaseAdmin
+                        .from('provider_webhook_events')
+                        .select('id, provider, event_type, payment_id, order_id, signature_valid, processing_status, processing_error, received_at, processed_at')
+                        .or(`payment_id.eq.${providerRef},order_id.eq.${providerRef}`)
+                        .order('received_at', { ascending: false })
+                        .limit(20)
+                ]);
+                if (koraRes.error && koraRes.error.code !== '42P01') webhooksStatus = 'unavailable';
+                if (genericRes.error && genericRes.error.code !== '42P01') webhooksStatus = 'unavailable';
+                webhooks = [...(koraRes.data || []), ...(genericRes.data || [])]
+                    .sort((a, b) => new Date(b.received_at) - new Date(a.received_at));
+            }
+
+            // Deposit
+            let deposit = null;
+            if (tx.source_type === 'kora_deposit' || tx.provider === 'korapay') {
+                const { data: dep } = await supabaseAdmin
+                    .from('deposit_requests')
+                    .select(DEP_KORA_COLS)
+                    .or(`unified_transaction_id.eq.${id},ledger_transaction_id.eq.${id},internal_reference.eq.${tx.ref}`)
+                    .maybeSingle();
+                deposit = dep || null;
+            } else if (tx.provider === 'nowpayments' || tx.source_type === 'crypto_deposit') {
+                const { data: dep } = await supabaseAdmin
+                    .from('crypto_deposits')
+                    .select(DEP_CRYPTO_COLS)
+                    .or(`nowpayments_payment_id.eq.${tx.provider_reference},id.eq.${tx.source_id}`)
+                    .maybeSingle();
+                deposit = dep || null;
+            }
+
+            res.json({
+                success: true,
+                transaction: shapeTransaction(tx),
+                user: tx.profiles || null,
+                ledger_entries: le || [],
+                webhooks,
+                webhooks_status: webhooksStatus,
+                deposit
+            });
+        } catch (err) {
+            console.error('[MONEY TX]', req.requestId, err);
+            fail(res, 500, 'TX_DETAIL_EXCEPTION', 'Unexpected error.');
+        }
+    }
+);
+
 // ═════════════════════════════════════════════════════════════════
-//  DEPOSITS — real pagination via the DB view
+//  DEPOSITS
 // ═════════════════════════════════════════════════════════════════
+
+router.get(
+    '/deposits/export',
+    requirePermission(PERMISSIONS.REPORTS_EXPORT),
+    rateLimit({ key: 'dep-export', max: 5, windowMs: 60_000 }),
+    async (req, res) => {
+        try {
+            const fromIso = parseDate(req.query.from);
+            const toIso = parseDate(req.query.to, true);
+            const { status, source } = req.query;
+
+            let q = supabaseAdmin
+                .from('admin_unified_deposits')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(MAX_EXPORT_ROWS);
+                
+            if (source && source !== 'all') q = q.eq('source', String(source).toLowerCase());
+            if (status && status !== 'all') q = q.eq('status', String(status).toLowerCase());
+            if (fromIso) q = q.gte('created_at', fromIso);
+            if (toIso) q = q.lte('created_at', toIso);
+
+            const { data, error } = await q;
+            if (error) {
+                console.error('[MONEY DEP]', req.requestId, 'export', error.message);
+                return fail(res, 500, 'DEP_EXPORT_ERROR', 'Export failed.');
+            }
+
+            const header = ['Source','Reference','Provider Reference','Payment Currency','Payment Amount','Wallet Currency','Wallet Amount','Fee','Status','Created','Completed'];
+            const lines = [csvRow(header)];
+            for (const d of data || []) {
+                lines.push(csvRow([
+                    d.source || '',
+                    d.reference || '',
+                    d.provider_reference || '',
+                    d.payment_currency || '',
+                    d.payment_amount ?? '',
+                    d.wallet_currency || '',
+                    d.wallet_amount ?? '',
+                    d.fee_amount ?? '',
+                    d.status || '',
+                    d.created_at || '',
+                    d.completed_at || ''
+                ]));
+            }
+
+            res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+            res.setHeader('Content-Disposition', `attachment; filename=deposits_${new Date().toISOString().slice(0,10)}_${req.requestId.slice(0,8)}.csv`);
+            res.send(lines.join('\n'));
+        } catch (err) {
+            console.error('[MONEY DEP]', req.requestId, err);
+            fail(res, 500, 'DEP_EXPORT_EXCEPTION', 'Unexpected error.');
+        }
+    }
+);
 
 router.get(
     '/deposits',
@@ -518,10 +604,12 @@ router.get(
             if (wallet_currency && wallet_currency !== 'all') {
                 q = q.eq('wallet_currency', String(wallet_currency).toUpperCase());
             }
-            const fromIso = isoDate(from);
-            const toIso = isoDate(to);
+            
+            const fromIso = parseDate(from);
+            const toIso = parseDate(to, true);
             if (fromIso) q = q.gte('created_at', fromIso);
             if (toIso) q = q.lte('created_at', toIso);
+            
             if (search) {
                 const safe = escapeLike(search);
                 q = q.or(
@@ -536,7 +624,6 @@ router.get(
                 return fail(res, 500, 'DEP_LIST_ERROR', 'Failed to load deposits.');
             }
 
-            // Fetch the profiles for the page in one round-trip.
             const userIds = [...new Set((data || []).map(d => d.user_id).filter(Boolean))];
             let profilesById = {};
             if (userIds.length) {
@@ -544,9 +631,11 @@ router.get(
                     .from('profiles').select('id, username, email').in('id', userIds);
                 if (pErr) {
                     console.error('[MONEY DEP]', req.requestId, 'profiles', pErr.message);
-                    return fail(res, 500, 'DEP_PROFILES_ERROR', 'Failed to load deposit owners.');
+                    // Degrade gracefully — do not fail the list if profiles fail
+                    profilesById = {};
+                } else {
+                    (profiles || []).forEach(p => { profilesById[p.id] = p; });
                 }
-                (profiles || []).forEach(p => { profilesById[p.id] = p; });
             }
 
             const rows = (data || []).map(d => shapeUnifiedDeposit(d, profilesById[d.user_id]));
@@ -570,8 +659,8 @@ router.get(
     requirePermission(PERMISSIONS.DEPOSITS_READ),
     async (req, res) => {
         try {
-            const fromIso = isoDate(req.query.from);
-            const toIso = isoDate(req.query.to);
+            const fromIso = parseDate(req.query.from);
+            const toIso = parseDate(req.query.to, true);
 
             const buildKora = (extra) => {
                 let q = supabaseAdmin.from('deposit_requests').select('id', { count: 'exact', head: true });
@@ -676,7 +765,6 @@ router.get(
                     .sort((a, b) => new Date(b.received_at) - new Date(a.received_at));
             }
 
-            // Linked transaction — explicit columns.
             let transaction = null;
             const txId = source === 'kora' ? dep.unified_transaction_id : null;
             if (txId) {
@@ -716,63 +804,109 @@ router.get(
     }
 );
 
+// ═════════════════════════════════════════════════════════════════
+//  LEDGER
+// ═════════════════════════════════════════════════════════════════
+
 router.get(
-    '/deposits/export',
+    '/ledger/export',
     requirePermission(PERMISSIONS.REPORTS_EXPORT),
-    rateLimit({ key: 'dep-export', max: 5, windowMs: 60_000 }),
+    rateLimit({ key: 'ledger-export', max: 5, windowMs: 60_000 }),
     async (req, res) => {
         try {
-            const fromIso = isoDate(req.query.from);
-            const toIso = isoDate(req.query.to);
-            const { status, source } = req.query;
+            const { from, to, currency, direction } = req.query;
+            const fromIso = parseDate(from);
+            const toIso = parseDate(to, true);
 
             let q = supabaseAdmin
-                .from('admin_unified_deposits')
-                .select('*')
+                .from('ledger_entries')
+                .select(LEDGER_ENTRY_COLS)
                 .order('created_at', { ascending: false })
                 .limit(MAX_EXPORT_ROWS);
-            if (source && source !== 'all') q = q.eq('source', String(source).toLowerCase());
-            if (status && status !== 'all') q = q.eq('status', String(status).toLowerCase());
+                
+            if (currency && currency !== 'all') q = q.eq('currency', String(currency).toUpperCase());
+            if (direction && direction !== 'all') q = q.eq('entry_type', direction === 'credit' ? 'CREDIT' : 'DEBIT');
             if (fromIso) q = q.gte('created_at', fromIso);
             if (toIso) q = q.lte('created_at', toIso);
 
             const { data, error } = await q;
             if (error) {
-                console.error('[MONEY DEP]', req.requestId, 'export', error.message);
-                return fail(res, 500, 'DEP_EXPORT_ERROR', 'Export failed.');
+                console.error('[MONEY LEDGER]', req.requestId, 'export', error.message);
+                return fail(res, 500, 'LEDGER_EXPORT_ERROR', 'Export failed.');
             }
 
-            const header = ['Source','Reference','Provider Reference','Payment Currency','Payment Amount','Wallet Currency','Wallet Amount','Fee','Status','Created','Completed'];
+            const header = ['Entry ID','Transaction ID','Account ID','Type','Amount','Currency','Balance Before','Balance After','Description','Created'];
             const lines = [csvRow(header)];
-            for (const d of data || []) {
+            for (const e of data || []) {
                 lines.push(csvRow([
-                    d.source || '',
-                    d.reference || '',
-                    d.provider_reference || '',
-                    d.payment_currency || '',
-                    d.payment_amount ?? '',
-                    d.wallet_currency || '',
-                    d.wallet_amount ?? '',
-                    d.fee_amount ?? '',
-                    d.status || '',
-                    d.created_at || '',
-                    d.completed_at || ''
+                    e.id, e.transaction_id, e.account_id, e.entry_type,
+                    e.amount_minor != null ? (Number(e.amount_minor) / 100).toFixed(2) : '',
+                    e.description || '', e.created_at
                 ]));
             }
-
             res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-            res.setHeader('Content-Disposition', `attachment; filename=deposits_${new Date().toISOString().slice(0,10)}_${req.requestId.slice(0,8)}.csv`);
+            res.setHeader('Content-Disposition', `attachment; filename=ledger_${new Date().toISOString().slice(0,10)}_${req.requestId.slice(0,8)}.csv`);
             res.send(lines.join('\n'));
         } catch (err) {
-            console.error('[MONEY DEP]', req.requestId, err);
-            fail(res, 500, 'DEP_EXPORT_EXCEPTION', 'Unexpected error.');
+            console.error('[MONEY LEDGER]', req.requestId, err);
+            fail(res, 500, 'LEDGER_EXPORT_EXCEPTION', 'Unexpected error.');
         }
     }
 );
 
-// ═════════════════════════════════════════════════════════════════
-//  LEDGER
-// ═════════════════════════════════════════════════════════════════
+router.get(
+    '/ledger/balances',
+    requirePermission(PERMISSIONS.WALLETS_READ),
+    async (req, res) => {
+        try {
+            const { data, error } = await supabaseAdmin.rpc('admin_ledger_balances');
+            
+            if (error) {
+                // Fallback to JS aggregation if RPC missing (still safe)
+                if (error.code === '42883') {
+                    const { data: rows, error: fallbackErr } = await supabaseAdmin
+                        .from('ledger_accounts')
+                        .select('currency, available_balance, held_balance');
+                        
+                    if (fallbackErr) throw fallbackErr;
+                    
+                    const totals = {};
+                    for (const row of rows || []) {
+                        const ccy = row.currency || 'NGN';
+                        if (!totals[ccy]) totals[ccy] = { available: 0n, held: 0n };
+                        totals[ccy].available += BigInt(Math.round(num(row.available_balance) * 100));
+                        totals[ccy].held += BigInt(Math.round(num(row.held_balance) * 100));
+                    }
+                    
+                    const out = {};
+                    for (const [ccy, t] of Object.entries(totals)) {
+                        out[ccy] = {
+                            available: bigintToDecimalString(t.available),
+                            held: bigintToDecimalString(t.held),
+                            total: bigintToDecimalString(t.available + t.held)
+                        };
+                    }
+                    return res.json({ success: true, balances: out });
+                }
+                throw error;
+            }
+
+            // If RPC exists, shape directly.
+            const out = {};
+            for (const row of data || []) {
+                out[row.currency] = {
+                    available: String(row.available || '0.00'),
+                    held: String(row.held || '0.00'),
+                    total: String(row.total || '0.00')
+                };
+            }
+            res.json({ success: true, balances: out });
+        } catch (err) {
+            console.error('[MONEY LEDGER]', req.requestId, err);
+            fail(res, 500, 'BALANCES_ERROR', 'Failed to load balances.');
+        }
+    }
+);
 
 router.get(
     '/ledger',
@@ -784,8 +918,8 @@ router.get(
             const offset = (page - 1) * limit;
             const { search, currency, direction, user_id, from, to } = req.query;
 
-            const fromIso = isoDate(from);
-            const toIso = isoDate(to);
+            const fromIso = parseDate(from);
+            const toIso = parseDate(to, true);
 
             let q = supabaseAdmin
                 .from('ledger_entries')
@@ -801,9 +935,14 @@ router.get(
             if (user_id && UUID_RE.test(user_id)) q = q.eq('ledger_accounts.user_id', user_id);
             if (fromIso) q = q.gte('created_at', fromIso);
             if (toIso) q = q.lte('created_at', toIso);
+            
             if (search) {
                 const safe = escapeLike(search);
-                q = q.or(`description.ilike.%${safe}%,transaction_id.ilike.%${safe}%`);
+                q = q.or(`description.ilike.%${safe}%`);
+                // We can't safely .or() on a UUID unless we check shape.
+                if (UUID_RE.test(search)) {
+                    q = q.or(`id.eq.${search},transaction_id.eq.${search}`);
+                }
             }
             q = q.range(offset, offset + limit - 1);
 
@@ -830,7 +969,7 @@ router.get(
                     },
                     entry_type: e.entry_type,
                     direction: e.entry_type === 'CREDIT' ? 'credit' : 'debit',
-                    amount: num(e.amount),
+                    amount: Number(e.amount_minor) / 100,
                     currency: e.currency,
                     balance_before: e.balance_before != null ? num(e.balance_before) : null,
                     balance_after: e.balance_after != null ? num(e.balance_after) : null,
@@ -855,44 +994,6 @@ router.get(
 );
 
 router.get(
-    '/ledger/balances',
-    requirePermission(PERMISSIONS.WALLETS_READ),
-    async (req, res) => {
-        try {
-            const { data, error } = await supabaseAdmin
-                .from('ledger_accounts')
-                .select('currency, available_balance, held_balance');
-            if (error) {
-                console.error('[MONEY LEDGER]', req.requestId, error.message);
-                return fail(res, 500, 'BALANCES_ERROR', 'Failed to load balances.');
-            }
-
-            const totals = {};
-            for (const row of data || []) {
-                const ccy = row.currency || 'NGN';
-                if (!totals[ccy]) totals[ccy] = { available: 0n, held: 0n };
-                totals[ccy].available += BigInt(Math.round(num(row.available_balance) * 100));
-                totals[ccy].held += BigInt(Math.round(num(row.held_balance) * 100));
-            }
-            const out = {};
-            for (const [ccy, t] of Object.entries(totals)) {
-                // Format from BigInt directly, no Number() round-trip.
-                out[ccy] = {
-                    available: bigintToDecimalString(t.available),
-                    held: bigintToDecimalString(t.held),
-                    total: bigintToDecimalString(t.available + t.held)
-                };
-            }
-
-            res.json({ success: true, balances: out });
-        } catch (err) {
-            console.error('[MONEY LEDGER]', req.requestId, err);
-            fail(res, 500, 'BALANCES_EXCEPTION', 'Unexpected error.');
-        }
-    }
-);
-
-router.get(
     '/ledger/user/:userId',
     requirePermission(PERMISSIONS.WALLETS_READ),
     async (req, res) => {
@@ -901,14 +1002,16 @@ router.get(
             const { userId } = req.params;
             const { currency, from, to } = req.query;
             const limit = parseLimit(req.query.limit, 100, 500);
-            const fromIso = isoDate(from);
-            const toIso = isoDate(to);
+            const fromIso = parseDate(from);
+            const toIso = parseDate(to, true);
 
             let accountsQ = supabaseAdmin
                 .from('ledger_accounts')
                 .select(LEDGER_ACCOUNT_COLS)
                 .eq('user_id', userId);
+                
             if (currency && currency !== 'all') accountsQ = accountsQ.eq('currency', String(currency).toUpperCase());
+            
             const { data: accounts, error: aErr } = await accountsQ;
             if (aErr) {
                 console.error('[MONEY LEDGER]', req.requestId, aErr.message);
@@ -924,6 +1027,7 @@ router.get(
                 .in('account_id', accountIds)
                 .order('created_at', { ascending: false })
                 .limit(limit);
+                
             if (fromIso) q = q.gte('created_at', fromIso);
             if (toIso) q = q.lte('created_at', toIso);
 
@@ -960,71 +1064,82 @@ router.get(
     }
 );
 
-router.get(
-    '/ledger/export',
-    requirePermission(PERMISSIONS.REPORTS_EXPORT),
-    rateLimit({ key: 'ledger-export', max: 5, windowMs: 60_000 }),
-    async (req, res) => {
-        try {
-            const { from, to, currency, direction } = req.query;
-            const fromIso = isoDate(from);
-            const toIso = isoDate(to);
-
-            let q = supabaseAdmin
-                .from('ledger_entries')
-                .select(LEDGER_ENTRY_COLS)
-                .order('created_at', { ascending: false })
-                .limit(MAX_EXPORT_ROWS);
-            if (currency && currency !== 'all') q = q.eq('currency', String(currency).toUpperCase());
-            if (direction && direction !== 'all') q = q.eq('entry_type', direction === 'credit' ? 'CREDIT' : 'DEBIT');
-            if (fromIso) q = q.gte('created_at', fromIso);
-            if (toIso) q = q.lte('created_at', toIso);
-
-            const { data, error } = await q;
-            if (error) {
-                console.error('[MONEY LEDGER]', req.requestId, 'export', error.message);
-                return fail(res, 500, 'LEDGER_EXPORT_ERROR', 'Export failed.');
-            }
-
-            const header = ['Entry ID','Transaction ID','Account ID','Type','Amount','Currency','Balance Before','Balance After','Description','Created'];
-            const lines = [csvRow(header)];
-            for (const e of data || []) {
-                lines.push(csvRow([
-                    e.id, e.transaction_id, e.account_id, e.entry_type,
-                    e.amount ?? '', e.currency, e.balance_before ?? '', e.balance_after ?? '',
-                    e.description || '', e.created_at
-                ]));
-            }
-            res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-            res.setHeader('Content-Disposition', `attachment; filename=ledger_${new Date().toISOString().slice(0,10)}_${req.requestId.slice(0,8)}.csv`);
-            res.send(lines.join('\n'));
-        } catch (err) {
-            console.error('[MONEY LEDGER]', req.requestId, err);
-            fail(res, 500, 'LEDGER_EXPORT_EXCEPTION', 'Unexpected error.');
-        }
-    }
-);
-
 // ═════════════════════════════════════════════════════════════════
 //  RECONCILIATION
 // ═════════════════════════════════════════════════════════════════
 
-// GET /api/admin/reconciliation/summary
-// Reads the DB view. Does NOT scan thousands of rows in Node.
+router.get(
+    '/reconciliation/export',
+    requirePermission(PERMISSIONS.REPORTS_EXPORT),
+    rateLimit({ key: 'recon-export', max: 5, windowMs: 60_000 }),
+    async (req, res) => {
+        try {
+            const { status, provider } = req.query;
+            let q = supabaseAdmin
+                .from('reconciliation_issues')
+                .select('id, provider, issue_type, severity, status, internal_reference, provider_reference, currency, expected_amount, provider_amount, difference, created_at, resolved_at')
+                .order('created_at', { ascending: false })
+                .limit(MAX_EXPORT_ROWS);
+                
+            if (status && status !== 'all') q = q.eq('status', status);
+            if (provider) q = q.eq('provider', provider);
+
+            const { data, error } = await q;
+            if (error) {
+                console.error('[MONEY RECON]', req.requestId, 'export', error.message);
+                return fail(res, 500, 'RECON_EXPORT_ERROR', 'Export failed.');
+            }
+            const header = ['Issue ID','Provider','Type','Severity','Status','Reference','Provider Reference','Currency','Expected','Provider Amount','Difference','Created','Resolved'];
+            const lines = [csvRow(header)];
+            for (const i of data || []) {
+                lines.push(csvRow([
+                    i.id, i.provider, i.issue_type, i.severity, i.status,
+                    i.internal_reference || '', i.provider_reference || '',
+                    i.currency || '', i.expected_amount ?? '', i.provider_amount ?? '', i.difference ?? '',
+                    i.created_at, i.resolved_at || ''
+                ]));
+            }
+            res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+            res.setHeader('Content-Disposition', `attachment; filename=reconciliation_${new Date().toISOString().slice(0,10)}_${req.requestId.slice(0,8)}.csv`);
+            res.send(lines.join('\n'));
+        } catch (err) {
+            console.error('[MONEY RECON]', req.requestId, err);
+            fail(res, 500, 'RECON_EXPORT_EXCEPTION', 'Unexpected error.');
+        }
+    }
+);
+
 router.get(
     '/reconciliation/summary',
     requirePermission(PERMISSIONS.RECONCILIATION_READ),
     async (req, res) => {
         try {
             const { from, to, provider = 'kora' } = req.query;
-            const fromIso = isoDate(from, new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
-            const toIso = isoDate(to, new Date().toISOString());
+            const fromIso = parseDate(from, false) || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+            const toIso = parseDate(to, true) || new Date().toISOString();
 
             const allowed = ['kora', 'crypto'];
             if (!allowed.includes(provider)) {
                 return fail(res, 422, 'INVALID_PROVIDER', 'Provider must be kora or crypto.');
             }
 
+            // Try the RPC first (aggregates in SQL, avoids 1000-row cap)
+            const { data: rpcData, error: rpcErr } = await supabaseAdmin.rpc('admin_reconciliation_summary', {
+                p_provider: provider,
+                p_from: fromIso,
+                p_to: toIso
+            });
+
+            if (!rpcErr && rpcData) {
+                return res.json({
+                    success: true,
+                    provider,
+                    summary: rpcData,
+                    from: fromIso, to: toIso
+                });
+            }
+
+            // Fallback: query the view directly (limited to 5000)
             let q = supabaseAdmin
                 .from('admin_reconciliation_v2')
                 .select('source, match_state, webhook_event_count, wallet_amount')
@@ -1052,7 +1167,6 @@ router.get(
             const unresolved = counts.UNRESOLVED || 0;
             const closed = counts.CLOSED || 0;
 
-            // A short list of exceptions for the UI.
             let exceptionsQ = supabaseAdmin
                 .from('admin_reconciliation_v2')
                 .select('source, deposit_id, internal_reference, provider_reference, internal_status, wallet_currency, wallet_amount, match_state, created_at')
@@ -1102,7 +1216,6 @@ router.get(
     }
 );
 
-// GET /api/admin/reconciliation/issues
 router.get(
     '/reconciliation/issues',
     requirePermission(PERMISSIONS.RECONCILIATION_READ),
@@ -1117,6 +1230,7 @@ router.get(
                 .from('reconciliation_issues')
                 .select('id, provider, issue_type, severity, status, internal_reference, provider_reference, currency, expected_amount, provider_amount, difference, created_at, resolved_at, resolution_notes, resolved_by, assigned_to', { count: 'exact' })
                 .order('created_at', { ascending: false });
+                
             if (status && status !== 'all') q = q.eq('status', status);
             if (provider) q = q.eq('provider', provider);
             if (severity) q = q.eq('severity', severity);
@@ -1145,11 +1259,7 @@ router.get(
     }
 );
 
-// POST /api/admin/reconciliation/recheck/:source/:id
-// VERIFY-ONLY. Does NOT credit the wallet. If the deposit is
-// already completed, we return the existing state — we do not
-// re-settle. Settlement only happens through the deposit services
-// that own idempotency.
+// VERIFY-ONLY. Does NOT credit the wallet.
 router.post(
     '/reconciliation/recheck/:source/:id',
     requirePermission(PERMISSIONS.RECONCILIATION_RESOLVE),
@@ -1175,7 +1285,6 @@ router.post(
             }
             if (!dep) return fail(res, 404, 'DEPOSIT_NOT_FOUND', 'Deposit not found.');
 
-            // Already completed? Idempotent no-op. Never re-settle.
             if (String(dep.status || '').toLowerCase() === 'completed') {
                 return res.json({
                     success: true,
@@ -1187,28 +1296,39 @@ router.post(
                 });
             }
 
-            // VERIFY-ONLY. Never touches the wallet.
             let verifyResult;
             try {
                 if (source === 'kora') {
                     const korapayService = require('../../services/korapayService');
                     const ref = dep.provider_reference || dep.merchant_reference;
                     const verified = await korapayService.verifyTransaction(ref);
+                    
+                    const providerAmount = Number(verified?.amount || 0);
+                    const internalAmount = Number(dep.payment_amount || 0);
+                    
                     verifyResult = {
                         provider_status: verified?.status || 'unknown',
-                        provider_amount: verified?.amount ?? null,
+                        provider_amount: providerAmount,
                         provider_currency: verified?.currency || null,
-                        provider_reference: verified?.provider_reference || ref
+                        provider_reference: verified?.provider_reference || ref,
+                        matches_internal: Math.abs(providerAmount - internalAmount) < 0.01,
+                        amount_difference: Math.abs(providerAmount - internalAmount)
                     };
                 } else {
                     const nowPaymentsService = require('../../services/nowpaymentsService');
                     const pid = dep.nowpayments_payment_id;
                     const verified = await nowPaymentsService.getPaymentStatus(pid);
+                    
+                    const providerAmount = Number(verified?.actually_paid || 0);
+                    const internalAmount = Number(dep.pay_amount || 0);
+                    
                     verifyResult = {
                         provider_status: verified?.payment_status || 'unknown',
-                        provider_amount: verified?.actually_paid ?? null,
+                        provider_amount: providerAmount,
                         provider_currency: verified?.pay_currency || null,
-                        provider_reference: pid
+                        provider_reference: pid,
+                        matches_internal: Math.abs(providerAmount - internalAmount) < 0.000001,
+                        amount_difference: Math.abs(providerAmount - internalAmount)
                     };
                 }
             } catch (providerErr) {
@@ -1224,7 +1344,6 @@ router.post(
                     requestId: req.requestId,
                     req
                 }).catch(() => {});
-                // Do not leak provider error message to the client.
                 return providerFail(res, 'PROVIDER_ERROR', req.requestId);
             }
 
@@ -1240,9 +1359,6 @@ router.post(
                 req
             });
 
-            // Explicitly do NOT settle. The settlement path is the
-            // deposit service, invoked by the webhook or a
-            // dedicated reconciliation job.
             res.json({
                 success: true,
                 source,
@@ -1262,10 +1378,6 @@ router.post(
     }
 );
 
-// POST /api/admin/reconciliation/issues/:id/resolve
-// The credit amount and user are derived FROM THE ISSUE, not from
-// the request body. If the issue doesn't have enough info to know
-// the correct user and amount, we refuse.
 router.post(
     '/reconciliation/issues/:id/resolve',
     requirePermission(PERMISSIONS.RECONCILIATION_RESOLVE),
@@ -1295,12 +1407,6 @@ router.post(
             if (!issue) return fail(res, 404, 'ISSUE_NOT_FOUND', 'Issue not found.');
             if (issue.status === 'resolved') return fail(res, 409, 'ALREADY_RESOLVED', 'Issue already resolved.');
 
-            // Decide whether a credit is applicable AT ALL, using
-            // ONLY data the issue itself carries.
-            //
-            //   - If difference > 0 and user_id is present → the
-            //     correct fix is to credit the difference.
-            //   - Otherwise: mark resolved with no financial effect.
             const diff = num(issue.difference);
             const shouldCredit = diff > 0 && !!issue.user_id && !!issue.currency;
             let creditResult = null;
@@ -1314,7 +1420,6 @@ router.post(
                     return fail(res, 422, 'INVALID_ISSUE_AMOUNT', 'Issue difference is not a positive amount.');
                 }
 
-                // Idempotency: unique reference per issue.
                 const ref = `RECON-${issue.id}`;
                 let ledgerResult;
                 try {
@@ -1342,7 +1447,6 @@ router.post(
                 creditResult = ledgerResult;
             }
 
-            // Mark resolved. Concurrency-safe: only if still open.
             const { error: updErr } = await supabaseAdmin
                 .from('reconciliation_issues')
                 .update({
@@ -1358,9 +1462,6 @@ router.post(
 
             if (updErr) {
                 console.error('[MONEY RECON]', req.requestId, 'issue update', updErr.message);
-                // If ledger posted but issue update failed, escalate —
-                // do not pretend success. (The ledger ref is derived
-                // from the issue id, so re-running is idempotent.)
                 if (creditResult) {
                     return fail(res, 500, 'RESOLVE_PARTIAL',
                         'Credit posted but issue update failed. Escalate — the credit reference is derived from the issue id and is idempotent.',
@@ -1401,46 +1502,6 @@ router.post(
         } catch (err) {
             console.error('[MONEY RECON]', req.requestId, err);
             fail(res, 500, 'RESOLVE_EXCEPTION', 'Unexpected error.');
-        }
-    }
-);
-
-router.get(
-    '/reconciliation/export',
-    requirePermission(PERMISSIONS.REPORTS_EXPORT),
-    rateLimit({ key: 'recon-export', max: 5, windowMs: 60_000 }),
-    async (req, res) => {
-        try {
-            const { status, provider } = req.query;
-            let q = supabaseAdmin
-                .from('reconciliation_issues')
-                .select('id, provider, issue_type, severity, status, internal_reference, provider_reference, currency, expected_amount, provider_amount, difference, created_at, resolved_at')
-                .order('created_at', { ascending: false })
-                .limit(MAX_EXPORT_ROWS);
-            if (status && status !== 'all') q = q.eq('status', status);
-            if (provider) q = q.eq('provider', provider);
-
-            const { data, error } = await q;
-            if (error) {
-                console.error('[MONEY RECON]', req.requestId, 'export', error.message);
-                return fail(res, 500, 'RECON_EXPORT_ERROR', 'Export failed.');
-            }
-            const header = ['Issue ID','Provider','Type','Severity','Status','Reference','Provider Reference','Currency','Expected','Provider Amount','Difference','Created','Resolved'];
-            const lines = [csvRow(header)];
-            for (const i of data || []) {
-                lines.push(csvRow([
-                    i.id, i.provider, i.issue_type, i.severity, i.status,
-                    i.internal_reference || '', i.provider_reference || '',
-                    i.currency || '', i.expected_amount ?? '', i.provider_amount ?? '', i.difference ?? '',
-                    i.created_at, i.resolved_at || ''
-                ]));
-            }
-            res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-            res.setHeader('Content-Disposition', `attachment; filename=reconciliation_${new Date().toISOString().slice(0,10)}_${req.requestId.slice(0,8)}.csv`);
-            res.send(lines.join('\n'));
-        } catch (err) {
-            console.error('[MONEY RECON]', req.requestId, err);
-            fail(res, 500, 'RECON_EXPORT_EXCEPTION', 'Unexpected error.');
         }
     }
 );
@@ -1505,7 +1566,13 @@ function shapeUnifiedDeposit(d, profile) {
         created_at: d.created_at,
         completed_at: d.completed_at || null,
         failed_at: d.failed_at || null,
-        failure_reason: d.failure_reason || null
+        failure_reason: d.failure_reason || null,
+        // Crypto specific
+        pay_network: d.pay_network || null,
+        pay_currency: d.pay_currency || null,
+        requested_usd: d.requested_usd != null ? num(d.requested_usd) : null,
+        actually_paid_crypto: d.actually_paid_crypto != null ? num(d.actually_paid_crypto) : null,
+        outcome_usd: d.outcome_usd != null ? num(d.outcome_usd) : null
     };
 }
 
@@ -1518,15 +1585,6 @@ function classifyTransaction(t) {
     if (type === 'fee_revenue') return 'fee';
     if (type === 'wallet_credit' || type === 'wallet_debit') return 'wallet';
     return 'purchase';
-}
-
-// BigInt → "1234.56" without touching Number().
-function bigintToDecimalString(cents) {
-    const negative = cents < 0n;
-    const abs = negative ? -cents : cents;
-    const whole = abs / 100n;
-    const frac = (abs % 100n).toString().padStart(2, '0');
-    return `${negative ? '-' : ''}${whole.toString()}.${frac}`;
 }
 
 module.exports = router;

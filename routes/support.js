@@ -1,33 +1,22 @@
 // routes/support.js — customer support routes.
 // Admin support routes live in routes/admin/supportRoutes.js.
-//
-// Fixes from review:
-//   • Canonical category registry (services/supportCategories).
-//   • Guest ticket creation returns structured errors with `field`.
-//   • Guest access token issued on guest ticket creation.
-//   • Guest ticket read + reply endpoints added.
-//   • Fail-closed rate limiter.
-//   • Ticket + first message created atomically via RPC when available.
-//   • Socket.IO and email are non-critical.
-// ─────────────────────────────────────────────────────────────────
 
 'use strict';
 
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
-const multer = require('multer');
-
 const { supabaseAdmin } = require('../db/supabase');
 const { authMiddleware } = require('../middleware/auth');
 const { createNotification, notifyAdminsOfNewTicket } = require('../services/notificationService');
 const cloudinaryService = require('../services/cloudinaryService');
 const IdempotencyService = require('../services/idempotencyService');
-
+const { uploadBatch } = require('../middleware/supportUpload');
+const supportAttachments = require('../services/supportAttachmentService');
+const supportService = require('../services/supportService');
 const categories = require('../services/supportCategories');
 const guestAccess = require('../services/guestTicketAccess');
 const guestSupportRateLimit = require('../middleware/guestSupportRateLimit');
-const { validateUpload } = require('../middleware/supportUpload');
 
 // ─── Constants ────────────────────────────────────────────────────
 const MAX_ACTIVE_TICKETS = 5;
@@ -38,12 +27,6 @@ const MAX_FILES_PER_MESSAGE = 5;
 const VALID_PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 
 if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is required');
-
-// ─── Multer ───────────────────────────────────────────────────────
-const upload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: MAX_FILE_SIZE, files: MAX_FILES_PER_MESSAGE }
-});
 
 // ─── Helpers ──────────────────────────────────────────────────────
 function generateTicketNumber() {
@@ -75,7 +58,6 @@ function labelForCategory(key) {
     return categories.labelFor(key);
 }
 
-// ─── Structured error helper ──────────────────────────────────────
 function fieldError(res, status, code, error, field, extra) {
     return res.status(status).json({
         success: false,
@@ -112,7 +94,6 @@ async function getActiveTicketCount(userId) {
     return count || 0;
 }
 
-// ─── Email outbox helper ──────────────────────────────────────────
 async function queueCustomerEmail({ to, subject, html, purpose, dedupeKey }) {
     if (!to) return { queued: false, reason: 'no_recipient' };
     try {
@@ -156,7 +137,6 @@ function customerTicketUrl(ticketNumber, rawToken) {
     return base ? (base + path + q) : (path + q);
 }
 
-// ─── Guest confirmation email ─────────────────────────────────────
 function buildGuestConfirmationEmail({ ticket, rawToken }) {
     const subjectText = String(ticket.subject || 'your ticket');
     const ticketNumber = String(ticket.ticket_number || '');
@@ -195,6 +175,32 @@ function buildGuestConfirmationEmail({ ticket, rawToken }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// 0. GET /bootstrap (public)
+// ═══════════════════════════════════════════════════════════════════
+router.get('/bootstrap', async (req, res) => {
+    try {
+        const cats = categories.getCategories();
+        let unread = { total_unread: 0, tickets: [] };
+        
+        // If authenticated (token provided), fetch unread
+        // Note: For a true bootstrap, you'd decode the JWT here, but for simplicity
+        // we rely on the dedicated /unread endpoint for auth-specific data.
+        
+        res.set('Cache-Control', 'public, max-age=300');
+        res.json({
+            success: true,
+            data: {
+                categories: cats,
+                status: { support_available: true, response_expectation: 'We usually respond within a few hours.' },
+                unread
+            }
+        });
+    } catch (e) {
+        res.status(500).json({ success: false, error: 'Bootstrap failed.' });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════════
 // 1. GET /categories   (public)
 // ═══════════════════════════════════════════════════════════════════
 router.get('/categories', (req, res) => {
@@ -220,7 +226,7 @@ router.get('/status', (req, res) => {
 router.post('/tickets', authMiddleware, async (req, res) => {
     try {
         const userId = req.user.id;
-        const idempotencyKey = (req.body && req.body.idempotency_key) || IdempotencyService.generateKey('TICKET');
+        const idempotencyKey = req.get('Idempotency-Key') || req.get('X-Idempotency-Key') || (req.body && req.body.idempotency_key) || IdempotencyService.generateKey('TICKET');
 
         const existing = await IdempotencyService.check(userId, idempotencyKey, 'create_ticket');
         if (existing) {
@@ -386,43 +392,59 @@ router.get('/tickets/:ticketId', authMiddleware, async (req, res) => {
         const userId = req.user.id;
         const messagesLimit = Math.min(parseInt(req.query.messages_limit, 10) || 50, 100);
 
-        const { data: ticket, error } = await supabaseAdmin
-            .from('support_tickets')
-            .select('*, assigned:assigned_to (id, username, email, avatar_url)')
-            .eq('id', ticketId)
-            .maybeSingle();
+        const result = await supportService.getTicketForCustomer({
+            id: ticketId,
+            viewerId: userId,
+            limit: messagesLimit
+        });
 
-        if (error || !ticket) {
-            return res.status(404).json({ success: false, code: 'TICKET_NOT_FOUND', error: 'Ticket not found' });
-        }
-        if (!isOwner(ticket, userId)) {
-            return res.status(403).json({ success: false, code: 'ACCESS_DENIED', error: 'Access denied' });
-        }
-
-        const { data: messages, error: msgErr } = await supabaseAdmin
-            .from('ticket_messages')
-            .select(`
-                id, message, created_at, sender_type, sender_id,
-                is_read, read_by_user_at, attachments,
-                sender:sender_id (id, username, email, avatar_url)
-            `)
-            .eq('ticket_id', ticketId)
-            .eq('is_internal', false)
-            .order('created_at', { ascending: true })
-            .limit(messagesLimit);
-        if (msgErr) throw msgErr;
+        // Map to client shape
+        const resolvedMessages = supportAttachments.resolveMessages(result.messages);
 
         res.json({
             success: true,
             data: {
-                ...ticket,
-                category_label: labelForCategory(ticket.category),
-                messages: messages || []
+                ...result.ticket,
+                category_label: labelForCategory(result.ticket.category),
+                messages: resolvedMessages,
+                hasMore: result.hasMore,
+                nextCursor: result.nextCursor
             }
         });
     } catch (e) {
         console.error('Get ticket error:', e && e.message);
-        res.status(500).json({ success: false, error: 'Could not load ticket.' });
+        res.status(e.status || 500).json({ success: false, code: e.code || 'SERVER_ERROR', error: e.message || 'Could not load ticket.' });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// 5b. GET /tickets/:ticketId/messages?after=<ISO>  (auth, owner)
+// ═══════════════════════════════════════════════════════════════════
+router.get('/tickets/:ticketId/messages', authMiddleware, async (req, res) => {
+    try {
+        const { ticketId } = req.params;
+        const userId = req.user.id;
+        const after = req.query.after;
+
+        if (!after) return res.status(400).json({ success: false, error: 'after parameter required' });
+
+        const { data: ticket } = await supabaseAdmin.from('support_tickets').select('user_id').eq('id', ticketId).maybeSingle();
+        if (!ticket || !isOwner(ticket, userId)) return res.status(403).json({ success: false });
+
+        const { data: messages, error } = await supabaseAdmin
+            .from('ticket_messages')
+            .select('id, message, created_at, sender_type, attachments')
+            .eq('ticket_id', ticketId)
+            .eq('is_internal', false)
+            .gt('created_at', after)
+            .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        const resolved = supportAttachments.resolveMessages(messages || []);
+        res.json({ success: true, data: resolved });
+    } catch (e) {
+        res.status(500).json({ success: false, error: 'Could not load new messages.' });
     }
 });
 
@@ -432,17 +454,20 @@ router.get('/tickets/:ticketId', authMiddleware, async (req, res) => {
 router.post(
     '/tickets/:ticketId/messages',
     authMiddleware,
-    upload.array('attachments', MAX_FILES_PER_MESSAGE),
+    uploadBatch('attachments'),
     async (req, res) => {
         try {
             const { ticketId } = req.params;
             const userId = req.user.id;
             const message = clampString(req.body && req.body.message, MAX_MESSAGE_LENGTH);
-            const idempotencyKey = (req.body && req.body.idempotency_key) || IdempotencyService.generateKey('MSG');
+            const idempotencyKey = req.get('Idempotency-Key') || req.get('X-Idempotency-Key') || (req.body && req.body.idempotency_key) || IdempotencyService.generateKey('MSG');
             const files = req.files || [];
 
-            const existing = await IdempotencyService.check(userId, idempotencyKey, 'send_message');
-            if (existing) return res.json({ success: true, data: existing, idempotent: true });
+            const existing = await supportService.findMessageByIdempotency({ ticketId, idempotencyKey });
+            if (existing) {
+                const [clientMsg] = supportAttachments.resolveMessages([existing]);
+                return res.json({ success: true, data: clientMsg, idempotent: true });
+            }
 
             if (!message && files.length === 0) {
                 return fieldError(res, 400, 'MISSING_CONTENT', 'Message or attachment is required', 'message');
@@ -453,118 +478,54 @@ router.post(
                 .select('id, user_id, status, ticket_number, subject')
                 .eq('id', ticketId)
                 .maybeSingle();
-            if (tErr || !ticket) {
-                return res.status(404).json({ success: false, code: 'TICKET_NOT_FOUND', error: 'Ticket not found' });
-            }
-            if (!isOwner(ticket, userId)) {
-                return res.status(403).json({ success: false, code: 'ACCESS_DENIED', error: 'Access denied' });
-            }
-            if (ticket.status === 'closed') {
-                return res.status(409).json({ success: false, code: 'TICKET_CLOSED', error: 'This ticket is closed.' });
-            }
+            if (tErr || !ticket) return res.status(404).json({ success: false, code: 'TICKET_NOT_FOUND' });
+            if (!isOwner(ticket, userId)) return res.status(403).json({ success: false, code: 'ACCESS_DENIED' });
+            if (ticket.status === 'closed') return res.status(409).json({ success: false, code: 'TICKET_CLOSED' });
 
-            for (const f of files) {
-                const check = validateUpload({
-                    buffer: f.buffer,
-                    mimetype: f.mimetype,
-                    originalname: f.originalname,
-                    size: f.size
-                });
-                if (!check.ok) {
-                    return fieldError(res, 400, 'INVALID_FILE', check.error, 'attachments');
-                }
-            }
-
-            const attachments = [];
-            const uploadedIds = [];
-            try {
-                for (const file of files) {
-                    const result = await cloudinaryService.uploadSupportFile(file.buffer, {
-                        ticketId,
-                        folder: 'milesspace/support',
-                        resource_type: cloudinaryService.getResourceType(file.mimetype)
-                    });
-                    attachments.push({
-                        id: crypto.randomUUID(),
-                        name: clampString(file.originalname, 200),
-                        size: file.size,
-                        mime: file.mimetype,
-                        url: result.secure_url,
-                        public_id: result.public_id,
-                        resource_type: result.resource_type,
-                        bytes: result.bytes,
-                        created_at: result.created_at
-                    });
-                    uploadedIds.push(result.public_id);
-                }
-            } catch (uploadErr) {
-                if (uploadedIds.length) {
-                    try { await cloudinaryService.deleteMultipleFiles(uploadedIds); } catch (_) {}
-                }
-                console.error('Upload error:', uploadErr && uploadErr.message);
-                return res.status(500).json({ success: false, code: 'UPLOAD_FAILED', error: 'Could not upload attachment.' });
-            }
-
-            const messageText = message || (attachments.length > 0 ? '📎 Attachment' : '');
-            const nowIso = new Date().toISOString();
-
-            const { data: msg, error: msgErr } = await supabaseAdmin
-                .from('ticket_messages')
-                .insert({
-                    ticket_id: ticketId,
-                    sender_id: userId,
-                    sender_type: 'user',
-                    message: messageText,
-                    is_internal: false,
-                    idempotency_key: idempotencyKey,
-                    attachments: attachments.length ? attachments : null,
-                    created_at: nowIso
-                })
-                .select()
-                .single();
-            if (msgErr) {
-                if (uploadedIds.length) {
-                    try { await cloudinaryService.deleteMultipleFiles(uploadedIds); } catch (_) {}
-                }
-                throw msgErr;
-            }
-
-            await supabaseAdmin
-                .from('support_tickets')
-                .update({
-                    status: ticket.status === 'resolved' ? 'open' : ticket.status,
-                    updated_at: nowIso,
-                    last_message_at: nowIso,
-                    last_user_message_at: nowIso,
-                    unread_for_admin: (ticket.unread_for_admin || 0) + 1
-                })
-                .eq('id', ticketId);
-
-            await logSupportEvent({
+            const { attachments, cleanup } = await supportAttachments.uploadForMessage({
+                files,
                 ticketId,
-                actorId: userId,
-                eventType: 'message_added',
-                newValue: { message_id: msg.id, is_internal: false },
-                metadata: { attachments_count: attachments.length }
+                isPrivate: true
             });
 
-            await IdempotencyService.save(userId, idempotencyKey, 'send_message', msg);
+            const msgText = message || (attachments.length > 0 ? '📎 Attachment' : '');
+            
+            // Use RPC for atomicity
+            const { data: rpcResult, error: rpcErr } = await supabaseAdmin.rpc('add_support_message', {
+                p_ticket_id: ticketId,
+                p_sender_id: userId,
+                p_sender_type: 'user',
+                p_message: msgText,
+                p_is_internal: false,
+                p_attachments: attachments.length ? attachments : null,
+                p_idempotency_key: idempotencyKey
+            });
 
-            if (global.io) {
-                try {
-                    global.io.to('admins').emit('support:message', {
-                        ticket_id: ticketId,
-                        ticket_number: ticket.ticket_number,
-                        message: msg,
-                        sender: 'user'
-                    });
-                } catch (_) {}
+            if (rpcErr || !rpcResult || !rpcResult.ok) {
+                await cleanup();
+                console.error('Add message RPC error:', rpcErr || rpcResult);
+                return res.status(500).json({ success: false, code: 'SERVER_ERROR', error: 'Could not send message.' });
             }
 
-            res.json({ success: true, data: { message: msg, attachments }, idempotency_key: idempotencyKey });
+            const msg = rpcResult.message;
+            await IdempotencyService.save(userId, idempotencyKey, 'send_message', msg);
+
+            // Respond immediately
+            const [clientMsg] = supportAttachments.resolveMessages([msg]);
+            res.json({ success: true, data: clientMsg, idempotency_key: idempotencyKey });
+
+            // Non-critical background tasks
+            logSupportEvent({
+                ticketId, actorId: userId, eventType: 'message_added',
+                newValue: { message_id: msg.id, is_internal: false },
+                metadata: { attachments_count: attachments.length }
+            }).catch(() => {});
+
+            // Do NOT emit global.io here to prevent client-side duplication. 
+            // The socket service is called by the RPC or listens to DB triggers.
         } catch (e) {
             console.error('Add message error:', e && e.message);
-            res.status(500).json({ success: false, code: 'SERVER_ERROR', error: 'Could not send message.' });
+            res.status(e.status || 500).json({ success: false, code: e.code || 'SERVER_ERROR', error: e.message || 'Could not send message.' });
         }
     }
 );
@@ -770,9 +731,6 @@ router.post('/tickets/:ticketId/rating', authMiddleware, async (req, res) => {
 
 // ═══════════════════════════════════════════════════════════════════
 // 12. POST /public/tickets   (guest, rate limited)
-//
-// Creates a guest ticket and returns a secure access token.
-// The token is also emailed to the guest.
 // ═══════════════════════════════════════════════════════════════════
 router.post('/public/tickets', guestSupportRateLimit, async (req, res) => {
     try {
@@ -840,10 +798,7 @@ router.post('/public/tickets', guestSupportRateLimit, async (req, res) => {
             .single();
         if (msgErr) {
             console.error('[GUEST TICKET] first message insert failed:', msgErr.message);
-            // Best effort cleanup
-            try {
-                await supabaseAdmin.from('support_tickets').delete().eq('id', ticket.id);
-            } catch (_) {}
+            try { await supabaseAdmin.from('support_tickets').delete().eq('id', ticket.id); } catch (_) {}
             throw msgErr;
         }
 
@@ -854,7 +809,6 @@ router.post('/public/tickets', guestSupportRateLimit, async (req, res) => {
             metadata: { email, name }
         });
 
-        // ── Confirmation email to guest (queued, non-blocking)
         const emailPayload = buildGuestConfirmationEmail({ ticket, rawToken: access.raw });
         await queueCustomerEmail({
             to: email,
@@ -864,7 +818,6 @@ router.post('/public/tickets', guestSupportRateLimit, async (req, res) => {
             dedupeKey: 'support_guest_ticket_created:' + ticket.id
         });
 
-        // ── Notify admins
         if (global.io) {
             try {
                 global.io.to('admins').emit('support:new_ticket', {
@@ -884,8 +837,6 @@ router.post('/public/tickets', guestSupportRateLimit, async (req, res) => {
             success: true,
             data: {
                 ticket_number: ticketNumber,
-                // Raw token is returned once for the immediate session.
-                // The guest is also emailed the secure link.
                 access_token: access.raw,
                 access_token_expires_at: access.expiresAt
             }
@@ -898,9 +849,6 @@ router.post('/public/tickets', guestSupportRateLimit, async (req, res) => {
 
 // ═══════════════════════════════════════════════════════════════════
 // 13. GET /public/tickets/:ticketNumber   (guest)
-//
-// Requires the guest access token in the `X-Guest-Token` header or
-// as `?token=` query parameter.
 // ═══════════════════════════════════════════════════════════════════
 router.get('/public/tickets/:ticketNumber', async (req, res) => {
     try {
@@ -946,6 +894,8 @@ router.get('/public/tickets/:ticketNumber', async (req, res) => {
             .limit(messagesLimit);
         if (msgErr) throw msgErr;
 
+        const resolvedMessages = supportAttachments.resolveMessages(messages || []);
+
         res.json({
             success: true,
             data: {
@@ -957,7 +907,7 @@ router.get('/public/tickets/:ticketNumber', async (req, res) => {
                 created_at: ticket.created_at,
                 updated_at: ticket.updated_at,
                 last_message_at: ticket.last_message_at,
-                messages: messages || []
+                messages: resolvedMessages
             }
         });
     } catch (e) {
@@ -968,12 +918,10 @@ router.get('/public/tickets/:ticketNumber', async (req, res) => {
 
 // ═══════════════════════════════════════════════════════════════════
 // 14. POST /public/tickets/:ticketNumber/messages   (guest)
-//
-// Requires the guest access token.
 // ═══════════════════════════════════════════════════════════════════
 router.post(
     '/public/tickets/:ticketNumber/messages',
-    upload.array('attachments', MAX_FILES_PER_MESSAGE),
+    uploadBatch('attachments'),
     async (req, res) => {
         try {
             const { ticketNumber } = req.params;
@@ -1019,102 +967,47 @@ router.post(
                 return res.status(409).json({ success: false, code: 'TICKET_CLOSED' });
             }
 
-            for (const f of files) {
-                const check = validateUpload({
-                    buffer: f.buffer,
-                    mimetype: f.mimetype,
-                    originalname: f.originalname,
-                    size: f.size
-                });
-                if (!check.ok) {
-                    return fieldError(res, 400, 'INVALID_FILE', check.error, 'attachments');
-                }
-            }
-
-            const attachments = [];
-            const uploadedIds = [];
-            try {
-                for (const file of files) {
-                    const result = await cloudinaryService.uploadSupportFile(file.buffer, {
-                        ticketId: ticket.id,
-                        folder: 'milesspace/support',
-                        resource_type: cloudinaryService.getResourceType(file.mimetype)
-                    });
-                    attachments.push({
-                        id: crypto.randomUUID(),
-                        name: clampString(file.originalname, 200),
-                        size: file.size,
-                        mime: file.mimetype,
-                        url: result.secure_url,
-                        public_id: result.public_id,
-                        resource_type: result.resource_type,
-                        bytes: result.bytes,
-                        created_at: result.created_at
-                    });
-                    uploadedIds.push(result.public_id);
-                }
-            } catch (uploadErr) {
-                if (uploadedIds.length) {
-                    try { await cloudinaryService.deleteMultipleFiles(uploadedIds); } catch (_) {}
-                }
-                return res.status(500).json({ success: false, code: 'UPLOAD_FAILED' });
-            }
+            const { attachments, cleanup } = await supportAttachments.uploadForMessage({
+                files,
+                ticketId: ticket.id,
+                isPrivate: true
+            });
 
             const nowIso = new Date().toISOString();
-            const { data: msg, error: msgErr } = await supabaseAdmin
-                .from('ticket_messages')
-                .insert({
-                    ticket_id: ticket.id,
-                    sender_id: null,
-                    sender_type: 'user',
-                    message: message || '📎 Attachment',
-                    is_internal: false,
-                    attachments: attachments.length ? attachments : null,
-                    created_at: nowIso
-                })
-                .select()
-                .single();
-            if (msgErr) {
-                if (uploadedIds.length) {
-                    try { await cloudinaryService.deleteMultipleFiles(uploadedIds); } catch (_) {}
-                }
-                throw msgErr;
+            const msgText = message || (attachments.length > 0 ? '📎 Attachment' : '');
+            
+            const { data: rpcResult, error: rpcErr } = await supabaseAdmin.rpc('add_support_message', {
+                p_ticket_id: ticket.id,
+                p_sender_id: null,
+                p_sender_type: 'user',
+                p_message: msgText,
+                p_is_internal: false,
+                p_attachments: attachments.length ? attachments : null,
+                p_idempotency_key: null
+            });
+
+            if (rpcErr || !rpcResult || !rpcResult.ok) {
+                await cleanup();
+                console.error('Guest message RPC error:', rpcErr || rpcResult);
+                return res.status(500).json({ success: false, code: 'SERVER_ERROR', error: 'Could not send message.' });
             }
 
-            await supabaseAdmin
-                .from('support_tickets')
-                .update({
-                    status: ticket.status === 'resolved' ? 'open' : ticket.status,
-                    updated_at: nowIso,
-                    last_message_at: nowIso,
-                    last_user_message_at: nowIso,
-                    unread_for_admin: (ticket.unread_for_admin || 0) + 1
-                })
-                .eq('id', ticket.id);
+            const msg = rpcResult.message;
+            const [clientMsg] = supportAttachments.resolveMessages([msg]);
+            
+            res.json({ success: true, data: clientMsg });
 
-            await logSupportEvent({
+            logSupportEvent({
                 ticketId: ticket.id,
                 actorId: null,
                 eventType: 'message_added',
                 newValue: { message_id: msg.id, is_guest: true },
                 metadata: { attachments_count: attachments.length }
-            });
+            }).catch(() => {});
 
-            if (global.io) {
-                try {
-                    global.io.to('admins').emit('support:message', {
-                        ticket_id: ticket.id,
-                        ticket_number: ticket.ticket_number,
-                        message: msg,
-                        sender: 'guest'
-                    });
-                } catch (_) {}
-            }
-
-            res.json({ success: true, data: { message: msg, attachments } });
         } catch (e) {
             console.error('Guest message error:', e && e.message);
-            res.status(500).json({ success: false, code: 'SERVER_ERROR' });
+            res.status(500).json({ success: false, code: 'SERVER_ERROR', error: e.message || 'Could not send message.' });
         }
     }
 );

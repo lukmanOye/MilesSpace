@@ -547,17 +547,19 @@ function resolveAttachmentUrl(attachment) {
 
     const storage = String(attachment.storage || 'public').toLowerCase();
     if (storage === 'public') {
-        return typeof attachment.url === 'string' && /^https?:\/\//i.test(attachment.url)
-            ? attachment.url
-            : null;
+        return typeof attachment.url === 'string' && /^https?:\/\//i.test(attachment.url) ? attachment.url : null;
     }
 
-    if (!attachment.public_id) return null;
+    // FIX: Ensure public_id is a valid string before passing to Cloudinary
+    if (!attachment.public_id || typeof attachment.public_id !== 'string' || attachment.public_id.trim() === '') {
+        return null;
+    }
 
     const opts = {
         expiresInSeconds: SIGNED_URL_TTL_SECS,
         resource_type: attachment.resource_type || 'image'
     };
+    
     try {
         if (typeof cloudinarySvc.getSignedUrl === 'function') {
             const url = cloudinarySvc.getSignedUrl(attachment.public_id, opts);
@@ -571,7 +573,6 @@ function resolveAttachmentUrl(attachment) {
             if (url) return url;
         }
     } catch (e) {
-        // eslint-disable-next-line no-console
         console.error('[SUPPORT ATTACHMENT] signed URL failed', e.message);
     }
     return null;

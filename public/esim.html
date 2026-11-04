@@ -36,6 +36,8 @@
   <script src="/js/session.js"></script>
   <script src="/js/presence.js" defer></script>
   <script src="/js/miles-widget.js" defer></script>
+  <link rel="stylesheet" href="/css/ms-shell.css?v=1">
+  <script src="/js/ms-shell.js?v=1" defer></script>
 
   <style>
     /* ═══════════════════════════════════════════════════════════
@@ -127,9 +129,7 @@
       * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       OVERLAY
-       ═══════════════════════════════════════════════════════════ */
+    /* OVERLAY */
     .ov {
       display: none;
       position: fixed;
@@ -148,9 +148,7 @@
       pointer-events: auto;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       SIDEBAR
-       ═══════════════════════════════════════════════════════════ */
+    /* SIDEBAR */
     .sidebar {
       position: fixed;
       top: 0;
@@ -280,9 +278,7 @@
     }
     .sb-out:hover { background: var(--erl); color: var(--err); }
 
-    /* ═══════════════════════════════════════════════════════════
-       TOPBAR & MAIN LAYOUT
-       ═══════════════════════════════════════════════════════════ */
+    /* TOPBAR */
     .main { flex: 1; min-height: 100vh; min-width: 0; width: 100%; }
     .topbar {
       position: sticky;
@@ -351,9 +347,7 @@
       padding: 28px 28px calc(100px + var(--safe-b));
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       STEPS BAR
-       ═══════════════════════════════════════════════════════════ */
+    /* STEPS BAR */
     .steps { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; padding: 0 4px; }
     .step-dot { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .step-dot .dot {
@@ -378,9 +372,7 @@
     .step-line.done { background: var(--succ); }
     @media (max-width: 640px) { .step-dot .lbl { display: none; } }
 
-    /* ═══════════════════════════════════════════════════════════
-       HERO & FEATURES
-       ═══════════════════════════════════════════════════════════ */
+    /* HERO & FEATURES */
     .hero {
       background: var(--srf);
       border: 1px solid var(--bdr);
@@ -443,9 +435,7 @@
 
     .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
 
-    /* ═══════════════════════════════════════════════════════════
-       CARDS & FORMS
-       ═══════════════════════════════════════════════════════════ */
+    /* CARDS & FORMS */
     .card {
       background: var(--srf);
       border: 1px solid var(--bdr);
@@ -763,9 +753,7 @@
     @media (min-width: 641px) { .toast { left: auto; right: 22px; max-width: 340px; } }
     .toast.show { transform: translateY(0); opacity: 1; }
 
-    /* ═══════════════════════════════════════════════════════════
-       PIN MODAL — single 4-digit input (shared with airtime/bills)
-       ═══════════════════════════════════════════════════════════ */
+    /* PIN MODAL */
     .pin-modal {
       position: fixed;
       inset: 0;
@@ -970,9 +958,7 @@
       }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       HISTORY DRAWER
-       ═══════════════════════════════════════════════════════════ */
+    /* HISTORY DRAWER */
     .hist-drawer {
       position: fixed;
       top: 0;
@@ -1036,9 +1022,6 @@
       .topbar { padding: calc(12px + var(--safe-t)) 16px 12px; }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       MOBILE KEYBOARD / VIEWPORT FIXES
-       ═══════════════════════════════════════════════════════════ */
     html { width: 100%; min-height: 100%; -webkit-text-size-adjust: 100%; }
 
     body {
@@ -1068,6 +1051,38 @@
     @media (max-height: 600px) {
       .search-dropdown { max-height: 220px; }
       .hero { padding: 30px 20px; }
+    }
+
+    /* Stale banner */
+    .tx-stale-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 14px;
+      margin: 8px 0;
+      border-radius: 10px;
+      background: rgba(245, 166, 35, 0.12);
+      border: 1px solid rgba(245, 166, 35, 0.35);
+      font-size: 12.5px;
+      color: var(--t2);
+    }
+    .tx-stale-banner strong { color: var(--t1); font-weight: 600; }
+    .tx-stale-banner button {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: none;
+      background: #0f4c5c;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .tx-stale-banner button:disabled { opacity: .55; cursor: not-allowed; }
+    @media (max-width: 420px) {
+      .tx-stale-banner { flex-direction: column; align-items: stretch; }
+      .tx-stale-banner button { width: 100%; min-height: 44px; }
     }
   </style>
 </head>
@@ -1140,7 +1155,6 @@
       <div class="step-dot" data-step="4"><span class="dot">4</span><span class="lbl">Done</span></div>
     </div>
 
-    <!-- 1. HERO VIEW -->
     <section class="step-view" id="viewHero">
       <div class="hero">
         <div class="hero-inner">
@@ -1182,7 +1196,6 @@
       </div>
     </section>
 
-    <!-- 2. PLAN VIEW -->
     <section class="step-view" id="viewPlan">
       <div class="card">
         <h2>Where are you travelling?</h2>
@@ -1223,7 +1236,6 @@
       </div>
     </section>
 
-    <!-- 3. CONFIRM VIEW -->
     <section class="step-view" id="viewConfirm">
       <div class="card">
         <h2>Review &amp; confirm</h2>
@@ -1282,7 +1294,6 @@
       </div>
     </section>
 
-    <!-- 4. STATUS VIEW -->
     <section class="step-view" id="viewStatus">
       <div class="card">
         <div class="status-panel">
@@ -1304,7 +1315,6 @@
   </div>
 </div>
 
-<!-- PIN MODAL — single 4-digit input (shared with airtime/bills) -->
 <div class="pin-modal" id="pinModal" role="dialog" aria-modal="true" aria-labelledby="pmTitleText">
   <div class="pm-box">
     <div class="pm-head">
@@ -1343,7 +1353,6 @@
   </div>
 </div>
 
-<!-- HISTORY DRAWER -->
 <div class="hist-drawer" id="histDrawer" role="dialog" aria-modal="true" aria-labelledby="histTitle">
   <button class="hist-close" id="histClose" aria-label="Close history"><i class="fas fa-times"></i></button>
   <h3 id="histTitle">My eSIMs</h3>
@@ -1392,10 +1401,6 @@
 
 <script>
 'use strict';
-
-/* ═══════════════════════════════════════════════════════════════════════
-   AUTH MODEL — access token in memory, refresh cookie, userFetch.
-   ═══════════════════════════════════════════════════════════════════════ */
 
 const CONFIG = {
   api: {
@@ -1520,9 +1525,6 @@ const State = {
   purchaseIdemKey: null
 };
 
-/* ══════════════════════════════════════════════════════════════
-   SIDEBAR
-   ══════════════════════════════════════════════════════════════ */
 function initSidebar() {
   const sb  = $('#sb');
   const ov  = $('#ov');
@@ -1563,9 +1565,6 @@ function initSidebar() {
   });
 }
 
-/* ══════════════════════════════════════════════════════════════
-   USER HELPERS
-   ══════════════════════════════════════════════════════════════ */
 function setDeliveryEmail(email) {
   const el = $('#userEmail');
   const display = $('#emailDisplay');
@@ -1614,17 +1613,25 @@ async function loadUser() {
 }
 
 async function loadRates() {
+  /* Cache-first rates */
+  try {
+    const cached = JSON.parse(sessionStorage.getItem('ms:esim:rates') || 'null');
+    if (cached && cached.usdToNgn) {
+      State.usdToNgn = Number(cached.usdToNgn) || 1600;
+    }
+  } catch (_) {}
+
   try {
     const { data } = await apiGet(CONFIG.api.rates);
     State.usdToNgn = parseFloat(data?.usdToNgn) || 1600;
+    try {
+      sessionStorage.setItem('ms:esim:rates', JSON.stringify({ usdToNgn: State.usdToNgn }));
+    } catch (_) {}
   } catch {
     State.usdToNgn = 1600;
   }
 }
 
-/* ══════════════════════════════════════════════════════════════
-   STEP NAVIGATION
-   ══════════════════════════════════════════════════════════════ */
 function goToStep(step) {
   State.step = step;
   $$('.step-view').forEach(v => v.classList.remove('active'));
@@ -1647,24 +1654,26 @@ function updateStepsBar() {
   });
 }
 
-/* ══════════════════════════════════════════════════════════════
-   COUNTRIES & PLANS
-   ══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   COUNTRIES — cache-first for FAST load
+   ═══════════════════════════════════════════════════════════ */
 async function loadCountries() {
+  /* Paint from sessionStorage immediately */
   try {
-    const cached = localStorage.getItem('mx_esim_countries');
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed) && parsed.length) State.allCountries = parsed;
+    const cached = JSON.parse(sessionStorage.getItem('ms:esim:countries') || 'null');
+    if (cached && Array.isArray(cached) && cached.length) {
+      State.allCountries = cached;
     }
-  } catch {}
+  } catch (_) {}
 
   try {
     const { data } = await apiGet(CONFIG.api.countries);
     const list = Array.isArray(data) ? data : [];
     if (list.length) {
       State.allCountries = list;
-      try { localStorage.setItem('mx_esim_countries', JSON.stringify(list)); } catch {}
+      try {
+        sessionStorage.setItem('ms:esim:countries', JSON.stringify(list));
+      } catch (_) {}
     } else if (!State.allCountries.length) {
       State.allCountries = FALLBACK_COUNTRIES;
     }
@@ -1764,7 +1773,19 @@ async function loadPlansForDestination(item) {
   State.plansAbort = new AbortController();
   const signal = State.plansAbort.signal;
   const planGrid = $('#planGrid');
-  planGrid.innerHTML = '<div class="skeleton" style="height:64px;"></div><div class="skeleton" style="height:64px;"></div><div class="skeleton" style="height:64px;"></div>';
+
+  /* Cache-first plan paint */
+  const cacheKey = `ms:esim:plans:${item.iso3}`;
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+    if (cached && Array.isArray(cached) && cached.length) {
+      renderPlanGrid(cached);
+    } else {
+      planGrid.innerHTML = '<div class="skeleton" style="height:64px;"></div><div class="skeleton" style="height:64px;"></div><div class="skeleton" style="height:64px;"></div>';
+    }
+  } catch (_) {
+    planGrid.innerHTML = '<div class="skeleton" style="height:64px;"></div><div class="skeleton" style="height:64px;"></div><div class="skeleton" style="height:64px;"></div>';
+  }
   updateContinueBtn();
 
   let queryParams;
@@ -1780,42 +1801,50 @@ async function loadPlansForDestination(item) {
       planGrid.innerHTML = '<div style="font-size:.82rem;color:var(--t3);padding:10px 0;">No plans available for this destination</div>';
       return;
     }
-    planGrid.innerHTML = plans.map(p => {
-      const badge = p.isGlobal
-        ? '<span class="plan-badge global">Global</span>'
-        : (p.isRegional ? `<span class="plan-badge regional">${escapeHtml(p.coverageLabel)}</span>` : '');
-      return `
-        <div class="plan-tile" data-product-id="${escapeHtml(p.productId)}"
-             data-price="${p.priceUsd}" data-price-ngn="${p.priceNgn || 0}"
-             data-data="${escapeHtml(p.dataAmount || '')}"
-             data-validity="${p.validityDays || 30}" data-name="${escapeHtml(p.planName || '')}"
-             data-coverage="${escapeHtml(p.coverageLabel || 'Country-specific')}"
-             role="button" tabindex="0">
-          <div class="pt-radio"></div>
-          <div class="pt-body">
-            <div class="pt-title">${escapeHtml(p.dataAmount || 'Data')} · ${p.validityDays || 30} days ${badge}</div>
-            <div class="pt-sub">${escapeHtml(p.planName || '')}</div>
-          </div>
-          <div class="pt-price">${moneyUSD(p.priceUsd)}<small>${moneyNGN(p.priceNgn || p.priceUsd * State.usdToNgn)}</small></div>
-        </div>
-      `;
-    }).join('');
-    planGrid.querySelectorAll('.plan-tile').forEach(tile => {
-      tile.addEventListener('click', () => onPlanSelect(tile));
-      tile.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onPlanSelect(tile);
-        }
-      });
-    });
+    try {
+      sessionStorage.setItem(cacheKey, JSON.stringify(plans));
+    } catch (_) {}
+    renderPlanGrid(plans);
   } catch (e) {
     if (e.name === 'AbortError') return;
     if (signal.aborted) return;
     console.error('Plan load failed:', e);
-    planGrid.innerHTML = `<div class="plan-error"><strong>eSIM provider temporarily unavailable</strong><br><span style="display:block;margin-top:6px;font-size:.75rem;">We couldn't load live plans.</span><button type="button" id="retryPlansBtn">Retry</button></div>`;
+    planGrid.innerHTML = `<div class="plan-error"><strong>Plans temporarily unavailable</strong><br><span style="display:block;margin-top:6px;font-size:.75rem;">We couldn't load live plans.</span><button type="button" id="retryPlansBtn">Retry</button></div>`;
     $('#retryPlansBtn')?.addEventListener('click', () => loadPlansForDestination(item));
   }
+}
+
+function renderPlanGrid(plans) {
+  const planGrid = $('#planGrid');
+  planGrid.innerHTML = plans.map(p => {
+    const badge = p.isGlobal
+      ? '<span class="plan-badge global">Global</span>'
+      : (p.isRegional ? `<span class="plan-badge regional">${escapeHtml(p.coverageLabel)}</span>` : '');
+    return `
+      <div class="plan-tile" data-product-id="${escapeHtml(p.productId)}"
+           data-price="${p.priceUsd}" data-price-ngn="${p.priceNgn || 0}"
+           data-data="${escapeHtml(p.dataAmount || '')}"
+           data-validity="${p.validityDays || 30}" data-name="${escapeHtml(p.planName || '')}"
+           data-coverage="${escapeHtml(p.coverageLabel || 'Country-specific')}"
+           role="button" tabindex="0">
+        <div class="pt-radio"></div>
+        <div class="pt-body">
+          <div class="pt-title">${escapeHtml(p.dataAmount || 'Data')} · ${p.validityDays || 30} days ${badge}</div>
+          <div class="pt-sub">${escapeHtml(p.planName || '')}</div>
+        </div>
+        <div class="pt-price">${moneyUSD(p.priceUsd)}<small>${moneyNGN(p.priceNgn || p.priceUsd * State.usdToNgn)}</small></div>
+      </div>
+    `;
+  }).join('');
+  planGrid.querySelectorAll('.plan-tile').forEach(tile => {
+    tile.addEventListener('click', () => onPlanSelect(tile));
+    tile.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onPlanSelect(tile);
+      }
+    });
+  });
 }
 
 function onPlanSelect(tile) {
@@ -1837,9 +1866,6 @@ function updateContinueBtn() {
   $('#toConfirmBtn').disabled = !(State.selectedDestination && State.selectedPlan);
 }
 
-/* ══════════════════════════════════════════════════════════════
-   SEARCH INTERACTION
-   ══════════════════════════════════════════════════════════════ */
 function initCountrySearch() {
   const input = $('#countrySearch');
   const dd = $('#countryDropdown');
@@ -1900,9 +1926,6 @@ function initCountrySearch() {
   });
 }
 
-/* ══════════════════════════════════════════════════════════════
-   CURRENCY & PRICING
-   ══════════════════════════════════════════════════════════════ */
 function initCurrencyToggle() {
   $$('#currencyToggle .currency-opt').forEach(opt => {
     const handler = () => {
@@ -2001,9 +2024,6 @@ function refreshBreakdown() {
   }
 }
 
-/* ══════════════════════════════════════════════════════════════
-   PIN MODAL — single 4-digit input (shared with airtime/bills)
-   ══════════════════════════════════════════════════════════════ */
 let _pinResolver = null;
 let _pinBound = false;
 
@@ -2129,9 +2149,6 @@ function getPurchaseIdemKey() {
   return State.purchaseIdemKey;
 }
 
-/* ══════════════════════════════════════════════════════════════
-   PURCHASE FLOW
-   ══════════════════════════════════════════════════════════════ */
 async function submitPurchase() {
   const btn = $('#confirmBuyBtn');
   const originalHtml = btn.innerHTML;
@@ -2200,7 +2217,6 @@ async function submitPurchase() {
       if (e.attempts_remaining != null) msg += ` (${e.attempts_remaining} attempts left)`;
       toast(msg, true);
 
-      // Re-open the PIN modal so the user can retry cleanly.
       _openPinModal({
         rows: [
           ['Destination', State.selectedDestination?.name || '—'],
@@ -2226,7 +2242,6 @@ async function submitPurchase() {
         currency: State.activeCurrency,
         errorMessage: e.message || 'Insufficient balance for this purchase.'
       });
-      // Ensure the top-up banner is visible even when balance wasn't tracked.
       $('#pmInsufficient')?.classList.add('show');
     } else {
       toast(e.message || 'Could not start your order.', true);
@@ -2237,9 +2252,6 @@ async function submitPurchase() {
   }
 }
 
-/* ══════════════════════════════════════════════════════════════
-   STATUS RENDERING & POLLING
-   ══════════════════════════════════════════════════════════════ */
 function showProcessingState() {
   $('#statusIcon').className = 'status-icon processing';
   $('#statusIcon').innerHTML = '<i class="fas fa-circle-notch spin"></i>';
@@ -2373,14 +2385,27 @@ async function pollStatus() {
   }
 }
 
-/* ══════════════════════════════════════════════════════════════
-   HISTORY DRAWER
-   ══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   HISTORY — cache-first + fast paint
+   ═══════════════════════════════════════════════════════════ */
 async function openHistory() {
   const drawer = $('#histDrawer');
   const list = $('#histList');
   drawer.classList.add('open');
-  list.innerHTML = '<div class="hist-empty">Loading…</div>';
+
+  /* Cache-first paint */
+  try {
+    const cached = JSON.parse(sessionStorage.getItem('ms:esim:history') || 'null');
+    if (cached && Array.isArray(cached) && cached.length) {
+      list.innerHTML = cached.map(renderHistoryItem).join('');
+      bindHistoryItemClicks();
+      $('#histSub').textContent = `${cached.length} purchase${cached.length === 1 ? '' : 's'}`;
+    } else {
+      list.innerHTML = '<div class="hist-empty">Loading…</div>';
+    }
+  } catch (_) {
+    list.innerHTML = '<div class="hist-empty">Loading…</div>';
+  }
 
   try {
     const { data } = await apiGet(CONFIG.api.history);
@@ -2389,58 +2414,68 @@ async function openHistory() {
     if (!items.length) {
       list.innerHTML = '<div class="hist-empty">You haven\'t purchased any eSIMs yet.</div>';
       $('#histSub').textContent = 'No purchases yet';
+      try { sessionStorage.setItem('ms:esim:history', JSON.stringify([])); } catch (_) {}
       return;
     }
 
     $('#histSub').textContent = `${items.length} purchase${items.length === 1 ? '' : 's'}`;
-
-    list.innerHTML = items.map(t => {
-      const flag = t.countryFlag ? `<img src="${t.countryFlag}" alt="">` : '';
-      let pillStatus = t.status || 'processing';
-      if (t.status === 'completed' && t.deliveryStatus !== 'ready') pillStatus = 'delivery_pending';
-      const st = pillStatus.replace('_', ' ');
-
-      return `<div class="hist-item">
-        <div class="row1"><div class="flag">${flag}</div><div class="title">${escapeHtml(t.countryName || 'eSIM')}</div><span class="pill ${pillStatus}">${escapeHtml(st)}</span></div>
-        <div class="meta">${escapeHtml(t.planName || '')} ${t.dataAmount ? '· ' + escapeHtml(t.dataAmount) : ''} ${t.validityDays ? '· ' + t.validityDays + ' days' : ''}</div>
-        <div class="meta" style="margin-top:2px;">${moneyUSD(t.totalUsd)} · ${new Date(t.createdAt).toLocaleDateString()}</div>
-        ${t.qrCodeUrl ? `<button class="viewqr" data-qr-url="${escapeHtml(t.qrCodeUrl)}"><i class="fas fa-qrcode"></i> View QR</button>` : ''}
-      </div>`;
-    }).join('');
+    list.innerHTML = items.map(renderHistoryItem).join('');
+    bindHistoryItemClicks();
+    try { sessionStorage.setItem('ms:esim:history', JSON.stringify(items)); } catch (_) {}
   } catch (e) {
-    list.innerHTML = '<div class="hist-empty">Could not load history.</div>';
+    if (!list.querySelector('.hist-item')) {
+      list.innerHTML = '<div class="hist-empty">Could not load history.</div>';
+    }
   }
+}
+
+function renderHistoryItem(t) {
+  const flag = t.countryFlag ? `<img src="${t.countryFlag}" alt="">` : '';
+  let pillStatus = t.status || 'processing';
+  if (t.status === 'completed' && t.deliveryStatus !== 'ready') pillStatus = 'delivery_pending';
+  const stLabel = window.MS && MS.statusLabel ? MS.statusLabel(pillStatus) : pillStatus.replace('_', ' ');
+  const stKey = window.MS && MS.statusKey ? MS.statusKey(pillStatus) : pillStatus;
+
+  return `<div class="hist-item" data-hi="${escapeHtml(t.id || t.transactionId || '')}">
+    <div class="row1"><div class="flag">${flag}</div><div class="title">${escapeHtml(t.countryName || 'eSIM')}</div><span class="pill ${escapeHtml(stKey)}">${escapeHtml(stLabel)}</span></div>
+    <div class="meta">${escapeHtml(t.planName || '')} ${t.dataAmount ? '· ' + escapeHtml(t.dataAmount) : ''} ${t.validityDays ? '· ' + t.validityDays + ' days' : ''}</div>
+    <div class="meta" style="margin-top:2px;">${moneyUSD(t.totalUsd)} · ${new Date(t.createdAt).toLocaleDateString()}</div>
+    ${t.qrCodeUrl ? `<button class="viewqr" data-qr-url="${escapeHtml(t.qrCodeUrl)}"><i class="fas fa-qrcode"></i> View QR</button>` : ''}
+  </div>`;
+}
+
+function bindHistoryItemClicks() {
+  document.querySelectorAll('#histList .viewqr').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const url = btn.dataset.qrUrl;
+      if (!url) return;
+      closeHistory();
+      goToStep(4);
+
+      $('#statusIcon').className = 'status-icon completed';
+      $('#statusIcon').innerHTML = '<i class="fas fa-check"></i>';
+      $('#statusTitle').textContent = 'Your eSIM QR code';
+      $('#statusText').textContent = "Scan this in your phone's eSIM settings.";
+      $('#qrImg').src = url;
+      $('#qrBox').hidden = false;
+      $('#refSummary').innerHTML = '';
+      $('#manualDetails').innerHTML = '';
+
+      $('#statusPrimaryBtn').hidden = false;
+      $('#statusPrimaryBtn').textContent = 'Done';
+      $('#statusPrimaryBtn').onclick = () => window.location.reload();
+    });
+  });
 }
 
 function closeHistory() {
   $('#histDrawer').classList.remove('open');
 }
 
-document.addEventListener('click', (e) => {
-  const btn = e.target.closest('.viewqr');
-  if (!btn) return;
-  const url = btn.dataset.qrUrl;
-  if (!url) return;
-  closeHistory();
-  goToStep(4);
-
-  $('#statusIcon').className = 'status-icon completed';
-  $('#statusIcon').innerHTML = '<i class="fas fa-check"></i>';
-  $('#statusTitle').textContent = 'Your eSIM QR code';
-  $('#statusText').textContent = "Scan this in your phone's eSIM settings.";
-  $('#qrImg').src = url;
-  $('#qrBox').hidden = false;
-  $('#refSummary').innerHTML = '';
-  $('#manualDetails').innerHTML = '';
-
-  $('#statusPrimaryBtn').hidden = false;
-  $('#statusPrimaryBtn').textContent = 'Done';
-  $('#statusPrimaryBtn').onclick = () => window.location.reload();
-});
-
-/* ══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    INIT
-   ══════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════ */
 function init() {
   if (!getCurrentUser()) {
     setTimeout(() => { if (!getCurrentUser()) redirectToLogin(); }, 1500);
@@ -2484,6 +2519,178 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   Stale transaction banner + "Check status" button — esim.html.
+
+   PAGE ADAPTER
+   ────────────
+   1. ROW_SELECTOR = '#histList .hist-item[data-hi]'
+   2. RECORD_LOOKUP — the drawer renders each item with data-hi = item id.
+      We look it up from the DOM: since esim.html re-renders the whole
+      list on open, we read the record fields back off the row's children
+      (title, meta, pill) plus the id. Simpler: capture the last history
+      array in a module-level variable when openHistory paints.
+   3. Fields: id / reference, status, createdAt (see below).
+   4. Token fetcher: window.userFetch.
+   5. Toast: local toast(msg, isError) — takes a boolean.
+
+   To make the record lookup reliable, we hook into the existing
+   openHistory() by intercepting its sessionStorage cache — the cache
+   has the full record shape (id, reference, status, createdAt). We
+   read the cache and match by id.
+   ═══════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  const ROW_SELECTOR = '#histList .hist-item[data-hi]';
+
+  function getCachedHistory() {
+    try {
+      const cached = JSON.parse(sessionStorage.getItem('ms:esim:history') || 'null');
+      return Array.isArray(cached) ? cached : [];
+    } catch (_) { return []; }
+  }
+
+  const RECORD_LOOKUP = (el) => {
+    const id = el.getAttribute('data-hi');
+    if (!id) return null;
+    const list = getCachedHistory();
+    return list.find(t => String(t.id || t.transactionId) === String(id)) || null;
+  };
+
+  const ESCAPE_HTML = escapeHtml;
+  const SHOW_TOAST = (msg, kind) => toast(msg, kind === 'err' || kind === 'error');
+
+  const API_BASE = '/api/transactions';
+  const STALE_MS = 10 * 60 * 1000;
+  const STALEABLE = new Set(['pending', 'processing', 'under_review', 'provider_unknown', 'manual_review', 'delivery_pending']);
+  const TERMINAL = new Set(['completed', 'failed', 'refunded', 'cancelled', 'reversed']);
+
+  function userLabel(s) {
+    s = String(s || '').toLowerCase();
+    if (['completed', 'success', 'finished', 'delivered', 'ready'].includes(s)) return 'completed';
+    if (['failed', 'declined', 'expired'].includes(s)) return 'failed';
+    if (['cancelled', 'canceled'].includes(s)) return 'cancelled';
+    if (['refunded', 'reversed'].includes(s)) return 'refunded';
+    if (['under_review', 'manual_review', 'partially_paid'].includes(s)) return 'under_review';
+    if (['processing', 'provider_unknown', 'confirming', 'delivery_pending'].includes(s)) return 'processing';
+    return 'pending';
+  }
+
+  function isStale(rec) {
+    const created = rec && (rec.created_at || rec.createdAt || rec.created);
+    if (!created) return false;
+    const status = String(rec.status || '').toLowerCase();
+    if (status === 'completed' && rec.deliveryStatus !== 'ready') {
+      // delivery_pending is treated as processing
+    } else if (!STALEABLE.has(status)) {
+      return false;
+    }
+    return (Date.now() - new Date(created).getTime()) > STALE_MS;
+  }
+
+  function bannerMessage(rec) {
+    const label = userLabel(rec.status);
+    if (label === 'under_review') return { main: 'A specialist is checking this for you.', tail: '' };
+    if (label === 'processing')  return { main: 'Confirming with the provider.',          tail: ' Most complete within a few more minutes.' };
+    return                              { main: 'Taking longer than expected.',            tail: ' Most complete within a few more minutes.' };
+  }
+
+  async function callCheck(reference) {
+    const fetcher = (typeof window.userFetch === 'function') ? window.userFetch : fetch;
+    try {
+      const resp = await fetcher(
+        `${API_BASE}/${encodeURIComponent(reference)}/check`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include' }
+      );
+      let body = null;
+      try { body = await resp.json(); } catch (_) {}
+      return { ok: resp.ok, status: resp.status, body };
+    } catch (err) {
+      return { ok: false, status: 0, body: { error: err.message || 'Network error' } };
+    }
+  }
+
+  function inject(rowEl, rec) {
+    const sib = rowEl.nextElementSibling;
+    if (sib && sib.classList && sib.classList.contains('tx-stale-banner')) return;
+    if (rowEl.querySelector && rowEl.querySelector('.tx-stale-banner')) return;
+
+    const reference = rec.reference || rec.transactionId || rec.id || rec.ref;
+    if (!reference) return;
+
+    const { main, tail } = bannerMessage(rec);
+    const banner = document.createElement('div');
+    banner.className = 'tx-stale-banner';
+    banner.innerHTML =
+      '<span><strong>' + ESCAPE_HTML(main) + '</strong>' + ESCAPE_HTML(tail) + '</span>' +
+      '<button type="button" data-check="' + ESCAPE_HTML(String(reference)) + '">Check status</button>';
+
+    rowEl.parentNode.insertBefore(banner, rowEl.nextSibling);
+
+    const btn = banner.querySelector('button');
+    btn.addEventListener('click', async () => {
+      if (btn.disabled) return;
+      btn.disabled = true;
+      btn.textContent = 'Checking\u2026';
+
+      const r = await callCheck(reference);
+      if (r.ok && r.body && r.body.data) {
+        const s = r.body.data;
+        const label = userLabel(s.status);
+        const span = banner.querySelector('span');
+        if (span) span.innerHTML = '<strong>' + ESCAPE_HTML(s.status_message || 'Updated.') + '</strong>';
+        if (TERMINAL.has(label)) {
+          btn.remove();
+          SHOW_TOAST('Status updated.', 'ok');
+          setTimeout(() => {
+            try { openHistory(); } catch (_) {}
+          }, 400);
+        } else {
+          btn.disabled = false;
+          btn.textContent = 'Check status';
+        }
+      } else if (r.status === 429) {
+        btn.textContent = 'Wait a moment';
+        const wait = (r.body && r.body.retry_after_ms) || 30000;
+        setTimeout(() => { btn.disabled = false; btn.textContent = 'Check status'; }, wait);
+      } else {
+        btn.textContent = 'Check status';
+        btn.disabled = false;
+        SHOW_TOAST((r.body && r.body.error) || 'Could not check status right now.', 'err');
+      }
+    });
+  }
+
+  let isScanning = false;
+  function scan() {
+    if (isScanning) return;
+    isScanning = true;
+    try {
+      document.querySelectorAll(ROW_SELECTOR).forEach(el => {
+        if (el.getClientRects().length === 0) return;
+        const rec = RECORD_LOOKUP(el);
+        if (!isStale(rec)) return;
+        inject(el, rec);
+      });
+    } finally { isScanning = false; }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(scan, 800), { once: true });
+  } else {
+    setTimeout(scan, 800);
+  }
+
+  let debounce = null;
+  new MutationObserver(() => {
+    clearTimeout(debounce);
+    debounce = setTimeout(scan, 300);
+  }).observe(document.body, { childList: true, subtree: true });
+})();
 </script>
 </body>
 </html>
