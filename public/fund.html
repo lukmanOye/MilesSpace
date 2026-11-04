@@ -92,7 +92,6 @@
     .app { display: flex; min-height: 100vh; min-height: 100dvh; width: 100%; }
     .main-content { margin-left: 0; flex: 1; min-width: 0; width: 100%; }
 
-    /* ── Topbar ── */
     .topbar {
       background: var(--srf); border-bottom: 1px solid var(--bdr);
       padding: calc(8px + var(--safe-t)) 16px 8px;
@@ -129,7 +128,6 @@
       flex-shrink: 0; overflow: hidden;
     }
 
-    /* ── Content ── */
     .content {
       padding: 20px 22px; flex: 1; max-width: 1100px;
       margin: 0 auto; width: 100%; overflow: visible;
@@ -144,7 +142,6 @@
     }
     .page-header p { font-size: .8rem; color: var(--t3); margin-top: 4px; }
 
-    /* ── Wallet cards ── */
     .wallet-cards {
       display: grid; grid-template-columns: repeat(2, 1fr);
       gap: 14px; margin-bottom: 0; max-width: 620px;
@@ -174,7 +171,6 @@
     .wicon.ngn { background: var(--p); }
     .wicon.usd { background: var(--usd); }
 
-    /* ── Balance panel ── */
     .balance-panel {
       background: var(--srf); border: 1px solid var(--bdr);
       border-radius: var(--rxl); margin-top: 24px;
@@ -202,7 +198,6 @@
     }
     .balance-amount.loading { color: var(--t3); opacity: .55; }
 
-    /* ── Action row ── */
     .action-row {
       display: flex; justify-content: center; gap: 36px;
       margin-bottom: 30px; flex-wrap: wrap;
@@ -238,7 +233,6 @@
     .footer-links a:hover { text-decoration: underline; }
     .footer-links .sep { color: var(--bdr); }
 
-    /* ── Preset buttons ── */
     .preset-btn {
       padding: 9px 16px; border: 1px solid var(--bdr);
       border-radius: 8px; background: var(--srf2);
@@ -249,7 +243,6 @@
       border-color: var(--p); color: var(--p); background: var(--pl);
     }
 
-    /* ── Modals ── */
     .modal-overlay {
       position: fixed; inset: 0;
       background: rgba(12, 61, 74, .55);
@@ -328,7 +321,6 @@
     .btn-primary:hover { background: var(--pm); transform: translateY(-1px); }
     .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-    /* ── Toasts ── */
     .toast-container {
       position: fixed; bottom: calc(80px + var(--safe-b));
       right: 14px; left: 14px; z-index: 2000;
@@ -354,7 +346,6 @@
       to { transform: none; opacity: 1; }
     }
 
-    /* ── Status badges ── */
     .status-badge {
       display: inline-block; padding: 4px 12px;
       border-radius: 99px; font-size: 11px; font-weight: 700;
@@ -364,7 +355,6 @@
     .status-badge.finished { background: var(--okl); color: #065f46; }
     .status-badge.failed { background: var(--erl); color: #991b1b; }
 
-    /* ── Mobile nav ── */
     .mnav {
       display: none; position: fixed;
       bottom: calc(10px + var(--safe-b)); left: 50%;
@@ -391,7 +381,6 @@
     .mni.active i { background: var(--pl); color: var(--p); }
     @media (max-width: 768px) { .mnav { display: flex; } }
 
-    /* ── Wallet Activity panel ── */
     .tx-panel {
       background: var(--srf); border: 1px solid var(--bdr);
       border-radius: var(--rl); margin-top: 20px;
@@ -457,7 +446,6 @@
     .tx-filter-menu button.active i { color: var(--p); }
     .tx-filter-menu button:last-child { border-bottom: none; }
 
-    /* ── Desktop row ── */
     .tx-row {
       display: grid; grid-template-columns: 2fr 1.2fr 1.3fr 1.6fr;
       align-items: center; padding: 13px 4px;
@@ -502,7 +490,6 @@
       margin-bottom: 8px; color: var(--bdr);
     }
 
-    /* ── Mobile row ── */
     .tx-mobile-card {
       display: none; align-items: center; gap: 12px;
       padding: 14px 6px; border-bottom: 1px solid var(--bdr);
@@ -539,7 +526,6 @@
       .tx-mobile-card { display: flex; }
     }
 
-    /* ── Side drawers ── */
     .side-drawer-overlay {
       display: none; position: fixed; inset: 0;
       background: rgba(10, 20, 28, .5); z-index: 900;
@@ -594,7 +580,6 @@
     .bd-name { font-size: 13.5px; font-weight: 700; color: var(--t1); }
     .bd-amt { font-size: 13.5px; font-weight: 700; color: var(--t1); }
 
-    /* ── Receipt doc ── */
     .tx-receipt-doc {
       background: var(--srf); border: 1px solid var(--bdr);
       border-radius: 14px; overflow: hidden; margin-bottom: 18px;
@@ -659,7 +644,6 @@
     .tx-receipt-actions { display: flex; gap: 8px; }
     .tx-receipt-actions .btn { flex: 1; }
 
-    /* ── Deposit currency grid ── */
     .dep-curr-label-row {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 10px; gap: 10px;
@@ -691,10 +675,10 @@
       box-shadow: 0 0 0 3px rgba(96, 165, 250, .12);
     }
     .dep-curr.disabled { opacity: .5; cursor: not-allowed; }
-    .dep-curr .dc-flag-img {
-      width: 26px; height: 20px; object-fit: cover;
-      border-radius: 3px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .08);
-      flex-shrink: 0;
+    .dep-curr .dc-flag {
+      font-size: 22px; line-height: 1; flex-shrink: 0;
+      width: 26px; text-align: center;
+      filter: drop-shadow(0 1px 1px rgba(0,0,0,.1));
     }
     .dep-curr .dc-text {
       display: flex; flex-direction: column; min-width: 0; flex: 1;
@@ -712,7 +696,6 @@
       margin-left: 4px;
     }
 
-    /* ── Big amount input ── */
     .big-amount-block {
       text-align: center; padding: 20px 12px 16px;
     }
@@ -756,13 +739,12 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Mobile keyboard / viewport fixes ── */
     .main { width: 100%; min-width: 0; }
     .wrap { overflow: visible; }
     .side-drawer, .tx-detail-drawer { -webkit-overflow-scrolling: touch; }
 
     /* ═══════════════════════════════════════════════════════════
-       Stale transaction banner (from the pasted spec)
+       Stale transaction banner
        ═══════════════════════════════════════════════════════════ */
     .tx-stale-banner {
       display: flex; align-items: center; justify-content: space-between;
@@ -823,7 +805,6 @@
         <p>Deposit funds via Kora and track your wallet activity. NGN and USD wallets supported.</p>
       </div>
 
-      <!-- Wallet cards -->
       <div class="wallet-cards" id="walletCards">
         <div class="wallet-card active" id="cardNGN" onclick="selectWallet('NGN')">
           <div>
@@ -841,7 +822,6 @@
         </div>
       </div>
 
-      <!-- Balance panel -->
       <div class="balance-panel">
         <div class="balance-label" id="balanceLabel">Naira Wallet</div>
         <div class="balance-amount loading" id="balanceAmount">
@@ -853,6 +833,10 @@
             <div class="circle"><i class="fas fa-plus"></i></div>
             <div class="alabel">Add Funds</div>
           </button>
+          <button class="action" onclick="openOtherCurrencies()">
+            <div class="circle gold"><i class="fas fa-globe"></i></div>
+            <div class="alabel">Other Currencies</div>
+          </button>
         </div>
 
         <div class="footer-links">
@@ -862,7 +846,6 @@
         </div>
       </div>
 
-      <!-- Wallet Activity panel -->
       <div class="tx-panel">
         <div class="tx-panel-head">
           <h3>Wallet Activity <span class="badge">Funds only</span></h3>
@@ -918,7 +901,6 @@
 
 <div class="side-drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
 
-<!-- Breakdown drawer -->
 <div class="side-drawer" id="breakdownDrawer">
   <div class="drawer-head">
     <button class="drawer-back" onclick="closeDrawer()" aria-label="Back"><i class="fas fa-arrow-left"></i></button>
@@ -936,7 +918,6 @@
   </div>
 </div>
 
-<!-- Statement drawer -->
 <div class="side-drawer" id="statementDrawer">
   <div class="drawer-head">
     <button class="drawer-back" onclick="closeDrawer()" aria-label="Back"><i class="fas fa-arrow-left"></i></button>
@@ -964,7 +945,6 @@
   </div>
 </div>
 
-<!-- TX detail drawer -->
 <div class="side-drawer" id="txDetailDrawer">
   <div class="drawer-head">
     <button class="drawer-back" onclick="closeDrawer()" aria-label="Back"><i class="fas fa-arrow-left"></i></button>
@@ -975,7 +955,6 @@
   </div>
 </div>
 
-<!-- Fund modal (Kora deposit) -->
 <div class="modal-overlay" id="fundModal" role="dialog" aria-modal="true" aria-labelledby="fundTitle">
   <div class="modal">
     <div class="modal-head">
@@ -988,11 +967,7 @@
         <span class="dcl-main">Select currency</span>
         <span class="dcl-note">One currency per deposit</span>
       </div>
-      <div class="dep-curr-grid" id="depCurrencyGrid">
-        <div style="grid-column:1/-1;text-align:center;font-size:11px;color:var(--t3);padding:6px;">
-          <span class="spinner"></span> Loading currencies…
-        </div>
-      </div>
+      <div class="dep-curr-grid" id="depCurrencyGrid"></div>
     </div>
 
     <div class="big-amount-block" id="bigAmountBlock">
@@ -1041,7 +1016,6 @@ const State = {
   _txSignature: null
 };
 
-/* The five financial types the backend returns. No cashback, no crypto. */
 const FINANCIAL_TYPES = new Set([
   'deposit',
   'wallet_debit',
@@ -1060,6 +1034,21 @@ const SAFE_DESCRIPTIONS = new Set([
   'Withdrawal',
   'Transaction'
 ]);
+
+/* Kora-supported African currencies (non-NGN) — for the Other Currencies view */
+const OTHER_CURRENCY_CATALOG = ['GHS', 'KES', 'ZAR', 'XAF', 'XOF', 'TZS', 'EGP'];
+
+/* Local (offline) fallback config for the other currencies so the grid
+   paints instantly before /wallet/deposit-currencies resolves. */
+const OTHER_CURRENCY_FALLBACK = {
+  GHS: { code: 'GHS', display_name: 'Ghana Cedis',        symbol: '₵',    flag: '🇬🇭', min_amount: 50,    max_amount: 50000 },
+  KES: { code: 'KES', display_name: 'Kenya Shilling',     symbol: 'KSh',  flag: '🇰🇪', min_amount: 500,   max_amount: 500000 },
+  ZAR: { code: 'ZAR', display_name: 'South African Rand', symbol: 'R',    flag: '🇿🇦', min_amount: 100,   max_amount: 50000 },
+  XAF: { code: 'XAF', display_name: 'CFA Franc (BEAC)',   symbol: 'FCFA', flag: '🌍', min_amount: 5000,  max_amount: 1000000 },
+  XOF: { code: 'XOF', display_name: 'CFA Franc (BCEAO)',  symbol: 'CFA',  flag: '🌍', min_amount: 5000,  max_amount: 1000000 },
+  TZS: { code: 'TZS', display_name: 'Tanzania Shilling',  symbol: 'TSh',  flag: '🇹🇿', min_amount: 10000, max_amount: 3000000 },
+  EGP: { code: 'EGP', display_name: 'Egyptian Pound',     symbol: 'E£',   flag: '🇪🇬', min_amount: 500,   max_amount: 100000 }
+};
 
 /* ═══════════════════════════════════════════════════════════════
    DOM REFS
@@ -1094,7 +1083,7 @@ const DOM = {
 
 const API_BASE = '/api';
 
-/* Currency metadata — Kora supports these African currencies. */
+/* Currency metadata — symbol + flag emoji + display name. */
 const CURRENCY_META = {
   NGN: { flag: '🇳🇬', name: 'Nigeria Naira',      symbol: '₦',    iso: 'ng' },
   GHS: { flag: '🇬🇭', name: 'Ghana Cedis',        symbol: '₵',    iso: 'gh' },
@@ -1111,10 +1100,6 @@ const currencySymbol = c => (CURRENCY_META[c] && CURRENCY_META[c].symbol) || c;
 const currencyFlag   = c => (CURRENCY_META[c] && CURRENCY_META[c].flag) || '🌍';
 const currencyName   = c => (CURRENCY_META[c] && CURRENCY_META[c].name) || c;
 const currencyDecimals = c => ['XAF', 'XOF'].includes(c) ? 0 : 2;
-const currencyFlagImg = c => {
-  const iso = CURRENCY_META[c] && CURRENCY_META[c].iso;
-  return iso ? `https://flagcdn.com/w80/${iso}.png` : '';
-};
 
 const getInitials = (name) => name ? name.charAt(0).toUpperCase() : 'U';
 const escapeHtml = (s) => (window.MS && window.MS.esc) ? window.MS.esc(s) : String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
@@ -1294,7 +1279,7 @@ function selectWallet(cur) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   TX TYPE MAP — financial only, no cashback, no crypto
+   TX TYPE MAP
    ═══════════════════════════════════════════════════════════════ */
 const TX_TYPE_MAP = {
   deposit:         { label: 'Wallet deposit',       icon: 'fa-arrow-down',    bg: 'var(--okl)',  cl: '#065f46' },
@@ -1335,7 +1320,6 @@ async function loadWalletActivity() {
     const raw = Array.isArray(resp?.data) ? resp.data : [];
     const safeRows = raw.filter(t => FINANCIAL_TYPES.has(String(t.type || '').toLowerCase()));
 
-    /* Dedupe by reference (backend returns customer-safe rows, no KORA prefix stripping needed) */
     const uniqueMap = new Map();
     safeRows.forEach(row => {
       const key = row.reference || row.id;
@@ -1351,7 +1335,6 @@ async function loadWalletActivity() {
 
     const deduplicatedRows = Array.from(uniqueMap.values());
 
-    /* Signature guard — skip re-render if unchanged (avoids flicker + banner wipe) */
     const signature = JSON.stringify(deduplicatedRows.map(r => [r.reference, r.status, r.amount]));
     if (signature === State._txSignature) {
       State.txCache = deduplicatedRows;
@@ -1618,7 +1601,8 @@ function showTransactionDetail(idx) {
 /* ═══════════════════════════════════════════════════════════════
    ENTRY POINTS
    ═══════════════════════════════════════════════════════════════ */
-function openAddFunds() { openModal('fundModal', 'ngn'); }
+function openAddFunds()        { openModal('fundModal', 'ngn'); }
+function openOtherCurrencies() { openModal('fundModal', 'other'); }
 
 function openModal(id, mode) {
   const m = document.getElementById(id);
@@ -1632,7 +1616,9 @@ function openModal(id, mode) {
 
     State.depIdempotencyKey = genIdempotencyKey('IK');
 
-    DOM.fundTitle.textContent = 'Add Funds — Naira Wallet';
+    DOM.fundTitle.textContent = fundMode === 'other'
+      ? 'Top up with Other Currencies'
+      : 'Add Funds — Naira Wallet';
     DOM.fundProviderBadge.textContent = '🔒 Secure payment · powered by Kora';
 
     DOM.fundCurrencySection.style.display = 'block';
@@ -1683,64 +1669,161 @@ document.addEventListener('keydown', (e) => {
 });
 
 /* ═══════════════════════════════════════════════════════════════
-   FIAT MODE — Kora only
+   FIAT MODE — fast currency loading
    ═══════════════════════════════════════════════════════════════ */
 function initFiatMode(fundMode) {
-  /* Instant paint: NGN card with fallback values */
-  DOM.depCurrencyGrid.innerHTML = renderFiatCurrencyCard({ code: 'NGN', display_name: 'Nigeria Naira', enabled: true }, true);
-  State.depSelectedCurrency = { code: 'NGN', min_amount: 500, max_amount: 1000000, deposit_fee: 50 };
-  updateAmountBlockForMode();
-  renderFiatPresets();
-  bindFiatCurrencyCardHandlers();
+  if (fundMode === 'other') {
+    /* Instant paint: build the full other-currency grid from the local
+       fallback catalog. No network, no spinner, no waiting. */
+    State.depSelectedCurrency = null;
 
-  /* Then refresh from backend (other supported African currencies) */
-  loadDepositCurrencies().then(() => {
-    const ngn = State.depCurrencies.find(c => c.code === 'NGN');
-    if (ngn) {
-      State.depSelectedCurrency = ngn;
-      updateAmountBlockForMode();
-      renderFiatPresets();
-      renderFiatCurrencies();
+    const merged = OTHER_CURRENCY_CATALOG.map(code => {
+      const backend = State.depCurrencies.find(c => c.code === code);
+      const fallback = OTHER_CURRENCY_FALLBACK[code];
+      if (backend) {
+        return {
+          code,
+          display_name: backend.display_name || fallback.display_name,
+          min_amount: Number(backend.min_amount) || fallback.min_amount,
+          max_amount: Number(backend.max_amount) || fallback.max_amount,
+          enabled: backend.enabled !== false
+        };
+      }
+      return { ...fallback, enabled: true };
+    });
+
+    DOM.depCurrencyGrid.innerHTML = merged
+      .map(c => renderFiatCurrencyCard(c, false))
+      .join('');
+    bindFiatCurrencyCardHandlers();
+
+    /* Pre-select the first enabled non-NGN currency so the amount block
+       isn't stuck on empty while the user is choosing. */
+    const firstEnabled = merged.find(c => c.enabled);
+    if (firstEnabled) selectDepositCurrency(firstEnabled.code);
+
+    /* Silent refresh from backend (already warmed at page load). */
+    if (!State.depCurrencies.length) {
+      loadDepositCurrencies().then(() => {
+        if (State.fundMode !== 'other') return;
+        const merged2 = OTHER_CURRENCY_CATALOG.map(code => {
+          const backend = State.depCurrencies.find(c => c.code === code);
+          const fallback = OTHER_CURRENCY_FALLBACK[code];
+          if (backend) {
+            return {
+              code,
+              display_name: backend.display_name || fallback.display_name,
+              min_amount: Number(backend.min_amount) || fallback.min_amount,
+              max_amount: Number(backend.max_amount) || fallback.max_amount,
+              enabled: backend.enabled !== false
+            };
+          }
+          return { ...fallback, enabled: true };
+        });
+        DOM.depCurrencyGrid.innerHTML = merged2
+          .map(c => renderFiatCurrencyCard(c, State.depSelectedCurrency?.code === c.code))
+          .join('');
+        bindFiatCurrencyCardHandlers();
+      });
     }
-  });
+  } else {
+    /* NGN view — render NGN card instantly from local data, hydrate in background. */
+    const ngnCfg = {
+      code: 'NGN',
+      display_name: 'Nigeria Naira',
+      min_amount: 500,
+      max_amount: 1000000,
+      deposit_fee: 50,
+      enabled: true
+    };
+
+    DOM.depCurrencyGrid.innerHTML = renderFiatCurrencyCard(ngnCfg, true);
+    bindFiatCurrencyCardHandlers();
+
+    State.depSelectedCurrency = ngnCfg;
+    updateAmountBlockForMode();
+    renderFiatPresets();
+
+    /* If we already have backend config, use it silently. */
+    if (State.depCurrencies.length) {
+      const backendNgn = State.depCurrencies.find(c => c.code === 'NGN');
+      if (backendNgn) {
+        State.depSelectedCurrency = {
+          code: 'NGN',
+          display_name: backendNgn.display_name || 'Nigeria Naira',
+          min_amount: Number(backendNgn.min_amount) || 500,
+          max_amount: Number(backendNgn.max_amount) || 1000000,
+          deposit_fee: Number(backendNgn.deposit_fee) || 50,
+          enabled: true
+        };
+        updateAmountBlockForMode();
+        renderFiatPresets();
+      }
+    } else {
+      loadDepositCurrencies().then(() => {
+        const backendNgn = State.depCurrencies.find(c => c.code === 'NGN');
+        if (backendNgn && State.fundMode === 'ngn') {
+          State.depSelectedCurrency = {
+            code: 'NGN',
+            display_name: backendNgn.display_name || 'Nigeria Naira',
+            min_amount: Number(backendNgn.min_amount) || 500,
+            max_amount: Number(backendNgn.max_amount) || 1000000,
+            deposit_fee: Number(backendNgn.deposit_fee) || 50,
+            enabled: true
+          };
+          updateAmountBlockForMode();
+          renderFiatPresets();
+        }
+      });
+    }
+  }
 }
 
+/* Fetch + cache Kora's currency config. Runs at page load. */
+const DEP_CURRENCIES_CACHE_KEY = 'ms:fund:dep-currencies';
+const DEP_CURRENCIES_TTL_MS = 30 * 60 * 1000;
+
 async function loadDepositCurrencies() {
-  if (State.depCurrencies.length > 0) return;
+  if (State.depCurrencies.length > 0) return State.depCurrencies;
+
+  /* Read from sessionStorage first (max 30 min old). */
+  try {
+    const raw = sessionStorage.getItem(DEP_CURRENCIES_CACHE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.list) && (Date.now() - parsed.ts) < DEP_CURRENCIES_TTL_MS) {
+        State.depCurrencies = parsed.list;
+        return State.depCurrencies;
+      }
+    }
+  } catch (_) {}
+
   try {
     const resp = await apiRequest('/wallet/deposit-currencies');
     if (!resp?.success) throw new Error(resp?.error || 'Failed to load currencies');
-    State.depCurrencies = resp.currencies || [];
+    const list = resp.currencies || [];
+    State.depCurrencies = list;
+
+    try {
+      sessionStorage.setItem(DEP_CURRENCIES_CACHE_KEY, JSON.stringify({ ts: Date.now(), list }));
+    } catch (_) {}
+
+    return State.depCurrencies;
   } catch (e) {
     console.error('[WALLET] deposit-currencies error:', e);
-    State.depCurrencies = [];
+    return State.depCurrencies;
   }
 }
 
-function renderFiatCurrencies() {
-  const ngnEnabled = State.depCurrencies.find(c => c.code === 'NGN');
-  const ngnCard = { code: 'NGN', display_name: ngnEnabled?.display_name || currencyName('NGN'), enabled: !!ngnEnabled };
-  DOM.depCurrencyGrid.innerHTML = renderFiatCurrencyCard(ngnCard, State.depSelectedCurrency?.code === 'NGN');
-  bindFiatCurrencyCardHandlers();
-  if (!State.depSelectedCurrency || State.depSelectedCurrency.code !== 'NGN') {
-    if (ngnEnabled) {
-      State.depSelectedCurrency = ngnEnabled;
-      DOM.depCurrencyGrid.querySelector('.dep-curr')?.classList.add('selected');
-    }
-  }
-}
-
+/* Render a single currency card — flag emoji (no network) */
 function renderFiatCurrencyCard(c, selected) {
-  const flagUrl = currencyFlagImg(c.code);
-  const flagMarkup = flagUrl
-    ? `<img class="dc-flag-img" src="${flagUrl}" alt="${escapeHtml(c.code)}" loading="lazy" onerror="this.style.display='none'">`
-    : `<span style="font-size:22px;">${currencyFlag(c.code)}</span>`;
+  const flag = currencyFlag(c.code);
   return `
     <button type="button"
             class="dep-curr ${selected ? 'selected' : ''} ${c.enabled ? '' : 'disabled'}"
             data-code="${c.code}"
             ${c.enabled ? '' : 'disabled'}>
-      ${flagMarkup}
+      <span class="dc-flag">${flag}</span>
       <span class="dc-text">
         <span class="dc-code">${escapeHtml(c.code)}</span>
         <span class="dc-name">${escapeHtml(c.display_name)}</span>
@@ -1764,8 +1847,17 @@ function bindFiatCurrencyCardHandlers() {
 }
 
 function selectDepositCurrency(code) {
-  const c = (State.depCurrencies || []).find(x => x.code === code);
+  let c = (State.depCurrencies || []).find(x => x.code === code);
+
+  /* Fall back to local config if backend hasn't landed yet. */
+  if (!c && OTHER_CURRENCY_FALLBACK[code]) {
+    c = OTHER_CURRENCY_FALLBACK[code];
+  }
+  if (!c && code === 'NGN') {
+    c = { code: 'NGN', display_name: 'Nigeria Naira', min_amount: 500, max_amount: 1000000, deposit_fee: 50 };
+  }
   if (!c) return;
+
   State.depSelectedCurrency = c;
   DOM.depCurrencyGrid.querySelectorAll('.dep-curr').forEach(b => {
     b.classList.toggle('selected', b.dataset.code === code);
@@ -1779,7 +1871,12 @@ function selectDepositCurrency(code) {
 
 function updateAmountBlockForMode() {
   const c = State.depSelectedCurrency;
-  if (!c) return;
+  if (!c) {
+    DOM.baLabel.textContent = 'Amount';
+    DOM.baSym.textContent = '—';
+    DOM.baMinimum.textContent = 'Select a currency';
+    return;
+  }
   const isNGN = c.code === 'NGN';
   DOM.baLabel.textContent = isNGN ? 'Amount in Naira' : `Amount in ${c.code}`;
   DOM.baSym.textContent = currencySymbol(c.code);
@@ -2343,7 +2440,7 @@ function handleReturnQuery() {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   INIT
+   INIT — parallel warm-up so currency config is ready on first tap
    ═══════════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', async function() {
   await new Promise(r => setTimeout(r, 0));
@@ -2367,15 +2464,16 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
   } catch (_) {}
 
-  /* Load balance + activity in parallel (no lazy-load gate). */
+  /* Warm the currency config in parallel with the first balance/activity
+     fetch, so tapping "Add Funds" or "Other Currencies" never waits. */
+  loadDepositCurrencies().catch(() => {});
+
   loadWalletBalance();
   loadWalletActivity();
 
   handleReturnQuery();
-  loadDepositCurrencies().catch(() => {});
   DOM.logoutBtn?.addEventListener('click', doLogout);
 
-  /* 20s refresh: flip historyLoaded first so loadWalletActivity actually refetches */
   setInterval(() => {
     if (!document.hidden) {
       loadWalletBalance();
@@ -2385,6 +2483,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 window.openAddFunds          = openAddFunds;
+window.openOtherCurrencies   = openOtherCurrencies;
 window.openModal             = openModal;
 window.selectWallet          = selectWallet;
 window.closeModal            = closeModal;
@@ -2405,18 +2504,6 @@ window.showTransactionDetail = showTransactionDetail;
 <script>
 /* ═══════════════════════════════════════════════════════════════════
    Stale transaction banner + "Check status" button.
-   Appended exactly per the pasted spec for fund.html.
-
-   PAGE ADAPTER
-   ────────────
-   1. ROW_SELECTOR = '.tx-row[data-tx-idx], .tx-mobile-card[data-tx-idx]'
-      (desktop and mobile variants of the same wallet activity row)
-   2. RECORD_LOOKUP = el => State.txCache[Number(el.dataset.txIdx)] || null
-      (State.txCache is populated by loadWalletActivity)
-   3. Record fields: reference, status, created_at — all present on the
-      customer-safe shape returned by /api/wallet/transactions.
-   4. Token fetcher: window.userFetch (falls back to fetch with cookies).
-   5. Toast: local showToast(msg, 'success'|'error'|'info').
    ═══════════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -2503,7 +2590,6 @@ window.showTransactionDetail = showTransactionDetail;
           btn.remove();
           SHOW_TOAST('Status updated.', 'ok');
           if (typeof window.loadWalletActivity === 'function') setTimeout(() => window.loadWalletActivity(), 400);
-          else if (typeof loadWalletActivity === 'function') setTimeout(() => loadWalletActivity(), 400);
         } else {
           btn.disabled = false;
           btn.textContent = 'Check status';
@@ -2546,8 +2632,6 @@ window.showTransactionDetail = showTransactionDetail;
     debounce = setTimeout(scan, 300);
   }).observe(document.body, { childList: true, subtree: true });
 
-  /* Expose refresh hook for the terminal path — the banner IIFE can't
-     reach the module-scoped loadWalletActivity() closure directly. */
   window.loadWalletActivity = window.loadWalletActivity || function () {
     try { if (typeof State !== 'undefined') State.historyLoaded = false; } catch (_) {}
   };
