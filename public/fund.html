@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
   <script src="/js/session.js"></script>
   <script src="/js/presence.js" defer></script>
@@ -320,6 +321,25 @@
     .btn-primary { background: var(--p); color: #fff; }
     .btn-primary:hover { background: var(--pm); transform: translateY(-1px); }
     .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .btn-gold { background: var(--acc); color: #fff; }
+    .btn-gold:hover { background: var(--acd); }
+
+    .payment-info {
+      background: var(--srf2); border-radius: 10px; padding: 16px; margin: 12px 0;
+    }
+    .payment-info .address {
+      font-family: 'Courier New', monospace; font-size: 12px;
+      word-break: break-all; background: #fff;
+      padding: 10px 12px; border-radius: 6px;
+      border: 1px solid var(--bdr); margin: 0;
+    }
+    .copy-btn {
+      background: var(--p); color: #fff; border: none;
+      padding: 10px 14px; border-radius: 8px;
+      font-size: 12px; cursor: pointer; font-weight: 600;
+      flex-shrink: 0; min-height: 40px;
+    }
+    .copy-btn:hover { background: var(--pm); }
 
     .toast-container {
       position: fixed; bottom: calc(80px + var(--safe-b));
@@ -696,6 +716,70 @@
       margin-left: 4px;
     }
 
+    /* ── Crypto picker ── */
+    .crypto-picker-label {
+      font-size: 14px; font-weight: 700; color: var(--t1); margin: 0 0 12px;
+    }
+    .crypto-grid-3 {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 10px; margin: 0 0 18px;
+    }
+    @media (max-width: 520px) {
+      .crypto-grid-3 { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    }
+    .crypto-card {
+      position: relative; display: flex; align-items: center;
+      gap: 10px; padding: 14px 12px 12px 12px;
+      background: var(--srf); border: 1.5px solid var(--bdr);
+      border-radius: 12px; cursor: pointer; transition: all .15s;
+      font-family: inherit; text-align: left; min-width: 0; min-height: 64px;
+    }
+    .crypto-card:hover:not(.disabled) {
+      border-color: #60a5fa; background: #f8fbff;
+    }
+    .crypto-card.selected {
+      border-color: #60a5fa; background: #eff6ff;
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, .14);
+    }
+    .crypto-card.disabled { opacity: .42; cursor: not-allowed; }
+    .crypto-card .crypto-min-badge {
+      position: absolute; top: -7px; left: -7px;
+      background: #4b5563; color: #fff;
+      font-size: 9px; font-weight: 700;
+      padding: 2px 7px; border-radius: 5px;
+      letter-spacing: .02em; line-height: 1.4; z-index: 1;
+    }
+    .crypto-card .coin-badge {
+      width: 34px; height: 34px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; color: #fff; font-weight: 800;
+      font-size: 14px; line-height: 1;
+    }
+    .crypto-card .coin-text {
+      display: flex; flex-direction: column; min-width: 0; flex: 1;
+    }
+    .crypto-card .coin-ticker {
+      font-size: 13px; font-weight: 800; color: var(--t1);
+      letter-spacing: .02em; line-height: 1.2;
+    }
+    .crypto-card .coin-name {
+      font-size: 10.5px; color: var(--t3); font-weight: 500;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      line-height: 1.2; margin-top: 1px;
+    }
+
+    .crypto-network-block { margin: 0 0 6px; }
+    .crypto-network-block label {
+      display: block; font-size: 13px; font-weight: 700;
+      color: var(--t1); margin-bottom: 8px;
+    }
+    .crypto-network-block select {
+      width: 100%; padding: 12px 14px;
+      border: 1.5px solid var(--bdr); border-radius: 10px;
+      font-size: 14px; font-family: inherit;
+      background: var(--srf); color: var(--t1); min-height: 48px;
+    }
+
     .big-amount-block {
       text-align: center; padding: 20px 12px 16px;
     }
@@ -743,9 +827,6 @@
     .wrap { overflow: visible; }
     .side-drawer, .tx-detail-drawer { -webkit-overflow-scrolling: touch; }
 
-    /* ═══════════════════════════════════════════════════════════
-       Stale transaction banner
-       ═══════════════════════════════════════════════════════════ */
     .tx-stale-banner {
       display: flex; align-items: center; justify-content: space-between;
       gap: 10px; padding: 10px 14px; margin: 8px 0;
@@ -802,7 +883,7 @@
     <div class="content">
       <div class="page-header">
         <h1>Wallet</h1>
-        <p>Deposit funds via Kora and track your wallet activity. NGN and USD wallets supported.</p>
+        <p>Deposit funds via Kora or crypto, and track your wallet activity. NGN and USD wallets supported.</p>
       </div>
 
       <div class="wallet-cards" id="walletCards">
@@ -836,6 +917,10 @@
           <button class="action" onclick="openOtherCurrencies()">
             <div class="circle gold"><i class="fas fa-globe"></i></div>
             <div class="alabel">Other Currencies</div>
+          </button>
+          <button class="action" onclick="openCryptoTopUp()">
+            <div class="circle gold"><i class="fas fa-coins"></i></div>
+            <div class="alabel">Crypto Top-up</div>
           </button>
         </div>
 
@@ -970,6 +1055,19 @@
       <div class="dep-curr-grid" id="depCurrencyGrid"></div>
     </div>
 
+    <div id="cryptoSection" style="display:none;">
+      <div class="crypto-picker-label">Select currency</div>
+      <div class="crypto-grid-3" id="cryptoGrid">
+        <div style="grid-column:1/-1;text-align:center;font-size:11px;color:var(--t3);padding:10px;">
+          <span class="spinner"></span> Loading cryptocurrencies…
+        </div>
+      </div>
+      <div class="crypto-network-block" id="networkBlock" style="display:none;">
+        <label for="networkSelect">Network</label>
+        <select id="networkSelect"></select>
+      </div>
+    </div>
+
     <div class="big-amount-block" id="bigAmountBlock">
       <div class="ba-label" id="baLabel">Amount</div>
       <div class="big-amount-input-wrap">
@@ -979,6 +1077,17 @@
       <div class="ba-conversion" id="baConversion"></div>
       <div class="ba-minimum" id="baMinimum">Minimum of ₦500</div>
       <div class="ba-presets" id="presetContainer"></div>
+    </div>
+
+    <div class="crypto-amount-block big-amount-block" id="cryptoAmountBlock" style="display:none;">
+      <div class="ba-label">Amount</div>
+      <div class="big-amount-input-wrap">
+        <span class="ba-sym">$</span>
+        <input type="text" inputmode="decimal" id="cryptoAmountInput" placeholder="0" autocomplete="off" oninput="onCryptoAmountInput()" />
+      </div>
+      <div class="ba-conversion" id="cryptoConversion"></div>
+      <div class="ba-minimum" id="cryptoMinimum">Minimum of $5</div>
+      <div class="ba-presets" id="cryptoPresetContainer"></div>
     </div>
 
     <div style="margin-top:14px;font-size:11px;color:var(--t3);line-height:1.5;text-align:center;">
@@ -993,11 +1102,21 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="paymentModal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-head">
+      <h3><i class="fas fa-credit-card"></i> Complete Payment</h3>
+      <button class="modal-close" onclick="closeModal('paymentModal')" aria-label="Close">✕</button>
+    </div>
+    <div id="paymentContent"></div>
+  </div>
+</div>
+
 <script>
 'use strict';
 
 /* ═══════════════════════════════════════════════════════════════
-   STATE — funds only, from Kora
+   STATE
    ═══════════════════════════════════════════════════════════════ */
 const State = {
   currentWallet: 'NGN',
@@ -1010,6 +1129,15 @@ const State = {
   depInputAmount: 0,
   depSubmitting: false,
   depIdempotencyKey: null,
+  cryptoCoins: [],
+  selectedCrypto: null,
+  selectedNetwork: null,
+  cryptoInputUsd: 0,
+  cryptoPayment: null,
+  cryptoSubmitting: false,
+  cryptoIdempotencyKey: null,
+  paymentInterval: null,
+  timerInterval: null,
   previousFocus: null,
   balanceLoaded: false,
   historyLoaded: false,
@@ -1035,11 +1163,8 @@ const SAFE_DESCRIPTIONS = new Set([
   'Transaction'
 ]);
 
-/* Kora-supported African currencies (non-NGN) — for the Other Currencies view */
 const OTHER_CURRENCY_CATALOG = ['GHS', 'KES', 'ZAR', 'XAF', 'XOF', 'TZS', 'EGP'];
 
-/* Local (offline) fallback config for the other currencies so the grid
-   paints instantly before /wallet/deposit-currencies resolves. */
 const OTHER_CURRENCY_FALLBACK = {
   GHS: { code: 'GHS', display_name: 'Ghana Cedis',        symbol: '₵',    flag: '🇬🇭', min_amount: 50,    max_amount: 50000 },
   KES: { code: 'KES', display_name: 'Kenya Shilling',     symbol: 'KSh',  flag: '🇰🇪', min_amount: 500,   max_amount: 500000 },
@@ -1050,9 +1175,8 @@ const OTHER_CURRENCY_FALLBACK = {
   EGP: { code: 'EGP', display_name: 'Egyptian Pound',     symbol: 'E£',   flag: '🇪🇬', min_amount: 500,   max_amount: 100000 }
 };
 
-/* ═══════════════════════════════════════════════════════════════
-   DOM REFS
-   ═══════════════════════════════════════════════════════════════ */
+const CRYPTO_MIN_USD_FALLBACK = 5;
+
 const $ = id => document.getElementById(id);
 const DOM = {
   sidebar: $('sb'), scrim: $('scrim'), hbg: $('hbg'), logoutBtn: $('logoutBtn'),
@@ -1061,6 +1185,8 @@ const DOM = {
   balanceLabel: $('balanceLabel'), balanceAmount: $('balanceAmount'),
   cardNGN: $('cardNGN'), cardUSD: $('cardUSD'),
   fundModal: $('fundModal'),
+  paymentModal: $('paymentModal'),
+  paymentContent: $('paymentContent'),
   fundTitle: $('fundTitle'),
   fundBtn: $('fundBtn'), fundBtnText: $('fundBtnText'),
   fundProviderBadge: $('fundProviderBadge'),
@@ -1071,6 +1197,15 @@ const DOM = {
   fundAmount: $('fundAmount'),
   baConversion: $('baConversion'), baMinimum: $('baMinimum'),
   presetContainer: $('presetContainer'),
+  cryptoSection: $('cryptoSection'),
+  cryptoGrid: $('cryptoGrid'),
+  networkBlock: $('networkBlock'),
+  networkSelect: $('networkSelect'),
+  cryptoAmountBlock: $('cryptoAmountBlock'),
+  cryptoAmountInput: $('cryptoAmountInput'),
+  cryptoConversion: $('cryptoConversion'),
+  cryptoMinimum: $('cryptoMinimum'),
+  cryptoPresetContainer: $('cryptoPresetContainer'),
   depNoteText: $('depNoteText'),
   txRows: $('txRows'), txFilterMenu: $('txFilterMenu'), txFilterBtn: $('txFilterBtn'),
   bdList: $('bdList'), bdFilterLabel: $('bdFilterLabel'), bdSecTitle: $('bdSecTitle'),
@@ -1083,7 +1218,6 @@ const DOM = {
 
 const API_BASE = '/api';
 
-/* Currency metadata — symbol + flag emoji + display name. */
 const CURRENCY_META = {
   NGN: { flag: '🇳🇬', name: 'Nigeria Naira',      symbol: '₦',    iso: 'ng' },
   GHS: { flag: '🇬🇭', name: 'Ghana Cedis',        symbol: '₵',    iso: 'gh' },
@@ -1147,9 +1281,6 @@ const redirectToLogin = () => {
   else window.location.replace('login.html');
 };
 
-/* ═══════════════════════════════════════════════════════════════
-   API
-   ═══════════════════════════════════════════════════════════════ */
 const apiCache = new Map();
 const CACHE_TTL = 30000;
 
@@ -1194,9 +1325,6 @@ async function apiRequest(endpoint, options = {}, useCache = false) {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   TOAST
-   ═══════════════════════════════════════════════════════════════ */
 function showToast(msg, type = 'info') {
   const t = document.createElement('div');
   t.className = `toast ${type}`;
@@ -1210,9 +1338,6 @@ function showToast(msg, type = 'info') {
   }, 3500);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   USER UI
-   ═══════════════════════════════════════════════════════════════ */
 function updateUserUI() {
   const user = (typeof window.getUser === 'function') ? window.getUser() : null;
   if (!user) return;
@@ -1225,9 +1350,6 @@ function updateUserUI() {
   if (DOM.tbAv) DOM.tbAv.textContent = i;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   BALANCES
-   ═══════════════════════════════════════════════════════════════ */
 async function loadWalletBalance() {
   try {
     const resp = await apiRequest('/wallet/me');
@@ -1278,9 +1400,6 @@ function selectWallet(cur) {
   updateWalletUI();
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   TX TYPE MAP
-   ═══════════════════════════════════════════════════════════════ */
 const TX_TYPE_MAP = {
   deposit:         { label: 'Wallet deposit',       icon: 'fa-arrow-down',    bg: 'var(--okl)',  cl: '#065f46' },
   wallet_credit:   { label: 'Wallet credit',        icon: 'fa-plus-circle',   bg: 'var(--okl)',  cl: '#065f46' },
@@ -1310,9 +1429,6 @@ function txStatusInfo(status) {
   return { dot: 'pending', label: s };
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   WALLET ACTIVITY
-   ═══════════════════════════════════════════════════════════════ */
 async function loadWalletActivity() {
   if (State.historyLoaded) return;
   try {
@@ -1381,9 +1497,6 @@ function applyTxFilter(rows, filter) {
   });
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ROW MARKUP
-   ═══════════════════════════════════════════════════════════════ */
 function renderTxRow(t, idx) {
   const { amount, currency } = resolveTxAmount(t);
   const absAmt = Math.abs(amount);
@@ -1465,9 +1578,6 @@ function initTxRowsDelegation() {
   });
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   FILTER UI
-   ═══════════════════════════════════════════════════════════════ */
 function toggleTxFilter(e) {
   if (e) e.stopPropagation();
   const isShowing = DOM.txFilterMenu.classList.contains('show');
@@ -1491,9 +1601,6 @@ document.addEventListener('click', (e) => {
   }
 });
 
-/* ═══════════════════════════════════════════════════════════════
-   TX DETAIL
-   ═══════════════════════════════════════════════════════════════ */
 function showTransactionDetail(idx) {
   const t = State.txCache[idx];
   if (!t) {
@@ -1598,11 +1705,9 @@ function showTransactionDetail(idx) {
   document.body.style.overflow = 'hidden';
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ENTRY POINTS
-   ═══════════════════════════════════════════════════════════════ */
 function openAddFunds()        { openModal('fundModal', 'ngn'); }
 function openOtherCurrencies() { openModal('fundModal', 'other'); }
+function openCryptoTopUp()     { openModal('fundModal', 'crypto'); }
 
 function openModal(id, mode) {
   const m = document.getElementById(id);
@@ -1614,24 +1719,42 @@ function openModal(id, mode) {
     const fundMode = mode || 'ngn';
     State.fundMode = fundMode;
 
-    State.depIdempotencyKey = genIdempotencyKey('IK');
+    if (fundMode === 'crypto') State.cryptoIdempotencyKey = genIdempotencyKey('cik');
+    else                       State.depIdempotencyKey = genIdempotencyKey('IK');
 
-    DOM.fundTitle.textContent = fundMode === 'other'
-      ? 'Top up with Other Currencies'
-      : 'Add Funds — Naira Wallet';
-    DOM.fundProviderBadge.textContent = '🔒 Secure payment · powered by Kora';
+    const isFiat   = fundMode === 'ngn' || fundMode === 'other';
+    const isCrypto = fundMode === 'crypto';
 
-    DOM.fundCurrencySection.style.display = 'block';
-    DOM.bigAmountBlock.style.display = 'block';
+    if (fundMode === 'ngn')         DOM.fundTitle.textContent = 'Add Funds — Naira Wallet';
+    else if (fundMode === 'other')  DOM.fundTitle.textContent = 'Top up with Other Currencies';
+    else                            DOM.fundTitle.textContent = 'Top up with Crypto';
+
+    DOM.fundProviderBadge.textContent = isCrypto ? '🔒 Secure crypto checkout' : '🔒 Secure payment · powered by Kora';
+
+    DOM.fundCurrencySection.style.display = isFiat ? 'block' : 'none';
+    DOM.cryptoSection.style.display       = isCrypto ? 'block' : 'none';
+    DOM.bigAmountBlock.style.display      = isFiat ? 'block' : 'none';
+    DOM.cryptoAmountBlock.style.display   = isCrypto ? 'block' : 'none';
 
     DOM.fundAmount.value = '';
+    DOM.cryptoAmountInput.value = '';
     DOM.baConversion.textContent = '';
+    DOM.cryptoConversion.textContent = '';
     DOM.fundBtn.disabled = true;
     State.depInputAmount = 0;
+    State.cryptoInputUsd = 0;
 
-    DOM.depNoteText.textContent = 'Your wallet is credited once payment is confirmed by Kora.';
-    DOM.fundBtnText.textContent = 'Continue to payment';
-    initFiatMode(fundMode);
+    if (fundMode === 'ngn')        DOM.depNoteText.textContent = 'Your wallet is credited once payment is confirmed by Kora.';
+    else if (fundMode === 'other') DOM.depNoteText.textContent = 'Supported African currencies are converted to Naira at checkout by Kora.';
+    else                           DOM.depNoteText.textContent = 'Your USD wallet is credited once the crypto payment is confirmed on-chain.';
+
+    if (isFiat) {
+      DOM.fundBtnText.textContent = 'Continue to payment';
+      initFiatMode(fundMode);
+    } else {
+      DOM.fundBtnText.textContent = 'Continue';
+      initCryptoMode();
+    }
   }
   m.classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -1640,8 +1763,13 @@ function openModal(id, mode) {
 function closeModal(id) {
   const m = document.getElementById(id);
   if (m) m.classList.remove('open');
+  if (id === 'paymentModal') {
+    if (State.paymentInterval) { clearInterval(State.paymentInterval); State.paymentInterval = null; }
+    if (State.timerInterval)   { clearInterval(State.timerInterval);   State.timerInterval = null; }
+  }
   if (id === 'fundModal') {
     State.depIdempotencyKey = null;
+    State.cryptoIdempotencyKey = null;
   }
   document.body.style.overflow = '';
   if (State.previousFocus && State.previousFocus.focus) {
@@ -1669,12 +1797,10 @@ document.addEventListener('keydown', (e) => {
 });
 
 /* ═══════════════════════════════════════════════════════════════
-   FIAT MODE — fast currency loading
+   FIAT — fast currency loading
    ═══════════════════════════════════════════════════════════════ */
 function initFiatMode(fundMode) {
   if (fundMode === 'other') {
-    /* Instant paint: build the full other-currency grid from the local
-       fallback catalog. No network, no spinner, no waiting. */
     State.depSelectedCurrency = null;
 
     const merged = OTHER_CURRENCY_CATALOG.map(code => {
@@ -1697,12 +1823,9 @@ function initFiatMode(fundMode) {
       .join('');
     bindFiatCurrencyCardHandlers();
 
-    /* Pre-select the first enabled non-NGN currency so the amount block
-       isn't stuck on empty while the user is choosing. */
     const firstEnabled = merged.find(c => c.enabled);
     if (firstEnabled) selectDepositCurrency(firstEnabled.code);
 
-    /* Silent refresh from backend (already warmed at page load). */
     if (!State.depCurrencies.length) {
       loadDepositCurrencies().then(() => {
         if (State.fundMode !== 'other') return;
@@ -1727,7 +1850,6 @@ function initFiatMode(fundMode) {
       });
     }
   } else {
-    /* NGN view — render NGN card instantly from local data, hydrate in background. */
     const ngnCfg = {
       code: 'NGN',
       display_name: 'Nigeria Naira',
@@ -1744,7 +1866,6 @@ function initFiatMode(fundMode) {
     updateAmountBlockForMode();
     renderFiatPresets();
 
-    /* If we already have backend config, use it silently. */
     if (State.depCurrencies.length) {
       const backendNgn = State.depCurrencies.find(c => c.code === 'NGN');
       if (backendNgn) {
@@ -1779,14 +1900,12 @@ function initFiatMode(fundMode) {
   }
 }
 
-/* Fetch + cache Kora's currency config. Runs at page load. */
 const DEP_CURRENCIES_CACHE_KEY = 'ms:fund:dep-currencies';
 const DEP_CURRENCIES_TTL_MS = 30 * 60 * 1000;
 
 async function loadDepositCurrencies() {
   if (State.depCurrencies.length > 0) return State.depCurrencies;
 
-  /* Read from sessionStorage first (max 30 min old). */
   try {
     const raw = sessionStorage.getItem(DEP_CURRENCIES_CACHE_KEY);
     if (raw) {
@@ -1815,7 +1934,6 @@ async function loadDepositCurrencies() {
   }
 }
 
-/* Render a single currency card — flag emoji (no network) */
 function renderFiatCurrencyCard(c, selected) {
   const flag = currencyFlag(c.code);
   return `
@@ -1848,11 +1966,7 @@ function bindFiatCurrencyCardHandlers() {
 
 function selectDepositCurrency(code) {
   let c = (State.depCurrencies || []).find(x => x.code === code);
-
-  /* Fall back to local config if backend hasn't landed yet. */
-  if (!c && OTHER_CURRENCY_FALLBACK[code]) {
-    c = OTHER_CURRENCY_FALLBACK[code];
-  }
+  if (!c && OTHER_CURRENCY_FALLBACK[code]) c = OTHER_CURRENCY_FALLBACK[code];
   if (!c && code === 'NGN') {
     c = { code: 'NGN', display_name: 'Nigeria Naira', min_amount: 500, max_amount: 1000000, deposit_fee: 50 };
   }
@@ -1968,7 +2082,8 @@ function setFiatPreset(amount) {
 }
 
 async function submitFund() {
-  await submitFiatDeposit();
+  if (State.fundMode === 'crypto') await submitCryptoDeposit();
+  else await submitFiatDeposit();
 }
 
 async function submitFiatDeposit() {
@@ -2018,6 +2133,341 @@ async function submitFiatDeposit() {
     DOM.fundBtn.disabled = false;
     DOM.fundBtn.innerHTML = '<i class="fas fa-arrow-right"></i> <span>Continue to payment</span>';
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CRYPTO — NowPayments
+   ═══════════════════════════════════════════════════════════════ */
+async function initCryptoMode() {
+  DOM.cryptoGrid.innerHTML = `
+    <div style="grid-column:1/-1;text-align:center;font-size:11px;color:var(--t3);padding:10px;">
+      <span class="spinner"></span> Loading cryptocurrencies…
+    </div>`;
+
+  try {
+    const resp = await apiRequest('/wallet/nowpayments/coins');
+    const coins = (resp?.coins || []).map(c => ({
+      id: String(c.id || '').toUpperCase(),
+      symbol: String(c.symbol || c.id || '').toUpperCase(),
+      label: c.label || c.symbol || c.id,
+      network: c.network || '',
+      networks: Array.isArray(c.networks) && c.networks.length
+        ? c.networks
+        : (c.network ? [c.network] : []),
+      minUsd: Number(c.minUsd) || CRYPTO_MIN_USD_FALLBACK
+    })).filter(c => c.id);
+
+    State.cryptoCoins = coins;
+
+    if (!coins.length) {
+      DOM.cryptoGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;font-size:11px;color:var(--err);padding:10px;">No cryptocurrencies available right now.</div>`;
+      return;
+    }
+    renderCryptoGrid();
+    selectCrypto(coins[0].id);
+  } catch (e) {
+    console.error('[CRYPTO] load coins error:', e);
+    DOM.cryptoGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;font-size:11px;color:var(--err);padding:10px;">Could not load cryptocurrencies.</div>`;
+  }
+}
+
+const COIN_COLORS = {
+  BTC: '#f7931a', ETH: '#627eea', LTC: '#345d9d',
+  USDT: '#26a17b', USDTTRC20: '#26a17b', USDTERC20: '#26a17b', USDTBSC: '#26a17b',
+  USDC: '#2775ca', DAI: '#f5ac37', BNB: '#f0b90b', BNBBSC: '#f0b90b',
+  TRX: '#ef0027', DOGE: '#c2a633', POL: '#8247e5', SOL: '#9945ff',
+  TON: '#0098ea', XRP: '#23292f', ADA: '#0033ad', MATIC: '#8247e5'
+};
+const coinColor = id => COIN_COLORS[String(id || '').toUpperCase()] || '#0c3d4a';
+
+function renderCryptoGrid() {
+  const amt = State.cryptoInputUsd || 0;
+  DOM.cryptoGrid.innerHTML = State.cryptoCoins.map(c => {
+    const isSel = State.selectedCrypto === c.id;
+    const isDisabled = amt > 0 && amt < c.minUsd;
+    const ticker = c.symbol;
+    const letter = ticker.charAt(0);
+    const bg = coinColor(c.id);
+    return `
+      <button type="button"
+              class="crypto-card ${isSel ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}"
+              data-coin="${escapeHtml(c.id)}"
+              ${isDisabled ? 'disabled' : ''}>
+        <span class="crypto-min-badge">min: ${c.minUsd}</span>
+        <span class="coin-badge" style="background:${escapeHtml(bg)};">${escapeHtml(letter)}</span>
+        <span class="coin-text">
+          <span class="coin-ticker">${escapeHtml(ticker)}</span>
+          <span class="coin-name">${escapeHtml(c.label)}</span>
+        </span>
+      </button>
+    `;
+  }).join('');
+
+  DOM.cryptoGrid.querySelectorAll('.crypto-card:not([disabled])').forEach(btn => {
+    btn.addEventListener('click', () => selectCrypto(btn.dataset.coin));
+  });
+}
+
+function selectCrypto(coinId) {
+  const c = State.cryptoCoins.find(x => x.id === coinId);
+  if (!c) return;
+
+  State.selectedCrypto = c.id;
+
+  DOM.cryptoGrid.querySelectorAll('.crypto-card').forEach(b => {
+    b.classList.toggle('selected', b.dataset.coin === coinId);
+  });
+
+  const networks = c.networks && c.networks.length ? c.networks : (c.network ? [c.network] : []);
+  if (networks.length > 0) {
+    State.selectedNetwork = networks[0];
+    DOM.networkBlock.style.display = 'block';
+    DOM.networkSelect.innerHTML = networks.map(n =>
+      `<option value="${escapeHtml(n)}" ${n === State.selectedNetwork ? 'selected' : ''}>${escapeHtml(n)}</option>`
+    ).join('');
+  } else {
+    State.selectedNetwork = null;
+    DOM.networkBlock.style.display = 'none';
+  }
+
+  DOM.cryptoMinimum.textContent = `Minimum of $${c.minUsd}`;
+
+  DOM.cryptoAmountInput.value = '';
+  DOM.cryptoConversion.textContent = '';
+  State.cryptoInputUsd = 0;
+  DOM.fundBtn.disabled = true;
+
+  renderCryptoPresets();
+  renderCryptoGrid();
+}
+
+document.addEventListener('change', (e) => {
+  if (e.target && e.target.id === 'networkSelect') {
+    State.selectedNetwork = e.target.value;
+  }
+});
+
+function onCryptoAmountInput() {
+  const amt = parseFloat(String(DOM.cryptoAmountInput.value).replace(/,/g, '')) || 0;
+  State.cryptoInputUsd = amt;
+
+  const coin = State.cryptoCoins.find(c => c.id === State.selectedCrypto);
+  const minUsd = coin?.minUsd || CRYPTO_MIN_USD_FALLBACK;
+
+  if (amt <= 0) {
+    DOM.cryptoConversion.textContent = '';
+    DOM.fundBtn.disabled = true;
+    renderCryptoGrid();
+    return;
+  }
+  if (amt < minUsd) {
+    DOM.cryptoConversion.innerHTML = `<span style="color:var(--err);font-weight:700;">Minimum of $${minUsd}</span>`;
+    DOM.fundBtn.disabled = true;
+    renderCryptoGrid();
+    return;
+  }
+
+  DOM.cryptoConversion.innerHTML =
+    `<span style="color:var(--t3);font-weight:600;margin-right:6px;">You'll get</span>` +
+    `<span style="color:var(--t1);font-weight:800;">$${formatUSD(amt)}</span>`;
+  DOM.fundBtn.disabled = false;
+
+  renderCryptoGrid();
+}
+
+function renderCryptoPresets() {
+  const coin = State.cryptoCoins.find(c => c.id === State.selectedCrypto);
+  const minUsd = Math.ceil(coin?.minUsd || CRYPTO_MIN_USD_FALLBACK);
+  const candidates = [5, 10, 20, 50, 100, 250];
+  const usable = candidates.filter(v => v >= minUsd).slice(0, 4);
+  if (usable.length === 0) usable.push(minUsd);
+
+  DOM.cryptoPresetContainer.innerHTML = usable.map(a =>
+    `<button class="preset-btn" onclick="setCryptoPreset(${a})">$${a.toLocaleString()}</button>`
+  ).join('');
+}
+
+function setCryptoPreset(amount) {
+  DOM.cryptoAmountInput.value = amount;
+  onCryptoAmountInput();
+}
+
+async function submitCryptoDeposit() {
+  if (State.cryptoSubmitting) return;
+
+  const coin = State.cryptoCoins.find(c => c.id === State.selectedCrypto);
+  if (!coin) { showToast('Select a cryptocurrency', 'error'); return; }
+
+  const amt = State.cryptoInputUsd;
+  if (!amt || amt < coin.minUsd) {
+    showToast(`Minimum deposit is $${coin.minUsd}`, 'error');
+    return;
+  }
+
+  if (!State.cryptoIdempotencyKey) State.cryptoIdempotencyKey = genIdempotencyKey('cik');
+
+  State.cryptoSubmitting = true;
+  DOM.fundBtn.disabled = true;
+  DOM.fundBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing…';
+
+  try {
+    const resp = await apiRequest('/wallet/nowpayments/deposit', {
+      method: 'POST',
+      body: JSON.stringify({
+        amount: amt,
+        currency: 'USD',
+        payCurrency: State.selectedCrypto,
+        network: State.selectedNetwork || undefined,
+        idempotencyKey: State.cryptoIdempotencyKey
+      })
+    });
+
+    if (!resp?.success) {
+      showToast(resp?.error || 'Could not start deposit. Please try again.', 'error');
+      return;
+    }
+
+    State.cryptoPayment = resp.data;
+    closeModal('fundModal');
+    showCryptoPaymentModal(resp.data);
+  } catch (e) {
+    console.error('[CRYPTO] submit error:', e);
+    showToast('Could not start deposit. Please try again.', 'error');
+  } finally {
+    State.cryptoSubmitting = false;
+    DOM.fundBtn.disabled = false;
+    DOM.fundBtn.innerHTML = '<i class="fas fa-arrow-right"></i> <span>Continue</span>';
+  }
+}
+
+function showCryptoPaymentModal(d) {
+  const expires = d.expiresAt ? new Date(d.expiresAt) : null;
+
+  DOM.paymentContent.innerHTML = `
+    <div class="payment-info" style="text-align:left;">
+      <div style="font-size:11px;color:var(--t3);letter-spacing:.06em;font-weight:700;">AMOUNT</div>
+      <div style="font-size:22px;font-weight:800;color:var(--t1);margin:2px 0 14px;">
+        $${formatUSD(d.requestedAmount)}
+      </div>
+
+      <div style="font-size:11px;color:var(--t3);letter-spacing:.06em;font-weight:700;">SEND EXACTLY</div>
+      <div style="display:flex;align-items:center;gap:10px;margin:4px 0 14px;">
+        <div style="font-size:18px;font-weight:800;color:var(--t1);font-variant-numeric:tabular-nums;flex:1;word-break:break-all;min-width:0;">
+          <span>${escapeHtml(d.payAmount)}</span>
+          <span style="color:var(--t3);font-weight:700;margin-left:6px;">${escapeHtml(d.payCurrency)}</span>
+        </div>
+        <button class="copy-btn" onclick="copyValue('${escapeHtml(d.payAmount)}')">Copy</button>
+      </div>
+
+      <div style="font-size:11px;color:var(--t3);letter-spacing:.06em;font-weight:700;">WALLET ADDRESS</div>
+      <div style="display:flex;align-items:center;gap:10px;margin:4px 0 14px;">
+        <div class="address" style="flex:1;margin:0;min-width:0;">${escapeHtml(d.payAddress)}</div>
+        <button class="copy-btn" onclick="copyValue('${escapeHtml(d.payAddress)}')">Copy</button>
+      </div>
+
+      <div style="display:flex;justify-content:center;margin:14px 0 4px;">
+        <div style="width:150px;height:150px;background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:10px;display:flex;align-items:center;justify-content:center;" id="qrInner"></div>
+      </div>
+
+      <div style="text-align:center;font-size:11px;color:var(--t3);margin-top:6px;">
+        Scan or send the exact amount to the address above.
+      </div>
+
+      ${expires ? `<div style="text-align:center;font-size:12px;color:var(--t2);margin-top:12px;">
+        ⏰ Expires <span id="paymentTimer">—</span>
+      </div>` : ''}
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+      <button class="btn btn-gold" onclick="checkPaymentStatus()" id="checkPaymentBtn" style="flex:1;min-width:140px;">
+        <i class="fas fa-sync-alt"></i> Check payment
+      </button>
+      <button class="btn btn-primary" onclick="closeModal('paymentModal')" style="flex:1;min-width:100px;">Close</button>
+    </div>
+    <div id="paymentStatus" style="margin-top:10px;text-align:center;"></div>
+  `;
+
+  if (d.payAddress && typeof QRCode !== 'undefined') {
+    const inner = document.getElementById('qrInner');
+    inner.innerHTML = '';
+    new QRCode(inner, { text: d.payAddress, width: 130, height: 130 });
+  }
+
+  if (expires) startPaymentTimer(expires);
+
+  openModal('paymentModal');
+  State.paymentInterval = setInterval(checkPaymentStatus, 15000);
+}
+
+function copyValue(v) {
+  if (!v) return;
+  navigator.clipboard?.writeText(v).then(() => showToast('Copied', 'success'))
+    .catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = v;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      showToast('Copied', 'success');
+    });
+}
+
+async function checkPaymentStatus() {
+  const paymentId = State.cryptoPayment?.paymentId;
+  if (!paymentId) return;
+  try {
+    const resp = await apiRequest(`/wallet/nowpayments/status/${paymentId}`);
+    if (!resp?.success) return;
+
+    const s = resp.data.status;
+    const badge = document.getElementById('paymentStatus');
+    if (!badge) return;
+
+    if (s === 'completed') {
+      badge.innerHTML = '<span class="status-badge finished">✅ Completed</span>';
+      clearInterval(State.paymentInterval);
+      clearInterval(State.timerInterval);
+      showToast('Deposit confirmed. Wallet credited.', 'success');
+      setTimeout(() => {
+        closeModal('paymentModal');
+        apiCache.clear();
+        State.historyLoaded = false;
+        loadWalletBalance();
+        loadWalletActivity();
+      }, 1800);
+    } else if (s === 'partially_paid' || s === 'manual_review') {
+      badge.innerHTML = '<span class="status-badge failed">⚠️ Partial payment — support will reach out</span>';
+    } else if (s === 'expired') {
+      badge.innerHTML = '<span class="status-badge failed">⌛ Expired</span>';
+      clearInterval(State.paymentInterval);
+      clearInterval(State.timerInterval);
+    } else if (s === 'processing') {
+      badge.innerHTML = '<span class="status-badge processing">🔄 Processing on-chain…</span>';
+    } else {
+      badge.innerHTML = '<span class="status-badge waiting">⏳ Awaiting payment</span>';
+    }
+  } catch (e) {
+    console.warn('[CRYPTO] status poll error:', e);
+  }
+}
+
+function startPaymentTimer(expiresAt) {
+  clearInterval(State.timerInterval);
+  const tick = () => {
+    const now = Date.now();
+    const end = new Date(expiresAt).getTime();
+    const rem = Math.max(0, Math.floor((end - now) / 1000));
+    const m = Math.floor(rem / 60), s = rem % 60;
+    const el = document.getElementById('paymentTimer');
+    if (el) el.textContent = `in ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    if (rem <= 0) {
+      clearInterval(State.timerInterval);
+      checkPaymentStatus();
+    }
+  };
+  tick();
+  State.timerInterval = setInterval(tick, 1000);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -2411,9 +2861,6 @@ async function downloadStatement() {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   LOGOUT
-   ═══════════════════════════════════════════════════════════════ */
 function doLogout() {
   if (typeof window.doUserLogout === 'function') window.doUserLogout();
   else window.location.replace('login.html');
@@ -2439,9 +2886,6 @@ function handleReturnQuery() {
   try { window.history.replaceState({}, '', window.location.pathname); } catch {}
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   INIT — parallel warm-up so currency config is ready on first tap
-   ═══════════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', async function() {
   await new Promise(r => setTimeout(r, 0));
   if (typeof window.getUser === 'function' && !window.getUser()) {
@@ -2453,7 +2897,6 @@ document.addEventListener('DOMContentLoaded', async function() {
   initTxRowsDelegation();
   initBreakdownDelegation();
 
-  /* Speed: paint last-known balances from cache, then refresh. */
   try {
     const cachedBal = JSON.parse(sessionStorage.getItem('ms:fund:balances') || 'null');
     if (cachedBal && cachedBal.NGN != null) {
@@ -2464,8 +2907,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
   } catch (_) {}
 
-  /* Warm the currency config in parallel with the first balance/activity
-     fetch, so tapping "Add Funds" or "Other Currencies" never waits. */
   loadDepositCurrencies().catch(() => {});
 
   loadWalletBalance();
@@ -2484,6 +2925,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 window.openAddFunds          = openAddFunds;
 window.openOtherCurrencies   = openOtherCurrencies;
+window.openCryptoTopUp       = openCryptoTopUp;
 window.openModal             = openModal;
 window.selectWallet          = selectWallet;
 window.closeModal            = closeModal;
@@ -2496,9 +2938,14 @@ window.downloadStatement     = downloadStatement;
 window.closeDrawer           = closeDrawer;
 window.submitFund            = submitFund;
 window.setFiatPreset         = setFiatPreset;
+window.setCryptoPreset       = setCryptoPreset;
 window.onAmountInput         = onAmountInput;
+window.onCryptoAmountInput   = onCryptoAmountInput;
+window.selectCrypto          = selectCrypto;
 window.doLogout              = doLogout;
 window.showTransactionDetail = showTransactionDetail;
+window.copyValue             = copyValue;
+window.checkPaymentStatus    = checkPaymentStatus;
 </script>
 
 <script>
