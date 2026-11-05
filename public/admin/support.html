@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<script src="/js/admin-session.js?v=2025-support-v9"></script>
+<script src="/js/admin-session.js?v=2025-support-v10"></script>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" defer crossorigin="anonymous" onerror="window.__SOCKET_IO_LOAD_FAILED = true;"></script>
 
 <style>
@@ -885,14 +885,14 @@ html.dark .attach-card { background: rgba(255,255,255,.06); }
             <div class="nav-items"><a href="/admin/dashboard.html" class="nav-item"><span class="ic"><i class="fas fa-gauge-high"></i></span>Dashboard</a></div>
         </div>
         <div class="nav-group" data-group="customers">
-            <button class="nav-group-head" data-toggle><span>Customers</span><i class="fas fa-chevron-down"></i></button>
+            <button class="nav-group-head" data-toggle type="button"><span>Customers</span><i class="fas fa-chevron-down"></i></button>
             <div class="nav-items">
                 <a href="/admin/users.html" class="nav-item"><span class="ic"><i class="fas fa-user"></i></span>Users</a>
                 <a href="/admin/support.html" class="nav-item active" aria-current="page"><span class="ic"><i class="fas fa-comment-dots"></i></span>Support</a>
             </div>
         </div>
         <div class="nav-group collapsed" data-group="money">
-            <button class="nav-group-head" data-toggle><span>Money</span><i class="fas fa-chevron-down"></i></button>
+            <button class="nav-group-head" data-toggle type="button"><span>Money</span><i class="fas fa-chevron-down"></i></button>
             <div class="nav-items">
                 <a href="/admin/transactions.html" class="nav-item"><span class="ic"><i class="fas fa-arrow-right-arrow-left"></i></span>Transactions</a>
                 <a href="/admin/deposits.html" class="nav-item"><span class="ic"><i class="fas fa-wallet"></i></span>Deposits</a>
@@ -900,7 +900,7 @@ html.dark .attach-card { background: rgba(255,255,255,.06); }
             </div>
         </div>
         <div class="nav-group collapsed" data-group="services">
-            <button class="nav-group-head" data-toggle><span>Services</span><i class="fas fa-chevron-down"></i></button>
+            <button class="nav-group-head" data-toggle type="button"><span>Services</span><i class="fas fa-chevron-down"></i></button>
             <div class="nav-items">
                 <a href="/admin/sellgift.html" class="nav-item"><span class="ic"><i class="fas fa-gift"></i></span>Gift Cards</a>
                 <a href="/admin/airtime-data.html" class="nav-item"><span class="ic"><i class="fas fa-signal"></i></span>Airtime &amp; Data</a>
@@ -909,7 +909,7 @@ html.dark .attach-card { background: rgba(255,255,255,.06); }
             </div>
         </div>
         <div class="nav-group collapsed" data-group="operations">
-            <button class="nav-group-head" data-toggle><span>Operations</span><i class="fas fa-chevron-down"></i></button>
+            <button class="nav-group-head" data-toggle type="button"><span>Operations</span><i class="fas fa-chevron-down"></i></button>
             <div class="nav-items">
                 <a href="/admin/orders.html" class="nav-item"><span class="ic"><i class="fas fa-clipboard-list"></i></span>Orders</a>
                 <a href="/admin/providers.html" class="nav-item"><span class="ic"><i class="fas fa-server"></i></span>Providers</a>
@@ -917,14 +917,14 @@ html.dark .attach-card { background: rgba(255,255,255,.06); }
             </div>
         </div>
         <div class="nav-group collapsed" data-group="analytics">
-            <button class="nav-group-head" data-toggle><span>Analytics</span><i class="fas fa-chevron-down"></i></button>
+            <button class="nav-group-head" data-toggle type="button"><span>Analytics</span><i class="fas fa-chevron-down"></i></button>
             <div class="nav-items">
                 <a href="/admin/reports.html" class="nav-item"><span class="ic"><i class="fas fa-file-lines"></i></span>Reports</a>
                 <a href="/admin/revenue.html" class="nav-item"><span class="ic"><i class="fas fa-chart-line"></i></span>Revenue</a>
             </div>
         </div>
         <div class="nav-group collapsed" data-group="system">
-            <button class="nav-group-head" data-toggle><span>System</span><i class="fas fa-chevron-down"></i></button>
+            <button class="nav-group-head" data-toggle type="button"><span>System</span><i class="fas fa-chevron-down"></i></button>
             <div class="nav-items">
                 <a href="/admin/settings.html" class="nav-item"><span class="ic"><i class="fas fa-gear"></i></span>Settings</a>
                 <a href="/admin/audit.html" class="nav-item"><span class="ic"><i class="fas fa-scroll"></i></span>Logs</a>
@@ -938,10 +938,10 @@ html.dark .attach-card { background: rgba(255,255,255,.06); }
 <div class="main">
 
 <header class="topbar">
-    <button class="hamburger" id="hamburger" aria-label="Open menu"><i class="fas fa-bars"></i></button>
+    <button class="hamburger" id="hamburger" aria-label="Open menu" type="button"><i class="fas fa-bars"></i></button>
     <div class="topbar-title">Support <span class="conn-pill offline" id="connPill" aria-live="polite">Offline</span></div>
     <div class="topbar-right">
-        <button class="icon-btn" id="darkToggle" title="Toggle theme" aria-label="Toggle theme"><i class="fas fa-moon"></i></button>
+        <button class="icon-btn" id="darkToggle" title="Toggle theme" aria-label="Toggle theme" type="button"><i class="fas fa-moon"></i></button>
         <div class="admin-chip" id="adminChip" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
             <div class="av" id="chipAv">A</div>
             <div class="info"><strong id="chipName">Admin</strong><span id="chipRole">admin</span></div>
@@ -955,41 +955,41 @@ html.dark .attach-card { background: rgba(255,255,255,.06); }
     <div class="hero">
         <h1 id="pageTitle">Support</h1>
         <div class="hero-actions">
-            <button class="date-pill" id="datePill" aria-label="Choose date range">
+            <button class="date-pill" id="datePill" aria-label="Choose date range" type="button">
                 <i class="far fa-calendar"></i>
                 <span id="datePillText">All time</span>
                 <i class="fas fa-chevron-down"></i>
             </button>
-            <button class="refresh-btn" id="refreshBtn" aria-label="Refresh"><i class="fas fa-rotate"></i></button>
+            <button class="refresh-btn" id="refreshBtn" aria-label="Refresh" type="button"><i class="fas fa-rotate"></i></button>
             <div class="range-popover" id="rangePopover" role="dialog" aria-label="Date range">
-                <button class="range-opt active" data-range="all">All time</button>
-                <button class="range-opt" data-range="today">Today</button>
-                <button class="range-opt" data-range="yesterday">Yesterday</button>
-                <button class="range-opt" data-range="7d">Last 7 days</button>
-                <button class="range-opt" data-range="30d">Last 30 days</button>
-                <button class="range-opt" data-range="month">This month</button>
+                <button class="range-opt active" data-range="all" type="button">All time</button>
+                <button class="range-opt" data-range="today" type="button">Today</button>
+                <button class="range-opt" data-range="yesterday" type="button">Yesterday</button>
+                <button class="range-opt" data-range="7d" type="button">Last 7 days</button>
+                <button class="range-opt" data-range="30d" type="button">Last 30 days</button>
+                <button class="range-opt" data-range="month" type="button">This month</button>
             </div>
         </div>
     </div>
 
     <div class="kpi-strip" id="kpiStrip">
-        <button class="kpi-card" data-filter="open" aria-label="Filter open tickets">
+        <button class="kpi-card" data-filter="open" aria-label="Filter open tickets" type="button">
             <span class="kpi-label">Open</span>
             <span class="kpi-value skeleton" id="kpiOpen">&nbsp;</span>
         </button>
-        <button class="kpi-card" data-filter="unassigned" aria-label="Filter unassigned tickets">
+        <button class="kpi-card" data-filter="unassigned" aria-label="Filter unassigned tickets" type="button">
             <span class="kpi-label">Unassigned</span>
             <span class="kpi-value skeleton" id="kpiUnassigned">&nbsp;</span>
         </button>
-        <button class="kpi-card" data-filter="unread" aria-label="Filter unread tickets">
+        <button class="kpi-card" data-filter="unread" aria-label="Filter unread tickets" type="button">
             <span class="kpi-label">Unread</span>
             <span class="kpi-value skeleton" id="kpiUnread">&nbsp;</span>
         </button>
-        <button class="kpi-card" data-filter="sla_breached" aria-label="Filter SLA-breached tickets">
+        <button class="kpi-card" data-filter="sla_breached" aria-label="Filter SLA-breached tickets" type="button">
             <span class="kpi-label">SLA Breached</span>
             <span class="kpi-value skeleton" id="kpiSla">&nbsp;</span>
         </button>
-        <button class="kpi-card" data-filter="all" aria-label="Filter all tickets">
+        <button class="kpi-card" data-filter="all" aria-label="Filter all tickets" type="button">
             <span class="kpi-label">Total</span>
             <span class="kpi-value skeleton" id="kpiTotal">&nbsp;</span>
         </button>
@@ -1002,7 +1002,7 @@ html.dark .attach-card { background: rgba(255,255,255,.06); }
             <div class="inbox-head">
                 <div class="inbox-title">
                     <h2><i class="fas fa-ticket"></i> Tickets <span class="badge-count" id="inboxCount">0</span></h2>
-                    <button class="filter-btn" id="filterBtn" aria-label="Open filters">
+                    <button class="filter-btn" id="filterBtn" aria-label="Open filters" type="button">
                         <i class="fas fa-sliders"></i> Filter <span class="badge-count" id="filterBadge" hidden>0</span>
                     </button>
                 </div>
@@ -1010,11 +1010,11 @@ html.dark .attach-card { background: rgba(255,255,255,.06); }
                     <input type="search" id="searchInput" placeholder="Search tickets..." aria-label="Search tickets" autocomplete="off">
                 </div>
                 <div class="status-tabs" role="tablist" aria-label="Status filter">
-                    <button class="status-tab active" data-status="all" role="tab" aria-selected="true">All</button>
-                    <button class="status-tab" data-status="open" role="tab" aria-selected="false">Open</button>
-                    <button class="status-tab" data-status="in_progress" role="tab" aria-selected="false">In progress</button>
-                    <button class="status-tab" data-status="waiting_user" role="tab" aria-selected="false">Waiting</button>
-                    <button class="status-tab" data-status="resolved,closed" role="tab" aria-selected="false">Resolved</button>
+                    <button class="status-tab active" data-status="all" role="tab" aria-selected="true" type="button">All</button>
+                    <button class="status-tab" data-status="open" role="tab" aria-selected="false" type="button">Open</button>
+                    <button class="status-tab" data-status="in_progress" role="tab" aria-selected="false" type="button">In progress</button>
+                    <button class="status-tab" data-status="waiting_user" role="tab" aria-selected="false" type="button">Waiting</button>
+                    <button class="status-tab" data-status="resolved,closed" role="tab" aria-selected="false" type="button">Resolved</button>
                 </div>
             </div>
             <div class="ticket-list" id="ticketList" role="list" aria-busy="true" aria-live="polite">
@@ -1034,7 +1034,7 @@ html.dark .attach-card { background: rgba(255,255,255,.06); }
         <!-- CONVERSATION -->
         <div class="panel" id="convPanel">
             <div class="conv-head">
-                <button class="back-btn" id="backBtn" aria-label="Back to inbox"><i class="fas fa-arrow-left"></i></button>
+                <button class="back-btn" id="backBtn" aria-label="Back to inbox" type="button"><i class="fas fa-arrow-left"></i></button>
                 <div class="conv-user">
                     <div class="conv-av" id="convAvatar">—</div>
                     <div style="min-width:0;flex:1;">
@@ -1043,25 +1043,25 @@ html.dark .attach-card { background: rgba(255,255,255,.06); }
                     </div>
                 </div>
                 <div class="conv-actions">
-                    <button class="conv-action accent" id="detailsBtn" title="Ticket details" aria-label="Open ticket details"><i class="fas fa-circle-info"></i></button>
+                    <button class="conv-action accent" id="detailsBtn" title="Ticket details" aria-label="Open ticket details" type="button"><i class="fas fa-circle-info"></i></button>
                 </div>
             </div>
 
             <div class="stale-banner" id="staleBanner" role="status">
                 <span>This ticket was updated by someone else.</span>
-                <button id="staleReload">Reload</button>
+                <button id="staleReload" type="button">Reload</button>
             </div>
 
             <div class="conv-stream" id="convStream" role="log" aria-live="polite" aria-atomic="false">
                 <div class="state-empty"><i class="fas fa-comments"></i><span>Select a ticket to view messages</span></div>
             </div>
 
-            <button class="jump-latest" id="jumpLatest"><i class="fas fa-arrow-down"></i> Jump to latest</button>
+            <button class="jump-latest" id="jumpLatest" type="button"><i class="fas fa-arrow-down"></i> Jump to latest</button>
 
             <div class="composer" id="composer">
                 <div class="comp-tabs" role="tablist">
-                    <button class="comp-tab active" id="tabReply" role="tab" aria-selected="true">Reply</button>
-                    <button class="comp-tab" id="tabInternal" role="tab" aria-selected="false">Internal note</button>
+                    <button class="comp-tab active" id="tabReply" role="tab" aria-selected="true" type="button">Reply</button>
+                    <button class="comp-tab" id="tabInternal" role="tab" aria-selected="false" type="button">Internal note</button>
                 </div>
                 <div id="cannedAnchor" style="position:relative;"></div>
                 <div class="canned-picker" id="cannedPicker" role="listbox" aria-label="Canned replies"></div>
@@ -1069,11 +1069,11 @@ html.dark .attach-card { background: rgba(255,255,255,.06); }
                 <textarea class="comp-textarea" id="msgInput" placeholder="Type a message…" aria-label="Message" rows="1" enterkeyhint="send"></textarea>
                 <div class="comp-bottom">
                     <div class="comp-tools">
-                        <button class="tool-btn" id="attachBtn" title="Attach file" aria-label="Attach file"><i class="fas fa-paperclip"></i></button>
-                        <button class="tool-btn" id="cannedBtn" title="Canned replies" aria-label="Canned replies"><i class="fas fa-bolt"></i></button>
+                        <button class="tool-btn" id="attachBtn" title="Attach file" aria-label="Attach file" type="button"><i class="fas fa-paperclip"></i></button>
+                        <button class="tool-btn" id="cannedBtn" title="Canned replies" aria-label="Canned replies" type="button"><i class="fas fa-bolt"></i></button>
                         <input type="file" id="fileInput" multiple hidden accept=".png,.jpg,.jpeg,.webp,.gif,.pdf,.txt,.csv,.zip,.docx,.xlsx">
                     </div>
-                    <button class="btn-send" id="sendBtn" disabled><span>Send</span> <i class="fas fa-paper-plane"></i></button>
+                    <button class="btn-send" id="sendBtn" disabled type="button"><span>Send</span> <i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
         </div>
@@ -1083,7 +1083,7 @@ html.dark .attach-card { background: rgba(255,255,255,.06); }
             <div class="inbox-head">
                 <div class="inbox-title">
                     <h2><i class="fas fa-circle-info"></i> Ticket Details</h2>
-                    <button class="filter-btn" id="closeDetailsBtn" aria-label="Close details"><i class="fas fa-xmark"></i></button>
+                    <button class="filter-btn" id="closeDetailsBtn" aria-label="Close details" type="button"><i class="fas fa-xmark"></i></button>
                 </div>
             </div>
             <div class="details-body" id="detailsBody">
@@ -1110,8 +1110,8 @@ html.dark .attach-card { background: rgba(255,255,255,.06); }
         <div class="sheet-row"><label for="fSla">SLA</label><select id="fSla"><option value="">Any</option><option value="breached">Breached</option><option value="at_risk">At risk</option></select></div>
         <div class="sheet-row"><label for="fSort">Sort</label><select id="fSort"><option value="recent">Newest first</option><option value="oldest">Oldest first</option><option value="priority">Priority</option><option value="sla">SLA</option></select></div>
         <div class="sheet-foot">
-            <button class="dialog-btn" id="fReset">Reset</button>
-            <button class="dialog-btn primary" id="fApply">Apply</button>
+            <button class="dialog-btn" id="fReset" type="button">Reset</button>
+            <button class="dialog-btn primary" id="fApply" type="button">Apply</button>
         </div>
     </div>
 </div>
@@ -1129,7 +1129,7 @@ html.dark .attach-card { background: rgba(255,255,255,.06); }
 <!-- Admin menu -->
 <div class="range-popover" id="adminMenu" style="top:60px;right:8px;position:fixed;">
     <a href="/admin/settings.html" class="range-opt"><i class="fas fa-user"></i> Profile</a>
-    <button class="range-opt" id="menuLogout"><i class="fas fa-right-from-bracket"></i> Sign out</button>
+    <button class="range-opt" id="menuLogout" type="button"><i class="fas fa-right-from-bracket"></i> Sign out</button>
 </div>
 
 <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
@@ -1139,14 +1139,73 @@ html.dark .attach-card { background: rgba(255,255,255,.06); }
 
 // ══════════════════════════════════════════════════════════════════
 //  SUPPORT DESK — support.admin
-//  All functions unchanged. Only the renderDetails() action block
-//  and the mobile details toggle are new; everything else is the
-//  same as the previous file.
+//
+//  REVISION 2026-11-05
+//
+//  Changes from the previous revision (all bug fixes, no features):
+//
+//   • Deleted stray `refreshAdminToken()` call inside sendMessage —
+//     it referenced a client function that does not exist in the
+//     page's scope and threw, aborting the success handler and
+//     leaving the message committed but the tail of the handler
+//     (loadList, etc.) unexecuted.
+//
+//   • Removed the duplicate sendMessage() definition. Only the
+//     second one was reachable at runtime; the first was dead code
+//     and edits to it silently did nothing.
+//
+//   • Removed the `loadMessages(ticketId)` call from sendMessage's
+//     tail. It re-fetched the whole conversation and re-rendered,
+//     which is the "reloads the whole messages" symptom. The
+//     optimistic commit + appendMessage + socket event already keep
+//     the conversation correct.
+//
+//   • Socket `support:message:new` and optimistic-add now use
+//     appendMessage() instead of renderMessages(), so incoming
+//     messages append to the conversation instead of rebuilding it.
+//
+//   • On send failure, the optimistic bubble is updated in place
+//     (failed class + Retry button) instead of re-rendering the
+//     whole conversation. Preserves scroll and retry affordance.
+//
+//   • loadMessages() skips renderMsgSkeleton() when messages are
+//     already present — no more blank-flash when switching tickets.
+//
+//   • Socket handlers use loadListDebounced() (400ms) so multiple
+//     events collapse into one inbox fetch.
+//
+//   • Removed the #ticket=<id> / #inbox hashes (uses pathname).
+//     These were dead weight and the source of the previous
+//     "support.html#inbox..socket.io.js 404" asset bug.
+//
+//   • renderMessages() sets sep.dataset.day = day so appendMessage()
+//     can detect an existing same-day separator and avoid inserting
+//     a duplicate one after a rebuild + append sequence.
+//
+//   • Send keydown handler also checks e.keyCode === 229 (IME
+//     composition sentinel) alongside e.isComposing, so CJK IME
+//     confirm on Safari and older Android does not prematurely send.
+//
+//   • Every <button> in the static HTML now has type="button", and
+//     every dynamically-created button does too. This prevents
+//     accidental form submission if the composer is ever wrapped in
+//     a <form>.
+//
+//   • sendMessage() now uses an AbortController with a 30s timeout
+//     so a hung network call cannot leave sendInFlight=true forever.
+//
+//   • sendMessage() dedupes against the socket handler: if the
+//     socket already committed realMsg.id to State.messages, the
+//     success handler does not push it a second time.
+//
+//   • _optimisticByTicket entries are removed on success so the
+//     tracking map does not grow unbounded.
 // ══════════════════════════════════════════════════════════════════
 
 const SUPPORT_REALTIME_ENABLED = true;
 const POLL_INTERVAL_MS = 30_000;
 const READ_DELAY_MS = 1_500;
+const SEND_TIMEOUT_MS = 30_000;
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -1222,9 +1281,17 @@ const State = {
     hasMoreMessages: false, nextMessageCursor: null, readTimer: null,
     mode: 'reply', pendingFiles: [], sendInFlight: false,
     draftKeyPrefix: 'support_draft_', idempotencyByKey: new Map(),
-    ticketReqToken: 0, sendReqTokenByTicket: new Map(),
+    ticketReqToken: 0,
     socket: null, socketConnected: false, canned: []
 };
+
+// Debounced loadList used by socket handlers so multiple events
+// collapse into one inbox fetch.
+let _loadListDebounce = null;
+function loadListDebounced() {
+    clearTimeout(_loadListDebounce);
+    _loadListDebounce = setTimeout(() => loadList(true), 400);
+}
 
 function apiFetch(endpoint, opts = {}) {
     if (!window.AdminSession || typeof window.AdminSession.fetch !== 'function') {
@@ -1417,7 +1484,7 @@ function renderListEmpty() {
 }
 function renderListError(msg) {
     $('#ticketList').setAttribute('aria-busy', 'false');
-    $('#ticketList').innerHTML = '<div class="state-error"><i class="fas fa-circle-exclamation"></i><span></span><button class="btn-retry" id="listRetry"><i class="fas fa-rotate"></i> Retry</button></div>';
+    $('#ticketList').innerHTML = '<div class="state-error"><i class="fas fa-circle-exclamation"></i><span></span><button class="btn-retry" id="listRetry" type="button"><i class="fas fa-rotate"></i> Retry</button></div>';
     $('#ticketList').querySelector('.state-error span').textContent = msg || 'Could not load tickets';
     const btn = $('#listRetry');
     if (btn) btn.addEventListener('click', () => loadList());
@@ -1648,7 +1715,7 @@ function renderMsgEmpty() {
     $('#convStream').innerHTML = '<div class="state-empty"><i class="fas fa-comment"></i><span>No messages yet</span></div>';
 }
 function renderMsgError(msg) {
-    $('#convStream').innerHTML = '<div class="state-error"><i class="fas fa-circle-exclamation"></i><span></span><button class="btn-retry" id="msgRetry">Retry</button></div>';
+    $('#convStream').innerHTML = '<div class="state-error"><i class="fas fa-circle-exclamation"></i><span></span><button class="btn-retry" id="msgRetry" type="button">Retry</button></div>';
     $('#convStream').querySelector('.state-error span').textContent = msg || 'Could not load messages';
     const btn = $('#msgRetry');
     if (btn) btn.addEventListener('click', () => loadMessages(State.activeTicketId));
@@ -1670,6 +1737,7 @@ function renderMessages() {
             lastDay = day;
             const sep = document.createElement('div');
             sep.className = 'date-sep';
+            sep.dataset.day = day;
             sep.textContent = fmtDaySeparator(m.created_at);
             s.appendChild(sep);
         }
@@ -1680,11 +1748,39 @@ function renderMessages() {
     updateJumpLatest();
 }
 
+function appendMessage(m) {
+    const s = $('#convStream');
+    if (!s) return;
+
+    const emptyState = s.querySelector('.state-empty');
+    if (emptyState) s.innerHTML = '';
+
+    const day = m.created_at ? m.created_at.slice(0, 10) : '';
+    if (day) {
+        const seps = s.querySelectorAll('.date-sep');
+        const lastSep = seps[seps.length - 1];
+        const lastSepDay = lastSep ? (lastSep.dataset.day || null) : null;
+        if (lastSepDay !== day) {
+            const sep = document.createElement('div');
+            sep.className = 'date-sep';
+            sep.dataset.day = day;
+            sep.textContent = fmtDaySeparator(m.created_at);
+            s.appendChild(sep);
+        }
+    }
+
+    const wasNearBottom = s.scrollHeight - s.scrollTop - s.clientHeight < 120;
+    s.appendChild(buildBubble(m));
+    if (wasNearBottom) s.scrollTop = s.scrollHeight;
+    updateJumpLatest();
+}
+
 function buildBubble(m) {
     const isIncoming = m.sender_type === 'user';
     const isInternal = !!m.is_internal;
     const wrap = document.createElement('div');
     wrap.className = 'bubble ' + (isInternal ? 'internal' : (isIncoming ? 'incoming' : 'outgoing'));
+    if (m.id) wrap.dataset.msgId = m.id;
     if (m._state === 'sending') wrap.classList.add('pending');
     if (m._state === 'failed') wrap.classList.add('failed');
 
@@ -1730,6 +1826,7 @@ function buildBubble(m) {
         time.appendChild(state);
         if (m._state === 'failed') {
             const retry = document.createElement('button');
+            retry.type = 'button';
             retry.className = 'bubble-retry';
             retry.textContent = 'Retry';
             retry.addEventListener('click', () => retryMessage(m));
@@ -1740,11 +1837,43 @@ function buildBubble(m) {
     return wrap;
 }
 
+function markOptimisticFailed(localId) {
+    const s = $('#convStream');
+    const el = s ? s.querySelector('[data-msg-id="' + localId + '"]') : null;
+    if (!el) return;
+    el.classList.remove('pending');
+    el.classList.add('failed');
+    const timeEl = el.querySelector('.bubble-time');
+    if (!timeEl) return;
+    const oldState = timeEl.querySelector('.bubble-state');
+    if (oldState) oldState.remove();
+    const oldRetry = timeEl.querySelector('.bubble-retry');
+    if (oldRetry) oldRetry.remove();
+    const state = document.createElement('span');
+    state.className = 'bubble-state failed';
+    state.textContent = 'Failed';
+    timeEl.appendChild(state);
+    // Find the corresponding optimistic record so Retry carries the text/files.
+    const list = State._optimisticByTicket && State._optimisticByTicket.get(State.activeTicketId);
+    const rec = list ? list.find((x) => x.id === localId) : null;
+    if (rec) {
+        const retry = document.createElement('button');
+        retry.type = 'button';
+        retry.className = 'bubble-retry';
+        retry.textContent = 'Retry';
+        retry.addEventListener('click', () => retryMessage(rec));
+        timeEl.appendChild(retry);
+    }
+}
+
 async function loadMessages(ticketId) {
     if (!ticketId) return;
     const token = ++State.ticketReqToken;
     State.msgState = 'loading';
-    renderMsgSkeleton();
+    // Only show the skeleton if we don't already have messages to
+    // display. Otherwise leave the previous conversation visible
+    // during the fetch, so switching tickets doesn't flash blank.
+    if (!State.messages.length) renderMsgSkeleton();
     const res = await apiJson('/api/admin/support/tickets/' + encodeURIComponent(ticketId));
     if (token !== State.ticketReqToken) return;
     if (!res || !res.success || !res.data) {
@@ -1753,7 +1882,10 @@ async function loadMessages(ticketId) {
         renderMessages();
         return;
     }
-    State.messages = Array.isArray(res.data.messages) ? res.data.messages : [];
+    // Preserve failed optimistic bubbles across a rebuild.
+    const failedOptimistic = (State.messages || []).filter((m) => m._state === 'failed');
+    const incoming = Array.isArray(res.data.messages) ? res.data.messages : [];
+    State.messages = incoming.concat(failedOptimistic);
     State.hasMoreMessages = !!res.data.hasMore;
     State.nextMessageCursor = res.data.nextCursor || null;
     State.msgState = State.messages.length ? 'ready' : 'empty';
@@ -1792,7 +1924,10 @@ async function selectTicket(ticketId, opts = {}) {
 
     if (window.innerWidth <= 820) {
         $('#convPanel').classList.add('view-convo');
-        history.replaceState(null, '', '#ticket=' + ticketId);
+        // Do not pollute the URL with a hash — nothing reads it back,
+        // and the fragment interacts badly with relative asset
+        // resolution on the next navigation.
+        history.replaceState(null, '', window.location.pathname);
     }
 
     const t = State.activeTicket || {};
@@ -1918,6 +2053,7 @@ function renderAttStrip() {
         size.textContent = fmtBytes(p.file.size);
         chip.appendChild(size);
         const rm = document.createElement('button');
+        rm.type = 'button';
         rm.className = 'remove';
         rm.setAttribute('aria-label', 'Remove ' + p.file.name);
         rm.innerHTML = '<i class="fas fa-xmark"></i>';
@@ -1950,7 +2086,7 @@ async function sendMessage() {
         ? '/api/admin/support/tickets/' + encodeURIComponent(ticketId) + '/internal-note'
         : '/api/admin/support/tickets/' + encodeURIComponent(ticketId) + '/messages';
 
-    const localId = 'tmp-' + Date.now();
+    const localId = 'tmp-' + Date.now() + '-' + Math.random().toString(36).slice(2);
     const idempotencyKey = newIdempotencyKey();
     State.idempotencyByKey.set(localId, idempotencyKey);
 
@@ -1968,9 +2104,10 @@ async function sendMessage() {
     if (!State._optimisticByTicket) State._optimisticByTicket = new Map();
     if (!State._optimisticByTicket.has(ticketId)) State._optimisticByTicket.set(ticketId, []);
     State._optimisticByTicket.get(ticketId).push(optimistic);
+
     if (State.activeTicketId === ticketId) {
         State.messages.push(optimistic);
-        renderMessages();
+        appendMessage(optimistic);
         $('#msgInput').value = '';
         State.pendingFiles = [];
         renderAttStrip();
@@ -1980,58 +2117,82 @@ async function sendMessage() {
     State.sendInFlight = true;
     updateSendButton();
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), SEND_TIMEOUT_MS);
+
     try {
         const form = new FormData();
         form.append('message', text);
         files.forEach((f) => form.append('attachments', f));
 
         const res = await apiJson(endpoint, {
-            method: 'POST', body: form, headers: { 'Idempotency-Key': idempotencyKey }
+            method: 'POST',
+            body: form,
+            headers: { 'Idempotency-Key': idempotencyKey },
+            signal: controller.signal
         });
 
         if (!res || !res.success) {
             optimistic._state = 'failed';
             optimistic._error = (res && res.error) || 'Failed to send';
-            if (State.activeTicketId === ticketId) renderMessages();
+            if (State.activeTicketId === ticketId) markOptimisticFailed(localId);
             toast(optimistic._error, 'error');
             return;
         }
 
         const realMsg = res.data && res.data.message ? res.data.message : null;
         if (realMsg && State.activeTicketId === ticketId) {
+            // Remove optimistic from state.
             State.messages = State.messages.filter((m) => m.id !== localId);
-            State.messages.push({ ...realMsg, attachments: res.data.attachments || realMsg.attachments || [] });
-            renderMessages();
+            // Remove optimistic bubble from DOM.
+            const s = $('#convStream');
+            const optimisticEl = s.querySelector('[data-msg-id="' + localId + '"]');
+            if (optimisticEl) optimisticEl.remove();
+            // Deduplicate: the socket handler may have already
+            // appended the real message. Only append if missing.
+            const already = State.messages.some((m) => m.id === realMsg.id);
+            if (!already) {
+                const committed = { ...realMsg, attachments: res.data.attachments || realMsg.attachments || [] };
+                State.messages.push(committed);
+                appendMessage(committed);
+            }
         }
         State.idempotencyByKey.delete(localId);
+
+        // Clean up _optimisticByTicket so it doesn't grow unbounded.
+        const optList = State._optimisticByTicket.get(ticketId);
+        if (optList) {
+            const idx = optList.indexOf(optimistic);
+            if (idx >= 0) optList.splice(idx, 1);
+            if (!optList.length) State._optimisticByTicket.delete(ticketId);
+        }
+
         clearDraft(ticketId);
         loadList(true);
-        if (State.activeTicketId === ticketId) loadMessages(ticketId);
     } catch (e) {
         optimistic._state = 'failed';
-        optimistic._error = e.message;
-        if (State.activeTicketId === ticketId) renderMessages();
+        optimistic._error = e.name === 'AbortError' ? 'Send timed out' : e.message;
+        if (State.activeTicketId === ticketId) markOptimisticFailed(localId);
         toast('Network error — draft preserved', 'error');
     } finally {
+        clearTimeout(timeoutId);
         State.sendInFlight = false;
         updateSendButton();
     }
 }
 
 async function retryMessage(m) {
-    if (!m || !m._text && !m._files && !m._files.length) return;
+    if (!m) return;
     if (State.activeTicketId !== m._ticketId) await selectTicket(m._ticketId);
     $('#msgInput').value = m._text || '';
     State.pendingFiles = (m._files || []).map((f) => ({ file: f, id: Math.random().toString(36).slice(2) }));
     setMode(m.is_internal ? 'internal' : 'reply');
     renderAttStrip();
-    const reused = m._idempotencyKey;
-    if (reused) {
-        const localId = 'tmp-' + Date.now();
-        State.idempotencyByKey.set(localId, reused);
-    }
+    // Remove the failed bubble (state + DOM) so the retry looks fresh.
     State.messages = State.messages.filter((x) => x.id !== m.id);
-    renderMessages();
+    const s = $('#convStream');
+    const el = s.querySelector('[data-msg-id="' + m.id + '"]');
+    if (el) el.remove();
     await sendMessage();
 }
 
@@ -2053,10 +2214,7 @@ async function openAttachment(messageId, attachmentId) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  DETAILS — REWRITTEN
-//  Buttons now use a well-defined class hierarchy so they look
-//  right on every screen. Each action button is a proper row with
-//  an icon column, a label column, and 48px height.
+//  DETAILS PANEL
 // ══════════════════════════════════════════════════════════════════
 function renderDetails() {
     const body = $('#detailsBody');
@@ -2269,6 +2427,7 @@ function pickDialog(title, body, options) {
         }
 
         const cancel = document.createElement('button');
+        cancel.type = 'button';
         cancel.className = 'dialog-btn';
         cancel.textContent = 'Cancel';
         cancel.addEventListener('click', () => close(null));
@@ -2276,6 +2435,7 @@ function pickDialog(title, body, options) {
 
         options.forEach((label, index) => {
             const btn = document.createElement('button');
+            btn.type = 'button';
             btn.className = 'dialog-btn primary';
             btn.textContent = label;
             btn.addEventListener('click', () => close({ index }));
@@ -2356,10 +2516,6 @@ function initSocket() {
     const token = AdminSession.getToken && AdminSession.getToken();
     if (!token) { setConnPill('offline'); return; }
 
-    // Point Socket.IO at the actual API host. On localhost this
-    // resolves to the same origin. On Render, the admin page may be
-    // served from a different host than the API; the explicit origin
-    // makes the WebSocket connect to the right place.
     const API_ORIGIN = (window.location.hostname === 'localhost'
         || window.location.hostname === '127.0.0.1')
         ? window.location.origin
@@ -2392,15 +2548,18 @@ function initSocket() {
         if (payload.ticketId === State.activeTicketId && payload.message) {
             if (!State.messages.some(m => m.id === payload.message.id)) {
                 State.messages.push(payload.message);
-                renderMessages();
+                appendMessage(payload.message);
             }
             scheduleMarkRead();
         }
-        loadList(true);
+        loadListDebounced();
     });
-    s.on('support:list:bump', () => loadList(true));
-    s.on('support:ticket:updated', () => { loadList(true); if (State.activeTicketId) loadMessages(State.activeTicketId); });
-    s.on('support:ticket:assigned', () => loadList(true));
+    s.on('support:list:bump', () => loadListDebounced());
+    s.on('support:ticket:updated', () => {
+        loadListDebounced();
+        if (State.activeTicketId) loadMessages(State.activeTicketId);
+    });
+    s.on('support:ticket:assigned', () => loadListDebounced());
     s.on('support:auth:invalidated', () => {
         setConnPill('offline');
         toast('Your session was updated. Reload to continue.', 'warning');
@@ -2560,7 +2719,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     ta.addEventListener('input', () => { autoResize(); updateSendButton(); if (State.activeTicketId) saveDraft(State.activeTicketId, ta.value); });
     ta.addEventListener('keydown', (e) => {
         const isTouch = window.matchMedia('(pointer: coarse)').matches;
-        if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !isTouch) { e.preventDefault(); sendMessage(); }
+        const isComposing = e.isComposing || e.keyCode === 229;
+        if (e.key === 'Enter' && !e.shiftKey && !isComposing && !isTouch) {
+            e.preventDefault();
+            sendMessage();
+        }
     });
     $('#sendBtn').addEventListener('click', sendMessage);
 
@@ -2579,7 +2742,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     $('#backBtn').addEventListener('click', () => {
         $('#convPanel').classList.remove('view-convo');
-        history.replaceState(null, '', '#inbox');
+        history.replaceState(null, '', window.location.pathname);
     });
 
     // ── Details toggle & close ───────────────────────────────

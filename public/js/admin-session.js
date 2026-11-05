@@ -34,6 +34,18 @@
 //     absolute URL. Never a URL on another origin.
 //   • 403 (authenticated but unauthorized) NEVER clears the session.
 //     Only 401 does.
+//
+// REVISION 2026-11-05:
+//   • verifyAdminSession() now requires TWO consecutive fatal 401s
+//     before it clears the session and redirects. Rationale:
+//     a transient network blip, a cold Supabase connection, or an
+//     edge proxy timeout can produce a single spurious 401 from
+//     /api/admin/session. Before this change, that single 401 would
+//     call redirectToLogin() — which is a full-page navigation
+//     (window.location.replace). The user perceives that as "the
+//     page reloaded". Two strikes eliminates that class of bug
+//     without weakening security: a genuinely revoked session
+//     fails the second call too.
 // ─────────────────────────────────────────────────────────────────
 
 (function () {
@@ -50,6 +62,10 @@
     // Never schedule a timer sooner than this — protects against a
     // pathological token with a bad exp.
     const MIN_TIMER_MS      = 1000;
+
+    // How many consecutive fatal 401s from /api/admin/session before
+    // we clear the session. 2 = tolerate one transient blip.
+    const MAX_VERIFY_FAIL_STREAK = 2;
 
     // ─── PAGE DETECTION ─────────────────────────────────────────────
     const pathname = window.location.pathname;
@@ -69,11 +85,13 @@
     if (!IS_ADMIN_PAGE) return;
 
     // ─── STATE ──────────────────────────────────────────────────────
-    let isRedirecting   = false;
-    let isVerifying     = false;
-    let refreshInFlight = false;
-    let expiryTimer     = null;
-    let initAttempted   = false;
+    let isRedirecting     = false;
+    let isVerifying       = false;
+    let refreshInFlight   = false;
+    let expiryTimer       = null;
+    let initAttempted     = false;
+    let verifyFailStreak  = 0;    // consecutive fatal 401s from /session
+    let verifyPromise     = null; // shared in-flight promise for concurrent callers
 
     // ─── SESSION STORAGE ────────────────────────────────────────────
 
@@ -110,6 +128,7 @@
             localStorage.removeItem(ADMIN_SESSION_KEY);
             sessionStorage.removeItem(ADMIN_SESSION_KEY);
         } catch (_) { /* ignore */ }
+        verifyFailStreak = 0;
         console.log('[ADMIN SESSION] Session cleared');
     }
 
@@ -131,6 +150,7 @@
             console.error('[ADMIN SESSION] Could not persist session:', e);
             throw e;
         }
+        verifyFailStreak = 0;  // a fresh token invalidates old failures
         console.log(
             '[ADMIN SESSION] Saved. Expires:',
             expiresAt ? new Date(expiresAt).toLocaleString() : 'INVALID'
@@ -237,134 +257,166 @@
     }
 
     // ─── SERVER VERIFICATION ────────────────────────────────────────
-
+    //
+    // Two-strike rule: a fatal 401 from /api/admin/session only
+    // clears the session and redirects after MAX_VERIFY_FAIL_STREAK
+    // consecutive failures. A single failure (which could be a
+    // transient network blip or edge timeout) bumps the streak but
+    // does NOT navigate. Any success resets the streak.
+    //
+    // Additionally: concurrent callers share a single in-flight
+    // promise (verifyPromise). Before this change, a second caller
+    // during an in-flight verify would return true immediately
+    // (`if (isVerifying) return true`), which masked failures —
+    // callers would think the session was OK even though the
+    // in-flight verify later failed. The shared promise awaits the
+    // real outcome.
+    //
     async function verifyAdminSession() {
-        if (isVerifying) return true;
-        isVerifying = true;
+        if (verifyPromise) return verifyPromise;
 
         const token = getAdminToken();
         if (!token) {
-            isVerifying = false;
             return false;
         }
 
-        try {
-            console.log('[ADMIN SESSION] Verifying with server…');
-            const response = await fetch('/api/admin/session', {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Cache-Control': 'no-cache, no-store, must-revalidate'
-                },
-                cache: 'no-store'
-            });
+        verifyPromise = (async () => {
+            try {
+                console.log('[ADMIN SESSION] Verifying with server…');
+                const response = await fetch('/api/admin/session', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Cache-Control': 'no-cache, no-store, must-revalidate'
+                    },
+                    cache: 'no-store'
+                });
 
-            if (response.ok) {
-                console.log('[ADMIN SESSION] Server verification OK');
-                isVerifying = false;
-                return true;
-            }
-
-            if (response.status === 401 || response.status === 403) {
-                let errorCode = 'UNKNOWN';
-                try {
-                    const body = await response.json();
-                    errorCode = body && body.code ? body.code : 'UNKNOWN';
-                } catch (_) { /* ignore */ }
-
-                console.warn('[ADMIN SESSION] Server rejected session:', response.status, errorCode);
-
-                // Only clear on auth-fatal codes. Permission problems (403) can
-                // come from a route this session simply doesn't have, and must
-                // not log the operator out.
-                if (response.status === 401 && (
-                    errorCode === 'SESSION_REVOKED' ||
-                    errorCode === 'SESSION_EXPIRED' ||
-                    errorCode === 'NO_ACTIVE_SESSION' ||
-                    errorCode === 'INVALID_SESSION' ||
-                    errorCode === 'NO_TOKEN'
-                )) {
-                    clearAdminSession();
-                    redirectToLogin();
+                if (response.ok) {
+                    verifyFailStreak = 0;
+                    console.log('[ADMIN SESSION] Server verification OK');
+                    return true;
                 }
-                isVerifying = false;
-                return false;
+
+                // 401 or 403 — try to read the body for a code.
+                if (response.status === 401 || response.status === 403) {
+                    let errorCode = 'UNKNOWN';
+                    try {
+                        const body = await response.json();
+                        errorCode = body && body.code ? body.code : 'UNKNOWN';
+                    } catch (_) { /* ignore */ }
+
+                    console.warn('[ADMIN SESSION] Server rejected session:', response.status, errorCode);
+
+                    // Only 401 with an auth-fatal code counts toward
+                    // the streak. 403 is a permission issue on a
+                    // specific route, not a dead session.
+                    const isFatal = response.status === 401 && (
+                        errorCode === 'SESSION_REVOKED' ||
+                        errorCode === 'SESSION_EXPIRED' ||
+                        errorCode === 'NO_ACTIVE_SESSION' ||
+                        errorCode === 'INVALID_SESSION' ||
+                        errorCode === 'NO_TOKEN'
+                    );
+
+                    if (isFatal) {
+                        verifyFailStreak += 1;
+                        console.warn(
+                            '[ADMIN SESSION] Fatal 401 streak:',
+                            verifyFailStreak, '/', MAX_VERIFY_FAIL_STREAK,
+                            '(' + errorCode + ')'
+                        );
+                        if (verifyFailStreak >= MAX_VERIFY_FAIL_STREAK) {
+                            clearAdminSession();
+                            redirectToLogin();
+                        }
+                    } else {
+                        // Non-fatal: reset the streak — the session is
+                        // still alive, this was a route-level rejection.
+                        verifyFailStreak = 0;
+                    }
+                    return false;
+                }
+
+                // 5xx, network flakes, etc. Do not log out and do not
+                // bump the streak — this is "unknown", not "fatal".
+                console.warn('[ADMIN SESSION] Server error, keeping session:', response.status);
+                return true;
+            } catch (err) {
+                console.warn('[ADMIN SESSION] Verification network error, keeping session:', err.message);
+                return true;
+            } finally {
+                verifyPromise = null;
             }
+        })();
 
-            // 5xx, network flakes, etc. Do not log out.
-            console.warn('[ADMIN SESSION] Server error, keeping session:', response.status);
-            isVerifying = false;
-            return true;
-
-        } catch (err) {
-            console.warn('[ADMIN SESSION] Verification network error, keeping session:', err.message);
-            isVerifying = false;
-            return true;
-        }
+        return verifyPromise;
     }
 
     // ─── TOKEN REFRESH ──────────────────────────────────────────────
+    //
+    // Shared promise — every caller during an in-flight refresh awaits
+    // the same outcome. Never returns false just because another call
+    // already started the refresh.
+    //
+    let refreshPromise = null;
 
-   // Shared promise — every caller during an in-flight refresh awaits
-// the same outcome. Never returns false just because another call
-// already started the refresh.
-let refreshPromise = null;
+    async function refreshAdminToken() {
+        if (refreshPromise) return refreshPromise;
 
-async function refreshAdminToken() {
-    if (refreshPromise) return refreshPromise;
-
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) {
-        console.warn('[ADMIN SESSION] No refresh token available');
-        return false;
-    }
-
-    refreshPromise = (async () => {
-        console.log('[ADMIN SESSION] Attempting refresh…');
-        try {
-            const response = await fetch('/api/admin/refresh', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ refresh_token: refreshToken })
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                const newToken   = (data && data.data && data.data.access_token)   || (data && data.access_token);
-                const newRefresh = (data && data.data && data.data.refresh_token)  || (data && data.refresh_token) || refreshToken;
-                const freshUser  = (data && data.data && data.data.user)           || (data && data.user)          || getAdminUser();
-
-                if (newToken && typeof newToken === 'string' && newToken.split('.').length === 3) {
-                    saveAdminSession(newToken, freshUser, newRefresh);
-                    console.log('[ADMIN SESSION] Token refreshed');
-                    return true;
-                }
-                console.warn('[ADMIN SESSION] Refresh returned no usable token');
-                return false;
-            }
-
-            if (response.status === 401) {
-                console.warn('[ADMIN SESSION] Refresh rejected — logging out');
-                clearAdminSession();
-                saveReturnUrl();
-                redirectToLogin();
-                return false;
-            }
-
-            console.warn('[ADMIN SESSION] Refresh failed with status', response.status);
-            return false;
-        } catch (err) {
-            console.warn('[ADMIN SESSION] Refresh network error:', err.message);
+        const refreshToken = getRefreshToken();
+        if (!refreshToken) {
+            console.warn('[ADMIN SESSION] No refresh token available');
             return false;
         }
-    })();
 
-    try {
-        return await refreshPromise;
-    } finally {
-        refreshPromise = null;
+        refreshPromise = (async () => {
+            console.log('[ADMIN SESSION] Attempting refresh…');
+            try {
+                const response = await fetch('/api/admin/refresh', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refresh_token: refreshToken })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const newToken   = (data && data.data && data.data.access_token)   || (data && data.access_token);
+                    const newRefresh = (data && data.data && data.data.refresh_token)  || (data && data.refresh_token) || refreshToken;
+                    const freshUser  = (data && data.data && data.data.user)           || (data && data.user)          || getAdminUser();
+
+                    if (newToken && typeof newToken === 'string' && newToken.split('.').length === 3) {
+                        saveAdminSession(newToken, freshUser, newRefresh);
+                        console.log('[ADMIN SESSION] Token refreshed');
+                        return true;
+                    }
+                    console.warn('[ADMIN SESSION] Refresh returned no usable token');
+                    return false;
+                }
+
+                if (response.status === 401) {
+                    console.warn('[ADMIN SESSION] Refresh rejected — logging out');
+                    clearAdminSession();
+                    saveReturnUrl();
+                    redirectToLogin();
+                    return false;
+                }
+
+                console.warn('[ADMIN SESSION] Refresh failed with status', response.status);
+                return false;
+            } catch (err) {
+                console.warn('[ADMIN SESSION] Refresh network error:', err.message);
+                return false;
+            }
+        })();
+
+        try {
+            return await refreshPromise;
+        } finally {
+            refreshPromise = null;
+        }
     }
-}
+
     // ─── EXPIRY TIMER (replaces the old 45s heartbeat) ──────────────
     //
     // We schedule a single timer that fires ~30s before the token
@@ -372,6 +424,7 @@ async function refreshAdminToken() {
     // server. If the token is refreshed, we reschedule. If it is not,
     // we log out. Between those moments, no requests are made just to
     // keep the session alive.
+    //
 
     function stopExpiryTimer() {
         if (expiryTimer) {
@@ -426,7 +479,18 @@ async function refreshAdminToken() {
     function stopHeartbeat()  { stopExpiryTimer(); }
 
     // ─── ADMIN FETCH (server is authoritative) ─────────────────────
-
+    //
+    // On 401, do NOT call verifyAdminSession() from here. That would
+    // fire a second network call and — because verifyAdminSession's
+    // own failure path can redirect — produce a cascade where a
+    // transient 401 on a POST becomes a page navigation. Instead:
+    //   1. Try refreshAdminToken() once. If it succeeds, retry the
+    //      original request with the new token.
+    //   2. If refresh fails (or there is no refresh token), surface
+    //      the 401 to the caller. The caller (or a subsequent user
+    //      click) will trigger verifyAdminSession() from a fresh
+    //      user gesture, which is where the two-strike rule lives.
+    //
     async function adminFetch(url, options) {
         options = options || {};
 
@@ -471,36 +535,21 @@ async function refreshAdminToken() {
             cache: 'no-store'
         }));
 
-        // 401 → not authenticated. Log out. Do NOT clear on 403.
+        // 401 → try a refresh. If refresh succeeds, retry the request
+        // once with the new token. If refresh fails, surface the 401
+        // to the caller — do NOT redirect from here.
         if (response.status === 401) {
-    // Do not log out on the first 401. Re-verify the session against
-    // /api/admin/session first. If that succeeds, the 401 came from a
-    // route or backend that had a transient problem — do not clear the
-    // session. If /api/admin/session also returns 401, THEN log out.
-    const stillValid = await verifyAdminSession();
-    if (!stillValid) {
-        // verifyAdminSession() itself handles clear + redirect on fatal
-        // 401 codes (SESSION_REVOKED, SESSION_EXPIRED, etc.). Nothing
-        // more to do here.
-        throw new Error('Admin session expired');
-    }
-
-    // Session is still alive. Refresh the token if we can, then retry
-    // the original request once.
-    const refreshed = await refreshAdminToken();
-    if (refreshed) {
-        const newToken = getAdminToken();
-        const retryHeaders = Object.assign({}, headers, { 'Authorization': `Bearer ${newToken}` });
-        return fetch(url, Object.assign({}, options, { headers: retryHeaders, cache: 'no-store' }));
-    }
-
-    // No refresh available — surface the original 401 to the caller
-    // without clearing the session.
-    const err = new Error('Request failed with 401');
-    err.code = 'REQUEST_UNAUTHORIZED';
-    err.status = 401;
-    throw err;
-}
+            const refreshed = await refreshAdminToken();
+            if (refreshed) {
+                const newToken = getAdminToken();
+                const retryHeaders = Object.assign({}, headers, { 'Authorization': `Bearer ${newToken}` });
+                return fetch(url, Object.assign({}, options, { headers: retryHeaders, cache: 'no-store' }));
+            }
+            const err = new Error('Request failed with 401');
+            err.code = 'REQUEST_UNAUTHORIZED';
+            err.status = 401;
+            throw err;
+        }
 
         // 403 → authenticated but unauthorized. Surface but do not log out.
         if (response.status === 403) {
@@ -600,7 +649,10 @@ async function refreshAdminToken() {
         // network call the session layer makes.
         const verified = await verifyAdminSession();
         if (!verified) {
-            // verifyAdminSession() already redirected for fatal codes.
+            // verifyAdminSession() may have redirected on two-strike.
+            // If not (single-strike), stay on the page — the operator
+            // can still try to interact and the next failure will
+            // trigger the redirect.
             return;
         }
 
