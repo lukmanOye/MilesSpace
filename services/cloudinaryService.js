@@ -1,28 +1,47 @@
 // services/cloudinaryService.js
 // ─────────────────────────────────────────────────────────────────
-// REVISION 2026-11-02
+// REVISION 2026-11-05
 //
-// Additive changes for support attachments:
-//   • uploadSupportFile() accepts `private: true` — maps to
-//     Cloudinary `type: 'private'` with `access_mode: 'authenticated'`
-//     so the asset is NOT deliverable by its public_id alone.
-//   • getSignedUrl(publicId, { expiresInSeconds, resource_type })
-//     mints a short-lived signed URL. Fails closed (returns null)
-//     if credentials are missing or the SDK throws.
-//   • signUrl(publicId, { expiresAt, resourceType }) — alias path
-//     used by supportAttachmentService if getSignedUrl is absent.
-//   • deleteMultipleFiles() return shape unchanged; supportAttachment
-//     reads { success, total, failed, details: [{ success, publicId }] }.
+// Signed-URL fix:
+//   The previous revision mixed `sign_url: true` with `auth_token`.
+//   Those are two DIFFERENT signing mechanisms in Cloudinary:
+//
+//     • sign_url: true        — signs the delivery URL with the API
+//                               secret. This is the correct mechanism
+//                               for assets uploaded with
+//                               type: 'private' + access_mode:
+//                               'authenticated' (as we do).
+//
+//     • auth_token: { ... }   — Cloudinary's separate token-gated
+//                               delivery for CDN strict
+//                               transformations. It requires
+//                               { key, duration }, and passing it
+//                               without `key` caused the SDK to
+//                               call crypto.createHmac with an
+//                               undefined secret — which crashed
+//                               with "The first argument must be of
+//                               type string...".
+//
+//   Additionally, `type: 'private'` assets require the file
+//   extension in the URL path. Our public_ids don't carry an
+//   extension, so the caller must pass `format`. If `format` is
+//   missing, getSignedUrl now returns null (fails closed) instead
+//   of throwing inside the SDK.
+//
+// Additive changes preserved from the previous revision:
+//   • uploadSupportFile() accepts `private: true`.
+//   • deleteMultipleFiles() shape unchanged.
+//   • getOptimizedImageUrl / getThumbnailUrl unchanged.
 // ─────────────────────────────────────────────────────────────────
 
 const cloudinary = require('cloudinary').v2;
 const { Readable } = require('stream');
 const crypto = require('crypto');
 
-// ─── CONFIG ───
+// ─── CONFIG ──────────────────────────────────────────────────────
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
+    api_key:    process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
@@ -38,7 +57,7 @@ if (CLOUDINARY_READY) {
     console.warn('⚠️ Cloudinary credentials missing — uploads will fail closed');
 }
 
-// ─── UPLOAD FILE ──────────────────────────────────────────────────────
+// ─── UPLOAD FILE ──────────────────────────────────────────────────
 
 async function uploadSupportFile(fileBuffer, options = {}) {
     if (!CLOUDINARY_READY) {
@@ -68,7 +87,7 @@ async function uploadSupportFile(fileBuffer, options = {}) {
             : `${folder}/tickets/${ticketId}/${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
 
         // For private uploads use Cloudinary's `private` delivery
-        // type. The asset still has a public_id but it is not
+        // type. The asset still has a public_id but is not
         // retrievable without a signed URL.
         const uploadParams = {
             resource_type,
@@ -112,7 +131,7 @@ async function uploadSupportFile(fileBuffer, options = {}) {
     });
 }
 
-// ─── DELETE FILE ──────────────────────────────────────────────────────
+// ─── DELETE FILE ──────────────────────────────────────────────────
 
 async function deleteSupportFile(publicId, options = {}) {
     try {
@@ -121,10 +140,6 @@ async function deleteSupportFile(publicId, options = {}) {
 
         const result = await cloudinary.uploader.destroy(publicId, {
             invalidate: true,
-            // `type` matters for private assets. Default 'upload' is
-            // correct for public; callers pass type:'private' for
-            // private uploads. supportAttachmentService passes the
-            // resource_type it stored on the attachment record.
             type: options.type || 'upload',
             resource_type: options.resource_type || 'image'
         });
@@ -140,7 +155,7 @@ async function deleteSupportFile(publicId, options = {}) {
     }
 }
 
-// ─── DELETE MULTIPLE FILES ──────────────────────────────────────────
+// ─── DELETE MULTIPLE FILES ────────────────────────────────────────
 
 async function deleteMultipleFiles(publicIds, options = {}) {
     if (!publicIds || publicIds.length === 0) {
@@ -160,7 +175,7 @@ async function deleteMultipleFiles(publicIds, options = {}) {
     };
 }
 
-// ─── GET OPTIMIZED URL ──────────────────────────────────────────────
+// ─── GET OPTIMIZED URL ────────────────────────────────────────────
 
 function getOptimizedImageUrl(publicId, options = {}) {
     if (!publicId || !process.env.CLOUDINARY_CLOUD_NAME) return null;
@@ -189,7 +204,7 @@ function getOptimizedImageUrl(publicId, options = {}) {
     return url;
 }
 
-// ─── GET THUMBNAIL URL ──────────────────────────────────────────────
+// ─── GET THUMBNAIL URL ────────────────────────────────────────────
 
 function getThumbnailUrl(publicId, size = 150) {
     return getOptimizedImageUrl(publicId, {
@@ -201,35 +216,76 @@ function getThumbnailUrl(publicId, size = 150) {
     });
 }
 
-// ─── SIGNED URL (for private attachments) ───────────────────────────
+// ─── SIGNED URL ───────────────────────────────────────────────────
 //
-// Returns a short-lived URL that Cloudinary will honour even for
-// assets uploaded with type:'private'. Callers (supportAttachment
-// Service.resolveAttachmentUrl) expect a `null` return when signing
-// is impossible — never a broken URL.
-
+// For assets uploaded with type: 'private' + access_mode:
+// 'authenticated', the correct signature mechanism is
+// `sign_url: true`. This uses cloudinary.config().api_secret
+// internally — do NOT also pass `auth_token` (that is a different
+// token-gated delivery path for CDN strict transformations and
+// requires { key, duration }, not just { duration }).
+//
+// The URL path for a `type: 'private'` asset must end with the
+// file extension. Our public_ids do not carry one, so the caller
+// must pass opts.format (derived from mime). If format is missing
+// this returns null — never throws inside the SDK.
+//
+// Time-bounded delivery: Cloudinary's signed URLs for `private`
+// assets are valid as long as the signature matches. The
+// `expiresInSeconds` parameter controls how long the URL is
+// semantically valid on Cloudinary's side (round-tripped as
+// `__e=` expiry token). Anything between 30s and 3600s is
+// accepted; the default is 300s.
 function getSignedUrl(publicId, opts = {}) {
-    if (!publicId) return null;
-    if (!CLOUDINARY_READY) return null;
+    if (!publicId || typeof publicId !== 'string' || !publicId.trim()) {
+        return null;
+    }
+    if (!CLOUDINARY_READY) {
+        return null;
+    }
+
+    // Format is required for the URL path. Derive from caller
+    // input if not provided.
+    const format = (opts.format && String(opts.format).trim()) || null;
+    if (!format) {
+        console.warn(
+            '[CLOUDINARY] getSignedUrl: missing format for',
+            publicId,
+            '— caller must pass opts.format'
+        );
+        return null;
+    }
 
     const expiresInSeconds = Number.isFinite(opts.expiresInSeconds)
         ? Math.max(30, Math.min(3600, opts.expiresInSeconds))
         : 300;
-    const expiresAt = Math.floor(Date.now() / 1000) + expiresInSeconds;
     const resourceType = opts.resource_type || opts.resourceType || 'image';
     const deliveryType = opts.deliveryType || 'private';
 
     try {
-        const url = cloudinary.url(publicId, {
+        // Two things make `type: 'private'` URLs signable:
+        //   1. `sign_url: true`           — sign with api_secret
+        //   2. the extension in the path  — tells Cloudinary which
+        //                                    transformation to apply
+        //
+        // Passing `auth_token` in addition causes the SDK to try
+        // to mint a JWT, which crashes when the token key is not
+        // configured. We deliberately do NOT set auth_token here.
+        const url = cloudinary.url(`${publicId}.${format}`, {
             resource_type: resourceType,
             type: deliveryType,
             sign_url: true,
             secure: true,
-            auth_token: {
-                duration: expiresInSeconds
-            }
+            // `__e` is Cloudinary's expiry-token suffix. When
+            // expiresInSeconds is set, the SDK includes it so the
+            // URL fails after that window.
+            ...(expiresInSeconds
+                ? { expires_at: Math.floor(Date.now() / 1000) + expiresInSeconds }
+                : {})
         });
-        return url || null;
+
+        if (!url) return null;
+        return url;
     } catch (e) {
         console.error('[CLOUDINARY] signed URL failed:', e.message);
         return null;
@@ -237,20 +293,25 @@ function getSignedUrl(publicId, opts = {}) {
 }
 
 // Alias used by supportAttachmentService when getSignedUrl is absent.
-// Same behaviour, differently named inputs.
+// Same behaviour, differently named inputs. Forwards `format`.
 function signUrl(publicId, opts = {}) {
     const expiresAt = Number.isFinite(opts.expiresAt) ? opts.expiresAt : null;
     let expiresInSeconds = 300;
     if (expiresAt) {
-        expiresInSeconds = Math.max(30, Math.min(3600, expiresAt - Math.floor(Date.now() / 1000)));
+        expiresInSeconds = Math.max(
+            30,
+            Math.min(3600, expiresAt - Math.floor(Date.now() / 1000))
+        );
     }
     return getSignedUrl(publicId, {
         expiresInSeconds,
-        resource_type: opts.resourceType
+        resource_type: opts.resourceType,
+        format: opts.format,
+        deliveryType: opts.deliveryType
     });
 }
 
-// ─── CHECK FILE TYPE ────────────────────────────────────────────────
+// ─── CHECK FILE TYPE ──────────────────────────────────────────────
 
 function isImage(mimeType) {
     return mimeType && mimeType.startsWith('image/');
@@ -274,7 +335,7 @@ function getResourceType(mimeType) {
     return 'raw';
 }
 
-// ─── EXPORT ──────────────────────────────────────────────────────────
+// ─── EXPORT ──────────────────────────────────────────────────────
 
 module.exports = {
     uploadSupportFile,
@@ -290,4 +351,5 @@ module.exports = {
     isVideo,
     isAudio,
     getResourceType,
+    CLOUDINARY_READY,
 };

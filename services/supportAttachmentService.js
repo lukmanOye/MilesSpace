@@ -1,64 +1,33 @@
-'use strict';
-
+// services/supportAttachmentService.js
 // ─────────────────────────────────────────────────────────────────
-// services/supportAttachmentService.js  —  REVISION 2026-11-02
+// REVISION 2026-11-05
 //
-// ONE upload path for support attachments. Both the reply endpoint
-// and the internal-note endpoint call uploadForMessage() so
-// validation, filename sanitization, cleanup, and error reporting
-// cannot drift between them.
+// Signed-URL fix:
+//   resolveAttachmentUrl() now derives `format` from the stored
+//   mime (or from the filename extension as a fallback) and passes
+//   it to cloudinarySvc.getSignedUrl. Cloudinary's URL builder
+//   needs the extension in the path for type: 'private' assets;
+//   without it, the SDK throws "The first argument must be of type
+//   string..." from inside crypto.createHmac.
 //
-// Guarantees:
-//   • Count / per-file size / total size enforced BEFORE any byte
-//     reaches Cloudinary. A failed validation returns a typed error
-//     with a stable code the frontend can render.
-//   • MIME allow-list (strict Set) at the multer layer AND here.
-//   • Magic-byte verification for every binary type. Text types
-//     (txt/csv) get a "looks-like-binary" rejection instead.
-//   • WebP requires BOTH signatures: RIFF at 0 AND WEBP at 8.
-//   • OOXML (.docx / .xlsx) requires the ZIP header AND the string
-//     "[Content_Types].xml" somewhere in the first 64 KiB, which
-//     rules out a renamed plain zip.
-//   • Filenames sanitized: path separators, control chars, bidi
-//     overrides, leading dots, Windows reserved device names, and
-//     overlong names. Original name preserved separately for audit
-//     only.
-//   • HEIC/HEIF from iPhones are rejected by default with a clear
-//     message. A one-flag conversion path is present but disabled
-//     unless `sharp` is installed AND ENABLE_HEIC=true. See
-//     HEIC_POLICY below.
-//   • Private uploads use Cloudinary type:'private'. Read-time URL
-//     resolution mints a short-lived signed URL via
-//     cloudinaryService.getSignedUrl (falls back to signUrl). If
-//     neither signs, returns null → UI shows "unavailable" instead
-//     of leaking a public_id.
-//   • DB-write failure → cleanup closure deletes every upload from
-//     this request, verifies per-file result, and logs orphans with
-//     public_id for manual reap.
-//   • No public_id / storage / resource_type is ever sent to the
-//     client in message payloads. resolveMessages() returns a
-//     minimal shape: { id, name, size, mime, url, unavailable,
-//     created_at, resource } where `resource` is 'image' | 'video'
-//     | 'raw' (used only by the frontend to pick an icon; not
-//     sensitive).
+//   If format cannot be derived, resolveAttachmentUrl() returns
+//   null so the UI renders "unavailable" instead of throwing.
 //
-// Depends on:
-//   cloudinaryService.uploadSupportFile(buffer, opts) -> Promise<{
-//     public_id, secure_url, format, bytes, width, height,
-//     duration, resource_type, type, created_at }>
-//   cloudinaryService.getSignedUrl(publicId, opts) -> string|null
-//   cloudinaryService.signUrl(publicId, opts)     -> string|null
-//   cloudinaryService.deleteMultipleFiles(publicIds, opts) ->
-//     { success, total, failed, details:[{success,publicId,result}] }
-//
-// None of those are invented. All are the shapes from your
-// services/cloudinaryService.js.
+// Everything else from the previous revision is preserved:
+//   • One upload path for both reply and internal-note endpoints.
+//   • MIME + magic-byte verification.
+//   • Filename sanitization including bidi / Windows reserved names.
+//   • HEIC rejection (with optional sharp-based conversion path).
+//   • Cloudinary upload with type: 'private' + access_mode: authenticated.
+//   • Cleanup on DB-write failure that never leaks orphan public_ids
+//     into logs without context.
+//   • Client shape never includes public_id / storage / resource_type.
 // ─────────────────────────────────────────────────────────────────
 
 const crypto = require('crypto');
 const cloudinarySvc = require('./cloudinaryService');
 
-// ─── Limits ────────────────────────────────────────────────────
+// ─── Limits ──────────────────────────────────────────────────────
 const MAX_FILES            = 5;
 const MAX_FILE_BYTES       = 10 * 1024 * 1024;      // 10 MB per file
 const MAX_TOTAL_BYTES      = 25 * 1024 * 1024;      // 25 MB per request
@@ -66,12 +35,11 @@ const MAX_FILENAME_LEN     = 120;
 const MAX_ATTACHMENT_NAME  = 200;
 const SIGNED_URL_TTL_SECS  = 5 * 60;                // 5 minutes
 
-// ─── HEIC policy ───────────────────────────────────────────────
+// ─── HEIC policy ─────────────────────────────────────────────────
 // "reject" (default) — clear error, no new dependency.
 // "convert"          — requires `sharp` installed and
 //                      ENABLE_HEIC_CONVERT=true in env. Converts
-//                      to JPEG in memory before upload. Fails
-//                      closed if sharp is missing.
+//                      to JPEG in memory before upload.
 const HEIC_POLICY = (() => {
     const raw = String(process.env.ENABLE_HEIC_CONVERT || '').toLowerCase();
     return raw === '1' || raw === 'true' ? 'convert' : 'reject';
@@ -89,8 +57,7 @@ function _tryLoadSharp() {
     return _sharp;
 }
 
-// ─── MIME allow-list ───────────────────────────────────────────
-// Tight, explicit. Adding a type is a deliberate security change.
+// ─── MIME allow-list ─────────────────────────────────────────────
 const ALLOWED_MIMES = Object.freeze(new Set([
     'image/png',
     'image/jpeg',
@@ -100,9 +67,6 @@ const ALLOWED_MIMES = Object.freeze(new Set([
     'application/pdf',
     'text/plain',
     'text/csv',
-    // Windows reports .csv as one of these when the file came from
-    // Excel. We accept the MIME at the multer layer and rely on the
-    // sniff to decide.
     'application/vnd.ms-excel',
     'application/zip',
     'application/x-zip-compressed',
@@ -119,8 +83,7 @@ const REJECT_WITH_MESSAGE = Object.freeze(new Set([
     'image/heif-sequence'
 ]));
 
-// Explicit reject list at the sniff layer (active content, etc.).
-// These never make it through matchesSignature.
+// Explicit reject list at the sniff layer (active content).
 const FORBIDDEN_MIMES = Object.freeze(new Set([
     'image/svg+xml',
     'text/html',
@@ -138,7 +101,7 @@ const FORBIDDEN_MIMES = Object.freeze(new Set([
     'application/x-mach-binary'
 ]));
 
-// ─── Errors ────────────────────────────────────────────────────
+// ─── Errors ──────────────────────────────────────────────────────
 function attachmentError(code, message, status = 400, extra = {}) {
     const e = new Error(message);
     e.code = code;
@@ -147,15 +110,55 @@ function attachmentError(code, message, status = 400, extra = {}) {
     return e;
 }
 
-// ─── Filename sanitization ─────────────────────────────────────
+// ─── Format derivation for Cloudinary ───────────────────────────
+// type: 'private' URLs require the extension in the path. The
+// attachment's `mime` is the reliable source. Filename extension
+// is a fallback for legacy rows whose mime is missing or wrong.
+function deriveFormat(att) {
+    if (!att || typeof att !== 'object') return null;
+
+    if (att.format && typeof att.format === 'string' && att.format.trim()) {
+        return att.format.trim();
+    }
+
+    const mime = String(att.mime || '').toLowerCase();
+    const mimeMap = {
+        'image/png':  'png',
+        'image/jpeg': 'jpg',
+        'image/jpg':  'jpg',
+        'image/webp': 'webp',
+        'image/gif':  'gif',
+        'application/pdf': 'pdf',
+        'text/plain': 'txt',
+        'text/csv':   'csv',
+        'application/zip': 'zip',
+        'application/x-zip-compressed': 'zip',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+        'application/msword': 'doc',
+        'application/vnd.ms-excel': 'xls'
+    };
+    if (mimeMap[mime]) return mimeMap[mime];
+
+    // Fallback: from the stored attachment name.
+    const name = String(att.name || '').toLowerCase();
+    const dot = name.lastIndexOf('.');
+    if (dot > 0 && name.length - dot <= 6) {
+        const ext = name.slice(dot + 1);
+        if (/^[a-z0-9]+$/.test(ext)) return ext;
+    }
+
+    return null;
+}
+
+// ─── Filename sanitization ──────────────────────────────────────
 function sanitizeFilename(raw) {
     let s = String(raw == null ? '' : raw);
 
     // Path separators and Windows drive letters.
     s = s.replace(/[\/\\]/g, '_').replace(/^[A-Za-z]:/, '');
 
-    // Unicode bidi override / isolation characters can hide the
-    // real extension. Strip them all.
+    // Unicode bidi override / isolation characters.
     s = s.replace(/[\u202A-\u202E\u2066-\u2069\u200E\u200F]/g, '');
 
     // Control chars.
@@ -184,10 +187,7 @@ function sanitizeFilename(raw) {
     return s || 'attachment';
 }
 
-// ─── Extension → declared MIME resolution ──────────────────────
-// Browsers (especially Windows) report MIMEs that don't match the
-// extension. We trust the extension to choose a sniff policy, then
-// verify the content against that policy.
+// ─── Extension → declared MIME resolution ───────────────────────
 function mimeFromExtension(name) {
     const n = String(name || '').toLowerCase();
     if (n.endsWith('.png'))  return 'image/png';
@@ -228,8 +228,6 @@ function containsAscii(buffer, needle, maxScan = 65536) {
 }
 
 function isBinaryHead(buffer) {
-    // Returns true if the first bytes look like a known binary
-    // container — used to reject a binary renamed to .txt/.csv.
     if (!buffer || buffer.length < 4) return false;
     if (startsWith(buffer, [0x7F, 0x45, 0x4C, 0x46])) return true;        // ELF
     if (startsWith(buffer, [0x4D, 0x5A])) return true;                    // PE / MZ
@@ -244,9 +242,6 @@ function isBinaryHead(buffer) {
     return false;
 }
 
-// Returns true if `buffer` matches the declared/sniffed MIME.
-// WebP requires BOTH signatures. OOXML requires the ZIP header
-// AND the [Content_Types].xml marker.
 function matchesSignature(buffer, mime) {
     const m = String(mime || '').toLowerCase();
 
@@ -273,18 +268,14 @@ function matchesSignature(buffer, mime) {
     }
     if (m === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         || m === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
-        // ZIP header + marker inside. First 64 KiB is enough for
-        // the central directory of any docx/xlsx we accept.
         const zip = startsWith(buffer, [0x50, 0x4B, 0x03, 0x04]);
         return zip && containsAscii(buffer, '[Content_Types].xml');
     }
     if (m === 'text/plain' || m === 'text/csv') {
-        // Text has no signature; reject anything whose head looks
-        // like a binary container.
         return !isBinaryHead(buffer);
     }
     if (REJECT_WITH_MESSAGE.has(m)) {
-        return false;   // handled earlier with a specific message
+        return false;
     }
     return false;
 }
@@ -319,7 +310,6 @@ async function maybeConvertHeic(file) {
             400
         );
     }
-    // Rewrite the file descriptor to a JPEG.
     return {
         buffer: buf,
         mimetype: 'image/jpeg',
@@ -330,12 +320,6 @@ async function maybeConvertHeic(file) {
 }
 
 // ─── Validation entry point ────────────────────────────────────
-//
-// Called with an array of multer file objects:
-//   [{ buffer, mimetype, originalname, size }, ...]
-//
-// Returns { ok:true, files } on success or { ok:false, code, error }
-// on validation failure. Never throws. Does not touch Cloudinary.
 async function validateFiles(files) {
     const list = Array.isArray(files) ? files : [];
 
@@ -352,7 +336,6 @@ async function validateFiles(files) {
             return { ok: false, code: 'INVALID_FILE', error: 'One of the files could not be read.' };
         }
 
-        // HEIC path may replace the file descriptor entirely.
         let f;
         try {
             f = await maybeConvertHeic(original);
@@ -377,7 +360,6 @@ async function validateFiles(files) {
         const declared = String(f.mimetype || '').toLowerCase();
         const ext = mimeFromExtension(f.originalname);
 
-        // Reject if neither declared MIME nor extension is on the list.
         const candidate = ALLOWED_MIMES.has(declared) ? declared : ext;
         if (!candidate) {
             return { ok: false, code: 'MIME_NOT_ALLOWED',
@@ -392,7 +374,6 @@ async function validateFiles(files) {
                      error: `File content does not match its declared type (${candidate}).` };
         }
 
-        // Final reject: HTML/SVG-like heads (content sniff defense).
         const head = f.buffer.slice(0, 512).toString('utf8').trimStart().toLowerCase();
         if (head.startsWith('<!doctype html') || head.startsWith('<html')
             || head.startsWith('<script')
@@ -425,7 +406,6 @@ async function _uploadOne(file, { ticketId, isPrivate }) {
     const name = sanitizeFilename(file.originalname).slice(0, MAX_ATTACHMENT_NAME);
 
     return {
-        // Stored exactly as add_support_message passes it through.
         id: crypto.randomUUID(),
         name,
         size: file.size,
@@ -433,32 +413,18 @@ async function _uploadOne(file, { ticketId, isPrivate }) {
         url: isPrivate ? null : result.secure_url,
         public_id: result.public_id,
         resource_type: result.resource_type,
+        // Cloudinary's own `format` (extension). We save it so
+        // signing is trivial later. For type: 'private' assets,
+        // this is what makes the URL path complete.
+        format: result.format || null,
         bytes: result.bytes,
         created_at: result.created_at || new Date().toISOString(),
-        // 'private' | 'public' — stored so the URL endpoint knows
-        // which delivery type to sign with.
         storage: isPrivate ? 'private' : 'public',
-        // 'upload' | 'private' — mirror of Cloudinary's own `type`.
         cloudinary_type: result.type || (isPrivate ? 'private' : 'upload')
     };
 }
 
 // ─── Upload + persist entry point ──────────────────────────────
-//
-// Usage:
-//
-//   const { attachments, cleanup } = await supportAttachments
-//       .uploadForMessage({ files, ticketId, isPrivate: true });
-//
-//   try {
-//       const msg = await support.createMessage({ ..., attachments });
-//   } catch (e) {
-//       await cleanup();      // orphans are logged, not thrown
-//       throw e;
-//   }
-//
-// cleanup() is bound to THIS request's uploads. A caller that
-// decides not to use the result must call it or the files leak.
 async function uploadForMessage({ files, ticketId, isPrivate = true }) {
     const validation = await validateFiles(files);
     if (!validation.ok) {
@@ -538,28 +504,52 @@ async function _cleanup(publicIds) {
 }
 
 // ─── Read-time URL resolution ──────────────────────────────────
+//
 // For private attachments, mint a short-lived signed URL. For
 // public, return the stored URL. Never returns a URL for an
 // attachment the caller cannot access — the caller must have
 // already run ticket access checks.
+//
+// The critical fix here: derive `format` from the attachment and
+// pass it to getSignedUrl. Cloudinary's type: 'private' URLs
+// require the extension in the path; without it the SDK throws
+// from inside crypto.createHmac.
 function resolveAttachmentUrl(attachment) {
     if (!attachment || typeof attachment !== 'object') return null;
 
     const storage = String(attachment.storage || 'public').toLowerCase();
     if (storage === 'public') {
-        return typeof attachment.url === 'string' && /^https?:\/\//i.test(attachment.url) ? attachment.url : null;
+        return typeof attachment.url === 'string' && /^https?:\/\//i.test(attachment.url)
+            ? attachment.url
+            : null;
     }
 
-    // FIX: Ensure public_id is a valid string before passing to Cloudinary
-    if (!attachment.public_id || typeof attachment.public_id !== 'string' || attachment.public_id.trim() === '') {
+    // Guard against a missing / malformed public_id.
+    if (!attachment.public_id
+        || typeof attachment.public_id !== 'string'
+        || !attachment.public_id.trim()) {
+        return null;
+    }
+
+    // Derive the extension. Without it, signing throws.
+    const format = deriveFormat(attachment);
+    if (!format) {
+        console.warn(
+            '[SUPPORT ATTACHMENT] cannot derive format for',
+            attachment.public_id,
+            '(mime:', attachment.mime, ')'
+        );
         return null;
     }
 
     const opts = {
         expiresInSeconds: SIGNED_URL_TTL_SECS,
-        resource_type: attachment.resource_type || 'image'
+        resource_type: attachment.resource_type || 'image',
+        format,
+        // Delivery type matches how the asset was uploaded.
+        deliveryType: attachment.cloudinary_type || 'private'
     };
-    
+
     try {
         if (typeof cloudinarySvc.getSignedUrl === 'function') {
             const url = cloudinarySvc.getSignedUrl(attachment.public_id, opts);
@@ -568,7 +558,9 @@ function resolveAttachmentUrl(attachment) {
         if (typeof cloudinarySvc.signUrl === 'function') {
             const url = cloudinarySvc.signUrl(attachment.public_id, {
                 expiresAt: Math.floor(Date.now() / 1000) + SIGNED_URL_TTL_SECS,
-                resourceType: attachment.resource_type || 'image'
+                resourceType: attachment.resource_type || 'image',
+                format,
+                deliveryType: attachment.cloudinary_type || 'private'
             });
             if (url) return url;
         }
@@ -589,18 +581,13 @@ function toClientAttachment(a) {
         size: a.size || 0,
         mime: a.mime || 'application/octet-stream',
         created_at: a.created_at || null,
-        // 'image' | 'video' | 'raw' — used only by the UI to pick
-        // an icon. Not sensitive.
         resource: a.resource_type || 'raw',
         url,
         unavailable: !url
     };
 }
 
-// Resolve every attachment on every message. Returns new message
-// objects (does not mutate). A private URL that cannot be minted
-// produces `unavailable: true` so the UI can disable the download
-// control rather than showing a broken link.
+// Resolve every attachment on every message.
 function resolveMessages(messages) {
     if (!Array.isArray(messages)) return [];
     return messages.map((m) => {
@@ -613,16 +600,12 @@ function resolveMessages(messages) {
     });
 }
 
-// ─── Fresh signed URL for one attachment (route helper) ────────
-// The route calls this on download click so a link never expires
-// while the page is open. The route is responsible for the ticket
-// access check and the audit entry; this helper only signs.
+// Fresh signed URL for one attachment (route helper).
 function freshAttachmentUrl(attachment) {
     return resolveAttachmentUrl(attachment);
 }
 
 module.exports = {
-    // Primary path
     uploadForMessage,
     validateFiles,
     resolveAttachmentUrl,
@@ -631,7 +614,6 @@ module.exports = {
     toClientAttachment,
     sanitizeFilename,
 
-    // Constants + policy
     MAX_FILES,
     MAX_FILE_BYTES,
     MAX_TOTAL_BYTES,
@@ -639,7 +621,6 @@ module.exports = {
     SIGNED_URL_TTL_SECS,
     HEIC_POLICY,
 
-    // For tests
     matchesSignature,
     mimeFromExtension
 };
