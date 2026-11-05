@@ -19,7 +19,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <script src="/js/admin-session.js?v=2025-support-v9"></script>
-<script src="/socket.io/socket.io.js?v=4.7.5" defer onerror="window.__SOCKET_IO_LOAD_FAILED = true;"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js" defer crossorigin="anonymous" onerror="window.__SOCKET_IO_LOAD_FAILED = true;"></script>
 
 <style>
 :root {
@@ -2335,30 +2335,41 @@ function setConnPill(state) {
 function initSocket() {
     if (!SUPPORT_REALTIME_ENABLED) { setConnPill('offline'); return; }
     if (window.__SOCKET_IO_LOAD_FAILED === true) {
-    setConnPill('offline');
-    console.error(
-        '[SUPPORT] socket.io client failed to load. ' +
-        'Check that server.js mounts Socket.IO on the same http.Server ' +
-        'as Express, and that the /socket.io/socket.io.js path is reachable.'
-    );
-    return;
-}
-if (typeof window.io !== 'function') {
-    // Client loaded but window.io is not exposed — likely a
-    // caching or CDN issue. Retry once after a short delay.
-    setTimeout(() => {
-        if (typeof window.io !== 'function') {
-            setConnPill('offline');
-            console.warn('[SUPPORT] window.io undefined after retry');
-        } else {
-            initSocket();
-        }
-    }, 500);
-    return;
-}
+        setConnPill('offline');
+        console.error(
+            '[SUPPORT] socket.io client failed to load from CDN. ' +
+            'Check that cdn.socket.io is reachable and allowed by CSP.'
+        );
+        return;
+    }
+    if (typeof window.io !== 'function') {
+        setTimeout(() => {
+            if (typeof window.io !== 'function') {
+                setConnPill('offline');
+                console.warn('[SUPPORT] window.io undefined after retry');
+            } else {
+                initSocket();
+            }
+        }, 500);
+        return;
+    }
     const token = AdminSession.getToken && AdminSession.getToken();
     if (!token) { setConnPill('offline'); return; }
-    const s = window.io({ auth: { token }, transports: ['websocket', 'polling'] });
+
+    // Point Socket.IO at the actual API host. On localhost this
+    // resolves to the same origin. On Render, the admin page may be
+    // served from a different host than the API; the explicit origin
+    // makes the WebSocket connect to the right place.
+    const API_ORIGIN = (window.location.hostname === 'localhost'
+        || window.location.hostname === '127.0.0.1')
+        ? window.location.origin
+        : 'https://milesspace.onrender.com';
+
+    const s = window.io(API_ORIGIN, {
+        auth: { token },
+        transports: ['websocket', 'polling'],
+        withCredentials: true
+    });
     State.socket = s;
     s.on('connect', () => {
         State.socketConnected = true;
@@ -2372,7 +2383,10 @@ if (typeof window.io !== 'function') {
         if (State.activeTicketId) loadMessages(State.activeTicketId);
     });
     s.on('disconnect', () => { State.socketConnected = false; setConnPill('reconnecting'); });
-    s.on('connect_error', () => setConnPill('offline'));
+    s.on('connect_error', (err) => {
+        console.warn('[SUPPORT] connect_error:', err && err.message);
+        setConnPill('offline');
+    });
     s.on('support:message:new', (payload) => {
         if (!payload || !payload.ticketId) return;
         if (payload.ticketId === State.activeTicketId && payload.message) {
@@ -2387,7 +2401,6 @@ if (typeof window.io !== 'function') {
     s.on('support:list:bump', () => loadList(true));
     s.on('support:ticket:updated', () => { loadList(true); if (State.activeTicketId) loadMessages(State.activeTicketId); });
     s.on('support:ticket:assigned', () => loadList(true));
-    s.on('support:typing:start', (p) => {});
     s.on('support:auth:invalidated', () => {
         setConnPill('offline');
         toast('Your session was updated. Reload to continue.', 'warning');
