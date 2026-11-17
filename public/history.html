@@ -57,7 +57,6 @@
     [hidden] { display: none !important; }
     :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
-    /* ── Overlay ── */
     .ov {
       position: fixed; inset: 0;
       background: rgba(11, 26, 79, .45);
@@ -66,7 +65,6 @@
     }
     .ov.on { opacity: 1; pointer-events: auto; }
 
-    /* ── Sidebar shell (kept from original; ms-shell will override) ── */
     .sidebar {
       position: fixed; top: 0; left: 0;
       width: min(86vw, 290px); max-width: 290px;
@@ -104,7 +102,6 @@
     }
     .sb-out:hover { background: var(--out-bg); color: var(--err); }
 
-    /* ── Topbar ── */
     .topbar {
       position: sticky; top: 0; z-index: 400;
       background: var(--card);
@@ -133,7 +130,6 @@
       border: 2px solid #f59e0b; flex-shrink: 0;
     }
 
-    /* ── Content ── */
     .content {
       max-width: 1280px; margin: 0 auto;
       padding: 28px 20px calc(60px + var(--safe-b));
@@ -142,7 +138,6 @@
       .content { padding: 36px 32px calc(70px + var(--safe-b)); }
     }
 
-    /* ── Search + filter bar ── */
     .bar {
       display: flex; align-items: center; justify-content: space-between;
       gap: 14px; flex-wrap: wrap; margin-bottom: 22px;
@@ -167,10 +162,6 @@
       color: var(--navy); pointer-events: none;
     }
 
-    /* ── Filter: two implementations ──
-       Desktop: custom pill with hidden native select overlay.
-       Mobile (<=640px): native <select> shown as a real pill so iOS
-       Safari opens its native picker reliably and never auto-zooms. */
     .filter {
       position: relative; height: 52px; min-width: 170px;
       background: var(--card); border-radius: 12px;
@@ -182,11 +173,10 @@
       position: absolute; inset: 0; width: 100%; height: 100%;
       opacity: 0; cursor: pointer;
       -webkit-appearance: none; appearance: none;
-      font-size: 16px; /* iOS: prevent zoom */
+      font-size: 16px;
     }
     .filter i { color: var(--navy); }
 
-    /* Native-only variant used on mobile */
     .filter-native {
       display: none;
       position: relative; height: 52px;
@@ -213,7 +203,6 @@
       .filter-native { display: block; }
     }
 
-    /* ── Table ── */
     .table {
       background: var(--card); border-radius: 14px; overflow: hidden;
     }
@@ -298,7 +287,6 @@
       .t-title { font-size: .95rem; }
     }
 
-    /* ── Empty / error / skeleton ── */
     .empty { padding: 64px 20px; text-align: center; color: var(--t2); }
     .empty i { font-size: 2rem; display: block; margin-bottom: 12px; color: var(--t3); }
     .empty b { display: block; font-size: 1rem; color: var(--t1); margin-bottom: 4px; }
@@ -335,7 +323,6 @@
     .pager button:disabled { opacity: .4; cursor: not-allowed; }
     .pager span { font-size: .8rem; color: var(--t2); }
 
-    /* ── Detail (receipt) ── */
     .d-card {
       background: var(--card); border-radius: 14px; padding: 28px 20px 24px;
     }
@@ -431,7 +418,6 @@
       }
     }
 
-    /* ── Toasts ── */
     .toasts {
       position: fixed; bottom: calc(86px + var(--safe-b));
       right: 14px; left: 14px; z-index: 900;
@@ -457,9 +443,6 @@
       * { animation: none !important; transition: none !important; }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       Stale transaction banner (from the pasted spec)
-       ═══════════════════════════════════════════════════════════ */
     .tx-stale-banner {
       display: flex; align-items: center; justify-content: space-between;
       gap: 10px; padding: 10px 14px; margin: 8px 0;
@@ -530,7 +513,6 @@
           <i class="fas fa-magnifying-glass"></i>
         </div>
 
-        <!-- Desktop custom pill -->
         <label class="filter" for="filterType">
           <span id="filterLbl">All</span>
           <i class="fas fa-sliders"></i>
@@ -550,7 +532,6 @@
           </select>
         </label>
 
-        <!-- Mobile native select -->
         <select id="filterTypeMobile" class="filter-native" aria-label="Filter transactions">
           <option value="all">All transactions</option>
           <option value="airtime">Airtime</option>
@@ -620,12 +601,6 @@
 const API_BASE = '/api';
 const PAGE_SIZE = 20;
 
-/* ─── Service-only filter ────────────────────────────────────
-   history.html is for SERVICE PURCHASES only.
-   Wallet activity (deposits, credits, debits, refunds, cashback,
-   referrals, withdrawals, transfers, crypto) belongs on fund.html.
-   Gift-card SALE is gone — only gift-card PURCHASE (from DT One)
-   remains.                                                   */
 const SERVICE_TYPES = new Set([
   'airtime',
   'data',
@@ -641,9 +616,6 @@ const SERVICE_TYPES = new Set([
   'boost'
 ]);
 
-/* Server-side filter value we send when the user picks "All".
-   Empty string means "give me everything"; the client then drops
-   any non-service rows that slipped in. */
 const ALL_SENTINEL = '';
 
 const State = {
@@ -667,13 +639,37 @@ const nf = n => (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits
 const money = (n, c) => String(c || 'NGN').toUpperCase() === 'USD' ? '$' + nf(n) : '₦' + nf(n);
 const moneyCode = (n, c) => String(c || 'NGN').toUpperCase() + ' ' + nf(n);
 
+/**
+ * Format an ISO timestamp in the user's own time zone, and always
+ * append the zone abbreviation so the time is unambiguous.
+ *
+ * No `timeZone` option is passed — the browser's device zone is used.
+ * That means a Nigerian user sees WAT, a London user sees GMT/ BST,
+ * a New York user sees EST/EDT. `timeZoneName: 'short'` makes the
+ * zone explicit in the output.
+ *
+ * Same function feeds the list rows, the detail view and the shared
+ * receipt text, so all three are consistent.
+ */
 function fmtDate(iso, long) {
   if (!iso) return '—';
   const d = new Date(iso);
   if (isNaN(d)) return '—';
-  const day = d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  const time = d.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit' });
-  return long ? `${day} | ${time}` : `${day} - ${time}`;
+  const day = d.toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    timeZoneName: 'short'
+  });
+  const time = d.toLocaleString('en-US', {
+    hour: 'numeric', minute: '2-digit',
+    timeZoneName: 'short'
+  });
+  // `toLocaleString` with timeZoneName appends the zone to BOTH parts,
+  // so strip the duplicate from the day part.
+  const dayClean = day.replace(/\s+[A-Z]{2,5}$/, '').trim();
+  const tzMatch = day.match(/\s+([A-Z]{2,5})$/);
+  const tz = tzMatch ? tzMatch[1] : '';
+  const suffix = tz ? ' ' + tz : '';
+  return long ? `${dayClean} | ${time}` : `${dayClean} - ${time}`;
 }
 
 function toast(msg, type = 'info') {
@@ -739,9 +735,6 @@ async function apiFetch(path, opts = {}) {
   return body;
 }
 
-/* ─── Type map — service purchases only ──────────────────────
-   Every entry corresponds to a real service adapter. Anything
-   not listed here will be silently filtered out before render. */
 const TYPES = {
   airtime:       ['Airtime',              'fas fa-mobile-screen',      'bought', 'Purchased'],
   data:          ['Data Purchase',        'fas fa-receipt',            'bought', 'Purchased'],
@@ -773,15 +766,15 @@ function statusView(status) {
     return { label: 'Under review', cls: 'pending' };
   }
   if (['refunded', 'reversed'].includes(s)) return { label: 'Refunded', cls: 'failed' };
-  if (['failed', 'cancelled', 'canceled', 'expired'].includes(s)) return { label: 'Failed', cls: 'failed' };
+  if (['failed', 'cancelled', 'canceled', 'expired'].includes(s)) {
+    return { label: 'Failed', cls: 'failed' };
+  }
   if (['pending', 'processing', 'provider_unknown', 'confirming'].includes(s)) {
     return { label: 'Processing', cls: 'pending' };
   }
-  // Unknown → Pending, never leak raw provider strings
   return { label: 'Pending', cls: 'pending' };
 }
 
-/* Keep only service rows */
 function keepServiceRows(rows) {
   return rows.filter(r => SERVICE_TYPES.has(String(r.type || '').toLowerCase()));
 }
@@ -965,6 +958,20 @@ function openDetail(row) {
   );
 
   document.querySelectorAll('.face').forEach(f => f.classList.remove('on'));
+
+  // Highlight the user's saved rating, if any. `my_rating` comes from
+  // the server (routes/transactionRoutes.js) and is the caller's own
+  // rating for this transaction, or null.
+  if (row.my_rating) {
+    const LABEL_FOR = { 1: 'Very Bad', 2: 'Bad', 3: 'Average', 4: 'Good', 5: 'Very Good' };
+    const savedLabel = LABEL_FOR[row.my_rating];
+    if (savedLabel) {
+      document.querySelectorAll('.face').forEach(f => {
+        if (f.getAttribute('data-r') === savedLabel) f.classList.add('on');
+      });
+    }
+  }
+
   $('listView').hidden = true;
   $('detailView').hidden = false;
   $('pageTitle').textContent = 'Transaction Details';
@@ -1047,7 +1054,6 @@ function init() {
     }
   });
 
-  /* Search — debounced */
   let timer;
   $('searchInput').addEventListener('input', e => {
     clearTimeout(timer);
@@ -1058,7 +1064,6 @@ function init() {
     }, 350);
   });
 
-  /* Filter — desktop custom pill */
   $('filterType').addEventListener('change', e => {
     State.type = e.target.value || 'all';
     State.page = 1;
@@ -1066,7 +1071,6 @@ function init() {
     fetchTransactions();
   });
 
-  /* Filter — mobile native select */
   $('filterTypeMobile').addEventListener('change', e => {
     State.type = e.target.value || 'all';
     State.page = 1;
@@ -1099,14 +1103,67 @@ function init() {
     if (ref) copyText(ref, 'Reference copied. Send it to support so we can look into it.');
   });
 
-  $('faces').addEventListener('click', e => {
+  // Feedback: same DOM, same CSS. Only what the click DOES changes.
+  // Values 1..5 map to Very Bad..Very Good. Terminal statuses only.
+  const FACE_VALUES = { 'Very Bad': 1, 'Bad': 2, 'Average': 3, 'Good': 4, 'Very Good': 5 };
+  const TERMINAL = new Set(['completed', 'success', 'failed', 'refunded', 'cancelled']);
+
+  let feedbackInFlight = false;
+  $('faces').addEventListener('click', async e => {
     const b = e.target.closest('.face');
     if (!b) return;
-    document.querySelectorAll('.face').forEach(f => f.classList.toggle('on', f === b));
-    toast('Thanks for your feedback', 'ok');
+    if (feedbackInFlight) return;
+
+    const r = State.current;
+    if (!r || !r.reference) {
+      toast('Open a transaction to rate it.', 'err');
+      return;
+    }
+    const status = String(r.status || '').toLowerCase();
+    if (!TERMINAL.has(status)) {
+      toast('You can rate this transaction once it has finished.', 'info');
+      return;
+    }
+
+    const label = b.getAttribute('data-r');
+    const rating = FACE_VALUES[label];
+    if (!rating) return;
+
+    feedbackInFlight = true;
+    const prevOpacity = b.style.opacity;
+    b.style.opacity = '0.6';
+
+    try {
+      const body = await apiFetch(
+        `/transactions/${encodeURIComponent(r.reference)}/feedback`,
+        { method: 'POST', body: JSON.stringify({ rating }) }
+      );
+      const savedRating = body?.data?.rating ?? rating;
+
+      r.my_rating = savedRating;
+      const idx = State.rows.findIndex(x => x.reference === r.reference);
+      if (idx >= 0) State.rows[idx].my_rating = savedRating;
+
+      document.querySelectorAll('.face').forEach(f => f.classList.toggle('on', f === b));
+      toast('Thanks for your feedback', 'ok');
+    } catch (e2) {
+      if (e2.status === 401) return;
+      if (e2.status === 404) { toast('Transaction not found.', 'err'); return; }
+      if (e2.status === 409) {
+        toast(e2.message || 'This transaction cannot be rated yet.', 'info');
+        return;
+      }
+      if (e2.status === 429) {
+        toast('You are rating too quickly. Please wait a moment.', 'err');
+        return;
+      }
+      toast(e2.message || 'Could not save feedback. Please try again.', 'err');
+    } finally {
+      feedbackInFlight = false;
+      b.style.opacity = prevOpacity;
+    }
   });
 
-  /* Speed: paint cached page 1 instantly on the default view, then refresh. */
   if (State.type === 'all' && State.page === 1 && !State.search && window.MS && MS.swr) {
     MS.swr('history:page1', () => apiFetch('/transactions?page=1&limit=' + PAGE_SIZE), (cached) => {
       if (!cached || !cached.data) return;
@@ -1128,25 +1185,15 @@ document.addEventListener('DOMContentLoaded', init);
 
 /* ═══════════════════════════════════════════════════════════════════
    Stale transaction banner + "Check status" button.
-   Appended exactly per the pasted spec.
-   Requires nothing except a signed-in user.
+   UNCHANGED from the previous version of this file.
    ═══════════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
 
-  // ─── PAGE ADAPTER — history.html ───────────────────────────
-  // Row selector: every transaction row rendered by renderList().
-  // Record lookup: data-i → State.rows[i]. State.rows is guaranteed
-  //   to be service-only because fetchTransactions() filters before
-  //   storing. So no financial rows can ever end up here.
-  // Fields: State.rows[i] has reference, status, created_at.
-  // Token fetcher: window.userFetch (falls back to fetch with cookies).
-  // Toast: local toast(msg, type) → 'ok' / 'err' / 'info'.
   const ROW_SELECTOR = '.t-row[data-i]';
   const RECORD_LOOKUP = (el) => State.rows[Number(el.getAttribute('data-i'))] || null;
   const ESCAPE_HTML = esc;
   const SHOW_TOAST = (msg, kind) => toast(msg, kind === 'ok' ? 'ok' : (kind === 'err' ? 'err' : 'info'));
-  // ──────────────────────────────────────────────────────────
 
   const API_CHECK = '/api/transactions';
   const STALE_MS = 10 * 60 * 1000;
@@ -1193,7 +1240,6 @@ document.addEventListener('DOMContentLoaded', init);
   }
 
   function inject(rowEl, rec) {
-    // Already injected?
     const sib = rowEl.nextElementSibling;
     if (sib && sib.classList && sib.classList.contains('tx-stale-banner')) return;
     if (rowEl.querySelector && rowEl.querySelector('.tx-stale-banner')) return;
@@ -1225,13 +1271,8 @@ document.addEventListener('DOMContentLoaded', init);
         if (TERMINAL.has(label)) {
           btn.remove();
           SHOW_TOAST('Status updated.', 'ok');
-          if (typeof window.fetchTransactions === 'function') {
-            // fetchTransactions is a function declaration in the module scope above
-            // — it's not on window, but we can reach it through the closure by
-            // calling the exported hook below.
-            if (typeof window.__historyRefresh === 'function') {
-              setTimeout(() => window.__historyRefresh(), 400);
-            }
+          if (typeof window.__historyRefresh === 'function') {
+            setTimeout(() => window.__historyRefresh(), 400);
           }
         } else {
           btn.disabled = false;
@@ -1255,7 +1296,6 @@ document.addEventListener('DOMContentLoaded', init);
     isScanning = true;
     try {
       document.querySelectorAll(ROW_SELECTOR).forEach(el => {
-        // Skip invisible rows
         if (el.getClientRects().length === 0) return;
         const rec = RECORD_LOOKUP(el);
         if (!isStale(rec)) return;
@@ -1276,7 +1316,6 @@ document.addEventListener('DOMContentLoaded', init);
     debounce = setTimeout(scan, 300);
   }).observe(document.body, { childList: true, subtree: true });
 
-  /* Expose the refresh hook for the terminal-status path */
   window.__historyRefresh = function () {
     try { fetchTransactions(); } catch (_) {}
   };

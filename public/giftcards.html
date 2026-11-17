@@ -40,9 +40,6 @@
   <script src="/js/ms-shell.js?v=1" defer></script>
 
   <style>
-    /* ═══════════════════════════════════════════════════════════
-       DESIGN TOKENS
-       ═══════════════════════════════════════════════════════════ */
     :root {
       --fd: 'Inter', system-ui, sans-serif;
       --fb: 'Inter', system-ui, sans-serif;
@@ -98,7 +95,8 @@
       font-size: 15px;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
-      max-width: 100vw;
+      max-width: 100%;
+      width: 100%;
       overflow-x: hidden;
     }
     body.sb-open { overflow: hidden; }
@@ -129,9 +127,6 @@
       * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       OVERLAY
-       ═══════════════════════════════════════════════════════════ */
     .ov {
       display: none;
       position: fixed;
@@ -150,9 +145,6 @@
       pointer-events: auto;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       SIDEBAR
-       ═══════════════════════════════════════════════════════════ */
     .sidebar {
       position: fixed;
       top: 0;
@@ -275,9 +267,6 @@
     }
     .sb-out:hover { background: var(--erl); color: var(--err); }
 
-    /* ═══════════════════════════════════════════════════════════
-       TOPBAR & MAIN LAYOUT
-       ═══════════════════════════════════════════════════════════ */
     .main { min-height: 100vh; }
     .topbar {
       position: sticky;
@@ -346,9 +335,6 @@
       padding: 28px 28px calc(100px + var(--safe-b));
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       PAGE HEADER & CARD
-       ═══════════════════════════════════════════════════════════ */
     .pg-head { margin-bottom: 20px; }
     .pg-head h1 {
       font-family: var(--fd);
@@ -366,9 +352,6 @@
       padding: 22px;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       TABS & CONTROLS
-       ═══════════════════════════════════════════════════════════ */
     .gc-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
     .gc-tab {
       padding: 10px 18px;
@@ -491,9 +474,6 @@
       .country-menu { right: auto; left: 0; width: 100%; }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       GIFT CARD LIST
-       ═══════════════════════════════════════════════════════════ */
     .gc-list { display: flex; flex-direction: column; gap: 10px; }
     .gc-list[hidden] { display: none !important; }
 
@@ -567,9 +547,6 @@
     .gc-empty p { font-size: .86rem; margin: 0; }
     .gc-empty .empty-hint { font-size: .78rem; color: var(--t3); margin-top: 8px; }
 
-    /* ═══════════════════════════════════════════════════════════
-       DRAWER (Gift Card Purchase)
-       ═══════════════════════════════════════════════════════════ */
     .drawer-overlay {
       position: fixed;
       inset: 0;
@@ -755,9 +732,6 @@
     .step-view { display: none; }
     .step-view.active { display: block; }
 
-    /* ═══════════════════════════════════════════════════════════
-       PIN MODAL
-       ═══════════════════════════════════════════════════════════ */
     .pin-modal {
       position: fixed;
       inset: 0;
@@ -962,9 +936,6 @@
       }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       HISTORY DRAWER
-       ═══════════════════════════════════════════════════════════ */
     .hist-drawer {
       position: fixed;
       top: 0;
@@ -1000,9 +971,6 @@
     .hist-item .viewcode:hover { background: var(--pm); }
     .hist-empty { padding: 40px 20px; text-align: center; color: var(--t3); font-size: .82rem; }
 
-    /* ═══════════════════════════════════════════════════════════
-       TOAST
-       ═══════════════════════════════════════════════════════════ */
     .toast {
       position: fixed;
       bottom: calc(22px + var(--safe-b));
@@ -1071,9 +1039,6 @@
       .drawer-body { padding-bottom: 120px; }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       Stale transaction banner (from the pasted spec)
-       ═══════════════════════════════════════════════════════════ */
     .tx-stale-banner {
       display: flex;
       align-items: center;
@@ -1172,7 +1137,7 @@
     <div class="card">
       <div class="gc-tabs" role="tablist" aria-label="Gift card filters">
         <button class="gc-tab active" id="tabAll" role="tab" aria-selected="true">All</button>
-        <button class="gc-tab" id="tabTop" role="tab" aria-selected="false">Top Selling <span aria-hidden="true">🔥</span></button>
+        <button class="gc-tab" id="tabTop" role="tab" aria-selected="false">Top Selling <i class="fas fa-fire" style="color:var(--acc);font-size:.72rem" aria-hidden="true"></i></button>
       </div>
 
       <div class="gc-controls">
@@ -1239,7 +1204,8 @@
         </div>
       </div>
 
-      <div class="field-block">
+      <!-- Quantity block hidden because server MAX_QUANTITY = 1 -->
+      <div class="field-block" style="display:none;">
         <label class="field-label">Quantity</label>
         <div class="qty-row">
           <div class="qty-ctrl">
@@ -1247,7 +1213,7 @@
             <span class="qty-val" id="qtyVal">1</span>
             <button class="qty-btn" id="qtyPlus" aria-label="Increase quantity" type="button"><i class="fas fa-plus"></i></button>
           </div>
-          <span class="qty-note">Max 5 per order</span>
+          <span class="qty-note">Max 1 per order</span>
         </div>
       </div>
 
@@ -1281,6 +1247,7 @@
       <div class="field-block">
         <label class="field-label" for="deliveryEmail">Delivery email</label>
         <input type="email" class="email-input" id="deliveryEmail" placeholder="you@example.com" autocomplete="off" />
+        <div class="email-status" id="emailStatus" style="font-size:.75rem;min-height:16px;margin-top:4px;color:var(--err)"></div>
       </div>
     </div>
 
@@ -1391,10 +1358,16 @@
 
 <script>
 'use strict';
-
+function displayName(p) {
+  return p.displayName || p.display_name || p.name || 'Gift card';
+}
+function displayLogo(p) {
+  return p.logo_url || p.logo || null;
+}
 const CONFIG = {
   api: {
     products:        (page = 1, limit = 500) => `/api/giftcards/products?page=${page}&limit=${limit}`,
+    validate:        '/api/giftcards/validate-email',
     purchase:        '/api/giftcards/purchase',
     status:          (id) => `/api/giftcards/status/${encodeURIComponent(id)}`,
     history:         '/api/giftcards/history',
@@ -1406,7 +1379,7 @@ const CONFIG = {
   settingsPage: 'usersettings.html',
   pollIntervalMs: 3000,
   pollMaxAttempts: 40,
-  maxQty: 5,
+  maxQty: 1,
   productsCacheKey: 'mx_giftcard_products_v2',
   legacyCacheKeys: ['mx_giftcard_products_v1'],
   productsPageSize: 500,
@@ -1560,14 +1533,8 @@ function flagHtml(iso) {
     : `<i class="fas fa-earth-americas" style="font-size:.68rem;color:var(--t3)"></i>`;
 }
 
-const TOP_SELLING_HINTS = [
-  'amazon', 'apple', 'google play', 'steam', 'itunes', 'xbox', 'playstation',
-  'netflix', 'spotify', 'razer gold', 'ebay', 'walmart', 'sephora', 'bolt', 'uber',
-  'jumia', 'spar', 'nintendo'
-];
-function isTopSelling(p) {
-  const n = (p.name || '').toLowerCase();
-  return TOP_SELLING_HINTS.some(h => n.includes(h));
+function isFeatured(p) {
+  return p.featured === true;
 }
 
 const State = {
@@ -1657,9 +1624,6 @@ function renderUserFromSession() {
   if (delivery && !delivery.value) delivery.value = u.email || '';
 }
 
-/* ═══════════════════════════════════════════════════════════
-   PRODUCTS CATALOG — Stale-While-Revalidate (FAST LOAD)
-   ═══════════════════════════════════════════════════════════ */
 async function loadProducts() {
   let paintedFromCache = false;
 
@@ -1778,12 +1742,19 @@ function buildCountryList() {
   State.countries = Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
 
+const collator = new Intl.Collator('en', { sensitivity: 'base', numeric: true });
+
 function filteredProducts() {
   let list = State.products;
+  
   if (State.countryFilter) {
     list = list.filter(p => String(p.countryIso || '').toUpperCase() === State.countryFilter.iso3);
   }
-  if (State.tab === 'top') list = list.filter(isTopSelling);
+  
+  if (State.tab === 'top') {
+    list = list.filter(isFeatured);
+  }
+  
   const q = State.search.trim().toLowerCase();
   if (q) {
     list = list.filter(p =>
@@ -1792,7 +1763,21 @@ function filteredProducts() {
       (p.operatorName || '').toLowerCase().includes(q)
     );
   }
-  return list;
+
+  // Sort so letters come first A-Z, then numbers/symbols at the end
+  return [...list].sort((a, b) => {
+    const an = displayName(a);
+    const bn = displayName(b);
+    const firstA = String(an || '').trim().charAt(0);
+    const firstB = String(bn || '').trim().charAt(0);
+    const groupA = /\p{L}/u.test(firstA) ? 0 : 1;
+    const groupB = /\p{L}/u.test(firstB) ? 0 : 1;
+    
+    if (groupA !== groupB) return groupA - groupB;
+    return collator.compare(an, bn) 
+        || collator.compare(a.countryName || '', b.countryName || '') 
+        || (a.faceValue || 0) - (b.faceValue || 0);
+  });
 }
 
 function priceRangeLabel(p) {
@@ -1850,10 +1835,12 @@ function renderList() {
   const renderSlice = items.length > CAP ? items.slice(0, CAP) : items;
 
   list.innerHTML = renderSlice.map((p, idx) => {
-    const top = isTopSelling(p);
-    const logoHtml = p.logo
-      ? `<img src="${escapeHtml(p.logo)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.hidden=false;"><span hidden>${escapeHtml(initials(p.name))}</span>`
-      : `<span>${escapeHtml(initials(p.name))}</span>`;
+    const top = isFeatured(p);
+    const logo = displayLogo(p);
+    const nm = displayName(p);
+    const logoHtml = logo
+      ? `<img src="${escapeHtml(logo)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.hidden=false;"><span hidden>${escapeHtml(initials(nm))}</span>`
+      : `<span>${escapeHtml(initials(nm))}</span>`;
 
     const operatorSuffix =
       p.operatorName && p.operatorName !== p.name && !p.name.toLowerCase().includes(p.operatorName.toLowerCase())
@@ -1863,7 +1850,7 @@ function renderList() {
       <button type="button" class="gc-item" data-idx="${idx}">
         <div class="gc-logo">${logoHtml}</div>
         <div class="gc-body">
-          <div class="gc-name">${escapeHtml(p.name)}${top ? ' <span class="fire" aria-hidden="true">🔥</span>' : ''}</div>
+          <div class="gc-name">${escapeHtml(nm)}${top ? ' <i class="fas fa-fire" aria-hidden="true" style="color:var(--acc);font-size:.78rem"></i>' : ''}</div>
           <div class="gc-meta">
             <span class="flag-ic">${flagHtml(p.countryIso)}</span>
             <span>${escapeHtml(p.countryName || 'Global')}</span>
@@ -2000,13 +1987,9 @@ function setTab(tab) {
   renderList();
 }
 
-/* ═══════════════════════════════════════════════════════════
-   WALLET BALANCES — parallel fetch, cache-first
-   ═══════════════════════════════════════════════════════════ */
 async function loadBalances() {
   if (State.balancesLoaded) return;
 
-  /* Paint last-known balances from sessionStorage immediately. */
   try {
     const cached = JSON.parse(sessionStorage.getItem('ms:gc:balances') || 'null');
     if (cached && (cached.NGN != null || cached.USD != null)) {
@@ -2100,15 +2083,24 @@ function openDrawer(product) {
   State.currentReference = null;
   State.purchaseIdempotencyKey = null;
   stopPolling();
+  
+  // Reset email validation state
+  _lastValidGcEmail = '';
+  const _emailStatus = $('#emailStatus');
+  if (_emailStatus) { _emailStatus.textContent = ''; _emailStatus.style.color = ''; }
+  const _emailInput = $('#deliveryEmail');
+  if (_emailInput) _emailInput.style.borderColor = '';
 
   const drLogo = $('#drLogo');
-  if (product.logo) {
-    drLogo.innerHTML = `<img src="${escapeHtml(product.logo)}" alt="" onerror="this.style.display='none';this.nextElementSibling.hidden=false;"><span hidden>${escapeHtml(initials(product.name))}</span>`;
+  const logo = displayLogo(product);
+  const name = displayName(product);
+  if (logo) {
+    drLogo.innerHTML = `<img src="${escapeHtml(logo)}" alt="" onerror="this.style.display='none';this.nextElementSibling.hidden=false;"><span hidden>${escapeHtml(initials(name))}</span>`;
   } else {
-    drLogo.textContent = initials(product.name);
+    drLogo.textContent = initials(name);
   }
 
-  $('#drName').textContent = product.name;
+  $('#drName').textContent = name;
   $('#drFlag').innerHTML = flagHtml(product.countryIso);
   $('#drCountry').textContent = product.countryName || '';
   $('#denomFixedValue').textContent = `${product.currency || ''} ${product.faceValue ?? '—'}`;
@@ -2116,7 +2108,8 @@ function openDrawer(product) {
   $('#qtyVal').textContent = '1';
   $('#qtyMinus').disabled = true;
   $('#qtyPlus').disabled = State.quantity >= CONFIG.maxQty;
-  $$('#walletToggle .wallet-opt').forEach(o => o.classList.toggle('active', o.dataset.currency === 'USD'));
+  $$('#walletToggle .wallet-opt').forEach(o =>
+    o.classList.toggle('active', o.dataset.currency === 'USD'));
 
   goToDrawerStep('form');
   refreshPriceBreakdown();
@@ -2128,12 +2121,77 @@ function refreshPriceBreakdown() {
   const p = State.selectedProduct;
   if (!p) return;
 
-  const { unit, total } = computeTotals();
-  $('#pbAmountLabel').textContent = `Amount (${money(unit, State.currency)} × ${State.quantity})`;
-  $('#pbAmount').textContent = money(unit * State.quantity, State.currency);
-  $('#pbQty').textContent = String(State.quantity);
-  $('#pbTotal').textContent = money(total, State.currency);
-  updateInsufficientBanner();
+   // qty is capped at 1, so the server-returned unit price IS the total.
+  // No client multiplication is used for the confirmed total.
+  const serverTotal = State.currency === 'NGN'
+    ? (p.priceNgn ?? p.priceUsd)
+    : (p.priceUsd ?? p.priceNgn);
+  $('#cfTotal').textContent = money(serverTotal, State.currency);
+}
+
+let _gcEmailTimeout = null;
+let _isGcEmailValidating = false;
+let _lastValidGcEmail = '';
+
+function initGiftCardEmailValidation() {
+  const input = $('#deliveryEmail');
+  const status = $('#emailStatus');
+  const btn = $('#stepPrimaryBtn');
+  if (!input || !status || !btn) return;
+
+  const setStatus = (state, msg) => {
+    status.style.color = state === 'success' ? 'var(--succ)' : 'var(--err)';
+    status.textContent = msg;
+    input.style.borderColor = state === 'error' ? 'var(--err)' : '';
+    updateBtn();
+  };
+
+  const updateBtn = () => {
+    if (State.drawerStep !== 'form') return;
+    const isInvalid = status.style.color === 'var(--err)' && status.textContent !== '';
+    const isEmpty = !input.value.trim();
+    btn.disabled = isInvalid || isEmpty || _isGcEmailValidating;
+  };
+
+  const validate = async () => {
+    const email = input.value.trim().toLowerCase();
+    if (!email) { setStatus('', ''); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setStatus('error', 'Enter a valid email address.');
+      return;
+    }
+    if (email === _lastValidGcEmail) { setStatus('success', ''); return; }
+
+    _isGcEmailValidating = true;
+    updateBtn();
+    setStatus('', 'Checking...');
+    
+    try {
+      const res = await apiPost(CONFIG.api.validate, { email });
+      if (res.success) {
+        _lastValidGcEmail = email;
+        setStatus('success', '');
+      }
+    } catch (e) {
+      if (e.code === 'EMAIL_NOT_FOUND') setStatus('error', 'Email not found');
+      else if (e.code === 'EMAIL_INVALID') setStatus('error', 'Enter a valid email address.');
+      else setStatus('error', 'Could not verify email.');
+    } finally {
+      _isGcEmailValidating = false;
+      updateBtn();
+    }
+  };
+
+  input.addEventListener('input', () => {
+    clearTimeout(_gcEmailTimeout);
+    _lastValidGcEmail = '';
+    setStatus('', '');
+  });
+
+  input.addEventListener('blur', () => {
+    clearTimeout(_gcEmailTimeout);
+    _gcEmailTimeout = setTimeout(validate, 500);
+  });
 }
 
 function initDrawerControls() {
@@ -2268,15 +2326,17 @@ function onDrawerPrimary() {
 function populateConfirmStep() {
   const p = State.selectedProduct;
   const { unit, total } = computeTotals();
+  const name = displayName(p);
+  const logo = displayLogo(p);
 
   const cfLogo = $('#cfLogo');
-  if (p.logo) {
-    cfLogo.innerHTML = `<img src="${escapeHtml(p.logo)}" alt="" onerror="this.style.display='none';this.nextElementSibling.hidden=false;"><span hidden>${escapeHtml(initials(p.name))}</span>`;
+  if (logo) {
+    cfLogo.innerHTML = `<img src="${escapeHtml(logo)}" alt="" onerror="this.style.display='none';this.nextElementSibling.hidden=false;"><span hidden>${escapeHtml(initials(name))}</span>`;
   } else {
-    cfLogo.textContent = initials(p.name);
+    cfLogo.textContent = initials(name);
   }
 
-  $('#cfName').textContent = p.name;
+  $('#cfName').textContent = name;
   $('#cfFlag').innerHTML = flagHtml(p.countryIso);
   $('#cfCountry').textContent = p.countryName || '';
   $('#cfAmount').textContent = `${money(unit, State.currency)} × ${State.quantity}`;
@@ -2448,6 +2508,10 @@ async function submitPurchase() {
 
   if (!p) { toast('No product selected.', true); return; }
   if (!deliverTo) { toast('Enter a delivery email.', true); return; }
+  if ($('#emailStatus').style.color === 'var(--err)') {
+    toast($('#emailStatus').textContent, true);
+    return;
+  }
 
   const rows = [
     ['Product', p.name],
@@ -2517,14 +2581,22 @@ async function submitPurchase() {
         errorMessage: e.message || 'Insufficient balance for this purchase.'
       });
       $('#pmInsufficient')?.classList.add('show');
-    } else if (e.status === 404) {
+        } else if (e.code === 'EMAIL_NOT_FOUND' || e.code === 'EMAIL_INVALID') {
+      toast(e.message, true);
+      $('#emailStatus').textContent = e.message;
+      $('#emailStatus').style.color = 'var(--err)';
+      $('#deliveryEmail').style.borderColor = 'var(--err)';
+    } else if (e.code === 'PRODUCT_UNAVAILABLE' || e.status === 409) {
       State.purchaseIdempotencyKey = null;
-      toast('This gift card is no longer available.', true);
-    } else if (e.code === 'IDEMPOTENCY_KEY_REUSE') {
-      State.purchaseIdempotencyKey = _newPurchaseKey();
-      toast('Please try again.', true);
-    } else if (e.networkError) {
-      toast(e.message || "Couldn't connect. Tap Confirm again to retry.", true);
+      toast(e.message || 'This item is temporarily unavailable. Please pick another.', true);
+      closeDrawer();
+      loadProductsSilently();
+    } else if (e.status === 404 || e.code === 'PRODUCT_NOT_FOUND') {
+      State.purchaseIdempotencyKey = null;
+      toast('This gift card was just updated by the provider. Refreshing the list...', true);
+      closeDrawer();
+      localStorage.removeItem(CONFIG.productsCacheKey);
+      loadProducts(); 
     } else {
       toast(e.message || "Couldn't complete the purchase. Tap Confirm again to retry.", true);
     }
@@ -2559,10 +2631,12 @@ function showFailedState(msg) {
 }
 
 function showCompletedState(data) {
+  const p = State.selectedProduct;
+  const name = displayName(p);
   $('#statusIcon').className = 'status-icon completed';
   $('#statusIcon').innerHTML = '<i class="fas fa-check"></i>';
   $('#statusTitle').textContent = 'Gift Card Ready';
-  $('#statusText').textContent = `${State.selectedProduct.name} · ${State.selectedProduct.currency || ''} ${State.denomAmount ?? ''}`;
+  $('#statusText').textContent = `${name} · ${p.currency || ''} ${State.denomAmount ?? ''}`;
   $('#voucherBlock').hidden = false;
   $('#voucherCode').textContent = data.voucherCode || '—';
 
@@ -2657,15 +2731,11 @@ async function loadProductsSilently() {
   } catch { /* keep current list */ }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   HISTORY DRAWER — with cache-first paint
-   ═══════════════════════════════════════════════════════════ */
 async function openHistory() {
   const drawer = $('#histDrawer');
   const list = $('#histList');
   drawer.classList.add('open');
 
-  /* Fast paint: last-known history from sessionStorage. */
   try {
     const cached = JSON.parse(sessionStorage.getItem('ms:gc:history') || 'null');
     if (cached && Array.isArray(cached.items) && cached.items.length) {
@@ -2772,6 +2842,7 @@ function init() {
   initSearchAndTabs();
   initCountryMenu();
   initDrawerControls();
+  initGiftCardEmailValidation();
   _bindPinOnce();
 
   $('#histBtn')?.addEventListener('click', openHistory);
@@ -2784,20 +2855,6 @@ document.addEventListener('DOMContentLoaded', init);
 </script>
 
 <script>
-/* ═══════════════════════════════════════════════════════════════════
-   Stale transaction banner + "Check status" button.
-   Appended exactly per the pasted spec for giftcards.html.
-
-   PAGE ADAPTER
-   ────────────
-   1. ROW_SELECTOR = '#histList .hist-item[data-hi]'
-   2. RECORD_LOOKUP = el => State.histItems[Number(el.dataset.hi)] || null
-   3. Record fields: id, transactionId, reference (fall back to id),
-      status, createdAt (used as created_at fallback). All present on
-      the shape returned by /api/giftcards/history.
-   4. Token fetcher: window.userFetch (falls back to fetch with cookies).
-   5. Toast: local toast(msg, isError) — takes a BOOLEAN second arg.
-   ═══════════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
 
@@ -2808,7 +2865,6 @@ document.addEventListener('DOMContentLoaded', init);
     return State.histItems[Number(idx)] || null;
   };
   const ESCAPE_HTML   = escapeHtml;
-  /* giftcards.html toast(msg, isError) — map 'ok'/'err' to boolean */
   const SHOW_TOAST    = (msg, kind) => toast(msg, kind === 'err' || kind === 'error');
 
   const API_BASE = '/api/transactions';

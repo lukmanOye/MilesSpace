@@ -33,6 +33,19 @@
 //   • Token-based step-up (X-Step-Up-Token) is DEPRECATED but still
 //     validated. The session-based step-up middleware from
 //     adminStepUp.js is the canonical path (E.5).
+//
+// [CHANGED] 2025-11-09 — E.2 permission cache
+//   • resolvePermissionsCached(userId, sessionId) caches the
+//     role-permissions + per-user overrides for PERMISSION_CACHE_TTL_MS.
+//   • Cache is invalidated by calling invalidatePermissionCache(adminId)
+//     from any admin mutation route. The Orders routes do not call
+//     this yet — the 5s TTL means a role change made from another
+//     admin route (roles, permissions, user status) is picked up
+//     within 5s. This is a deliberate tradeoff so the Orders page
+//     does not incur 4 DB reads per request without touching the
+//     roles/permissions routes.
+//   • Cache miss on any DB error → returns null and buildAdminContext
+//     returns the same 503 it returns today. Fail-closed preserved.
 // ─────────────────────────────────────────────────────────────────
 
 'use strict';
@@ -59,6 +72,41 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 // ─── Correlation ID shape ───────────────────────────────────────
 const CORR_RE = /^[A-Za-z0-9_\-]{1,80}$/;
+
+// [CHANGED] Permission cache — 5s TTL, keyed by userId + sessionId.
+// Any role / permission / session change picks up on the next request
+// after the TTL expires. Failures are NOT cached.
+const PERMISSION_CACHE_TTL_MS = 5_000;
+const PERMISSION_CACHE_MAX = 500;
+const _permCache = new Map(); // key → { value, expiresAt }
+
+function _permCacheKey(userId, sessionId) {
+    return String(userId) + '|' + String(sessionId || '');
+}
+function _permCacheGet(userId, sessionId) {
+    const key = _permCacheKey(userId, sessionId);
+    const entry = _permCache.get(key);
+    if (!entry) return undefined;
+    if (entry.expiresAt < Date.now()) { _permCache.delete(key); return undefined; }
+    return entry.value;
+}
+function _permCacheSet(userId, sessionId, value) {
+    if (_permCache.size >= PERMISSION_CACHE_MAX) {
+        const first = _permCache.keys().next().value;
+        if (first) _permCache.delete(first);
+    }
+    _permCache.set(_permCacheKey(userId, sessionId), {
+        value,
+        expiresAt: Date.now() + PERMISSION_CACHE_TTL_MS
+    });
+}
+function invalidatePermissionCache(adminId) {
+    if (!adminId) { _permCache.clear(); return; }
+    const prefix = String(adminId) + '|';
+    for (const k of Array.from(_permCache.keys())) {
+        if (k.startsWith(prefix)) _permCache.delete(k);
+    }
+}
 
 // ─── PROFILE_SELECT — single source of truth for the profile columns
 // any admin route may read. Consumers (users routes, roles routes)
@@ -126,6 +174,7 @@ const PERMISSIONS = Object.freeze({
 
     SERVICES_READ:          'services.read',
     SERVICES_MANAGE:        'services.manage',
+    INVENTORY_REVEAL:       'marketplace.inventory_reveal',   // NEW (2026-mkt-v1)
 
     ORDERS_READ:            'orders.read',
     ORDERS_RESOLVE:         'orders.resolve',
@@ -193,6 +242,7 @@ const ROLE_PERMISSIONS = Object.freeze({
         PERMISSIONS.FX_READ,
         PERMISSIONS.PROVIDERS_READ, PERMISSIONS.PROVIDERS_TEST,
         PERMISSIONS.SERVICES_READ, PERMISSIONS.SERVICES_MANAGE,
+        PERMISSIONS.INVENTORY_REVEAL,
         PERMISSIONS.ORDERS_READ, PERMISSIONS.ORDERS_RESOLVE,
         PERMISSIONS.WEBHOOKS_READ,
         PERMISSIONS.RECONCILIATION_READ,
@@ -394,14 +444,12 @@ const TRUSTED_PROXIES = (() => {
 
 function getClientIp(req) {
     if (!req) return null;
-    // If Express already trusts the proxy chain, req.ip is correct.
     if (typeof req.ip === 'string' && req.ip) return _normalizeIp(req.ip);
 
     const fwd = req.headers?.['x-forwarded-for'];
     if (typeof fwd === 'string' && fwd) {
         const parts = fwd.split(',').map(s => s.trim()).filter(Boolean);
         if (parts.length) {
-            // Walk back TRUSTED_PROXIES hops from the RIGHT.
             const idx = Math.max(0, parts.length - 1 - TRUSTED_PROXIES);
             return _normalizeIp(parts[idx]);
         }
@@ -441,14 +489,11 @@ function ensureCorrelationId(req, res) {
 }
 
 // ─── Cache-Control: no-store on all admin responses ─────────────
-// Applied to every response sent by adminAuth-family middleware,
-// including success paths (E.6).
 function _applyAdminNoStoreHeaders(res) {
     if (!res || typeof res.setHeader !== 'function' || res.headersSent) return;
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-    // Prevent caching of authenticated content by intermediate caches.
     res.setHeader('Vary', 'Authorization');
 }
 
@@ -478,7 +523,6 @@ function verifyAdminJwt(req, expectedType = 'admin') {
         throw e;
     }
 
-    // ── Type check ─────────────────────────────────────────────
     if (decoded.type !== expectedType) {
         const e = new Error(
             expectedType === 'admin_setup'
@@ -492,14 +536,12 @@ function verifyAdminJwt(req, expectedType = 'admin') {
         throw e;
     }
 
-    // ── Identity ───────────────────────────────────────────────
     if (!decoded.id || typeof decoded.id !== 'string') {
         const e = new Error('Invalid session. Please sign in again.');
         e.status = 401; e.code = 'INVALID_SESSION';
         throw e;
     }
 
-    // ── Session-id shape (ONLY for full admin tokens) ──────────
     if (expectedType === 'admin') {
         if (!decoded.sid || typeof decoded.sid !== 'string' || !UUID_RE.test(decoded.sid)) {
             const e = new Error('Invalid session. Please sign in again.');
@@ -543,7 +585,6 @@ async function buildAdminContext(req, requiredPermission, expectedType = 'admin'
         e.status = 403; e.code = 'ACCOUNT_DELETED'; throw e;
     }
 
-    // E.4 — block suspended, banned, inactive (not just suspended).
     const profileStatus = String(profile.status || '').toLowerCase();
     if (profileStatus && profileStatus !== 'active') {
         const e = new Error(
@@ -619,52 +660,55 @@ async function buildAdminContext(req, requiredPermission, expectedType = 'admin'
         if (role === ADMIN_ROLES.SUPER_ADMIN) {
             effective = ['*'];
         } else {
-            // Resolve permissions from admin_roles for ANY slug (E.1).
-            // Falls back to ROLE_PERMISSIONS if the row is missing —
-            // this preserves behaviour on a fresh deploy with an
-            // empty admin_roles table, and for any legacy role not
-            // yet migrated.
-            let rolePermissions = null;
-            try {
-                const { data, error } = await supabaseAdmin
-                    .from('admin_roles')
-                    .select('permissions')
-                    .eq('slug', role)
-                    .maybeSingle();
-                if (error) {
-                    // Missing table is not fatal (pre-migration). Any
-                    // other error is.
-                    if (!(error.code === '42P01' || error.code === 'PGRST205')) {
-                        console.warn('[ADMIN AUTH] admin_roles lookup error:', error.message);
+            // [CHANGED] Check the permission cache first.
+            const cached = _permCacheGet(profile.id, decoded.sid);
+            if (cached) {
+                effective = cached;
+            } else {
+                // Resolve permissions from admin_roles for ANY slug.
+                // Falls back to ROLE_PERMISSIONS if the row is missing.
+                let rolePermissions = null;
+                try {
+                    const { data, error } = await supabaseAdmin
+                        .from('admin_roles')
+                        .select('permissions')
+                        .eq('slug', role)
+                        .maybeSingle();
+                    if (error) {
+                        if (!(error.code === '42P01' || error.code === 'PGRST205')) {
+                            console.warn('[ADMIN AUTH] admin_roles lookup error:', error.message);
+                        }
+                    } else if (data && Array.isArray(data.permissions)) {
+                        rolePermissions = data.permissions;
                     }
-                } else if (data && Array.isArray(data.permissions)) {
-                    rolePermissions = data.permissions;
+                } catch (e) {
+                    console.warn('[ADMIN AUTH] admin_roles exception:', e.message);
                 }
-            } catch (e) {
-                console.warn('[ADMIN AUTH] admin_roles exception:', e.message);
-            }
 
-            const defaults = rolePermissions != null
-                ? rolePermissions
-                : (ROLE_PERMISSIONS[role] || []);
-            const merged = new Set(defaults);
+                const defaults = rolePermissions != null
+                    ? rolePermissions
+                    : (ROLE_PERMISSIONS[role] || []);
+                const merged = new Set(defaults);
 
-            // Per-user overrides (admin_permissions).
-            try {
-                const { data, error } = await supabaseAdmin
-                    .from('admin_permissions')
-                    .select('permission, granted')
-                    .eq('user_id', profile.id);
-                if (error) throw new Error('Permission service unavailable');
-                (data || []).forEach(o => {
-                    if (o.granted) merged.add(o.permission);
-                    else merged.delete(o.permission);
-                });
-            } catch (e) {
-                const err = new Error('Permission service unavailable');
-                err.status = 503; err.code = 'PERMISSION_SERVICE_UNAVAILABLE'; throw err;
+                // Per-user overrides (admin_permissions).
+                try {
+                    const { data, error } = await supabaseAdmin
+                        .from('admin_permissions')
+                        .select('permission, granted')
+                        .eq('user_id', profile.id);
+                    if (error) throw new Error('Permission service unavailable');
+                    (data || []).forEach(o => {
+                        if (o.granted) merged.add(o.permission);
+                        else merged.delete(o.permission);
+                    });
+                } catch (e) {
+                    const err = new Error('Permission service unavailable');
+                    err.status = 503; err.code = 'PERMISSION_SERVICE_UNAVAILABLE'; throw err;
+                }
+                effective = Array.from(merged);
+                // [CHANGED] Cache the resolved list for 5s.
+                _permCacheSet(profile.id, decoded.sid, effective);
             }
-            effective = Array.from(merged);
         }
     }
 
@@ -690,7 +734,7 @@ async function buildAdminContext(req, requiredPermission, expectedType = 'admin'
         ip: getClientIp(req),
         authType: expectedType,
         mfaEnabled: !!profile.two_factor_enabled,
-        hasPendingMfa: false    // E.3 — no longer leaks the pending-secret column
+        hasPendingMfa: false
     };
 
     if (requiredPermission && expectedType === 'admin') {
@@ -704,23 +748,13 @@ async function buildAdminContext(req, requiredPermission, expectedType = 'admin'
 
     return req.adminContext;
 }
+
 // ─── Socket-context resolver ───────────────────────────────────
-// Used by server.js `io.use` to build an admin context for a
-// socket handshake. Same logic as buildAdminContext, minus the
-// req/res plumbing. Returns { ok: true, ctx } or { ok: false,
-// code, message }. Never throws — callers disconnect the socket
-// on !ok.
-//
-// The returned ctx has the exact shape buildAdminContext produces
-// (id, email, username, role, isSuperAdmin, permissions, sessionId,
-// authType: 'admin'), so anything that consumes req.adminContext
-// also consumes socket.adminCtx without modification.
 async function resolvePermissionsForUser(userId, sessionId = null) {
     if (!userId || typeof userId !== 'string') {
         return { ok: false, code: 'INVALID_USER', message: 'Invalid user id' };
     }
 
-    // 1. Profile read.
     let profile;
     try {
         const { data, error } = await supabaseAdmin
@@ -750,13 +784,10 @@ async function resolvePermissionsForUser(userId, sessionId = null) {
         };
     }
 
-    // 2. Role check.
     const role = String(profile.role || '').toLowerCase();
     const roleValid = await isAdminRoleAsync(role);
     if (!roleValid) return { ok: false, code: 'ADMIN_REQUIRED', message: 'Admin access required' };
 
-    // 3. Session check (only when a session was passed — customer
-    //    sockets have no admin session).
     if (sessionId) {
         if (!profile.current_session_id || profile.current_session_id !== sessionId) {
             return { ok: false, code: 'SESSION_REVOKED', message: 'Session revoked' };
@@ -784,44 +815,49 @@ async function resolvePermissionsForUser(userId, sessionId = null) {
         }
     }
 
-    // 4. Permissions.
     let effective = [];
     if (role === ADMIN_ROLES.SUPER_ADMIN) {
         effective = ['*'];
     } else {
-        let rolePermissions = null;
-        try {
-            const { data, error } = await supabaseAdmin
-                .from('admin_roles')
-                .select('permissions')
-                .eq('slug', role)
-                .maybeSingle();
-            if (!error && data && Array.isArray(data.permissions)) {
-                rolePermissions = data.permissions;
-            }
-        } catch (_) { /* fall through to defaults */ }
+        const cached = sessionId ? _permCacheGet(profile.id, sessionId) : undefined;
+        if (cached) {
+            effective = cached;
+        } else {
+            let rolePermissions = null;
+            try {
+                const { data, error } = await supabaseAdmin
+                    .from('admin_roles')
+                    .select('permissions')
+                    .eq('slug', role)
+                    .maybeSingle();
+                if (!error && data && Array.isArray(data.permissions)) {
+                    rolePermissions = data.permissions;
+                }
+            } catch (_) { /* fall through */ }
 
-        const defaults = rolePermissions != null
-            ? rolePermissions
-            : (ROLE_PERMISSIONS[role] || []);
-        const merged = new Set(defaults);
+            const defaults = rolePermissions != null
+                ? rolePermissions
+                : (ROLE_PERMISSIONS[role] || []);
+            const merged = new Set(defaults);
 
-        try {
-            const { data, error } = await supabaseAdmin
-                .from('admin_permissions')
-                .select('permission, granted')
-                .eq('user_id', profile.id);
-            if (error) {
+            try {
+                const { data, error } = await supabaseAdmin
+                    .from('admin_permissions')
+                    .select('permission, granted')
+                    .eq('user_id', profile.id);
+                if (error) {
+                    return { ok: false, code: 'PERMISSION_SERVICE_UNAVAILABLE', message: 'Permission service unavailable' };
+                }
+                (data || []).forEach((o) => {
+                    if (o.granted) merged.add(o.permission);
+                    else merged.delete(o.permission);
+                });
+            } catch (_) {
                 return { ok: false, code: 'PERMISSION_SERVICE_UNAVAILABLE', message: 'Permission service unavailable' };
             }
-            (data || []).forEach((o) => {
-                if (o.granted) merged.add(o.permission);
-                else merged.delete(o.permission);
-            });
-        } catch (_) {
-            return { ok: false, code: 'PERMISSION_SERVICE_UNAVAILABLE', message: 'Permission service unavailable' };
+            effective = Array.from(merged);
+            if (sessionId) _permCacheSet(profile.id, sessionId, effective);
         }
-        effective = Array.from(merged);
     }
 
     return {
@@ -959,18 +995,9 @@ try {
 
 // Atomic token consumption — single UPDATE ... RETURNING so two
 // concurrent requests cannot both succeed with the same token.
-// Returns true only if this call is the one that consumed the token.
 async function _consumeStepUpToken(token, adminId) {
     if (!token || !adminId) return false;
-
     const nowIso = new Date().toISOString();
-
-    // NOTE: `token` is compared as a plain string here for
-    // compatibility with the current step_up_tokens schema. The
-    // migration in FILE 1 accepts either plaintext or hashed tokens;
-    // if you later switch the column to hashed, hash here with
-    // `crypto.createHash('sha256').update(token).digest('hex')`
-    // before the query. No other change is needed.
     const { data, error } = await supabaseAdmin
         .from('step_up_tokens')
         .update({ used_at: nowIso })
@@ -982,8 +1009,6 @@ async function _consumeStepUpToken(token, adminId) {
         .maybeSingle();
 
     if (error) {
-        // Missing table (pre-migration) is treated as "cannot verify"
-        // — fail closed.
         if (error.code === '42P01' || error.code === 'PGRST205') return false;
         console.warn('[ADMIN AUTH] step-up token consume error:', error.message);
         return false;
@@ -997,15 +1022,9 @@ function requireStepUp(options = {}) {
         : 300;
 
     return async (req, res, next) => {
-        // Prefer the session-based path — it is what the frontend
-        // actually implements via /api/admin/auth/step-up which
-        // stamps user_sessions.mfa_verified. Delegating here means
-        // there is only one source of truth for "is step-up fresh?".
         try {
             return requireStepUpAuth({ maxAgeSeconds })(req, res, next);
         } catch (primaryErr) {
-            // Do not fall through on unexpected errors — this is a
-            // security gate, so fail closed.
             return sendAdminError(res, {
                 status: 500,
                 code: 'STEP_UP_ERROR',
@@ -1078,18 +1097,12 @@ async function recordAdminActionStrict(opts) {
 }
 
 // ─── CSRF — same-origin check for state-changing routes ────────
-// E.6 — token is bearer, so CSRF is minimal, but a hostile page
-// could still call the API with a stolen token if the token were
-// exposed via XSS on the admin origin. Reject cross-origin writes
-// where the Origin header disagrees with the request host. This is
-// cheap and fail-closed: if Origin is present and does not match,
-// deny. Requests without Origin (native mobile, curl) pass.
 function assertSameOrigin(req, res, next) {
     const method = String(req.method || '').toUpperCase();
     if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) return next();
 
     const origin = req.headers?.origin;
-    if (!origin) return next();  // no Origin → not a browser form/script
+    if (!origin) return next();
 
     const allowed = (process.env.ADMIN_ALLOWED_ORIGINS || '')
         .split(',').map(s => s.trim()).filter(Boolean);
@@ -1097,13 +1110,10 @@ function assertSameOrigin(req, res, next) {
     let ok = false;
     try {
         const o = new URL(origin);
-        // Always allow the request's own host.
         const host = req.headers.host;
         if (host && o.host === host) ok = true;
-        // Allow explicit allow-list entries.
         if (!ok && allowed.includes(`${o.protocol}//${o.host}`)) ok = true;
     } catch {
-        // Malformed Origin — fail closed.
         ok = false;
     }
 
@@ -1116,19 +1126,7 @@ function assertSameOrigin(req, res, next) {
 }
 
 // ─── Service / provider / operation gates ──────────────────────
-// The consumers of these helpers live in service routes
-// (deposits, purchases, wallet, provider clients). Exporting them
-// from adminAuth.js means there is exactly ONE import path and
-// ONE behaviour for "is this action currently permitted?". These
-// delegate to adminSettingsService so the source of truth remains
-// app_config — this file only provides a stable call site.
-//
-// These functions throw on denial (not just return false) so any
-// service that forgets to check the return value still fails
-// closed. Callers that want a boolean should use isOperationAllowed.
 async function _getSettingsService() {
-    // Lazy-require to avoid a circular import: adminSettingsService
-    // imports adminAuth for its route layer.
     return require('../services/adminSettingsService');
 }
 
@@ -1159,33 +1157,33 @@ async function isOperationAllowed(operation) {
 
 // ─── Exports ────────────────────────────────────────────────────
 module.exports = {
-    // middleware
     adminAuth,
     setupAuth,
     superAdminAuth,
     requireSuperAdmin,
     requirePermission,
     requireStepUpAuth,
-    requireStepUp,        // deprecated — delegates to requireStepUpAuth
+    requireStepUp,
     assertSameOrigin,
 
-    // audit
     recordAdminAction,
     recordAdminActionStrict,
 
-    // context builders / helpers
     buildAdminContext,
     getClientIp,
     safeAdminIdentity,
-    isAdminRole,          // sync, frozen-set only
-    isAdminRoleAsync,     // async, supports custom roles (E.1)
-    invalidateRoleCache,  // call after admin_roles writes
+    isAdminRole,
+    isAdminRoleAsync,
+    invalidateRoleCache,
+
+    // [CHANGED] cache invalidation hook for mutation routes
+    invalidatePermissionCache,
+
     roleHasPermission,
     can,
     canAny,
     canAll,
 
-    // feature gates (delegate to adminSettingsService)
     assertServiceEnabled,
     assertProviderEnabled,
     assertOperationAllowed,
@@ -1194,13 +1192,12 @@ module.exports = {
     isOperationAllowed,
     resolvePermissionsForUser,
 
-    // registries
     ADMIN_ROLES,
     ADMIN_ROLE_VALUES,
     PERMISSIONS,
+    INVENTORY_REVEAL_PERMISSION: PERMISSIONS.INVENTORY_REVEAL,
     ROLE_PERMISSIONS,
 
-    // constants
     PROFILE_SELECT,
     JWT_ISSUER,
     JWT_AUDIENCE

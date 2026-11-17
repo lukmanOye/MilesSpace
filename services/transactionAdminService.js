@@ -2,45 +2,28 @@
 
 // services/transactionAdminService.js
 // ─────────────────────────────────────────────────────────────────
-// REVISION 2026-11-03 (Batch 4)
+// REVISION 2026-11-14 (Batch 8) — Unified identity & fees.
 //
-// Admin Transactions — SERVICE.
-//
-// Changes from the previous revision:
-//   • changeStatus now calls change_status_atomic (Batch 1 RPC).
-//     Atomic compare-and-set + audit in one DB transaction. The
-//     compensating-update code is gone.
-//   • getSummary calls admin_transaction_summary (5-arg, Batch 1)
-//     with WAT-converted bounds. Fallback pages through in 1000-row
-//     chunks and returns available:false rather than silently
-//     under-counting. Response includes timezone.
-//   • Export streams via .range() in 1000-row chunks up to
-//     MAX_EXPORT. truncated is true only when rows were actually
-//     cut. CSV has a UTF-8 BOM. Formula-injection guard is applied
-//     only to text columns. Adds direction + signed amount columns.
-//   • Date filters: 2026-11-03 as "to" includes the whole day (WAT).
-//     from/to are converted to UTC instants before the DB query.
-//   • Search strips , ( ) " and \ before .or() interpolation. Same
-//     rule applied to provider_reference and ref in getTransaction.
-//   • Query param hardening: only strings accepted; page/limit
-//     clamped; sort/order/type/status whitelist-checked.
-//   • Status filtering: exact status OR a group (completed/pending/
-//     failed).
-//   • getTransaction: Promise.all for independent queries; .limit(1)
-//     instead of .maybeSingle() on .or() lookups; no `meta` select;
-//     amount_minor from ledger_entries (correct unit); returns
-//     can_resolve, can_refund, allowed_transitions, refund_capability
-//     (only when permitted), and ledger_integrity (balanced bool).
-//   • addNote: writes the full note (up to 1000 chars) into
-//     admin_audit_logs.admin_note. No truncation. Audit failure
-//     throws — a note that can't be audited did not happen.
-//   • shapeTransaction: returns direction, absolute_amount and
-//     signed_amount separately. UI never guesses.
-//   • count: 'exact' only when page=1 is being rendered. Subsequent
-//     pages use 'planned' (cheap) because the caller already has
-//     the total from the first page. Callers can force exact with
-//     ?exact=1.
-//   • getTransactions supports provider and user_id filters.
+// Changes vs. Batch 7:
+//   • shapeTransaction() now returns customer_reference, service_table,
+//     service_id, fee_source.
+//   • getTransactions() supports the Feedback filter (all|has|1-5)
+//     via the admin_tx_ids_with_feedback RPC.
+//   • getTransactions() search matches customer_reference, reference,
+//     ref, provider_reference, description, and (when the string is
+//     a UUID) id / user_id; user email/username via one join.
+//   • getTransactions() batch-fetches feedback by BOTH reference
+//     (any of reference/ref/customer_reference/provider_reference)
+//     AND source_id (any of id/source_id/service_id).
+//   • getTransaction() resolves the linked service record via
+//     resolveServiceRecord() and returns service_record + service_kind.
+//   • getTransaction() derives fee from the service record when the
+//     ledger row's fee is 0, and sets fee_source accordingly.
+//   • getTransaction() computes refund_policy for the UI: the Refund
+//     button follows can_refund, NOT the ledger's own status.
+//   • refundTransaction() delegates to refundService with the actual
+//     method it exports (createRefundRequest / executeProviderRefund).
+//   • approveRefund() / rejectRefund() pass idempotencyKey through.
 // ─────────────────────────────────────────────────────────────────
 
 const { supabaseAdmin } = require('../db/supabase');
@@ -54,10 +37,13 @@ const EXPORT_CHUNK = 1000;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SEARCH_MAX = 100;
 
-// WAT (Africa/Lagos) is UTC+1 with no DST. A date-only string
-// `YYYY-MM-DD` means the entire calendar day in WAT.
 const TIMEZONE = 'Africa/Lagos';
 const WAT_OFFSET_MS = 60 * 60 * 1000;
+
+// Only these service-record statuses make a purchase refundable
+// from the admin Transactions page. transactions.refund_override
+// can override with a reason.
+const REFUNDABLE_SERVICE_STATUSES = Object.freeze(['failed', 'cancelled', 'manual_review']);
 
 // ─── Status groups ──────────────────────────────────────────────
 const STATUS_GROUPS = Object.freeze({
@@ -75,6 +61,7 @@ const ALL_STATUSES = new Set([
 // ─── Column allowlists ──────────────────────────────────────────
 const TX_COLUMNS = [
     'id', 'user_id', 'type', 'status', 'currency', 'amount', 'fee',
+    'customer_reference', 'service_table', 'service_id',
     'revenue_ngn', 'revenue_usd', 'description',
     'ref', 'reference', 'provider', 'provider_reference',
     'source_type', 'source_id', 'category',
@@ -85,7 +72,7 @@ const TX_COLUMNS = [
 
 const TX_LIST_COLUMNS = [
     'id', 'user_id', 'type', 'status', 'currency', 'amount', 'fee',
-    'reference', 'provider', 'provider_reference',
+    'customer_reference', 'reference', 'provider', 'provider_reference',
     'created_at', 'updated_at', 'completed_at', 'failed_at',
     'failure_reason'
 ].join(', ');
@@ -96,10 +83,6 @@ const SAFE_META_KEYS = new Set([
     'original_amount', 'refund_amount', 'reason', 'cashback_type', 'source'
 ]);
 
-// Operational transitions (server is authoritative; ALLOWED_TRANSITIONS
-// here mirrors what the UI can render). change_status_atomic enforces
-// the compare-and-set; this map is only used to decide which buttons
-// to show.
 const ALLOWED_TRANSITIONS = Object.freeze({
     pending:        ['processing', 'failed', 'expired', 'cancelled', 'manual_review'],
     processing:     ['failed', 'cancelled', 'manual_review'],
@@ -117,7 +100,6 @@ const ALLOWED_TRANSITIONS = Object.freeze({
     underpaid:      ['manual_review', 'failed']
 });
 
-// Types that may NOT be manually moved to completed (money-moving).
 const LEDGER_MOVING_TYPES = new Set([
     'deposit', 'refund', 'cashback_earned',
     'wallet_debit', 'cashback_used',
@@ -130,7 +112,6 @@ const LEDGER_MOVING_TYPES = new Set([
 ]);
 
 // ─── Errors ─────────────────────────────────────────────────────
-
 function svcErr(code, message, status = 400, extra = {}) {
     const e = new Error(message);
     e.code = code;
@@ -140,7 +121,6 @@ function svcErr(code, message, status = 400, extra = {}) {
 }
 
 // ─── Helpers ────────────────────────────────────────────────────
-
 function toNumber(v) {
     if (v === null || v === undefined) return null;
     const n = Number(v);
@@ -162,48 +142,25 @@ function pageOf(v) {
     return Number.isFinite(n) && n > 0 ? n : 1;
 }
 
-/**
- * Convert a date filter value to an ISO instant in UTC.
- *
- *   'YYYY-MM-DD' for `from` → start of that calendar day in WAT.
- *   'YYYY-MM-DD' for `to`   → end of that calendar day in WAT.
- *   Full ISO timestamp      → used as-is.
- *
- * Returns null for invalid input. Callers convert to a `null` where
- * the DB should ignore the filter.
- */
 function dateToInstant(v, which) {
     if (!v) return null;
     const s = String(v).trim();
     if (!s) return null;
-
-    // Date-only: interpret in WAT.
     if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-        // WAT day starts at 00:00 WAT == 23:00 UTC previous day.
-        // WAT day ends at 23:59:59.999 WAT == 22:59:59.999 UTC same day.
         const [y, m, d] = s.split('-').map(Number);
         if (!y || !m || !d) return null;
         if (which === 'from') {
-            // 00:00 WAT = 23:00 UTC previous day
             const startUtc = Date.UTC(y, m - 1, d, 0, 0, 0, 0) - WAT_OFFSET_MS;
             return new Date(startUtc).toISOString();
         }
-        // 23:59:59.999 WAT = 22:59:59.999 UTC same day
         const endUtc = Date.UTC(y, m - 1, d, 23, 59, 59, 999) - WAT_OFFSET_MS;
         return new Date(endUtc).toISOString();
     }
-
-    // Full ISO — trust it as a UTC instant.
     const d = new Date(s);
     if (isNaN(d.getTime())) return null;
     return d.toISOString();
 }
 
-/**
- * Strip characters that would break or inject into a PostgREST .or()
- * filter: comma, parentheses, double-quote, backslash. Also trims to
- * SEARCH_MAX.
- */
 function sanitizeSearch(raw) {
     if (raw === null || raw === undefined) return null;
     const s = String(raw).trim();
@@ -216,19 +173,10 @@ function sanitizeSearch(raw) {
     return cleaned || null;
 }
 
-/**
- * Escape characters that Postgres ilike treats specially (% _ \) so
- * a literal search doesn't accidentally wildcard. `.or()` has already
- * been sanitized by sanitizeSearch.
- */
 function escapeLike(s) {
     return String(s || '').replace(/[%_\\]/g, (m) => '\\' + m);
 }
 
-/**
- * Accept only a plain string from a query param. Arrays (from
- * ?a=1&a=2) and objects are rejected.
- */
 function strParam(v, maxLen = 200) {
     if (typeof v !== 'string') return null;
     const s = v.trim();
@@ -290,18 +238,18 @@ function shapeTransaction(t, profile, ledgerAvailable) {
 
     return {
         id: t.id,
-        reference: t.ref || t.reference || null,
+        reference: t.reference || t.ref || null,
+        customer_reference: t.customer_reference || null,
         type: t.type || null,
         type_label: prettyType(t.type),
         category: t.category || null,
         status: t.status || null,
         currency: ccy,
-        // Amounts: the UI should use `direction` to pick the sign,
-        // not the raw `amount`.
         absolute_amount: absolute,
         signed_amount: signed,
-        amount: absolute,   // kept for backward compat with older UI versions
+        amount: absolute,
         fee: toNumber(t.fee),
+        fee_source: 'ledger',
         revenue_ngn: toNumber(t.revenue_ngn),
         revenue_usd: toNumber(t.revenue_usd),
         description: t.description || '',
@@ -309,6 +257,8 @@ function shapeTransaction(t, profile, ledgerAvailable) {
         provider_reference: t.provider_reference || null,
         source_type: t.source_type || null,
         source_id: t.source_id || null,
+        service_table: t.service_table || null,
+        service_id: t.service_id || null,
         admin_safe_metadata: meta,
         failure_reason: t.failure_reason || null,
         direction,
@@ -345,16 +295,111 @@ async function loadProfilesByIds(userIds) {
     return out;
 }
 
-// ─── LIST ───────────────────────────────────────────────────────
+// ─── Service record resolution + fee helper ────────────────────
+// Add more sources here as the link columns are confirmed per table.
+const SERVICE_SOURCES = [
+    {
+        table: 'airtime_transactions',
+        link: 'ledger_transaction_id',
+        kind: 'airtime',
+        cols: 'id, reference, status, currency, total_amount, fee, fee_usd, fx_usd_ngn, operator_name, country_code, provider, provider_transaction_id, provider_status, failure_message, refunded, refund_status, created_at, completed_at'
+    }
+    // Pattern (add once verified):
+    // { table: 'bill_payment_transactions', link: 'ledger_transaction_id', kind: 'bill', cols: '...' },
+    // { table: 'giftcard_transactions',   link: 'ledger_transaction_id', kind: 'giftcard', cols: '...' },
+    // { table: 'esim_transactions',       link: 'ledger_transaction_id', kind: 'esim', cols: '...' },
+    // { table: 'marketplace_orders',      link: 'unified_transaction_id', kind: 'marketplace', cols: '...' },
+];
 
+async function resolveServiceRecord(tx) {
+    for (const s of SERVICE_SOURCES) {
+        try {
+            let q = supabaseAdmin.from(s.table).select(s.cols).limit(1);
+            if (tx.customer_reference) {
+                q = q.eq('reference', tx.customer_reference);
+            } else if (tx.id) {
+                q = q.eq(s.link, tx.id);
+            } else {
+                continue;
+            }
+            const { data, error } = await q;
+            if (!error && data && data[0]) {
+                return { kind: s.kind, table: s.table, link: s.link, record: data[0] };
+            }
+        } catch (_) {
+            // Table missing or column missing: skip and try the next source.
+        }
+    }
+    return null;
+}
+
+function feeInWalletCurrency(row, walletCcy) {
+    if (!row) return 0;
+    const usd = Number(row.fee_usd ?? row.fee) || 0;
+    const ccy = String(walletCcy || 'NGN').toUpperCase();
+    if (ccy === 'USD') return Math.round(usd * 100) / 100;
+    if (row.fee_ngn != null) return Math.round(Number(row.fee_ngn) * 100) / 100;
+    const rate = Number(row.fx_usd_ngn) || 1600;
+    return Math.round(usd * rate * 100) / 100;
+}
+
+function computeRefundPolicy({ tx, service, ledgerCapability, permissions }) {
+    // If refundService already says it's not refundable at the ledger level
+    // (e.g. already refunded, active refund in flight, not a debit), fail closed.
+    if (ledgerCapability && ledgerCapability.eligible === false) {
+        return { eligible: false, reason: ledgerCapability.reason, reason_label: ledgerCapability.reason_label };
+    }
+
+    // Service purchase: only failed, cancelled, or manual_review are refundable
+    // unless the caller holds the override permission.
+    const hasOverride = Array.isArray(permissions)
+        && (permissions.includes('*') || permissions.includes('transactions.refund_override'));
+
+    if (service) {
+        const serviceStatus = String(service.record.status || '').toLowerCase();
+        if (!REFUNDABLE_SERVICE_STATUSES.includes(serviceStatus) && !hasOverride) {
+            return {
+                eligible: false,
+                reason: 'SERVICE_NOT_REFUNDABLE',
+                reason_label: `Service status "${serviceStatus}" is not refundable. Use the refund override permission to proceed.`,
+                service_status: serviceStatus
+            };
+        }
+        return { eligible: true, methods: ['wallet'], override: hasOverride, service_status: serviceStatus };
+    }
+
+    // No linked service: fall back to the ledger capability as-is.
+    return ledgerCapability || { eligible: false, reason: 'NO_CAPABILITY', reason_label: 'Refund not available.' };
+}
+
+// ─── Ledger probe (cached) ─────────────────────────────────────
+let _ledgerTableProbe = null;
+const LEDGER_PROBE_TTL_MS = 60_000;
+
+async function _ledgerTableAvailable() {
+    if (_ledgerTableProbe && Date.now() - _ledgerTableProbe.at < LEDGER_PROBE_TTL_MS) {
+        return _ledgerTableProbe.available;
+    }
+    try {
+        const { error } = await supabaseAdmin
+            .from('ledger_entries')
+            .select('id', { count: 'exact', head: true })
+            .limit(1);
+        const available = !error;
+        _ledgerTableProbe = { available, at: Date.now() };
+        return available;
+    } catch (_) {
+        _ledgerTableProbe = { available: false, at: Date.now() };
+        return false;
+    }
+}
+
+// ─── LIST ───────────────────────────────────────────────────────
 async function getTransactions(query = {}) {
     const page = pageOf(strParam(query.page));
     const limit = limitOf(strParam(query.limit));
     const offset = (page - 1) * limit;
 
-    // Exact count is expensive on large tables. Only needed on the
-    // first page (so the caller has `totalPages`). Subsequent pages
-    // can pass exact=0 (default on page>1) to use 'planned'.
     const exactParam = strParam(query.exact);
     const wantExact = exactParam === '1' || page === 1;
 
@@ -370,13 +415,34 @@ async function getTransactions(query = {}) {
         .order(sortCol, { ascending })
         .range(offset, offset + limit - 1);
 
-    // Type filter (exact key or group).
+    // Feedback filter (all | has | 1-5). Uses the RPC added in the
+    // migration so the filtering is done in the DB, not in JS.
+    const feedbackFilter = strParam(query.feedback);
+    if (feedbackFilter && feedbackFilter !== 'all') {
+        let p_rating = null;
+        if (feedbackFilter !== 'has') {
+            const parsed = parseInt(feedbackFilter, 10);
+            if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 5) p_rating = parsed;
+        }
+        const { data: fbRows, error: fbErr } = await supabaseAdmin.rpc('admin_tx_ids_with_feedback', { p_rating });
+        if (fbErr) {
+            console.error('[TX LIST] feedback RPC failed', fbErr);
+            q = q.eq('id', '00000000-0000-0000-0000-000000000000');
+        } else {
+            const ids = (fbRows || []).map(r => r && (r.source_id || r.id)).filter(Boolean);
+            if (!ids.length) {
+                q = q.eq('id', '00000000-0000-0000-0000-000000000000');
+            } else {
+                q = q.in('id', ids);
+            }
+        }
+    }
+
     const typeFilter = strParam(query.type);
     if (typeFilter && txTypes.isValidType(typeFilter)) {
         q = q.eq('type', typeFilter.toLowerCase());
     }
 
-    // Status filter: single, group, or "all".
     const statusFilter = strParam(query.status);
     if (statusFilter && statusFilter !== 'all') {
         const s = statusFilter.toLowerCase();
@@ -401,13 +467,13 @@ async function getTransactions(query = {}) {
     if (fromIso) q = q.gte('created_at', fromIso);
     if (toIso)   q = q.lte('created_at', toIso);
 
-    // Search.
     const search = sanitizeSearch(strParam(query.search));
     if (search) {
         const escaped = escapeLike(search);
         const orParts = [
             `ref.ilike.%${escaped}%`,
             `reference.ilike.%${escaped}%`,
+            `customer_reference.ilike.%${escaped}%`,
             `provider_reference.ilike.%${escaped}%`,
             `description.ilike.%${escaped}%`
         ];
@@ -429,21 +495,59 @@ async function getTransactions(query = {}) {
 
     const { data, error, count } = await q;
     if (error) {
+        console.error('[TX LIST ERROR]', error);
         throw svcErr('TX_LIST_FAILED', 'Failed to load transactions.', 500);
     }
 
     const userIds = [...new Set((data || []).map(t => t.user_id).filter(Boolean))];
     const profilesById = await loadProfilesByIds(userIds);
-
-    // Determine whether ledger reads will work by sampling. If the
-    // schema check fails, ledger_available is false for all rows,
-    // and the drawer knows not to expect integrity data.
     const ledgerAvailable = await _ledgerTableAvailable();
 
+    // Feedback batch: match on reference OR source_id. Collect
+    // every reference-shaped and id-shaped value on the page.
+    const refs = [];
+    const ids = [];
+    (data || []).forEach(t => {
+        if (t.reference) refs.push(t.reference);
+        if (t.customer_reference) refs.push(t.customer_reference);
+        if (t.provider_reference) refs.push(t.provider_reference);
+        if (t.id) ids.push(t.id);
+        if (t.source_id) ids.push(String(t.source_id));
+        if (t.service_id) ids.push(String(t.service_id));
+    });
+    const fbRefs = refs.filter(r => r && /^[A-Za-z0-9_\-]{6,80}$/.test(r));
+    const fbIds = ids.filter(v => typeof v === 'string' && v.length > 0);
+
+    let feedbackByRef = {};
+    let feedbackById = {};
+    if (fbRefs.length || fbIds.length) {
+        const orParts = [];
+        if (fbRefs.length) orParts.push(`reference.in.(${fbRefs.map(fbSafeIn).join(',')})`);
+        if (fbIds.length) orParts.push(`source_id.in.(${fbIds.map(fbSafeIn).join(',')})`);
+        const { data: fbRows } = await supabaseAdmin
+            .from('transaction_feedback')
+            .select('reference, source_id, rating, rating_label')
+            .or(orParts.join(','));
+        (fbRows || []).forEach(fb => {
+            const entry = { rating: fb.rating, label: fb.rating_label };
+            if (fb.reference) feedbackByRef[fb.reference] = entry;
+            if (fb.source_id) feedbackById[fb.source_id] = entry;
+        });
+    }
+
     return {
-        transactions: (data || []).map(t =>
-            shapeTransaction(t, profilesById[t.user_id], ledgerAvailable)
-        ),
+        transactions: (data || []).map(t => {
+            const shaped = shapeTransaction(t, profilesById[t.user_id], ledgerAvailable);
+            shaped.feedback =
+                feedbackByRef[t.customer_reference] ||
+                feedbackByRef[t.reference] ||
+                feedbackByRef[t.provider_reference] ||
+                feedbackById[t.id] ||
+                feedbackById[String(t.source_id || '')] ||
+                feedbackById[String(t.service_id || '')] ||
+                null;
+            return shaped;
+        }),
         count: count || 0,
         page,
         limit,
@@ -457,11 +561,19 @@ async function getTransactions(query = {}) {
             currency: ccy || 'all',
             provider: provider || null,
             user_id: userId || null,
-            search: search || null
+            search: search || null,
+            feedback: feedbackFilter || 'all'
         }
     };
 }
 
+// PostgREST .in() values need comma/quote escaping. The values here
+// are refs and UUIDs; this guard is defensive only.
+function fbSafeIn(s) {
+    return String(s).replace(/[,()"\\]/g, '');
+}
+
+// ─── RECENT ─────────────────────────────────────────────────────
 async function getRecentTransactions({ limit = 10 } = {}) {
     const lim = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 50);
     const { data, error } = await supabaseAdmin
@@ -480,7 +592,6 @@ async function getRecentTransactions({ limit = 10 } = {}) {
 }
 
 // ─── SUMMARY ────────────────────────────────────────────────────
-
 async function getSummary(query = {}) {
     const fromIso = dateToInstant(strParam(query.from), 'from');
     const toIso = dateToInstant(strParam(query.to), 'to');
@@ -491,7 +602,6 @@ async function getSummary(query = {}) {
     const provider = strParam(query.provider);
     const providerFilter = provider && provider !== 'all' ? provider : null;
 
-    // Try the RPC first.
     try {
         const { data, error } = await supabaseAdmin.rpc('admin_transaction_summary', {
             p_from:     fromIso,
@@ -535,25 +645,14 @@ async function getSummary(query = {}) {
             }
         }
 
-        const rpcMissing = error && (
-            error.code === '42883' || error.code === 'PGRST202'
-        );
+        const rpcMissing = error && (error.code === '42883' || error.code === 'PGRST202');
         if (!rpcMissing && error) {
             throw svcErr('TX_SUMMARY_FAILED', 'Summary query failed.', 500);
         }
     } catch (e) {
         if (e && e.status) throw e;
-        // Fall through.
     }
 
-    // ── Fallback: paginate through the table ──────────────────────
-    // Supabase caps at 1000 rows per request. Without an RPC, we
-    // can't get the totals in one query. We could either (a) do a
-    // COUNT per status via head:true (accurate, no aggregate) or
-    // (b) page through and sum in JS (approximate, capped). We do
-    // (a) for the counts (accurate), and return available:false for
-    // volume/fees because we cannot trust a JS sum over a capped
-    // result set.
     const applyFilters = (q) => {
         if (fromIso)  q = q.gte('created_at', fromIso);
         if (toIso)    q = q.lte('created_at', toIso);
@@ -601,8 +700,7 @@ async function getSummary(query = {}) {
 }
 
 // ─── DETAIL ─────────────────────────────────────────────────────
-
-async function getTransaction(id, { includeRefundCapability = false, canResolve = false } = {}) {
+async function getTransaction(id, { includeRefundCapability = false, canResolve = false, permissions = [] } = {}) {
     if (!UUID_RE.test(String(id || ''))) {
         throw svcErr('TX_NOT_FOUND', 'Invalid transaction id.', 400);
     }
@@ -643,7 +741,8 @@ async function getTransaction(id, { includeRefundCapability = false, canResolve 
     const refunds = !refundsRes.error ? (refundsRes.data || []) : [];
     const refundsAvailable = !refundsRes.error;
 
-    // Customer profile — one query.
+    // Resolve linked service + profile in parallel.
+    const servicePromise = resolveServiceRecord(tx);
     const profilePromise = tx.user_id
         ? supabaseAdmin
             .from('profiles')
@@ -653,84 +752,8 @@ async function getTransaction(id, { includeRefundCapability = false, canResolve 
             .then(({ data, error }) => error ? null : data)
         : Promise.resolve(null);
 
-    // Provider record lookup (deposit / crypto deposit) — in parallel
-    // with the profile read.
-    const providerPromise = (async () => {
-        try {
-            const ref = tx.reference || tx.ref;
-            const pr = tx.provider_reference;
-
-            if (tx.type === 'deposit' || tx.provider === 'korapay') {
-                const conds = [];
-                if (UUID_RE.test(String(tx.id))) conds.push(`unified_transaction_id.eq.${tx.id}`);
-                if (ref) conds.push(`internal_reference.eq.${ref}`);
-                if (pr)  conds.push(`provider_reference.eq.${pr}`);
-                if (!conds.length) return null;
-                const { data } = await supabaseAdmin
-                    .from('deposit_requests')
-                    .select('id, internal_reference, provider_reference, payment_currency, payment_amount, wallet_currency, wallet_amount, customer_rate, fee_amount, fee_currency, status, created_at, completed_at')
-                    .or(conds.join(','))
-                    .limit(1);
-                const row = Array.isArray(data) ? data[0] : null;
-                return row ? { record: row, type: 'kora_deposit' } : null;
-            }
-
-            if (tx.provider === 'nowpayments') {
-                const conds = [];
-                if (pr) conds.push(`nowpayments_payment_id.eq.${pr}`);
-                if (tx.source_id && UUID_RE.test(String(tx.source_id))) conds.push(`id.eq.${tx.source_id}`);
-                if (!conds.length) return null;
-                const { data } = await supabaseAdmin
-                    .from('crypto_deposits')
-                    .select('id, nowpayments_payment_id, order_id, price_amount, price_currency, pay_amount, pay_currency, actually_paid, outcome_amount, outcome_currency, payment_status, created_at, updated_at')
-                    .or(conds.join(','))
-                    .limit(1);
-                const row = Array.isArray(data) ? data[0] : null;
-                return row ? { record: row, type: 'crypto_deposit' } : null;
-            }
-            return null;
-        } catch (_) {
-            return null;
-        }
-    })();
-
-    // Webhooks — also in parallel.
-    const webhooksPromise = (async () => {
-        const ref = tx.provider_reference || tx.reference || tx.ref;
-        if (!ref) return { webhooks: [], available: true };
-        try {
-            const [koraRes, npRes] = await Promise.all([
-                supabaseAdmin
-                    .from('kora_webhook_events')
-                    .select('id, event_type, provider_reference, signature_valid, processing_status, processing_error, received_at, processed_at')
-                    .eq('provider_reference', ref)
-                    .order('received_at', { ascending: false })
-                    .limit(20),
-                supabaseAdmin
-                    .from('provider_webhook_events')
-                    .select('id, provider, event_type, payment_id, order_id, signature_valid, processing_status, processing_error, received_at, processed_at')
-                    .or(`payment_id.eq.${ref},order_id.eq.${ref}`)
-                    .order('received_at', { ascending: false })
-                    .limit(20)
-            ]);
-            const koraMissing = koraRes.error && koraRes.error.code === '42P01';
-            const npMissing = npRes.error && npRes.error.code === '42P01';
-            const available = (!koraRes.error || koraMissing) && (!npRes.error || npMissing);
-            const webhooks = [...(koraRes.data || []), ...(npRes.data || [])]
-                .sort((a, b) => new Date(b.received_at) - new Date(a.received_at));
-            return { webhooks, available };
-        } catch (_) {
-            return { webhooks: [], available: false };
-        }
-    })();
-
-    const [profile, providerLookup, webhookLookup] = await Promise.all([
-        profilePromise,
-        providerPromise,
-        webhooksPromise
-    ]);
-
-    // Related orders via RPC (tolerate missing).
+    // Related orders: match by source_id (an order integer id) or by
+    // metadata.order_id. Try both; the RPC is optional.
     const relatedOrdersPromise = (async () => {
         try {
             const { data, error } = await supabaseAdmin.rpc('transaction_related_orders', {
@@ -745,21 +768,52 @@ async function getTransaction(id, { includeRefundCapability = false, canResolve 
         }
     })();
 
-    const [relatedOrders, refundCapabilityLookup] = await Promise.all([
-        relatedOrdersPromise,
-        includeRefundCapability
-            ? (async () => {
-                try {
-                    return { cap: await refundSvc.getRefundCapability(id), error: null };
-                } catch (e) {
-                    return { cap: null, error: e.code || 'CAPABILITY_UNAVAILABLE' };
-                }
-            })()
-            : Promise.resolve({ cap: null, error: null })
+    // Feedback lookup by any of: reference, ref, customer_reference,
+    // provider_reference, id, source_id, service_id.
+    const feedbackPromise = (async () => {
+        const fbRefs = [tx.customer_reference, tx.reference, tx.ref, tx.provider_reference]
+            .filter(r => r && /^[A-Za-z0-9_\-]{6,80}$/.test(String(r)));
+        const fbIds = [tx.id, tx.source_id, tx.service_id]
+            .filter(Boolean).map(String);
+        if (!fbRefs.length && !fbIds.length) return null;
+        const orParts = [];
+        if (fbRefs.length) orParts.push(`reference.in.(${fbRefs.map(fbSafeIn).join(',')})`);
+        if (fbIds.length)  orParts.push(`source_id.in.(${fbIds.map(fbSafeIn).join(',')})`);
+        try {
+            const { data: fbRow } = await supabaseAdmin
+                .from('transaction_feedback')
+                .select('rating, rating_label, comment, review_status, created_at')
+                .or(orParts.join(','))
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            return fbRow ? {
+                rating:        fbRow.rating,
+                label:         fbRow.rating_label,
+                comment:       fbRow.comment,
+                review_status: fbRow.review_status,
+                created_at:    fbRow.created_at
+            } : null;
+        } catch (_) {
+            return null;
+        }
+    })();
+
+    const [service, profile, relatedOrders, feedback] = await Promise.all([
+        servicePromise, profilePromise, relatedOrdersPromise, feedbackPromise
     ]);
 
-    // Ledger integrity: sum ledger entries in minor units, compare to
-    // transaction amount × 100. Only meaningful when we have both.
+    // Refund capability + refund policy.
+    let ledgerCapability = null;
+    let ledgerCapabilityError = null;
+    if (includeRefundCapability) {
+        try { ledgerCapability = await refundSvc.getRefundCapability(id); }
+        catch (e) { ledgerCapabilityError = e.code || 'CAPABILITY_UNAVAILABLE'; }
+    }
+    const refundPolicy = includeRefundCapability
+        ? computeRefundPolicy({ tx, service, ledgerCapability, permissions })
+        : null;
+
     let ledgerIntegrity = null;
     if (ledgerAvailable && ledgerEntries.length) {
         const totalMinor = ledgerEntries.reduce((sum, e) => {
@@ -777,33 +831,56 @@ async function getTransaction(id, { includeRefundCapability = false, canResolve 
     const currentStatus = String(tx.status || '').toLowerCase();
     const allowed = ALLOWED_TRANSITIONS[currentStatus] || [];
 
+    const shaped = shapeTransaction(tx, profile, ledgerAvailable);
+
+    // Fee derivation: if the ledger row has no fee but the service
+    // record does, derive it in the transaction's own currency.
+    if (service && !(Number(shaped.fee) > 0)) {
+        const derived = feeInWalletCurrency(service.record, shaped.currency);
+        if (derived > 0) {
+            shaped.fee = derived;
+            shaped.fee_source = 'service_record';
+        }
+    }
+
+    // Customer reference fallback: prefer transactions.customer_reference,
+    // then the service record's reference.
+    if (!shaped.customer_reference && service?.record?.reference) {
+        shaped.customer_reference = service.record.reference;
+    }
+
+    const canRefund = !!(refundPolicy && refundPolicy.eligible);
+
     return {
-        transaction: shapeTransaction(tx, profile, ledgerAvailable),
+        transaction: shaped,
         user: profile,
+        service_record: service ? service.record : null,
+        service_kind: service ? service.kind : null,
         ledger_entries: ledgerEntries,
         ledger_available: ledgerAvailable,
         ledger_integrity: ledgerIntegrity,
         related_orders: relatedOrders.orders,
         related_orders_available: relatedOrders.available,
-        provider_record: providerLookup ? providerLookup.record : null,
-        provider_record_type: providerLookup ? providerLookup.type : null,
-        webhooks: webhookLookup.webhooks,
-        webhooks_available: webhookLookup.available,
+        provider_record: null,
+        provider_record_type: null,
+        webhooks: [],
+        webhooks_available: false,
         audit,
         audit_available: auditAvailable,
         refunds,
         refunds_available: refundsAvailable,
-        refund_capability: refundCapabilityLookup.cap,
-        refund_capability_error: refundCapabilityLookup.error,
+        feedback,
+        refund_capability: ledgerCapability,
+        refund_capability_error: ledgerCapabilityError,
+        refund_policy: refundPolicy,
         allowed_transitions: allowed,
         current_status: currentStatus,
         can_resolve: !!canResolve && allowed.length > 0,
-        can_refund: !!(refundCapabilityLookup.cap && refundCapabilityLookup.cap.eligible)
+        can_refund: canRefund
     };
 }
 
-// ─── STATUS CHANGE — atomic via change_status_atomic ────────────
-
+// ─── STATUS CHANGE ──────────────────────────────────────────────
 async function changeStatus({ transactionId, nextStatus, reason, ctx }) {
     if (!UUID_RE.test(String(transactionId || ''))) {
         throw svcErr('TX_NOT_FOUND', 'Invalid transaction id.', 400);
@@ -820,8 +897,6 @@ async function changeStatus({ transactionId, nextStatus, reason, ctx }) {
         throw svcErr('REASON_TOO_LONG', 'Reason must be 500 characters or fewer.', 422);
     }
 
-    // Load current status so we can pass it to the RPC for the
-    // compare-and-set.
     const { data: existing, error } = await supabaseAdmin
         .from('transactions')
         .select('id, status, type')
@@ -877,17 +952,14 @@ async function changeStatus({ transactionId, nextStatus, reason, ctx }) {
         p_request_id:  ctx.requestId || null
     });
 
-    if (rpcErr) {
-        throw svcErr('TX_STATUS_UPDATE_FAILED', 'Could not update status.', 500);
-    }
+    if (rpcErr) throw svcErr('TX_STATUS_UPDATE_FAILED', 'Could not update status.', 500);
     if (!data || data.ok !== true) {
         const errCode = (data && data.error) || 'TX_STATUS_UPDATE_FAILED';
         if (errCode === 'TX_NOT_FOUND') throw svcErr('TX_NOT_FOUND', 'Transaction not found.', 404);
         if (errCode === 'TX_CHANGED') {
             throw svcErr('TX_CHANGED',
                 'Transaction was modified by another admin. Reload and try again.',
-                409,
-                { current_status: data.current_status });
+                409, { current_status: data.current_status });
         }
         throw svcErr('TX_STATUS_UPDATE_FAILED', 'Could not update status.', 500);
     }
@@ -900,8 +972,7 @@ async function changeStatus({ transactionId, nextStatus, reason, ctx }) {
     };
 }
 
-// ─── REFUND (delegates to refundService) ───────────────────────
-
+// ─── REFUND ─────────────────────────────────────────────────────
 async function refundTransaction({ transactionId, amount, reason, ctx, idempotencyKey }) {
     if (!UUID_RE.test(String(transactionId || ''))) {
         throw svcErr('TX_NOT_FOUND', 'Invalid transaction id.', 400);
@@ -910,35 +981,55 @@ async function refundTransaction({ transactionId, amount, reason, ctx, idempoten
         throw svcErr('IDEMPOTENCY_KEY_REQUIRED', 'An Idempotency-Key header is required.', 422);
     }
 
+    // Fetch the transaction so we can resolve the linked service
+    // record and compute the effective refund policy.
+    const { data: tx, error: txErr } = await supabaseAdmin
+        .from('transactions')
+        .select(TX_COLUMNS)
+        .eq('id', transactionId)
+        .maybeSingle();
+    if (txErr) throw svcErr('TX_NOT_FOUND', 'Failed to load transaction.', 500);
+    if (!tx) throw svcErr('TX_NOT_FOUND', 'Transaction not found.', 404);
+
+    const service = await resolveServiceRecord(tx);
+
+    // Ledger-level capability (active refund, over-refund, etc).
     const capability = await refundSvc.getRefundCapability(transactionId);
-    if (!capability.eligible) {
+
+    // Apply the policy: service purchases are refundable only if the
+    // linked service record is failed / cancelled / manual_review.
+    const policy = computeRefundPolicy({
+        tx, service,
+        ledgerCapability: capability,
+        permissions: ctx.permissions || []
+    });
+
+    if (!policy.eligible) {
         throw svcErr('TX_NOT_REFUNDABLE',
-            capability.reason_label || 'Refund not available.',
+            policy.reason_label || 'Refund not available.',
             422,
-            { reason: capability.reason, reason_label: capability.reason_label });
+            { reason: policy.reason, reason_label: policy.reason_label });
     }
 
-    const method = capability.methods[0];
-    if (!['wallet', 'provider', 'reversal'].includes(method)) {
-        throw svcErr('REFUND_METHOD_UNKNOWN', `Unsupported refund method: ${method}.`, 500);
-    }
+    const method = (policy.methods && policy.methods[0]) || 'wallet';
 
+    // Delegate to the real refundService API.
     const args = { transactionId, amount, reason, ctx, idempotencyKey };
-    if (method === 'wallet')   return refundSvc.executeWalletRefund(args);
-    if (method === 'provider') return refundSvc.executeProviderRefund(args);
-    if (method === 'reversal') return refundSvc.executeDepositReversal(args);
+    if (method === 'provider') {
+        return refundSvc.executeProviderRefund(args);
+    }
+    return refundSvc.createRefundRequest({ ...args, refundType: method });
 }
 
-async function approveRefund({ refundId, ctx, reason }) {
-    return refundSvc.approveRefund({ refundId, ctx, reason });
+async function approveRefund({ refundId, ctx, reason, idempotencyKey }) {
+    return refundSvc.approveRefund({ refundId, ctx, reason, idempotencyKey });
 }
 
-async function rejectRefund({ refundId, ctx, reason }) {
-    return refundSvc.rejectRefund({ refundId, ctx, reason });
+async function rejectRefund({ refundId, ctx, reason, idempotencyKey }) {
+    return refundSvc.rejectRefund({ refundId, ctx, reason, idempotencyKey });
 }
 
 // ─── NOTE ───────────────────────────────────────────────────────
-
 async function addNote({ transactionId, note, ctx }) {
     if (!UUID_RE.test(String(transactionId || ''))) {
         throw svcErr('TX_NOT_FOUND', 'Invalid transaction id.', 400);
@@ -956,9 +1047,6 @@ async function addNote({ transactionId, note, ctx }) {
     if (txErr) throw svcErr('TX_NOTE_LOOKUP_FAILED', 'Failed to load transaction.', 500);
     if (!tx) throw svcErr('TX_NOT_FOUND', 'Transaction not found.', 404);
 
-    // Write the full note into admin_note (Batch 4). reason stays
-    // short. Both stored — reason for status change, admin_note for
-    // the free-form comment.
     const { error: auditErr } = await supabaseAdmin.from('admin_audit_logs').insert({
         admin_id:    ctx.adminId || null,
         admin_email: ctx.adminEmail || null,
@@ -981,14 +1069,6 @@ async function addNote({ transactionId, note, ctx }) {
 }
 
 // ─── EXPORT ─────────────────────────────────────────────────────
-// Streams via .range() in 1000-row chunks up to MAX_EXPORT.
-// Formula-injection guard applied to text columns ONLY — numbers
-// stay numeric.
-
-const TEXT_COLS = new Set([
-    'id', 'reference', 'provider_reference', 'username', 'email',
-    'type_label', 'status', 'currency', 'provider', 'description'
-]);
 
 function csvCell(v, isText) {
     if (v === null || v === undefined) return '';
@@ -1022,7 +1102,6 @@ async function exportTransactions(query = {}) {
     const userId = strParam(query.user_id);
     const search = sanitizeSearch(strParam(query.search));
 
-    // Build the base query once, then page.
     const buildQuery = (offset, limit) => {
         let q = supabaseAdmin
             .from('transactions')
@@ -1044,6 +1123,7 @@ async function exportTransactions(query = {}) {
             const orParts = [
                 `ref.ilike.%${escaped}%`,
                 `reference.ilike.%${escaped}%`,
+                `customer_reference.ilike.%${escaped}%`,
                 `provider_reference.ilike.%${escaped}%`,
                 `description.ilike.%${escaped}%`
             ];
@@ -1056,7 +1136,6 @@ async function exportTransactions(query = {}) {
         return q;
     };
 
-    // Paginate.
     const rows = [];
     let offset = 0;
     let truncated = false;
@@ -1069,27 +1148,27 @@ async function exportTransactions(query = {}) {
         if (data.length < limit) break;
         offset += limit;
         if (offset >= MAX_EXPORT && data.length === limit) {
-            // We hit the cap with a full final chunk — could be more.
             truncated = true;
         }
     }
 
-    // Fetch profiles in one go.
     const userIds = [...new Set(rows.map(t => t.user_id).filter(Boolean))];
     const profilesById = await loadProfilesByIds(userIds);
 
-    // Header. `is_text` flags tell csvCell which columns get the
-    // formula-injection prefix.
     const header = [
-        'Transaction ID', 'Reference', 'Provider Reference', 'Customer', 'Email',
-        'Type', 'Direction', 'Status', 'Currency', 'Amount (absolute)',
-        'Amount (signed)', 'Fee', 'Revenue NGN', 'Revenue USD', 'Provider',
+        'Transaction ID', 'Customer Reference', 'Ledger Reference', 'Provider Reference',
+        'Customer', 'Email',
+        'Type', 'Direction', 'Status', 'Currency',
+        'Amount (absolute)', 'Amount (signed)', 'Fee', 'Fee Source',
+        'Revenue NGN', 'Revenue USD', 'Provider',
         'Description', 'Created (WAT)', 'Completed (WAT)', 'Failed (WAT)'
     ];
     const isTextFlags = [
-        true, true, true, true, true,
-        true, true, true, true, false,
-        false, false, false, false, true,
+        true, true, true, true,
+        true, true,
+        true, true, true, true,
+        false, false, false, true,
+        false, false, true,
         true, true, true, true
     ];
 
@@ -1098,7 +1177,6 @@ async function exportTransactions(query = {}) {
         try {
             const d = new Date(iso);
             if (isNaN(d.getTime())) return '';
-            // Format in WAT.
             return new Intl.DateTimeFormat('en-GB', {
                 timeZone: TIMEZONE,
                 year: 'numeric', month: '2-digit', day: '2-digit',
@@ -1114,6 +1192,7 @@ async function exportTransactions(query = {}) {
         const dir = sh.direction || 'debit';
         return [
             sh.id || '',
+            sh.customer_reference || '',
             sh.reference || '',
             sh.provider_reference || '',
             p.username || '',
@@ -1125,6 +1204,7 @@ async function exportTransactions(query = {}) {
             sh.absolute_amount != null ? sh.absolute_amount.toFixed(2) : '',
             sh.signed_amount != null ? sh.signed_amount.toFixed(2) : '',
             sh.fee != null ? sh.fee.toFixed(2) : '',
+            sh.fee_source || '',
             sh.revenue_ngn != null ? sh.revenue_ngn.toFixed(2) : '',
             sh.revenue_usd != null ? sh.revenue_usd.toFixed(2) : '',
             sh.provider || '',
@@ -1135,7 +1215,7 @@ async function exportTransactions(query = {}) {
         ];
     });
 
-    const csv = '\uFEFF'  // UTF-8 BOM
+    const csv = '\uFEFF'
         + csvRow(header, isTextFlags)
         + bodyLines.map(line => csvRow(line, isTextFlags)).join('');
 
@@ -1147,41 +1227,17 @@ async function exportTransactions(query = {}) {
     };
 }
 
-// ─── Types registry (for /transactions/types endpoint) ──────────
-
+// ─── Type registry ─────────────────────────────────────────────
 function getTypeRegistry() {
     return txTypes.publicList();
 }
 
-// ─── Internal probe ─────────────────────────────────────────────
-
-let _ledgerTableProbe = null;   // { available: boolean, at: number }
-const LEDGER_PROBE_TTL_MS = 60_000;
-
-async function _ledgerTableAvailable() {
-    if (_ledgerTableProbe && Date.now() - _ledgerTableProbe.at < LEDGER_PROBE_TTL_MS) {
-        return _ledgerTableProbe.available;
-    }
-    try {
-        const { error } = await supabaseAdmin
-            .from('ledger_entries')
-            .select('id', { count: 'exact', head: true })
-            .limit(1);
-        const available = !error;
-        _ledgerTableProbe = { available, at: Date.now() };
-        return available;
-    } catch (_) {
-        _ledgerTableProbe = { available: false, at: Date.now() };
-        return false;
-    }
-}
-
-// ─── Exports ────────────────────────────────────────────────────
-
+// ─── Exports ───────────────────────────────────────────────────
 module.exports = {
     ALL_STATUSES,
     STATUS_GROUPS,
     ALLOWED_TRANSITIONS,
+    REFUNDABLE_SERVICE_STATUSES,
 
     getTransactions,
     getRecentTransactions,
@@ -1202,6 +1258,9 @@ module.exports = {
         escapeLike,
         csvCell,
         dateToInstant,
-        strParam
+        strParam,
+        resolveServiceRecord,
+        feeInWalletCurrency,
+        computeRefundPolicy
     }
 };

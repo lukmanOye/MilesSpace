@@ -8,15 +8,19 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://milesspace.onrender.com wss://milesspace.onrender.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Settings · MilesSpace Admin</title>
-<script>
-try { var t = localStorage.getItem('ms-theme'); if (t === 'dark' || (!t && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark'); } catch (e) {}
-</script>
+<script src="/js/theme-init.js?v=1"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<script src="/js/admin-session.js?v=2026-settings-v3"></script>
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer">
+<script src="/js/admin-session.js?v=2026-settings-v4"></script>
+<script src="/js/ui-kit.js?v=2026-settings-v1"></script>
 <style>
 :root{
   --brand:#0f4c5c;--brand-deep:#0a3542;--brand-light:#14607a;
@@ -290,13 +294,48 @@ html.dark .recovery-codes code{color:var(--text)}
 .hist-row .what{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .hist-row .what strong{display:block;overflow:hidden;text-overflow:ellipsis}
 .hist-row .what .from-to{font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
-.hist-row .by{color:var(--text-dim);font-size:11px;text-align:right}
+.hist-row .by{color:var(--text-dim);font-size:11px;text-align:right;display:flex;gap:6px;align-items:center}
 .health-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:12.5px;flex-wrap:wrap}
 .health-row:last-child{border-bottom:none}
 .health-row .label{flex:1}
 .health-row .value{font-weight:700}
 
-/* ---------- "All sections" bottom sheet (built by UI-LAYOUT-PATCH) ---------- */
+/* ---------- Phase 2 CSS ---------- */
+.view-only-badge{font-size:10px;font-weight:700;color:var(--text-faint);background:var(--surface-2);padding:2px 6px;border-radius:6px;margin-left:6px;display:inline-flex;align-items:center;gap:4px}
+.not-configured-badge{font-size:11px;color:var(--danger);margin-top:4px;font-weight:600;display:flex;align-items:center;gap:4px}
+.status-banner{background:var(--danger-bg);border:1px solid var(--danger);color:var(--danger);padding:12px 14px;border-radius:12px;margin-bottom:14px;display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;font-size:13px;font-weight:600}
+
+/* ---------- Dashboard Content sub-tabs ---------- */
+.dc-subtab{padding:10px 14px;font-size:13px;font-weight:600;color:var(--text-dim);background:none;border:none;border-bottom:2px solid transparent;white-space:nowrap;min-height:44px;cursor:pointer}
+.dc-subtab.active{color:var(--brand);border-bottom-color:var(--gold)}
+html.dark .dc-subtab.active{color:#dff0f2}
+
+/* ---------- Dashboard Content rows ---------- */
+.dc-row{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);margin-bottom:8px;flex-wrap:wrap;min-width:0}
+.dc-row .dc-row-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.dc-row .dc-row-text{font-size:13px;font-weight:600;overflow-wrap:anywhere}
+.dc-row .dc-row-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--text-dim)}
+.dc-row .dc-row-badge{font-size:10.5px;font-weight:700;padding:1px 8px;border-radius:4px;background:var(--warn-bg);color:var(--warn)}
+.dc-row .dc-row-actions{display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+.dc-row .dc-row-actions .btn{min-height:32px;padding:0 10px;font-size:11.5px}
+.dc-row.editing{background:var(--warn-bg);border-color:var(--gold)}
+.dc-empty{padding:20px 14px;text-align:center;color:var(--text-faint);font-size:12.5px}
+.dc-ann-preview{flex:0 0 auto;width:180px;border-radius:12px;padding:12px;color:#fff;font-size:11.5px;line-height:1.4}
+.dc-ann-preview.c1{background:linear-gradient(135deg,#f59e0b,#d97706)}
+.dc-ann-preview.c2{background:linear-gradient(135deg,#7c3aed,#4c1d95)}
+.dc-ann-preview.c3{background:linear-gradient(135deg,var(--brand),#1a5f75)}
+.dc-ann-preview.c4{background:linear-gradient(135deg,#10b981,#047857)}
+.dc-ann-preview.c5{background:linear-gradient(135deg,#0c3d4a,#1a5f75)}
+.dc-ann-preview h4{margin:0 0 4px;font-size:12px;font-weight:800;color:#fff}
+.dc-ann-preview p{margin:0 0 6px;font-size:10.5px;color:rgba(255,255,255,.78)}
+.dc-ann-preview .lm{font-size:10.5px;font-weight:700;color:#fff;opacity:.9}
+.dc-ticker-preview{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 10px;overflow:hidden;white-space:nowrap;font-size:12.5px;text-overflow:ellipsis}
+@media(max-width:640px){
+  .dc-row .dc-row-actions{width:100%;justify-content:flex-start}
+  .dc-ann-preview{width:100%}
+}
+
+/* ---------- "All sections" bottom sheet ---------- */
 .sheet-scrim{position:fixed;inset:0;z-index:1400;background:rgba(8,21,26,.58);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:none;align-items:flex-end;justify-content:center}
 .sheet-scrim.open{display:flex}
 .sheet{width:min(560px,100%);max-height:85vh;max-height:85dvh;background:var(--surface);color:var(--text);border:1px solid var(--border);border-bottom:0;border-radius:18px 18px 0 0;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;overflow:hidden;animation:sheetIn .22s ease;padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);overscroll-behavior:contain}
@@ -326,7 +365,7 @@ html.dark .sheet-row .s-check{color:var(--gold)}
 .sheet-row.is-danger .s-ic{background:var(--danger-bg)}
 .sheet-row.is-danger .s-check{color:var(--danger)}
 
-/* ---------- Rail (collapsed sidebar), tablet + desktop only ---------- */
+/* ---------- Rail (collapsed sidebar) ---------- */
 @media(min-width:821px){
   .app.sb-collapsed{grid-template-columns:76px minmax(0,1fr)}
   .app.sb-collapsed .sidebar{width:76px}
@@ -409,14 +448,6 @@ html.dark .sheet-row .s-check{color:var(--gold)}
   .dirty-bar{bottom:calc(10px + env(safe-area-inset-bottom,0px));padding:8px 10px;gap:6px;font-size:12.5px}
   .dirty-bar .btn{min-height:34px;padding:0 10px;font-size:11.5px}
 }
-@media(max-width:640px){
-  .stack thead{display:none}
-  .stack,.stack tbody,.stack tr,.stack td{display:block;width:100%}
-  .stack tr{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:var(--surface-2)}
-  .stack td{border:none;padding:4px 0;display:flex;justify-content:space-between;gap:12px;text-align:right;align-items:center;font-size:12.5px}
-  .stack td::before{content:attr(data-label);font-size:11px;font-weight:700;color:var(--text-dim);text-align:left;flex-shrink:0}
-  .stack td:empty{display:none}
-}
 @media(max-width:360px){
   :root{--pad-l:max(8px,env(safe-area-inset-left,0px));--pad-r:max(8px,env(safe-area-inset-right,0px))}
   body{font-size:13.5px}
@@ -458,7 +489,7 @@ html.dark .sheet-row .s-check{color:var(--gold)}
         </div>
       </div>
       <div class="nav-group" data-group="customers">
-        <button class="nav-group-head" data-toggle-group type="button" aria-expanded="true">
+        <button class="nav-group-head" data-nav-toggle type="button" aria-expanded="true">
           <span class="nav-label">Customers</span>
           <i class="chev fas fa-chevron-down" aria-hidden="true"></i>
         </button>
@@ -468,7 +499,7 @@ html.dark .sheet-row .s-check{color:var(--gold)}
         </div>
       </div>
       <div class="nav-group" data-group="money">
-        <button class="nav-group-head" data-toggle-group type="button" aria-expanded="true">
+        <button class="nav-group-head" data-nav-toggle type="button" aria-expanded="true">
           <span class="nav-label">Money</span>
           <i class="chev fas fa-chevron-down" aria-hidden="true"></i>
         </button>
@@ -481,7 +512,7 @@ html.dark .sheet-row .s-check{color:var(--gold)}
         </div>
       </div>
       <div class="nav-group" data-group="services">
-        <button class="nav-group-head" data-toggle-group type="button" aria-expanded="true">
+        <button class="nav-group-head" data-nav-toggle type="button" aria-expanded="true">
           <span class="nav-label">Services</span>
           <i class="chev fas fa-chevron-down" aria-hidden="true"></i>
         </button>
@@ -496,7 +527,7 @@ html.dark .sheet-row .s-check{color:var(--gold)}
         </div>
       </div>
       <div class="nav-group collapsed" data-group="operations">
-        <button class="nav-group-head" data-toggle-group type="button" aria-expanded="false">
+        <button class="nav-group-head" data-nav-toggle type="button" aria-expanded="false">
           <span class="nav-label">Operations</span>
           <i class="chev fas fa-chevron-down" aria-hidden="true"></i>
         </button>
@@ -508,7 +539,7 @@ html.dark .sheet-row .s-check{color:var(--gold)}
         </div>
       </div>
       <div class="nav-group collapsed" data-group="analytics">
-        <button class="nav-group-head" data-toggle-group type="button" aria-expanded="false">
+        <button class="nav-group-head" data-nav-toggle type="button" aria-expanded="false">
           <span class="nav-label">Analytics</span>
           <i class="chev fas fa-chevron-down" aria-hidden="true"></i>
         </button>
@@ -519,7 +550,7 @@ html.dark .sheet-row .s-check{color:var(--gold)}
         </div>
       </div>
       <div class="nav-group collapsed" data-group="system">
-        <button class="nav-group-head" data-toggle-group type="button" aria-expanded="false">
+        <button class="nav-group-head" data-nav-toggle type="button" aria-expanded="false">
           <span class="nav-label">System</span>
           <i class="chev fas fa-chevron-down" aria-hidden="true"></i>
         </button>
@@ -566,6 +597,8 @@ html.dark .sheet-row .s-check{color:var(--gold)}
     </header>
 
     <main class="content">
+      <div id="statusBanner" class="status-banner" style="display:none" role="alert" aria-live="assertive"></div>
+
       <div class="page-header">
         <div class="ph-title">
           <h2>Settings</h2>
@@ -593,7 +626,9 @@ html.dark .sheet-row .s-check{color:var(--gold)}
             <button type="button" class="m-item" data-section="roles" role="tab"><i class="fas fa-user-shield" aria-hidden="true"></i><span>Role Management</span><span class="dot" hidden></span></button>
             <button type="button" class="m-item" data-section="mfa" role="tab"><i class="fas fa-key" aria-hidden="true"></i><span>Two-Factor</span><span class="dot" hidden></span></button>
             <button type="button" class="m-item is-danger" data-section="emergency" role="tab"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i><span>Emergency</span><span class="dot" hidden></span></button>
+            <button type="button" class="m-item" data-section="dashboard-content" role="tab"><i class="fas fa-bullhorn" aria-hidden="true"></i><span>Dashboard Content</span><span class="dot" hidden></span></button>
             <button type="button" class="m-item" data-section="history" role="tab"><i class="fas fa-history" aria-hidden="true"></i><span>Rate History</span><span class="dot" hidden></span></button>
+            <button type="button" class="m-item" data-section="audit" role="tab"><i class="fas fa-clipboard-list" aria-hidden="true"></i><span>Audit</span><span class="dot" hidden></span></button>
             <button type="button" class="m-item" data-section="health" role="tab"><i class="fas fa-heartbeat" aria-hidden="true"></i><span>Health</span><span class="dot" hidden></span></button>
           </aside>
           <button type="button" class="sections-btn" id="sectionsBtn" aria-haspopup="dialog" aria-label="All sections" title="All sections"><i class="fas fa-list" aria-hidden="true"></i></button>
@@ -633,6 +668,7 @@ html.dark .sheet-row .s-check{color:var(--gold)}
               </div>
 
               <div class="panel-actions">
+                <button class="btn" data-action="reset-section" type="button"><i class="fas fa-undo" aria-hidden="true"></i> Reset section</button>
                 <button class="btn primary" data-action="save-section" data-section="general" type="button">
                   <i class="fas fa-save" aria-hidden="true"></i> Save general
                 </button>
@@ -797,6 +833,7 @@ html.dark .sheet-row .s-check{color:var(--gold)}
               <div id="servicesState" class="state" hidden></div>
               <div id="servicesForm" class="section"></div>
               <div class="panel-actions">
+                <button class="btn" data-action="reset-section" type="button"><i class="fas fa-undo" aria-hidden="true"></i> Reset section</button>
                 <button class="btn primary" data-action="save-section" data-section="services" type="button"><i class="fas fa-save" aria-hidden="true"></i> Save services</button>
               </div>
             </div>
@@ -808,6 +845,7 @@ html.dark .sheet-row .s-check{color:var(--gold)}
               <div id="providersState" class="state" hidden></div>
               <div id="providersForm"></div>
               <div class="panel-actions">
+                <button class="btn" data-action="reset-section" type="button"><i class="fas fa-undo" aria-hidden="true"></i> Reset section</button>
                 <button class="btn primary" data-action="save-section" data-section="providers" type="button"><i class="fas fa-save" aria-hidden="true"></i> Save providers</button>
               </div>
             </div>
@@ -838,6 +876,7 @@ html.dark .sheet-row .s-check{color:var(--gold)}
                 </div>
               </div>
               <div class="panel-actions">
+                <button class="btn" data-action="reset-section" type="button"><i class="fas fa-undo" aria-hidden="true"></i> Reset section</button>
                 <button class="btn primary" data-action="save-section" data-section="notifications" type="button"><i class="fas fa-save" aria-hidden="true"></i> Save notifications</button>
               </div>
             </div>
@@ -858,6 +897,7 @@ html.dark .sheet-row .s-check{color:var(--gold)}
                 </div>
               </div>
               <div class="panel-actions">
+                <button class="btn" data-action="reset-section" type="button"><i class="fas fa-undo" aria-hidden="true"></i> Reset section</button>
                 <button class="btn primary" data-action="save-section" data-section="security" type="button"><i class="fas fa-save" aria-hidden="true"></i> Save security</button>
               </div>
             </div>
@@ -944,6 +984,7 @@ html.dark .sheet-row .s-check{color:var(--gold)}
                   <div class="recovery-codes" id="recoveryCodesList"></div>
                   <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
                     <button class="btn sm" id="mfaCopyRecoveryBtn" type="button"><i class="fas fa-copy" aria-hidden="true"></i> Copy all</button>
+                    <button class="btn sm" id="mfaDownloadCodesBtn" type="button"><i class="fas fa-download" aria-hidden="true"></i> Download .txt</button>
                     <button class="btn sm" id="mfaDoneRecoveryBtn" type="button">I've saved them</button>
                   </div>
                 </div>
@@ -967,6 +1008,145 @@ html.dark .sheet-row .s-check{color:var(--gold)}
             </div>
           </section>
 
+          <section class="panel" id="panel-dashboard-content" role="tabpanel" aria-label="Dashboard Content">
+            <div class="panel-head">
+              <div>
+                <h2><i class="fas fa-bullhorn" aria-hidden="true"></i> Dashboard Content</h2>
+                <p>Content that appears on the customer dashboard: the scrolling ticker and the announcement cards. Changes take effect within 60 seconds.</p>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="btn" id="dcRefreshBtn" type="button"><i class="fas fa-sync-alt" aria-hidden="true"></i> Refresh</button>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div style="display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none" role="tablist" aria-label="Dashboard content type" id="dcSubTabs">
+                <button type="button" class="dc-subtab active" data-dc-tab="ticker" role="tab" aria-selected="true">Ticker</button>
+                <button type="button" class="dc-subtab" data-dc-tab="announcements" role="tab" aria-selected="false">Announcements</button>
+              </div>
+
+              <div id="dcTickerPane">
+                <div id="dcTickerWarning" style="display:none;background:var(--warn-bg);border:1px solid var(--warn);color:var(--warn);padding:10px 12px;border-radius:10px;margin-bottom:12px;font-size:12.5px;font-weight:600;line-height:1.5"></div>
+
+                <div class="section">
+                  <div class="section-title"><i class="fas fa-plus-circle" aria-hidden="true"></i> Add ticker item</div>
+                  <div class="form-grid">
+                    <div class="field full">
+                      <label for="dcTickerText">Text <span class="hint">(1–200 chars)</span></label>
+                      <input type="text" id="dcTickerText" maxlength="200" autocomplete="off" placeholder="e.g. USD wallet now available">
+                    </div>
+                    <div class="field">
+                      <label for="dcTickerIcon">Icon <span class="hint">(emoji)</span></label>
+                      <input type="text" id="dcTickerIcon" maxlength="8" autocomplete="off" placeholder="📌">
+                    </div>
+                    <div class="field">
+                      <label for="dcTickerBadge">Badge <span class="hint">(≤20 chars)</span></label>
+                      <input type="text" id="dcTickerBadge" maxlength="20" autocomplete="off" placeholder="NEW">
+                    </div>
+                    <div class="field">
+                      <label for="dcTickerBadgeColor">Badge colour</label>
+                      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+                        <select id="dcTickerBadgeColor" style="flex:1;min-width:140px">
+                          <option value="">Default (gold)</option>
+                          <option value="#15803d">Green</option>
+                          <option value="#b45309">Amber</option>
+                          <option value="#c81e1e">Red</option>
+                          <option value="#1d4ed8">Blue</option>
+                          <option value="#6d28d9">Purple</option>
+                          <option value="#0e7490">Teal</option>
+                          <option value="#0c1f26">Black</option>
+                        </select>
+                        <input type="text" id="dcTickerBadgeColorHex" maxlength="7" placeholder="#rrggbb" style="flex:0 0 100px">
+                      </div>
+                    </div>
+                    <div class="field full">
+  <label>Link <span class="hint">(customer page or custom URL)</span></label>
+  <div id="dcTickerLinkContainer"></div>
+</div>
+                    <div class="field">
+                      <label for="dcTickerStartsAt">Starts at <span class="hint">(optional)</span></label>
+                      <input type="datetime-local" id="dcTickerStartsAt">
+                    </div>
+                    <div class="field">
+                      <label for="dcTickerEndsAt">Ends at <span class="hint">(optional)</span></label>
+                      <input type="datetime-local" id="dcTickerEndsAt">
+                    </div>
+                  </div>
+                  <div style="margin-top:12px">
+                    <button class="btn primary" id="dcTickerAddBtn" type="button"><i class="fas fa-plus" aria-hidden="true"></i> Add ticker item</button>
+                  </div>
+                </div>
+
+                <div class="section">
+                  <div class="section-title"><i class="fas fa-eye" aria-hidden="true"></i> Preview</div>
+                  <div id="dcTickerPreview" class="dc-ticker-preview">No items to preview</div>
+                </div>
+
+                <div class="section">
+                  <div class="section-title"><i class="fas fa-list" aria-hidden="true"></i> Items</div>
+                  <div id="dcTickerState" class="state" style="display:none"></div>
+                  <div id="dcTickerList"></div>
+                </div>
+              </div>
+
+              <div id="dcAnnouncementsPane" style="display:none">
+                <div class="section">
+                  <div class="section-title"><i class="fas fa-plus-circle" aria-hidden="true"></i> Add announcement</div>
+                  <div class="form-grid">
+                    <div class="field full">
+                      <label for="dcAnnTitle">Title <span class="hint">(1–60 chars)</span></label>
+                      <input type="text" id="dcAnnTitle" maxlength="60" autocomplete="off" placeholder="💰 Fund Wallet">
+                    </div>
+                    <div class="field full">
+                      <label for="dcAnnBody">Body <span class="hint">(1–160 chars)</span></label>
+                      <textarea id="dcAnnBody" maxlength="160" rows="2" placeholder="Top up your NGN wallet instantly."></textarea>
+                    </div>
+                    <div class="field">
+                      <label for="dcAnnCta">Button label <span class="hint">(≤24 chars)</span></label>
+                      <input type="text" id="dcAnnCta" maxlength="24" autocomplete="off" placeholder="Fund Now">
+                    </div>
+                    <div class="field full">
+  <label>Link <span class="hint">(customer page or custom URL)</span></label>
+  <div id="dcAnnLinkContainer"></div>
+</div>
+                    <div class="field">
+                      <label for="dcAnnTheme">Theme</label>
+                      <select id="dcAnnTheme">
+                        <option value="c1">c1 — Amber</option>
+                        <option value="c2">c2 — Purple</option>
+                        <option value="c3">c3 — Navy</option>
+                        <option value="c4">c4 — Green</option>
+                        <option value="c5">c5 — Deep Navy</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label for="dcAnnStartsAt">Starts at <span class="hint">(optional)</span></label>
+                      <input type="datetime-local" id="dcAnnStartsAt">
+                    </div>
+                    <div class="field">
+                      <label for="dcAnnEndsAt">Ends at <span class="hint">(optional)</span></label>
+                      <input type="datetime-local" id="dcAnnEndsAt">
+                    </div>
+                  </div>
+                  <div style="margin-top:12px">
+                    <button class="btn primary" id="dcAnnAddBtn" type="button"><i class="fas fa-plus" aria-hidden="true"></i> Add announcement</button>
+                  </div>
+                </div>
+
+                <div class="section">
+                  <div class="section-title"><i class="fas fa-eye" aria-hidden="true"></i> Preview</div>
+                  <div id="dcAnnPreview" style="display:flex;gap:10px;overflow-x:auto;padding:4px 0"></div>
+                </div>
+
+                <div class="section">
+                  <div class="section-title"><i class="fas fa-list" aria-hidden="true"></i> Announcements</div>
+                  <div id="dcAnnState" class="state" style="display:none"></div>
+                  <div id="dcAnnList"></div>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
           <section class="panel" id="panel-history" role="tabpanel">
             <div class="panel-head">
               <div><h2><i class="fas fa-history" aria-hidden="true"></i> Rate History</h2><p>Every rate and markup change. Read-only.</p></div>
@@ -975,6 +1155,16 @@ html.dark .sheet-row .s-check{color:var(--gold)}
             <div class="panel-body">
               <div id="historyState" class="state" hidden></div>
               <div id="historyList"></div>
+            </div>
+          </section>
+
+          <section class="panel" id="panel-audit" role="tabpanel">
+            <div class="panel-head">
+              <div><h2><i class="fas fa-clipboard-list" aria-hidden="true"></i> Audit</h2><p>Every settings change with before→after and actor.</p></div>
+            </div>
+            <div class="panel-body">
+              <div id="auditState" class="state" hidden></div>
+              <div id="auditList"></div>
             </div>
           </section>
 
@@ -1019,1759 +1209,563 @@ html.dark .sheet-row .s-check{color:var(--gold)}
 </div>
 
 <script>
+/* ═══════════════════════════════════════════════════════════════
+   Dashboard Content panel — independent of admin-settings.js.
+   Talks directly to /api/admin/ticker/* and /api/admin/announcements/*.
+   Does not touch admin-settings.js state, dirty-bar, or reset-section.
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
 'use strict';
 
-var API = {
-  all:             '/api/admin/settings',
-  section:         function (n) { return '/api/admin/settings/section/' + encodeURIComponent(n); },
-  rateHistory:     '/api/admin/settings/rates/history',
-  health:          '/api/admin/settings/health',
-  me:              '/api/admin/me',
-  mfaStatus:       '/api/admin/mfa/status',
-  mfaEnroll:       '/api/admin/mfa/enroll',
-  mfaVerify:       '/api/admin/mfa/verify-enrollment',
-  mfaDisable:      '/api/admin/mfa/disable',
-  mfaRegen:        '/api/admin/mfa/recovery-codes/regenerate',
-  roles:           '/api/admin/roles',
-  rolesPerms:      '/api/admin/roles/permissions',
-  rolesUserSearch: '/api/admin/roles/users',
-  rolesAssign:     '/api/admin/roles/assign',
-  roleBySlug:      function (s) { return '/api/admin/roles/' + encodeURIComponent(s); }
+const DC_API = {
+  tickerList:    '/api/admin/ticker/items',
+  tickerCreate:  '/api/admin/ticker/items',
+  tickerUpdate:  id => `/api/admin/ticker/items/${encodeURIComponent(id)}`,
+  tickerDelete:  id => `/api/admin/ticker/items/${encodeURIComponent(id)}`,
+  tickerReorder: '/api/admin/ticker/reorder',
+  annList:       '/api/admin/announcements',
+  annCreate:     '/api/admin/announcements',
+  annUpdate:     id => `/api/admin/announcements/${encodeURIComponent(id)}`,
+  annDelete:     id => `/api/admin/announcements/${encodeURIComponent(id)}`,
+  annReorder:    '/api/admin/announcements/reorder'
 };
 
-var State = {
-  flat: {},
-  original: {},
-  dirty: {},
-  version: null,
-  isSuperAdmin: false,
-  currentSection: 'general',
-  saving: false,
-  loading: false,
-  historyLoaded: false,
-  healthLoaded: false,
-  rolesLoaded: false,
-  roles: [],
-  permissionGroups: [],
-  rolesAvailable: true
-};
+const DC = { ticker: [], ann: [], editingTicker: null, editingAnn: null, saving: false, inited: false };
 
-function $(id) { return document.getElementById(id); }
-function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
-function escapeHtml(s) {
-  if (s == null) return '';
-  return String(s).replace(/[&<>"']/g, function (m) {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
-  });
-}
-function formatDateTime(iso) {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleString('en-GB', {
-      timeZone: 'Africa/Lagos', year: 'numeric', month: 'short', day: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    });
-  } catch (e) { return String(iso); }
-}
-function timeAgo(iso) {
-  if (!iso) return '—';
-  var s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (s < 60) return 'just now';
-  if (s < 3600) return Math.floor(s / 60) + 'm ago';
-  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
-  return Math.floor(s / 86400) + 'd ago';
-}
+const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])));
 
-function decimalToPercentDisplay(dec) {
-  if (dec == null || dec === '') return '';
-  var s = String(dec);
-  if (!/^-?\d+(\.\d+)?$/.test(s)) return '';
-  var neg = s.charAt(0) === '-';
-  var body = neg ? s.slice(1) : s;
-  var parts = body.split('.');
-  var intPart = parts[0] || '0';
-  var fracPart = parts[1] || '';
-  var all = intPart + fracPart;
-  var dotAt = intPart.length + 2;
-  var out;
-  if (all.length <= dotAt) {
-    out = all + '0'.repeat(dotAt + 1 - all.length);
-    out = out.slice(0, dotAt) + '.' + out.slice(dotAt);
-  } else {
-    out = all.slice(0, dotAt) + '.' + all.slice(dotAt);
-  }
-  var oparts = out.split('.');
-  var ofrac = (oparts[1] + '0000').slice(0, 4).replace(/0+$/, '') || '0';
-  return (neg ? '-' : '') + oparts[0] + '.' + ofrac;
-}
-function percentDisplayToDecimal(display) {
-  if (display == null || display === '') return '';
-  var s = String(display);
-  if (!/^-?\d+(\.\d+)?$/.test(s)) return '';
-  var neg = s.charAt(0) === '-';
-  var body = neg ? s.slice(1) : s;
-  var parts = body.split('.');
-  var i = parts[0];
-  var f = parts[1] || '';
-  var paddedFrac = f + '00'.slice(f.length);
-  if (paddedFrac.length < 2) paddedFrac = paddedFrac + '0'.repeat(2 - paddedFrac.length);
-  var intBefore = i.length > 2 ? i.slice(0, i.length - 2) : '0';
-  var lastTwo = i.length <= 2 ? ('000' + i).slice(-2) : i.slice(-2);
-  var frac = (lastTwo + paddedFrac).slice(0, 6).replace(/0+$/, '') || '0';
-  var composed = intBefore + '.' + frac;
-  var cparts = composed.split('.');
-  var ci = cparts[0];
-  var cf = (cparts[1] || '') + '0000'.slice((cparts[1] || '').length);
-  return (neg ? '-' : '') + ci + '.' + cf.slice(0, 4);
-}
-
-function toast(msg, type) {
-  type = type || 'info';
-  var stack = $('toastStack');
+function toast(msg, kind = 'info') {
+  if (window.MS && typeof MS.toast === 'function') return MS.toast(msg, kind);
+  const stack = document.getElementById('toastStack');
   if (!stack) return;
-  var el = document.createElement('div');
-  el.className = 'toast ' + type;
-  var icons = { success: 'fa-circle-check', error: 'fa-circle-xmark', warn: 'fa-triangle-exclamation', info: 'fa-circle-info' };
-  el.innerHTML = '<i class="fas ' + (icons[type] || icons.info) + '" aria-hidden="true"></i><span></span>';
-  el.querySelector('span').textContent = msg;
+  const el = document.createElement('div');
+  el.className = 'toast ' + (kind === 'error' ? 'error' : kind === 'success' ? 'success' : kind === 'warn' ? 'warn' : '');
+  el.textContent = String(msg || '');
   stack.appendChild(el);
-  setTimeout(function () {
-    el.style.opacity = '0';
-    el.style.transition = 'opacity .25s';
-    setTimeout(function () { el.remove(); }, 260);
-  }, 3800);
+  setTimeout(() => el.remove(), 3600);
 }
 
-async function api(url, opts) {
-  opts = opts || {};
+async function dcApi(url, opts = {}) {
+  if (!window.AdminSession || typeof AdminSession.fetch !== 'function') {
+    return { ok: false, status: 0, error: 'Session not loaded' };
+  }
+  const o = { ...opts };
+  if (o.body != null && typeof o.body !== 'string') {
+    o.body = JSON.stringify(o.body);
+    o.headers = { ...(o.headers || {}), 'Content-Type': 'application/json' };
+  }
   try {
-    var res = await AdminSession.fetch(url, opts);
-    if (res.status === 401) { if (AdminSession.redirectToLogin) AdminSession.redirectToLogin(); return { ok: false, reason: 'unauthorized' }; }
-    var body = null;
-    try { body = await res.json(); } catch (e) { body = null; }
-    if (!res.ok || !body || body.success === false) {
-      return { ok: false, status: res.status, reason: (body && body.code) || 'api_error', error: (body && body.error) || ('HTTP ' + res.status), code: body && body.code, extra: body };
+    const res = await AdminSession.fetch(url, o);
+    let json = null;
+    const ct = res.headers.get('content-type') || '';
+    if (ct.includes('application/json')) {
+      try { json = await res.json(); } catch (_) {}
     }
-    return { ok: true, data: body.data !== undefined ? body.data : body };
+    if (!res.ok) {
+      return {
+        ok: false, status: res.status,
+        code: json && json.code,
+        error: (json && (json.message || json.error)) || ('HTTP ' + res.status)
+      };
+    }
+    return { ok: true, data: json && json.data !== undefined ? json.data : json };
   } catch (e) {
-    return { ok: false, reason: 'network_error', error: e.message };
+    return { ok: false, status: 0, error: e.message || 'Network error' };
   }
 }
 
-function _reasonText(reason) {
-  var map = {
-    unauthorized: 'Your admin session has expired. Sign in again.',
-    forbidden: 'Your role does not include permission to view this.',
-    not_implemented: 'This endpoint is not deployed on the server yet.',
-    network_error: 'Network error. Check your connection.',
-    http_error: 'The server returned an error.',
-    api_error: 'The API returned an error.',
-    rate_limited: 'Too many requests. Wait a moment and retry.',
-    PERMISSION_DENIED: 'You do not have permission.',
-    CONFIG_NOT_READY: 'Configuration not ready. Run the migration.'
-  };
-  return map[reason] || 'Data unavailable.';
+function toIso(v) {
+  if (!v) return null;
+  try { return new Date(v).toISOString(); } catch (_) { return null; }
 }
-
-function setPanelState(panelId, kind, opts) {
-  opts = opts || {};
-  var stateEl = $(panelId.replace('panel-', '') + 'State') || $(panelId + 'State');
-  var contentEl = $(panelId.replace('panel-', '') + 'Form') || $(panelId.replace('panel-', '') + 'List') || $(panelId + 'Form') || $(panelId + 'List');
-  if (panelId === 'panel-general') contentEl = $('generalForm');
-  if (panelId === 'panel-services') contentEl = $('servicesForm');
-  if (panelId === 'panel-providers') contentEl = $('providersForm');
-  if (panelId === 'panel-roles') contentEl = $('rolesList');
-  if (panelId === 'panel-history') contentEl = $('historyList');
-  if (panelId === 'panel-health') contentEl = $('healthList');
-  var actionsEl = document.querySelector('#' + panelId + ' .panel-actions');
-
-  if (contentEl) contentEl.style.display = kind === 'ready' ? '' : 'none';
-  if (actionsEl) actionsEl.style.display = kind === 'ready' ? '' : 'none';
-  if (!stateEl) return;
-
-  if (kind === 'ready') { stateEl.hidden = true; stateEl.innerHTML = ''; return; }
-  stateEl.hidden = false;
-
-  if (kind === 'loading') {
-    stateEl.innerHTML = '<span class="skel" style="width:40%;height:14px;margin:0 auto 8px"></span><span class="skel" style="width:70%;height:14px;margin:0 auto 8px"></span><span class="skel" style="width:55%;height:14px;margin:0 auto"></span>';
-  } else if (kind === 'empty') {
-    stateEl.innerHTML = '<i class="fas fa-inbox" aria-hidden="true"></i><div class="msg">Nothing to show</div><div class="sub">' + escapeHtml(opts.message || 'No data in this section yet.') + '</div>';
-  } else if (kind === 'error') {
-    var btn = opts.retryFn ? '<button type="button" class="btn" data-panel-retry>Retry</button>' : '';
-    stateEl.innerHTML = '<i class="fas fa-triangle-exclamation" aria-hidden="true"></i><div class="msg">Unable to load</div><div class="sub">' + escapeHtml(opts.message || 'Please try again.') + '</div>' + btn;
-    if (opts.retryFn) {
-      var b = stateEl.querySelector('[data-panel-retry]');
-      if (b) b.addEventListener('click', opts.retryFn);
-    }
-  }
-}
-
-async function loadAll() {
-  if (State.loading) return;
-  State.loading = true;
-
-  var panels = ['general','rates','fees','pricing','wallet','limits','services','providers','notifications','security'];
-  panels.forEach(function (id) { setPanelState('panel-' + id, 'loading'); });
-
-  var res = await api(API.all);
-  State.loading = false;
-
-  if (!res.ok) {
-    var msg = _reasonText(res.reason);
-    panels.forEach(function (id) {
-      setPanelState('panel-' + id, 'error', { message: msg, retryFn: loadAll });
-    });
-    toast('Failed to load settings: ' + msg, 'error');
-    return;
-  }
-
-  State.flat = {};
-  State.original = {};
-  State.dirty = {};
-
-  var sections = res.data.sections || {};
-  Object.keys(sections).forEach(function (k) {
-    var s = sections[k] || {};
-    Object.keys(s).forEach(function (kk) { State.flat[kk] = s[kk]; });
-  });
-  Object.keys(State.flat).forEach(function (k) { State.original[k] = State.flat[k]; });
-  State.version = res.data.version != null ? res.data.version : null;
-
-  _applyPermissionVisibility();
-  _renderForms();
-  renderServices();
-  renderProviders();
-
-  panels.forEach(function (id) {
-    var panelId = 'panel-' + id;
-    var hasContent = document.querySelector('#' + panelId + ' [data-key]');
-    setPanelState(panelId, hasContent ? 'ready' : 'empty');
-  });
-
-  updateVersionBadge();
-  updateDirtyBar();
-  updateSectionDots();
-}
-
-function _applyPermissionVisibility() {
-  var hideForNonSuper = [
-    'maintenance_mode','maintenance_message',
-    'usd_to_ngn','giftcard_wholesale_currency',
-    'deposit_rate_NGN','deposit_rate_GHS','deposit_rate_KES','deposit_rate_ZAR',
-    'deposit_rate_XOF','deposit_rate_XAF','deposit_rate_TZS','deposit_rate_EGP',
-    'emergency_stop_deposits','emergency_stop_purchases',
-    'emergency_stop_provider_requests','emergency_stop_wallet_mutations'
-  ];
-  $$('[data-key]').forEach(function (el) {
-    var k = el.dataset.key;
-    var hidden = !State.isSuperAdmin && hideForNonSuper.indexOf(k) !== -1;
-    var field = el.closest('.field') || el.closest('.toggle-row');
-    if (field) field.style.display = hidden ? 'none' : '';
-  });
-  // UI-LAYOUT-PATCH (H): the whole Maintenance section is for super admins only.
-  var maintSection = $('generalMaintenanceSection');
-  if (maintSection) maintSection.hidden = !State.isSuperAdmin;
-}
-
-function _renderForms() {
-    $$('[data-key]').forEach(function (el) {
-    var key = el.dataset.key;
-    if (!(key in State.flat)) return;
-    var raw = State.flat[key];
-    if (raw === null || raw === undefined) { el.value = ''; return; }
-    if (el.type === 'checkbox') {
-      el.checked = raw === true || raw === 'true' || raw === 1 || raw === '1';
-    } else if (el.dataset.percent === 'true') {
-      el.value = decimalToPercentDisplay(String(raw));
-    } else {
-      el.value = String(raw);
-    }
-    var fieldEl = el.closest('.field');
-    if (fieldEl) {
-      fieldEl.classList.remove('has-error');
-      var err = fieldEl.querySelector('.error');
-      if (err) err.textContent = '';
-    }
-  });
-  _updatePreviews();
-}
-
-function _updatePreviews() {
-  var rateEl = $('set-usd_to_ngn');
-  var previewEl = document.querySelector('[data-preview-for="usd_to_ngn"]');
-  if (!rateEl || !previewEl) return;
-  var v = String(rateEl.value || '').replace(/,/g, '');
-  var n = parseFloat(v);
-  if (isFinite(n) && n > 0) {
-    previewEl.textContent = '1 USD = ₦' + n.toLocaleString('en-NG', { maximumFractionDigits: 2 });
-  } else {
-    previewEl.textContent = '';
-  }
-}
-
-var SERVICE_DEFS = [
-  { key: 'giftcards',   label: 'Gift Cards',        icon: 'fa-gift' },
-  { key: 'airtime',     label: 'Airtime & Data',    icon: 'fa-signal' },
-  { key: 'bills',       label: 'Bills & Utilities', icon: 'fa-file-invoice' },
-  { key: 'esim',        label: 'eSIM',              icon: 'fa-sim-card' },
-  { key: 'virtual_sms', label: 'Virtual SMS',       icon: 'fa-comment-sms' },
-  { key: 'boost',       label: 'Boost',             icon: 'fa-rocket' },
-  { key: 'marketplace', label: 'Marketplace',       icon: 'fa-store' },
-  { key: 'crypto',      label: 'Crypto',            icon: 'fa-brands fa-bitcoin' }
-];
-
-function renderServices() {
-  var box = $('servicesForm');
-  if (!box) return;
-  box.innerHTML = SERVICE_DEFS.map(function (s) {
-    var flagKey = 'service_' + s.key + '_enabled';
-    return '<div class="toggle-row">'
-      + '<div class="info"><div class="t"><i class="' + s.icon + '" aria-hidden="true" style="color:var(--text-dim);font-size:12px"></i> ' + escapeHtml(s.label) + '</div></div>'
-      + '<label class="toggle"><input type="checkbox" data-key="' + flagKey + '"><span class="slider"></span></label>'
-      + '</div>';
-  }).join('');
-
-  box.querySelectorAll('[data-key]').forEach(function (el) {
-    var key = el.dataset.key;
-    el.checked = State.flat[key] === 'true' || State.flat[key] === true;
-    el.addEventListener('change', function () { markDirty(key, el.checked ? 'true' : 'false'); });
-  });
-}
-
-var PROVIDER_DEFS = [
-  { key: 'kora',        label: 'KoraPay',     icon: 'fa-credit-card' },
-  { key: 'nowpayments', label: 'NowPayments', icon: 'fa-brands fa-bitcoin' },
-  { key: 'vtpass',      label: 'VTpass',      icon: 'fa-signal' },
-  { key: 'dtone',       label: 'DT One',      icon: 'fa-globe' }
-];
-
-function renderProviders() {
-  var box = $('providersForm');
-  if (!box) return;
-  var html = PROVIDER_DEFS.map(function (p) {
-    return '<div class="section">'
-      + '<div class="section-title"><i class="' + p.icon + '" aria-hidden="true"></i> ' + escapeHtml(p.label) + '</div>'
-      + '<div class="toggle-row"><div class="info"><div class="t">Enabled</div><div class="d">Backend rejects outbound requests when disabled.</div></div>'
-      + '<label class="toggle"><input type="checkbox" data-key="provider_' + p.key + '_enabled"><span class="slider"></span></label></div>'
-      + '<div class="toggle-row"><div class="info"><div class="t">Maintenance</div><div class="d">Requests fail fast while in maintenance.</div></div>'
-      + '<label class="toggle"><input type="checkbox" data-key="provider_' + p.key + '_maintenance"><span class="slider"></span></label></div>'
-      + '<div class="field" style="margin-top:12px"><label for="set-provider_' + p.key + '_timeout_ms">Timeout (ms)</label>'
-      + '<input type="text" id="set-provider_' + p.key + '_timeout_ms" data-key="provider_' + p.key + '_timeout_ms" inputmode="numeric" autocomplete="off"></div>'
-      + (p.key === 'kora'
-          ? '<div class="field" style="margin-top:12px"><label for="set-provider_kora_retry_count">Retry count</label>'
-            + '<input type="text" id="set-provider_kora_retry_count" data-key="provider_kora_retry_count" inputmode="numeric" autocomplete="off"></div>'
-          : '')
-      + '</div>';
-  }).join('');
-  box.innerHTML = html;
-
-  box.querySelectorAll('[data-key]').forEach(function (el) {
-    var key = el.dataset.key;
-    if (el.type === 'checkbox') {
-      el.checked = State.flat[key] === 'true' || State.flat[key] === true;
-      el.addEventListener('change', function () { markDirty(key, el.checked ? 'true' : 'false'); });
-    } else {
-      el.value = State.flat[key] != null ? String(State.flat[key]) : '';
-      el.addEventListener('input', function () { markDirty(key, el.value); });
-    }
-  });
-}
-
-function markDirty(key, value) {
-  var original = State.original[key] != null ? State.original[key] : '';
-  var current = value != null ? String(value) : _currentFieldValue(key);
-  var same = String(current == null ? '' : current) === String(original == null ? '' : original);
-  if (same) delete State.dirty[key];
-  else State.dirty[key] = current;
-  updateDirtyBar();
-  updateSectionDots();
-}
-
-function _currentFieldValue(key) {
-  var el = document.querySelector('[data-key="' + CSS.escape(key) + '"]');
-  if (!el) return null;
-  if (el.type === 'checkbox') return el.checked ? 'true' : 'false';
-  return el.value;
-}
-
-function updateDirtyBar() {
-  var bar = $('dirtyBar');
-  var cnt = $('dirtyCount');
-  if (!bar || !cnt) return;
-  var n = Object.keys(State.dirty).length;
-  if (n === 0) { bar.classList.remove('show'); return; }
-  bar.classList.add('show');
-  cnt.textContent = n + ' unsaved change' + (n === 1 ? '' : 's');
-}
-
-function updateSectionDots() {
-  var sectionHas = {};
-  Object.keys(State.dirty).forEach(function (key) {
-    var el = document.querySelector('[data-key="' + CSS.escape(key) + '"]');
-    if (!el) return;
-    var panel = el.closest('.panel');
-    if (!panel) return;
-    sectionHas[panel.id.replace(/^panel-/, '')] = true;
-  });
-  $$('#sideMenu .m-item').forEach(function (btn) {
-    var dot = btn.querySelector('.dot');
-    if (dot) dot.hidden = !sectionHas[btn.dataset.section];
-  });
-}
-
-function collectSectionPatch(section) {
-  var panel = $('panel-' + section);
-  if (!panel) return {};
-  var patch = {};
-  panel.querySelectorAll('[data-key]').forEach(function (el) {
-    var key = el.dataset.key;
-    if (!(key in State.dirty)) return;
-    var v = State.dirty[key];
-    if (el.dataset.percent === 'true' && v !== '' && v != null) {
-      v = percentDisplayToDecimal(String(v));
-    }
-    patch[key] = v;
-  });
-  return patch;
-}
-
-var FINANCIAL_PREFIXES = [
-  'usd_to_ngn', 'deposit_rate_', 'deposit_fee_',
-  'giftcard_markup_', 'esim_markup_', 'airtime_markup_',
-  'boost_markup_', 'marketplace_markup_', 'virtual_sms_markup_',
-  'min_deposit_', 'max_deposit_', 'daily_deposit_',
-  'giftcard_min_', 'giftcard_max_', 'airtime_min_', 'airtime_max_',
-  'esim_min_', 'esim_max_', 'virtual_sms_min_', 'virtual_sms_max_',
-  'boost_min_', 'boost_max_'
-];
-var DANGEROUS_KEYS = [
-  'maintenance_mode','maintenance_message',
-  'emergency_stop_deposits','emergency_stop_purchases',
-  'emergency_stop_provider_requests','emergency_stop_wallet_mutations'
-];
-
-function needsReason(keys) {
-  return keys.some(function (k) {
-    for (var i = 0; i < FINANCIAL_PREFIXES.length; i++) {
-      if (k === FINANCIAL_PREFIXES[i] || k.indexOf(FINANCIAL_PREFIXES[i]) === 0) return true;
-    }
-    return DANGEROUS_KEYS.indexOf(k) !== -1;
-  });
-}
-
-async function savePatch(patch, label) {
-  if (State.saving) return false;
-  var keys = Object.keys(patch);
-  if (!keys.length) { toast('Nothing to save', 'info'); return true; }
-  if (State.version == null) { toast('Cannot save: config version unknown. Reload first.', 'error'); return false; }
-
-  var reason = null;
-  if (needsReason(keys)) {
-    reason = await promptReason('Reason required', 'This change affects financial or emergency settings. Enter a reason (min 4 chars).');
-    if (!reason) return false;
-  }
-
-  State.saving = true;
-  var ok = await _doSavePatch(patch, { reason: reason, label: label });
-  State.saving = false;
-  return ok;
-}
-
-async function _doSavePatch(patch, opts) {
-  opts = opts || {};
-  var res = await api(API.all, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      settings: patch,
-      reason: opts.reason || null,
-      expectedVersion: State.version
-    })
-  });
-
-  if (!res.ok) {
-    if (res.code === 'CONFIG_VERSION_CONFLICT' || res.code === 'CONFIG_VERSION_REQUIRED') {
-      toast('Another admin saved changes first. Reloading…', 'warn');
-      setTimeout(loadAll, 400);
-    } else if (res.code === 'PERMISSION_DENIED') {
-      toast('You do not have permission for this change.', 'error');
-    } else if (res.code === 'REASON_REQUIRED') {
-      toast('A reason is required for this change.', 'error');
-    } else {
-      toast('Save failed: ' + (res.error || res.reason || 'unknown'), 'error');
-    }
-    return false;
-  }
-
-  if (res.data && res.data.version != null) State.version = res.data.version;
-  var updated = Array.isArray(res.data && res.data.updated) ? res.data.updated : [];
-  updated.forEach(function (k) {
-    delete State.dirty[k];
-    var el = document.querySelector('[data-key="' + CSS.escape(k) + '"]');
-    if (el) {
-      var v;
-      if (el.type === 'checkbox') v = el.checked ? 'true' : 'false';
-      else if (el.dataset.percent === 'true') v = percentDisplayToDecimal(el.value);
-      else v = el.value;
-      State.flat[k] = v;
-      State.original[k] = v;
-    }
-  });
-
-  updateVersionBadge();
-  updateDirtyBar();
-  updateSectionDots();
-  toast((opts.label || 'Saved') + ' — ' + updated.length + ' key' + (updated.length === 1 ? '' : 's') + ' updated', 'success');
-  return true;
-}
-
-async function saveSection(section) {
-  var patch = collectSectionPatch(section);
-  if (!Object.keys(patch).length) { toast('No changes in this section', 'info'); return; }
-  var btn = document.querySelector('[data-action="save-section"][data-section="' + section + '"]');
-  if (btn) { btn.disabled = true; btn.classList.add('spinning'); }
-  await savePatch(patch, section);
-  if (btn) { btn.disabled = false; btn.classList.remove('spinning'); }
-}
-
-function discardDirty() {
-  if (Object.keys(State.dirty).length === 0) return;
-  State.dirty = {};
-  _renderForms();
-  renderServices();
-  renderProviders();
-  _applyPermissionVisibility();
-  updateDirtyBar();
-  updateSectionDots();
-  toast('Unsaved changes discarded', 'info');
-}
-
-function updateVersionBadge() {
-  var el = $('versionBadge');
-  if (!el) return;
-  if (State.version == null) {
-    el.className = 'badge off';
-    el.innerHTML = '<i class="fas fa-code-branch" aria-hidden="true"></i> v—';
-  } else {
-    el.className = 'badge ok';
-    el.innerHTML = '<i class="fas fa-code-branch" aria-hidden="true"></i> v' + escapeHtml(String(State.version));
-  }
-}
-
-function openModal(cfg) {
-  return new Promise(function (resolve) {
-    var scrim = $('modalScrim');
-    var modal = $('modal');
-    var ttl = $('modalTitle');
-    var body = $('modalBody');
-    var okBtn = $('modalOk');
-    var cnBtn = $('modalCancel');
-    var xBtn = $('modalClose');
-
-    ttl.textContent = cfg.title || 'Confirm';
-    body.innerHTML = cfg.bodyHtml || '';
-    okBtn.textContent = cfg.okLabel || 'Confirm';
-    okBtn.className = 'btn ' + (cfg.kind === 'danger' ? 'danger' : 'primary');
-    cnBtn.textContent = cfg.cancelLabel != null ? cfg.cancelLabel : 'Cancel';
-    cnBtn.style.display = (cfg.cancelLabel === '') ? 'none' : '';
-    xBtn.style.display = '';
-
-    var prev = document.activeElement;
-    var cleanup = function (val) {
-      scrim.classList.remove('open');
-      document.body.classList.remove('lock');
-      document.removeEventListener('keydown', onKey);
-      okBtn.onclick = null; cnBtn.onclick = null; xBtn.onclick = null; scrim.onclick = null;
-      if (prev && prev.focus) try { prev.focus(); } catch (e) {}
-      resolve(val);
-    };
-    var readResult = function () {
-      var inputs = body.querySelectorAll('[data-modal-input]');
-      var values = {};
-      inputs.forEach(function (i) {
-        values[i.dataset.modalInput] = i.type === 'checkbox' ? i.checked : i.value;
-      });
-      return values;
-    };
-    var onKey = function (e) {
-      if (e.key === 'Escape') { e.preventDefault(); cleanup(null); return; }
-      if (e.key === 'Enter' && document.activeElement.tagName !== 'TEXTAREA') { e.preventDefault(); cleanup(readResult()); return; }
-      if (e.key === 'Tab') {
-        var f = modal.querySelectorAll('button,input,select,textarea,a[href]');
-        if (!f.length) return;
-        var first = f[0], last = f[f.length - 1];
-        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-      }
-    };
-
-    okBtn.onclick = function () { cleanup(readResult()); };
-    cnBtn.onclick = function () { cleanup(null); };
-    xBtn.onclick = function () { cleanup(null); };
-    scrim.onclick = function (e) { if (e.target === scrim) cleanup(null); };
-
-    scrim.classList.add('open');
-    document.body.classList.add('lock');
-    document.addEventListener('keydown', onKey);
-
-    setTimeout(function () {
-      var first = body.querySelector('input,textarea,select');
-      if (first) first.focus(); else okBtn.focus();
-    }, 60);
-  });
-}
-
-function promptReason(title, message) {
-  return openModal({
-    title: title || 'Reason',
-    bodyHtml: '<p>' + escapeHtml(message || 'Enter a reason for this change.') + '</p>'
-      + '<div class="field"><label for="reasonInput">Reason</label>'
-      + '<textarea id="reasonInput" data-modal-input="reason" rows="3" placeholder="Minimum 4 characters"></textarea>'
-      + '<div class="reason-counter" id="reasonCounter">0 / 4 min</div></div>',
-    okLabel: 'Submit',
-    cancelLabel: 'Cancel',
-    kind: 'primary'
-  }).then(function (result) {
-    if (!result) return null;
-    var r = String(result.reason || '').trim();
-    if (r.length < 4) { toast('Reason must be at least 4 characters.', 'warn'); return null; }
-    return r;
-  });
-}
-
-document.addEventListener('input', function (e) {
-  if (e.target.id !== 'reasonInput') return;
-  var el = $('reasonCounter');
-  if (!el) return;
-  var n = e.target.value.length;
-  el.textContent = n + ' / 4 min';
-  el.style.color = n >= 4 ? 'var(--success)' : 'var(--text-faint)';
-});
-
-function setSidebarOpen(open) {
-  var sb = $('sidebar'), sc = $('scrim'), hb = $('hamburger');
-  if (!sb) return;
-  sb.classList.toggle('open', open);
-  if (sc) sc.classList.toggle('show', open);
-  if (hb) hb.setAttribute('aria-expanded', String(open));
-  document.body.classList.toggle('lock', open);
-}
-
-function toggleTheme() {
-  var root = document.documentElement;
-  var isDark = root.classList.toggle('dark');
-  try { localStorage.setItem('ms-theme', isDark ? 'dark' : 'light'); } catch (e) {}
-  var icon = $('darkToggleIcon');
-  if (icon) icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
-}
-
-function applyThemeIcon() {
-  var isDark = document.documentElement.classList.contains('dark');
-  var icon = $('darkToggleIcon');
-  if (icon) icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
-}
-
-function showSection(section) {
-  if (Object.keys(State.dirty).length > 0 && State.currentSection !== section) {
-    if (!window.confirm('You have unsaved changes. Switch sections?')) return;
-  }
-  State.currentSection = section;
-  document.querySelectorAll('#sideMenu .m-item').forEach(function (el) {
-    var on = el.dataset.section === section;
-    el.classList.toggle('active', on);
-    el.setAttribute('aria-selected', String(on));
-  });
-  document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('active'); });
-  var panel = $('panel-' + section);
-  if (panel) panel.classList.add('active');
-
-  if (section === 'roles' && !State.rolesLoaded) initRolesPanel();
-  if (section === 'history' && !State.historyLoaded) loadHistory();
-  if (section === 'health' && !State.healthLoaded) loadHealth();
-  if (section === 'mfa') loadMfaStatus();
-
-  try { history.replaceState(null, '', '#' + section); } catch (e) {}
-}
-
-async function loadHistory() {
-  var list = $('historyList');
-  if (!list) return;
-  State.historyLoaded = false;
-  list.innerHTML = '';
-  setPanelState('panel-history', 'loading');
-
-  var res = await api(API.rateHistory + '?limit=100');
-  if (!res.ok) {
-    setPanelState('panel-history', 'error', { message: _reasonText(res.reason), retryFn: loadHistory });
-    return;
-  }
-  State.historyLoaded = true;
-  var rows = Array.isArray(res.data && res.data.rows) ? res.data.rows : (Array.isArray(res.data) ? res.data : []);
-  if (!rows.length) {
-    setPanelState('panel-history', 'empty', { message: 'No rate changes yet.' });
-    return;
-  }
-  setPanelState('panel-history', 'ready');
-  list.innerHTML = rows.map(function (r) {
-    return '<div class="hist-row">'
-      + '<div class="when" title="' + escapeHtml(formatDateTime(r.changed_at)) + '">' + escapeHtml(timeAgo(r.changed_at)) + '</div>'
-      + '<div class="what"><strong>' + escapeHtml(r.key) + '</strong>'
-      + '<span class="from-to">' + escapeHtml(r.previous_value == null ? '—' : String(r.previous_value))
-      + ' → <strong style="color:var(--text)">' + escapeHtml(r.new_value == null ? '—' : String(r.new_value)) + '</strong></span></div>'
-      + '<div class="by">' + escapeHtml(r.changed_by_display || r.changed_by_email || 'Unknown') + '</div>'
-      + '</div>';
-  }).join('');
-}
-
-async function loadHealth() {
-  var list = $('healthList');
-  if (!list) return;
-  State.healthLoaded = false;
-  list.innerHTML = '';
-  setPanelState('panel-health', 'loading');
-
-  var res = await api(API.health);
-  if (!res.ok) {
-    setPanelState('panel-health', 'error', { message: _reasonText(res.reason), retryFn: loadHealth });
-    return;
-  }
-  State.healthLoaded = true;
-  setPanelState('panel-health', 'ready');
-  var cfg = (res.data && res.data.configuration) || {};
-  var pill = function (v) {
-    if (v === 'ok' || v === 'configured') return 'ok';
-    if (v === 'missing' || v === 'unavailable' || v === 'none-configured') return 'err';
-    if (v === 'partial' || v === 'invalid' || v === 'all-disabled') return 'warn';
-    return 'off';
-  };
-  var areas = [
-    ['database', 'Database'], ['rates', 'Exchange rates'], ['fees', 'Deposit fees'],
-    ['services', 'Services'], ['providers', 'Providers']
-  ];
-  list.innerHTML = areas.map(function (a) {
-    return '<div class="health-row"><div class="label">' + escapeHtml(a[1]) + '</div>'
-      + '<div class="value"><span class="badge ' + pill(cfg[a[0]]) + '">'
-      + escapeHtml(String(cfg[a[0]] || 'unknown').replace(/-/g, ' ')) + '</span></div></div>';
-  }).join('')
-  + '<div class="health-row"><div class="label">Config version</div><div class="value">v'
-  + escapeHtml(String(cfg.version == null ? '—' : cfg.version)) + '</div></div>'
-  + '<div class="health-row"><div class="label">Checked at</div>'
-  + '<div class="value" style="font-weight:400;color:var(--text-dim)">' + escapeHtml(formatDateTime(cfg.checked_at)) + '</div></div>';
-}
-
-async function initRolesPanel() {
-  setPanelState('panel-roles', 'loading');
-
-  var results = await Promise.all([api(API.roles), api(API.rolesPerms)]);
-  var rolesRes = results[0];
-  var permsRes = results[1];
-
-  if (!rolesRes.ok) {
-    State.rolesLoaded = true;
-    State.rolesAvailable = false;
-    setPanelState('panel-roles', 'error', {
-      message: _reasonText(rolesRes.reason),
-      retryFn: function () { State.rolesLoaded = false; initRolesPanel(); }
-    });
-    return;
-  }
-  var d = rolesRes.data || {};
-  if (d.available === false) {
-    State.rolesLoaded = true;
-    State.rolesAvailable = false;
-    setPanelState('panel-roles', 'error', {
-      message: 'Roles unavailable — ' + (d.reason || 'unknown') + '. Run the roles migration and retry.',
-      retryFn: function () { State.rolesLoaded = false; initRolesPanel(); }
-    });
-    return;
-  }
-  State.rolesLoaded = true;
-  State.rolesAvailable = true;
-  State.roles = Array.isArray(d.roles) ? d.roles : [];
-  State.permissionGroups = Array.isArray(permsRes.data && permsRes.data.groups) ? permsRes.data.groups : [];
-
-  if (!State.roles.length) {
-    setPanelState('panel-roles', 'empty', { message: 'No roles yet. Click New role to create one.' });
-    return;
-  }
-  setPanelState('panel-roles', 'ready');
-  renderRolesList();
-}
-
-function renderRolesList() {
-  var box = $('rolesList');
-  if (!box) return;
-  box.innerHTML = State.roles.map(function (r) {
-    var isSystem = !!r.is_system;
-    var permCount = Array.isArray(r.permissions) ? r.permissions.length : 0;
-    var preview = Array.isArray(r.permissions) && r.permissions.indexOf('*') !== -1
-      ? 'All permissions'
-      : permCount + ' permission' + (permCount === 1 ? '' : 's');
-    return '<div class="role-row">'
-      + '<div class="role-name">'
-      + '<strong>' + escapeHtml(r.label) + ' ' + (isSystem ? '<span class="badge system">System</span>' : '<span class="badge custom">Custom</span>') + '</strong>'
-      + '<span class="slug">' + escapeHtml(r.slug) + '</span>'
-      + '<div class="role-meta"><span>' + escapeHtml(preview) + '</span><span>·</span><span>' + (r.user_count || 0) + ' user' + ((r.user_count || 0) === 1 ? '' : 's') + '</span></div>'
-      + '</div>'
-      + '<div class="role-actions">'
-      + '<button type="button" class="btn sm" data-role-view="' + escapeHtml(r.slug) + '" title="View"><i class="fas fa-eye" aria-hidden="true"></i></button>'
-      + (!isSystem
-        ? '<button type="button" class="btn sm" data-role-edit="' + escapeHtml(r.slug) + '" title="Edit"><i class="fas fa-pen" aria-hidden="true"></i></button>'
-          + '<button type="button" class="btn sm danger" data-role-delete="' + escapeHtml(r.slug) + '" title="Delete"><i class="fas fa-trash" aria-hidden="true"></i></button>'
-        : '')
-      + '</div></div>';
-  }).join('');
-
-  box.querySelectorAll('[data-role-view]').forEach(function (b) {
-    b.addEventListener('click', function () { openRoleViewer(b.dataset.roleView); });
-  });
-  box.querySelectorAll('[data-role-edit]').forEach(function (b) {
-    b.addEventListener('click', function () { openRoleEditor(b.dataset.roleEdit); });
-  });
-  box.querySelectorAll('[data-role-delete]').forEach(function (b) {
-    b.addEventListener('click', function () { deleteRole(b.dataset.roleDelete); });
-  });
-}
-
-function openRoleViewer(slug) {
-  var role = State.roles.filter(function (r) { return r.slug === slug; })[0];
-  if (!role) return;
-  var perms = Array.isArray(role.permissions) ? role.permissions : [];
-  var wildcard = perms.indexOf('*') !== -1;
-
-  var html = '<p><strong>' + escapeHtml(role.label) + '</strong> — <code>' + escapeHtml(role.slug) + '</code></p>';
-  if (role.description) html += '<p>' + escapeHtml(role.description) + '</p>';
-  if (wildcard) {
-    html += '<p><em>This role has all permissions.</em></p>';
-  } else if (!perms.length) {
-    html += '<p>This role has no permissions.</p>';
-  } else {
-    var groups = State.permissionGroups.map(function (g) {
-      var matched = (g.permissions || []).filter(function (p) { return perms.indexOf(p.slug) !== -1; });
-      return matched.length ? { label: g.label, items: matched } : null;
-    }).filter(Boolean);
-    if (groups.length) {
-      html += groups.map(function (g) {
-        return '<div class="perm-group"><div class="perm-group-head">' + escapeHtml(g.label) + '</div>'
-          + g.items.map(function (p) { return '<div class="perm-item">' + escapeHtml(p.label) + '</div>'; }).join('')
-          + '</div>';
-      }).join('');
-    } else {
-      html += '<p>Permissions list unavailable.</p>';
-    }
-  }
-  openModal({ title: 'Permissions — ' + role.label, bodyHtml: html, okLabel: 'Close', cancelLabel: '' });
-}
-
-async function openRoleEditor(slug) {
-  if (!State.isSuperAdmin) { toast('Only Super Admins can edit roles.', 'error'); return; }
-  var isEdit = !!slug;
-  var role = isEdit ? State.roles.filter(function (r) { return r.slug === slug; })[0] : null;
-  if (isEdit && !role) return;
-  if (isEdit && role.is_system) { toast('System roles cannot be edited.', 'warn'); return; }
-
-  var currentPerms = {};
-  (role && role.permissions || []).forEach(function (p) { currentPerms[p] = true; });
-
-  var bodyHtml = '<div class="field"><label for="roleEditorSlug">Slug</label>'
-    + '<input type="text" id="roleEditorSlug" value="' + escapeHtml(role ? role.slug : '') + '"' + (isEdit ? ' disabled' : '') + ' autocomplete="off" autocapitalize="off" spellcheck="false"></div>'
-    + '<div class="field"><label for="roleEditorLabel">Display label</label>'
-    + '<input type="text" id="roleEditorLabel" value="' + escapeHtml(role ? role.label : '') + '" autocomplete="off"></div>'
-    + '<div class="field"><label for="roleEditorDesc">Description</label>'
-    + '<textarea id="roleEditorDesc" rows="2">' + escapeHtml(role ? (role.description || '') : '') + '</textarea></div>'
-    + '<div style="font-weight:700;font-size:12.5px;margin:12px 0 8px">Permissions</div>'
-    + State.permissionGroups.map(function (g) {
-      return '<div class="perm-group" data-perm-group="' + escapeHtml(g.key) + '">'
-        + '<div class="perm-group-head"><span>' + escapeHtml(g.label) + '</span>'
-        + '<button type="button" class="btn sm" data-toggle-group="' + escapeHtml(g.key) + '">Toggle all</button></div>'
-        + (g.permissions || []).map(function (p) {
-          var checked = currentPerms[p.slug] || currentPerms['*'];
-          return '<label class="perm-item"><input type="checkbox" data-perm="' + escapeHtml(p.slug) + '"' + (checked ? ' checked' : '') + '>'
-            + '<span>' + escapeHtml(p.label) + (p.sensitive ? ' <span class="badge err">sensitive</span>' : '') + '</span></label>';
-        }).join('')
-        + '</div>';
-    }).join('')
-    + '<div class="field" style="margin-top:12px"><label for="roleEditorReason">Reason (required)</label>'
-    + '<textarea id="roleEditorReason" rows="2" placeholder="Explain why this role is being ' + (isEdit ? 'updated' : 'created') + '"></textarea></div>';
-
-  setTimeout(function () {
-    document.querySelectorAll('[data-toggle-group]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var gk = btn.dataset.toggleGroup;
-        var group = document.querySelector('[data-perm-group="' + CSS.escape(gk) + '"]');
-        if (!group) return;
-        var boxes = group.querySelectorAll('input[type="checkbox"][data-perm]');
-        var allOn = Array.prototype.every.call(boxes, function (b) { return b.checked; });
-        Array.prototype.forEach.call(boxes, function (b) { b.checked = !allOn; });
-      });
-    });
-  }, 80);
-
-  var result = await openModal({
-    title: isEdit ? ('Edit role — ' + role.label) : 'Create role',
-    bodyHtml: bodyHtml,
-    okLabel: isEdit ? 'Save changes' : 'Create role',
-    cancelLabel: 'Cancel',
-    kind: 'primary'
-  });
-  if (!result) return;
-
-  var slugVal = ($('roleEditorSlug') ? $('roleEditorSlug').value : '').trim();
-  var labelVal = ($('roleEditorLabel') ? $('roleEditorLabel').value : '').trim();
-  var descVal = ($('roleEditorDesc') ? $('roleEditorDesc').value : '').trim();
-  var reasonVal = ($('roleEditorReason') ? $('roleEditorReason').value : '').trim();
-  var perms = Array.prototype.map.call(document.querySelectorAll('input[data-perm]:checked'), function (b) { return b.dataset.perm; });
-
-  if (!labelVal) { toast('Label is required.', 'warn'); return; }
-  if (!perms.length) { toast('Select at least one permission.', 'warn'); return; }
-  if (reasonVal.length < 4) { toast('Reason must be at least 4 characters.', 'warn'); return; }
-  if (!isEdit && !/^[a-z][a-z0-9_]{2,40}$/.test(slugVal)) { toast('Slug must be 3-40 lowercase chars.', 'warn'); return; }
-
-  var allPerms = [];
-  State.permissionGroups.forEach(function (g) { allPerms = allPerms.concat(g.permissions || []); });
-  var sensitive = perms.filter(function (p) {
-    var def = allPerms.filter(function (x) { return x.slug === p; })[0];
-    return def && def.sensitive;
-  });
-    var confirmSensitive = false;
-  if (sensitive.length) {
-    var ok = await openModal({
-      title: 'Confirm sensitive permissions',
-      bodyHtml: '<p>This role will grant sensitive permissions:</p>'
-        + '<ul style="margin-left:18px;color:var(--text-dim);font-size:12.5px">'
-        + sensitive.map(function (p) { return '<li>' + escapeHtml(p) + '</li>'; }).join('')
-        + '</ul><p>These affect money movement, security, or emergency controls.</p>',
-      okLabel: 'Yes, grant these',
-      cancelLabel: 'Cancel',
-      kind: 'danger'
-    });
-    if (!ok) return;
-    confirmSensitive = true;
-  }
-
-  var url = isEdit ? API.roleBySlug(role.slug) : API.roles;
-  var method = isEdit ? 'PUT' : 'POST';
-  var payload = isEdit
-    ? { label: labelVal, description: descVal, permissions: perms, reason: reasonVal, confirmSensitive: confirmSensitive }
-    : { slug: slugVal, label: labelVal, description: descVal, permissions: perms, reason: reasonVal, confirmSensitive: confirmSensitive };
-
-  var res = await api(url, {
-    method: method,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  if (!res.ok) {
-    if (res.code === 'SENSITIVE_PERMISSION_REQUIRES_CONFIRMATION') {
-      toast('Step-up verification is required. Sign in again and retry.', 'warn');
-    } else {
-      toast('Save failed: ' + (res.error || res.code || 'unknown'), 'error');
-    }
-    return;
-  }
-
-  toast(isEdit ? 'Role updated.' : 'Role created.', 'success');
-  State.rolesLoaded = false;
-  initRolesPanel();
-}
-
-async function deleteRole(slug) {
-  if (!State.isSuperAdmin) return;
-  var role = State.roles.filter(function (r) { return r.slug === slug; })[0];
-  if (!role) return;
-
-  var result = await openModal({
-    title: 'Delete role — ' + role.label,
-    bodyHtml: '<p>Users assigned to <strong>' + escapeHtml(role.label) + '</strong> must be reassigned first.</p>'
-      + '<div class="field"><label for="deleteReasonInput">Reason (required)</label>'
-      + '<textarea id="deleteReasonInput" rows="2" placeholder="Minimum 4 characters"></textarea></div>',
-    okLabel: 'Delete role',
-    cancelLabel: 'Cancel',
-    kind: 'danger'
-  });
-  if (!result) return;
-
-  var reason = String(result.reason || '').trim();
-  if (reason.length < 4) { toast('Reason must be at least 4 characters.', 'warn'); return; }
-
-  var res = await api(API.roleBySlug(slug) + '?reason=' + encodeURIComponent(reason), { method: 'DELETE' });
-  if (!res.ok) {
-    toast('Delete failed: ' + (res.error || res.code || 'unknown'), 'error');
-    return;
-  }
-  toast('Role deleted.', 'success');
-  State.rolesLoaded = false;
-  initRolesPanel();
-}
-
-var _searchTimer = null;
-function wireUserSearch() {
-  var input = $('roleAssignSearch');
-  if (!input) return;
-  input.addEventListener('input', function () {
-    clearTimeout(_searchTimer);
-    var q = input.value.trim();
-    if (q.length < 2) {
-      $('roleSearchResults').innerHTML = '<div class="state" style="padding:14px"><div class="sub">Type at least 2 characters</div></div>';
-      return;
-    }
-    _searchTimer = setTimeout(function () { searchUsersForAssignment(q); }, 300);
-  });
-}
-
-async function searchUsersForAssignment(q) {
-  var box = $('roleSearchResults');
-  if (!box) return;
-  box.innerHTML = '<div class="state" style="padding:14px"><span class="skel" style="width:60%;margin:0 auto"></span></div>';
-
-  var res = await api(API.rolesUserSearch + '?search=' + encodeURIComponent(q));
-  if (!res.ok) {
-    box.innerHTML = '<div class="state" style="padding:14px"><i class="fas fa-triangle-exclamation"></i><div class="sub">' + escapeHtml(_reasonText(res.reason)) + '</div></div>';
-    return;
-  }
-  var users = Array.isArray(res.data && res.data.users) ? res.data.users : [];
-  if (!users.length) {
-    box.innerHTML = '<div class="state" style="padding:14px"><div class="sub">No users found.</div></div>';
-    return;
-  }
-
-  box.innerHTML = users.map(function (u) {
-    var name = u.username || (u.email ? u.email.split('@')[0] : 'User');
-    var roleLabel = (State.roles.filter(function (r) { return r.slug === u.role; })[0] || {}).label || u.role;
-    var options = State.roles.filter(function (r) { return r.slug !== 'super_admin' && r.slug !== u.role; })
-      .map(function (r) { return '<option value="' + escapeHtml(r.slug) + '">' + escapeHtml(r.label) + '</option>'; }).join('');
-    return '<div class="role-search-row">'
-      + '<div class="info"><strong>' + escapeHtml(name) + '</strong>'
-      + '<span>' + escapeHtml(u.email || '') + ' · current: ' + escapeHtml(roleLabel) + '</span></div>'
-      + '<div class="assign">'
-      + '<select data-assign-user="' + escapeHtml(u.id) + '"><option value="">Assign role…</option>' + options + '</select>'
-      + '<button type="button" class="btn primary sm" data-assign-user-btn="' + escapeHtml(u.id) + '" disabled>'
-      + '<i class="fas fa-check" aria-hidden="true"></i> Assign</button>'
-      + '</div></div>';
-  }).join('');
-
-  box.querySelectorAll('select[data-assign-user]').forEach(function (sel) {
-    var uid = sel.dataset.assignUser;
-    var btn = box.querySelector('button[data-assign-user-btn="' + CSS.escape(uid) + '"]');
-    sel.addEventListener('change', function () { btn.disabled = !sel.value; });
-    btn.addEventListener('click', function () {
-      var name = (box.querySelector('select[data-assign-user="' + CSS.escape(uid) + '"]').closest('.role-search-row').querySelector('strong') || {}).textContent || 'this user';
-      assignRole(uid, sel.value, name);
-    });
-  });
-}
-
-async function assignRole(userId, roleSlug, userName) {
-  if (!roleSlug) return;
-  var role = State.roles.filter(function (r) { return r.slug === roleSlug; })[0];
-  if (!role) return;
-
-  var reason = await promptReason('Assign role', 'Change ' + userName + "'s role to " + role.label + '? Enter a reason.');
-  if (!reason) return;
-
-  var res = await api(API.rolesAssign, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: userId, role: roleSlug, reason: reason })
-});
-
-  if (!res.ok) { toast('Assign failed: ' + (res.error || res.code || 'unknown'), 'error'); return; }
-  toast('Role assigned.', 'success');
-  State.rolesLoaded = false;
-  initRolesPanel();
-  $('roleAssignSearch').value = '';
-  $('roleSearchResults').innerHTML = '';
-}
-
-async function loadMfaStatus() {
-  var res = await api(API.mfaStatus);
-  var pill = $('mfaStatusPill');
-  var state = $('mfaState');
-  var title = $('mfaStateTitle');
-  var meta = $('mfaStateMeta');
-  var enroll = $('mfaEnrollBlock');
-  var enabled = $('mfaEnabledBlock');
-
-  if (!res.ok) {
-    if (pill) { pill.className = 'badge err'; pill.textContent = 'Unavailable'; }
-    if (title) title.textContent = 'Unable to load MFA status';
-    if (meta) meta.textContent = res.reason === 'not_implemented'
-      ? 'MFA endpoints not deployed on this server.'
-      : _reasonText(res.reason);
-    return;
-  }
-  var mfa = (res.data && res.data.mfa) || {};
-  var on = !!mfa.enabled;
-  if (pill) {
-    pill.className = 'badge ' + (on ? 'ok' : 'off');
-    pill.innerHTML = on
-      ? '<i class="fas fa-circle-check" aria-hidden="true"></i> Enabled'
-      : '<i class="fas fa-circle-xmark" aria-hidden="true"></i> Not enabled';
-  }
-  if (state) state.classList.toggle('on', on);
-  if (title) title.textContent = on ? 'Two-factor authentication is ON' : 'Two-factor authentication is OFF';
-  if (meta) meta.textContent = on
-    ? 'Enabled ' + formatDateTime(mfa.enabled_at) + ' · ' + (mfa.recovery_codes_remaining || 0) + ' recovery codes remaining'
-    : 'Enable 2FA to protect sensitive admin actions.';
-  if (enroll) enroll.style.display = on ? 'none' : '';
-  if (enabled) enabled.style.display = on ? '' : 'none';
-}
-
-function showRecoveryCodes(codes) {
-  var block = $('mfaRecoveryBlock');
-  var list = $('recoveryCodesList');
-  if (!block || !list) return;
-  list.innerHTML = codes.map(function (c) { return '<code>' + escapeHtml(c) + '</code>'; }).join('');
-  block.style.display = '';
-  block.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-
-async function startMfaEnrollment() {
-  var btn = $('mfaStartEnrollBtn');
-  if (btn) { btn.disabled = true; btn.classList.add('spinning'); }
-  var res = await api(API.mfaEnroll, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-  if (btn) { btn.disabled = false; btn.classList.remove('spinning'); }
-  if (!res.ok) { toast('Could not start enrollment: ' + (res.error || res.reason || 'unknown'), 'error'); return; }
-  var e = (res.data && res.data.enrollment) || {};
-  $('mfaQrImg').src = e.qr_data_url || '';
-  $('mfaSecretText').textContent = e.secret || '—';
-  $('mfaEnrollIntro').style.display = 'none';
-  $('mfaEnrollQr').style.display = '';
-}
-
-async function confirmMfaEnrollment() {
-  var code = ($('mfaVerifyCode').value || '').trim();
-  if (!/^\d{6}$/.test(code)) { toast('Enter the 6-digit code.', 'warn'); return; }
-  var btn = $('mfaConfirmEnrollBtn');
-  if (btn) { btn.disabled = true; btn.classList.add('spinning'); }
-  var res = await api(API.mfaVerify, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code: code })
-  });
-  if (btn) { btn.disabled = false; btn.classList.remove('spinning'); }
-  if (!res.ok) { toast('Verification failed: ' + (res.error || res.reason || 'unknown'), 'error'); return; }
-  toast('Two-factor authentication enabled.', 'success');
-  $('mfaEnrollIntro').style.display = '';
-  $('mfaEnrollQr').style.display = 'none';
-  $('mfaVerifyCode').value = '';
-  $('mfaQrImg').removeAttribute('src');
-  $('mfaSecretText').textContent = '—';
-  if (res.data && Array.isArray(res.data.recovery_codes)) showRecoveryCodes(res.data.recovery_codes);
-  loadMfaStatus();
-}
-
-async function regenerateRecoveryCodes() {
-  var code = window.prompt('Enter your current 6-digit code:');
-  if (!/^\d{6}$/.test(code || '')) return;
-  var reason = await promptReason('Regenerate recovery codes', 'Enter a reason for regenerating recovery codes.');
-  if (!reason) return;
-  var res = await api(API.mfaRegen, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code: code, reason: reason })
-  });
-  if (!res.ok) { toast('Failed: ' + (res.error || res.reason || 'unknown'), 'error'); return; }
-  showRecoveryCodes((res.data && res.data.recovery_codes) || []);
-  loadMfaStatus();
-}
-
-async function disableMfa() {
-  var code = window.prompt('Enter your current 6-digit code to disable MFA:');
-  if (!/^\d{6}$/.test(code || '')) return;
-  var reason = await promptReason('Disable 2FA', 'Enter a reason for disabling two-factor authentication.');
-  if (!reason) return;
-  var confirmed = await openModal({
-    title: 'Disable two-factor authentication',
-    bodyHtml: '<p>This reduces your account security. Continue?</p>',
-    okLabel: 'Disable 2FA',
-    cancelLabel: 'Cancel',
-    kind: 'danger'
-  });
-  if (!confirmed) return;
-  var res = await api(API.mfaDisable, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code: code, reason: reason })
-  });
-  if (!res.ok) { toast('Failed: ' + (res.error || res.reason || 'unknown'), 'error'); return; }
-  toast('Two-factor authentication disabled.', 'success');
-  loadMfaStatus();
-}
-
-async function loadAdminProfile() {
-  var res = await api(API.me);
-  if (!res.ok) return;
-  var u = (res.data && res.data.user) || res.data;
-  if (!u) return;
-  var name = u.username || (u.email ? u.email.split('@')[0] : 'Admin');
-  var role = u.role || 'admin';
-  State.isSuperAdmin = !!(res.data && res.data.isSuperAdmin) || !!u.isSuperAdmin;
-  ['adminName','chipName'].forEach(function (id) { var el = $(id); if (el) el.textContent = name; });
-  ['adminRole','chipRole'].forEach(function (id) {
-    var el = $(id); if (el) el.textContent = role.charAt(0).toUpperCase() + role.slice(1);
-  });
-  ['adminAvatar','chipAvatar'].forEach(function (id) {
-    var el = $(id); if (el) el.textContent = name.slice(0, 1).toUpperCase();
-  });
-  if (!State.isSuperAdmin) {
-    var btn = $('rolesCreateBtn');
-    if (btn) { btn.disabled = true; btn.title = 'Only Super Admins can create roles'; }
-  }
-}
-
-function wireLogo() {
-  var img = $('brandImg');
-  var box = $('brandLogo');
-  if (!img || !box) return;
-  var tried = 0;
-  img.addEventListener('error', function () {
-    tried++;
-    if (tried === 1) {
-      img.src = '../images/miles.png';
-    } else {
-      box.innerHTML = '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MilesSpace">'
-        + '<rect width="32" height="32" rx="6" fill="#0f4c5c"/>'
-        + '<text x="16" y="22" text-anchor="middle" font-family="Inter, sans-serif" font-size="16" font-weight="800" fill="#f5a623">M</text>'
-        + '</svg>';
-    }
-  });
-  if (img.complete && img.naturalWidth === 0) {
-    try { img.dispatchEvent(new Event('error')); } catch (e) {}
-  }
-}
-
-function bindAll() {
-  var hb = $('hamburger'); if (hb) hb.addEventListener('click', function () { setSidebarOpen(true); });
-  var sc = $('scrim'); if (sc) sc.addEventListener('click', function () { setSidebarOpen(false); });
-  var sbBtn = $('sbCollapseBtn'); if (sbBtn) sbBtn.addEventListener('click', function () { $('appRoot').classList.toggle('sb-collapsed'); });
-
-  document.querySelectorAll('[data-toggle-group]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var g = btn.closest('.nav-group');
-      if (!g) return;
-      g.classList.toggle('collapsed');
-      btn.setAttribute('aria-expanded', String(!g.classList.contains('collapsed')));
-      try { localStorage.setItem('navgroup:' + g.dataset.group, g.classList.contains('collapsed') ? 'collapsed' : 'open'); } catch (e) {}
-    });
-  });
+function toLocalInput(iso) {
+  if (!iso) return '';
   try {
-    document.querySelectorAll('.nav-group[data-group]').forEach(function (g) {
-      var s = localStorage.getItem('navgroup:' + g.dataset.group);
-      if (s === 'collapsed') g.classList.add('collapsed');
-      if (s === 'open') g.classList.remove('collapsed');
-    });
-  } catch (e) {}
-
-  document.querySelectorAll('#sideMenu .m-item').forEach(function (btn) {
-    btn.addEventListener('click', function () { showSection(btn.dataset.section); });
-  });
-
-  var db = $('dirtyBar');
-  if (db) db.addEventListener('click', async function (e) {
-    var btn = e.target.closest('[data-dirty-action]');
-    if (!btn) return;
-    if (btn.dataset.dirtyAction === 'discard') {
-      var ok = await openModal({
-        title: 'Discard unsaved changes',
-        bodyHtml: '<p>All unsaved edits will be reverted. Continue?</p>',
-        okLabel: 'Discard', cancelLabel: 'Cancel', kind: 'danger'
-      });
-      if (ok) discardDirty();
-    } else if (btn.dataset.dirtyAction === 'save') {
-      var patch = {};
-      Object.keys(State.dirty).forEach(function (k) {
-        var el = document.querySelector('[data-key="' + CSS.escape(k) + '"]');
-        var v = State.dirty[k];
-        if (el && el.dataset.percent === 'true' && v !== '' && v != null) {
-          v = percentDisplayToDecimal(String(v));
-        }
-        patch[k] = v;
-      });
-      await savePatch(patch, 'All changes');
-    }
-  });
-
-  document.querySelectorAll('[data-action="save-section"]').forEach(function (btn) {
-    btn.addEventListener('click', function () { saveSection(btn.dataset.section); });
-  });
-
-  var rl = $('refreshBtn');
-  if (rl) rl.addEventListener('click', async function () {
-    if (Object.keys(State.dirty).length > 0) {
-      var ok = await openModal({
-        title: 'Discard unsaved changes?',
-        bodyHtml: '<p>You have unsaved changes. Reload from the server?</p>',
-        okLabel: 'Discard and reload', cancelLabel: 'Cancel', kind: 'danger'
-      });
-      if (!ok) return;
-    }
-    await loadAll();
-    toast('Settings reloaded', 'info');
-  });
-
-  var hr = $('historyReloadBtn'); if (hr) hr.addEventListener('click', function () { State.historyLoaded = false; loadHistory(); });
-  var her = $('healthReloadBtn'); if (her) her.addEventListener('click', function () { State.healthLoaded = false; loadHealth(); });
-
-  var dt = $('darkToggle'); if (dt) dt.addEventListener('click', toggleTheme);
-  applyThemeIcon();
-
-  var chip = $('adminChip');
-  var menu = $('adminMenu');
-  if (chip) chip.addEventListener('click', function (e) { e.stopPropagation(); if (menu) menu.classList.toggle('show'); });
-  if (menu) menu.addEventListener('click', async function (e) {
-    var btn = e.target.closest('[data-action]');
-    if (!btn) return;
-    if (btn.dataset.action === 'signout') {
-      var ok = await openModal({ title: 'Sign out', bodyHtml: '<p>Sign out of the admin dashboard?</p>', okLabel: 'Sign out', cancelLabel: 'Cancel' });
-      if (ok) { try { await AdminSession.logout(); } catch (err) {} }
-    }
-    menu.classList.remove('show');
-  });
-  document.addEventListener('click', function (e) {
-    if (!chip || !menu) return;
-    if (!chip.contains(e.target) && !menu.contains(e.target)) menu.classList.remove('show');
-  });
-
-  var rr = $('rolesReloadBtn');
-  if (rr) rr.addEventListener('click', function () { State.rolesLoaded = false; initRolesPanel(); });
-  var rc = $('rolesCreateBtn');
-  if (rc) rc.addEventListener('click', function () { openRoleEditor(null); });
-  wireUserSearch();
-
-  var ms = $('mfaStartEnrollBtn'); if (ms) ms.addEventListener('click', startMfaEnrollment);
-  var mc = $('mfaCancelEnrollBtn'); if (mc) mc.addEventListener('click', function () {
-    $('mfaEnrollIntro').style.display = '';
-    $('mfaEnrollQr').style.display = 'none';
-    $('mfaVerifyCode').value = '';
-    $('mfaQrImg').removeAttribute('src');
-    $('mfaSecretText').textContent = '—';
-  });
-  var mcf = $('mfaConfirmEnrollBtn'); if (mcf) mcf.addEventListener('click', confirmMfaEnrollment);
-  var mr = $('mfaRegenRecoveryBtn'); if (mr) mr.addEventListener('click', regenerateRecoveryCodes);
-  var md = $('mfaDisableBtn'); if (md) md.addEventListener('click', disableMfa);
-  var mdone = $('mfaDoneRecoveryBtn'); if (mdone) mdone.addEventListener('click', function () { $('mfaRecoveryBlock').style.display = 'none'; });
-  var mcopy = $('mfaCopyRecoveryBtn'); if (mcopy) mcopy.addEventListener('click', function () {
-    var codes = Array.prototype.map.call(document.querySelectorAll('#recoveryCodesList code'), function (c) { return c.textContent; });
-    try { navigator.clipboard.writeText(codes.join('\n')); toast('Recovery codes copied.', 'success'); }
-    catch (e) { toast('Copy failed — write them down.', 'warn'); }
-  });
-
-  document.querySelectorAll('[data-key]').forEach(function (el) {
-    var handler = function () {
-      var key = el.dataset.key;
-      if (el.type === 'checkbox') markDirty(key, el.checked ? 'true' : 'false');
-      else {
-        markDirty(key, el.value);
-        if (key === 'usd_to_ngn') _updatePreviews();
-      }
-    };
-    el.addEventListener('input', handler);
-    el.addEventListener('change', handler);
-  });
-
-  window.addEventListener('beforeunload', function (e) {
-    if (Object.keys(State.dirty).length > 0) { e.preventDefault(); e.returnValue = ''; }
-  });
-
-  window.addEventListener('hashchange', function () {
-    var sec = location.hash.replace('#', '');
-    if (sec && $('panel-' + sec)) showSection(sec);
-  });
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } catch (_) { return ''; }
+}
+function isValidLink(v) {
+  if (!v) return true;
+  return /^\/($|[^/])/.test(v) || /^https:\/\//i.test(v);
 }
 
-document.addEventListener('DOMContentLoaded', async function () {
-  if (!AdminSession.getToken()) { AdminSession.redirectToLogin(); return; }
-  wireLogo();
-  bindAll();
-  await loadAdminProfile();
-  await loadAll();
+function isValidHex(v) {
+  if (!v) return true;
+  return /^#[0-9a-fA-F]{6}$/.test(v);
+}
 
-  var initial = location.hash.replace('#', '');
-  if (initial && $('panel-' + initial)) showSection(initial);
-  else showSection('general');
-
-  setTimeout(function () { toast('Settings loaded', 'success'); }, 400);
-});
-
-window.MilesSettings = {
-  state: State,
-  reload: loadAll,
-  section: showSection
-};
-
-// ===== UI-LAYOUT-PATCH =====
-(function () {
-  function g(id) { return document.getElementById(id); }
-  function qa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
-  function mq(q) { try { return window.matchMedia(q); } catch (e) { return null; } }
-  function onMq(m, fn) { if (!m) return; if (m.addEventListener) m.addEventListener('change', fn); else if (m.addListener) m.addListener(fn); }
-
-  var mqMobile = mq('(max-width:820px)');
-  var mqCompact = mq('(max-width:1100px)');
-  var mqTablet = mq('(min-width:821px) and (max-width:1100px)');
-  function isMobile() { return mqMobile ? mqMobile.matches : window.innerWidth <= 820; }
-  function isCompact() { return mqCompact ? mqCompact.matches : window.innerWidth <= 1100; }
-  function isTablet() { return mqTablet ? mqTablet.matches : (window.innerWidth > 820 && window.innerWidth <= 1100); }
-  function reduced() { var m = mq('(prefers-reduced-motion: reduce)'); return !!(m && m.matches); }
-
-  var appRoot = g('appRoot'), sidebar = g('sidebar'), sbBtn = g('sbCollapseBtn');
-  var closeBtn = g('sbCloseBtn'), hamburger = g('hamburger');
-  var menu = g('sideMenu'), bar = g('menuBar'), sectionsBtn = g('sectionsBtn');
-
-  /* ---- Desktop/tablet rail (collapsed sidebar) ---- */
-  function storedCollapsed() {
-    try { var v = localStorage.getItem('ms-sb-collapsed'); return v === '1' ? true : (v === '0' ? false : null); }
-    catch (e) { return null; }
-  }
-  function syncCollapseBtn() {
-    if (!sbBtn || !appRoot) return;
-    var c = appRoot.classList.contains('sb-collapsed');
-    sbBtn.setAttribute('aria-expanded', String(!c));
-    sbBtn.setAttribute('aria-label', c ? 'Expand sidebar' : 'Collapse sidebar');
-    sbBtn.title = c ? 'Expand sidebar' : 'Collapse sidebar';
-  }
-  function applyRail() {
-    if (!appRoot) return;
-    var s = storedCollapsed();
-    var collapsed = s === null ? isTablet() : s;
-    appRoot.classList.toggle('sb-collapsed', collapsed);
-    syncCollapseBtn();
-  }
-  applyRail();
-  onMq(mqTablet, applyRail);
-  if (sbBtn) sbBtn.addEventListener('click', function () {
-    setTimeout(function () {
-      var c = appRoot.classList.contains('sb-collapsed');
-      try { localStorage.setItem('ms-sb-collapsed', c ? '1' : '0'); } catch (e) {}
-      syncCollapseBtn();
-    }, 0);
-  });
-
-  /* ---- Nav groups: active group auto-expands; aria in sync ---- */
-  function syncNavGroups() {
-    qa('.nav-group').forEach(function (grp) {
-      if (grp.querySelector('.nav-item.active, .nav-item[aria-current="page"]')) grp.classList.remove('collapsed');
-      var head = grp.querySelector(':scope > [data-toggle-group]');
-      if (head) head.setAttribute('aria-expanded', String(!grp.classList.contains('collapsed')));
+/* ─── SUB-TAB SWITCHING ─────────────────────────────────── */
+function bindSubTabs() {
+  const tabs = document.querySelectorAll('.dc-subtab');
+  tabs.forEach(btn => btn.addEventListener('click', () => {
+    const key = btn.dataset.dcTab;
+    tabs.forEach(b => {
+      b.classList.toggle('active', b === btn);
+      b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
     });
-  }
-  function onReady(fn) {
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn();
-  }
-  onReady(syncNavGroups);
+    document.getElementById('dcTickerPane').style.display = key === 'ticker' ? '' : 'none';
+    document.getElementById('dcAnnouncementsPane').style.display = key === 'announcements' ? '' : 'none';
+    if (key === 'ticker') loadTicker();
+    else loadAnn();
+  }));
+}
 
-  /* ---- Scroll lock without touch-action:none (B) ---- */
-  var lockedY = null;
-  function sheetIsOpen() { return !!(sheetScrim && sheetScrim.classList.contains('open')); }
-  function drawerOpen() { return !!(sidebar && sidebar.classList.contains('open')); }
-  function syncScrollLock() {
-    var body = document.body;
-    var locked = body.classList.contains('lock');
-    if (!locked && (drawerOpen() || sheetIsOpen())) { body.classList.add('lock'); return; }
-    if (locked && lockedY === null && isCompact()) {
-      lockedY = window.pageYOffset || document.documentElement.scrollTop || 0;
-      body.style.position = 'fixed';
-      body.style.top = (-lockedY) + 'px';
-      body.style.left = '0';
-      body.style.right = '0';
-      body.style.width = '100%';
-    } else if (!locked && lockedY !== null) {
-      var y = lockedY;
-      lockedY = null;
-      body.style.position = '';
-      body.style.top = '';
-      body.style.left = '';
-      body.style.right = '';
-      body.style.width = '';
-      window.scrollTo(0, y);
+/* ─── TICKER ───────────────────────────────────────────── */
+async function loadTicker() {
+  const stateEl = document.getElementById('dcTickerState');
+  const listEl  = document.getElementById('dcTickerList');
+  const warnEl  = document.getElementById('dcTickerWarning');
+  if (!listEl) return;
+  stateEl.style.display = 'none';
+  listEl.innerHTML = '<div class="dc-empty"><i class="fas fa-spinner fa-spin"></i></div>';
+
+  const r = await dcApi(DC_API.tickerList);
+  if (!r.ok) {
+    stateEl.style.display = '';
+    stateEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i><div class="msg">Could not load ticker items</div><div class="sub">${esc(r.error || '')}</div>`;
+    listEl.innerHTML = '';
+    return;
+  }
+  DC.ticker = Array.isArray(r.data) ? r.data : [];
+  renderTicker();
+
+  const activeCount = DC.ticker.filter(t => t.active !== false).length;
+  if (activeCount > 20) {
+    warnEl.style.display = '';
+    warnEl.textContent = `${activeCount} active ticker items — the customer ticker caps at 20, so the extras will not be shown. Deactivate or delete some.`;
+  } else {
+    warnEl.style.display = 'none';
+  }
+}
+
+function renderTicker() {
+  const listEl = document.getElementById('dcTickerList');
+  const prevEl = document.getElementById('dcTickerPreview');
+  if (!listEl) return;
+  const items = DC.ticker;
+  if (!items.length) {
+    listEl.innerHTML = '<div class="dc-empty">No ticker items yet.</div>';
+    if (prevEl) prevEl.textContent = 'No items to preview';
+    return;
+  }
+
+  listEl.innerHTML = items.map((t, i) => {
+    const editing = DC.editingTicker === t.id;
+    if (editing) {
+      return `
+        <div class="dc-row editing" data-id="${esc(t.id)}">
+          <div class="dc-row-body" style="width:100%">
+            <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:8px">
+              <div class="field full"><label>Text</label><input type="text" data-edit="text" maxlength="200" value="${esc(t.text || '')}"></div>
+              <div class="field"><label>Icon</label><input type="text" data-edit="icon" maxlength="8" value="${esc(t.icon || '')}"></div>
+              <div class="field"><label>Badge</label><input type="text" data-edit="badge" maxlength="20" value="${esc(t.badge || '')}"></div>
+              <div class="field"><label>Badge colour</label><input type="text" data-edit="badge_color" maxlength="7" value="${esc(t.badge_color || '')}" placeholder="#rrggbb"></div>
+              <div class="field"><label>Link</label><input type="text" data-edit="link" maxlength="500" value="${esc(t.link || '')}"></div>
+              <div class="field"><label>Starts at</label><input type="datetime-local" data-edit="starts_at" value="${esc(toLocalInput(t.starts_at))}"></div>
+              <div class="field"><label>Ends at</label><input type="datetime-local" data-edit="ends_at" value="${esc(toLocalInput(t.ends_at))}"></div>
+            </div>
+            <div class="dc-row-actions" style="margin-top:8px;justify-content:flex-end">
+              <button type="button" class="btn" data-action="cancel-edit">Cancel</button>
+              <button type="button" class="btn primary" data-action="save-edit">Save</button>
+            </div>
+          </div>
+        </div>`;
     }
-  }
-  try { new MutationObserver(syncScrollLock).observe(document.body, { attributes: true, attributeFilter: ['class'] }); } catch (e) {}
+    const color = (t.badge && t.badge_color && /^#[0-9a-fA-F]{6}$/.test(t.badge_color))
+      ? `<span class="dc-row-badge" style="background:${esc(t.badge_color)};color:#fff">${esc(t.badge)}</span>`
+      : (t.badge ? `<span class="dc-row-badge">${esc(t.badge)}</span>` : '');
+    const active = t.active !== false;
+    const schedule = (t.starts_at || t.ends_at)
+      ? `<span><i class="far fa-clock"></i> ${t.starts_at ? new Date(t.starts_at).toLocaleDateString() : '—'} → ${t.ends_at ? new Date(t.ends_at).toLocaleDateString() : '—'}</span>`
+      : '';
+    return `
+      <div class="dc-row" data-id="${esc(t.id)}">
+        <div class="dc-row-body">
+          <div class="dc-row-text"><span style="margin-right:6px">${esc(t.icon || '📌')}</span>${esc(t.text || '')}</div>
+          <div class="dc-row-meta">
+            <span class="badge ${active ? 'ok' : 'off'}">${active ? 'Active' : 'Inactive'}</span>
+            ${color}
+            ${t.link ? `<span><i class="fas fa-link"></i> ${esc(t.link)}</span>` : ''}
+            ${schedule}
+          </div>
+        </div>
+        <div class="dc-row-actions">
+          ${i > 0 ? `<button type="button" class="btn" data-action="up" title="Move up"><i class="fas fa-arrow-up"></i></button>` : ''}
+          ${i < items.length - 1 ? `<button type="button" class="btn" data-action="down" title="Move down"><i class="fas fa-arrow-down"></i></button>` : ''}
+          <button type="button" class="btn" data-action="toggle" title="${active ? 'Deactivate' : 'Activate'}"><i class="fas ${active ? 'fa-pause' : 'fa-play'}"></i></button>
+          <button type="button" class="btn" data-action="edit" title="Edit"><i class="fas fa-pen"></i></button>
+          <button type="button" class="btn danger" data-action="delete" title="Delete"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>`;
+  }).join('');
 
-  /* ---- Mobile drawer: close button, focus, swipe, link tap ---- */
-  var wasOpen = false, lastFocus = null;
-  if (closeBtn) closeBtn.addEventListener('click', function () { setSidebarOpen(false); });
-  if (sidebar) {
-    try {
-      new MutationObserver(function () {
-        var open = drawerOpen();
-        if (open === wasOpen) return;
-        wasOpen = open;
-        if (open) {
-          lastFocus = document.activeElement;
-          setTimeout(function () { if (closeBtn) { try { closeBtn.focus({ preventScroll: true }); } catch (e) {} } }, 30);
-        } else {
-          var t = (lastFocus && lastFocus !== document.body && document.contains(lastFocus) && lastFocus.focus) ? lastFocus : hamburger;
-          if (t && t.focus) { try { t.focus({ preventScroll: true }); } catch (e) {} }
-        }
-      }).observe(sidebar, { attributes: true, attributeFilter: ['class'] });
-    } catch (e) {}
-
-    var sx = 0, sy = 0, tracking = false;
-    sidebar.addEventListener('touchstart', function (e) {
-      if (!drawerOpen() || !e.touches || e.touches.length !== 1) return;
-      sx = e.touches[0].clientX; sy = e.touches[0].clientY; tracking = true;
-    }, { passive: true });
-    sidebar.addEventListener('touchmove', function (e) {
-      if (!tracking || !e.touches || !e.touches.length) return;
-      var dx = e.touches[0].clientX - sx, dy = e.touches[0].clientY - sy;
-      if (dx < -70 && Math.abs(dy) < Math.abs(dx) * 0.6) { tracking = false; setSidebarOpen(false); }
-    }, { passive: true });
-    sidebar.addEventListener('touchend', function () { tracking = false; }, { passive: true });
-    sidebar.addEventListener('touchcancel', function () { tracking = false; }, { passive: true });
-  }
-  var navScroll = g('navScroll');
-  if (navScroll) navScroll.addEventListener('click', function (e) {
-    var a = e.target && e.target.closest ? e.target.closest('a.nav-item') : null;
-    if (a && isMobile() && drawerOpen()) setSidebarOpen(false);
-  });
-  onMq(mqMobile, function () { if (!isMobile() && drawerOpen()) setSidebarOpen(false); });
-
-  /* ---- Theme row inside the drawer (clicks the existing toggle) ---- */
-  var themeBtn = g('drawerThemeBtn');
-  function syncThemeRow() {
-    var dark = document.documentElement.classList.contains('dark');
-    var ic = g('drawerThemeIcon'), lb = g('drawerThemeLabel');
-    if (ic) ic.className = dark ? 'fas fa-sun' : 'fas fa-moon';
-    if (lb) lb.textContent = dark ? 'Light mode' : 'Dark mode';
-  }
-  if (themeBtn) themeBtn.addEventListener('click', function () { var t = g('darkToggle'); if (t) t.click(); });
-  syncThemeRow();
-  try { new MutationObserver(syncThemeRow).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] }); } catch (e) {}
-
-  /* ---- Section pills: centering, edge fades ---- */
-  function updateFades() {
-    if (!bar || !menu) return;
-    var max = menu.scrollWidth - menu.clientWidth;
-    bar.classList.toggle('can-left', max > 4 && menu.scrollLeft > 4);
-    bar.classList.toggle('can-right', max > 4 && menu.scrollLeft < max - 4);
-  }
-  function centerActivePill(smooth) {
-    if (!menu || !isCompact()) { updateFades(); return; }
-    var a = menu.querySelector('.m-item.active');
-    if (!a) return;
-    var max = menu.scrollWidth - menu.clientWidth;
-    if (max <= 0) { updateFades(); return; }
-    var left = Math.max(0, Math.min(max, a.offsetLeft - (menu.clientWidth - a.offsetWidth) / 2));
-    try { menu.scrollTo({ left: left, behavior: (smooth && !reduced()) ? 'smooth' : 'auto' }); }
-    catch (e) { menu.scrollLeft = left; }
-    setTimeout(updateFades, 60);
-  }
-  if (menu) {
-    menu.addEventListener('scroll', updateFades, { passive: true });
-    window.addEventListener('resize', function () { updateFades(); }, { passive: true });
-    if (window.ResizeObserver) { try { new ResizeObserver(updateFades).observe(menu); } catch (e) {} }
-    try {
-      new MutationObserver(function (muts) {
-        var activeChanged = false;
-        muts.forEach(function (m) {
-          if (m.attributeName === 'class' && m.target.classList && m.target.classList.contains('m-item')) activeChanged = true;
-        });
-        if (activeChanged) centerActivePill(true);
-        if (sheetIsOpen()) renderSheetRows();
-      }).observe(menu, { subtree: true, attributes: true, attributeFilter: ['class', 'hidden'] });
-    } catch (e) {}
-    setTimeout(function () { centerActivePill(false); updateFades(); }, 250);
-    window.addEventListener('load', function () { centerActivePill(false); updateFades(); });
-    window.addEventListener('hashchange', function () { setTimeout(function () { centerActivePill(true); }, 30); });
-  }
-
-  /* ---- Scroll the panel title below the sticky bars after switching ---- */
-  function stickyOffset() {
-    var tb = document.querySelector('.topbar');
-    var h = (tb ? tb.offsetHeight : 56) + 8;
-    if (bar && isCompact()) h += bar.offsetHeight;
-    return h;
-  }
-  function afterSwitch(section) {
-    if (!isCompact()) return;
-    if (typeof State === 'undefined' || State.currentSection !== section) return;
-    requestAnimationFrame(function () {
-      var panel = g('panel-' + section);
-      if (!panel) return;
-      var off = stickyOffset();
-      var top = panel.getBoundingClientRect().top;
-      if (top < off - 2 || top > window.innerHeight * 0.6) {
-        var y = (window.pageYOffset || 0) + top - off;
-        try { window.scrollTo({ top: Math.max(0, y), behavior: reduced() ? 'auto' : 'smooth' }); }
-        catch (e) { window.scrollTo(0, Math.max(0, y)); }
-      }
+  listEl.querySelectorAll('.dc-row').forEach(row => {
+    const id = row.dataset.id;
+    row.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', () => handleTickerAction(btn.dataset.action, id, row));
     });
-  }
-  if (menu) menu.addEventListener('click', function (e) {
-    var b = e.target && e.target.closest ? e.target.closest('.m-item') : null;
-    if (b) afterSwitch(b.dataset.section);
   });
 
-  /* ---- "All sections" bottom sheet ---- */
-  var SUBS = {
-    general: 'Platform name, contact, maintenance',
-    rates: 'Exchange rates',
-    fees: 'Deposit fees and USD rates',
-    pricing: 'Markup per service',
-    wallet: 'Deposit bounds',
-    limits: 'Per-service trade limits',
-    services: 'Turn services on or off',
-    providers: 'Enable, disable, maintenance',
-    notifications: 'Emails and alerts',
-    security: 'Sessions and login protection',
-    roles: 'Roles and assignments',
-    mfa: 'Authenticator app codes',
-    emergency: 'Kill switches',
-    history: 'Rate and markup changes',
-    health: 'Configuration status'
-  };
-  var sheetScrim = null, sheetEl = null, sheetList = null, sheetCloseBtn = null, sheetOpener = null;
+  if (prevEl) {
+    const preview = items.slice(0, 3).map(t => `${t.icon || '📌'} ${t.text || ''}`).join('  ·  ');
+    prevEl.textContent = preview || 'No active items';
+  }
+}
 
-  function buildSheet() {
-    if (sheetScrim) return;
-    sheetScrim = document.createElement('div');
-    sheetScrim.className = 'sheet-scrim';
-    sheetScrim.id = 'sectionsSheetScrim';
-    sheetScrim.innerHTML =
-      '<div class="sheet" id="sectionsSheet" role="dialog" aria-modal="true" aria-labelledby="sectionsSheetTitle" tabindex="-1">'
-      + '<div class="sheet-grab"><div class="sheet-handle" aria-hidden="true"></div>'
-      + '<div class="sheet-head"><h3 id="sectionsSheetTitle">All sections</h3>'
-      + '<button type="button" class="sheet-x" id="sectionsSheetClose" aria-label="Close"><i class="fas fa-xmark" aria-hidden="true"></i></button></div></div>'
-      + '<div class="sheet-list" id="sectionsSheetList"></div></div>';
-    document.body.appendChild(sheetScrim);
-    sheetEl = g('sectionsSheet');
-    sheetList = g('sectionsSheetList');
-    sheetCloseBtn = g('sectionsSheetClose');
+async function handleTickerAction(action, id, row) {
+  const item = DC.ticker.find(t => t.id === id);
+  if (!item) return;
 
-    sheetCloseBtn.addEventListener('click', function () { closeSheet(true); });
-    sheetScrim.addEventListener('click', function (e) { if (e.target === sheetScrim) closeSheet(true); });
-    sheetList.addEventListener('click', function (e) {
-      var row = e.target && e.target.closest ? e.target.closest('.sheet-row') : null;
-      if (!row) return;
-      var sec = row.getAttribute('data-sheet-section');
-      if (!sec || typeof showSection !== 'function') return;
-      showSection(sec);
-      if (State.currentSection !== sec) return; // user declined the unsaved-changes prompt
-      closeSheet(false);
-      afterSwitch(sec);
-    });
-    sheetEl.addEventListener('keydown', function (e) {
-      if (e.key !== 'Tab') return;
-      var f = qa('button', sheetEl).filter(function (b) { return !b.disabled; });
-      if (!f.length) return;
-      var first = f[0], last = f[f.length - 1];
-      if (e.shiftKey && (document.activeElement === first || document.activeElement === sheetEl)) { e.preventDefault(); last.focus(); }
-      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-    });
-
-    var grab = sheetEl.querySelector('.sheet-grab');
-    var y0 = null, dy = 0;
-    grab.addEventListener('touchstart', function (e) {
-      if (!e.touches || !e.touches.length) return;
-      y0 = e.touches[0].clientY; dy = 0; sheetEl.style.transition = 'none';
-    }, { passive: true });
-    grab.addEventListener('touchmove', function (e) {
-      if (y0 === null || !e.touches || !e.touches.length) return;
-      dy = Math.max(0, e.touches[0].clientY - y0);
-      sheetEl.style.transform = 'translateY(' + dy + 'px)';
-    }, { passive: true });
-    var endDrag = function () {
-      if (y0 === null) return;
-      var shouldClose = dy > 90;
-      y0 = null; dy = 0;
-      sheetEl.style.transition = '';
-      sheetEl.style.transform = '';
-      if (shouldClose) closeSheet(true);
+  if (action === 'edit') { DC.editingTicker = id; renderTicker(); return; }
+  if (action === 'cancel-edit') { DC.editingTicker = null; renderTicker(); return; }
+  if (action === 'save-edit') {
+    const get = (k) => row.querySelector(`[data-edit="${k}"]`);
+    const badgeColor = (get('badge_color')?.value || '').trim();
+    const link = (get('link')?.value || '').trim();
+    if (badgeColor && !isValidHex(badgeColor)) { toast('Badge colour must be #rrggbb', 'error'); return; }
+    if (link && !isValidLink(link)) { toast('Link must start with "/" (no "//") or "https://"', 'error'); return; }
+    const patch = {
+      text: get('text')?.value ?? item.text,
+      icon: get('icon')?.value ?? item.icon,
+      badge: get('badge')?.value ?? item.badge,
+      badge_color: badgeColor || null,
+      link: link || null,
+      starts_at: toIso(get('starts_at')?.value || ''),
+      ends_at:   toIso(get('ends_at')?.value || '')
     };
-    grab.addEventListener('touchend', endDrag, { passive: true });
-    grab.addEventListener('touchcancel', endDrag, { passive: true });
+    await saveTicker(id, patch);
+    return;
+  }
+  if (action === 'toggle') { await saveTicker(id, { active: item.active === false }); return; }
+  if (action === 'delete') {
+    if (!confirm('Delete this ticker item? This cannot be undone.')) return;
+    const r = await dcApi(DC_API.tickerDelete(id), { method: 'DELETE' });
+    if (!r.ok) { toast(r.error || 'Delete failed', 'error'); return; }
+    toast('Ticker item deleted', 'success');
+    DC.editingTicker = null;
+    loadTicker();
+    return;
+  }
+  if (action === 'up' || action === 'down') {
+    const arr = DC.ticker.slice();
+    const idx = arr.findIndex(t => t.id === id);
+    if (idx < 0) return;
+    const swap = action === 'up' ? idx - 1 : idx + 1;
+    if (swap < 0 || swap >= arr.length) return;
+    [arr[idx], arr[swap]] = [arr[swap], arr[idx]];
+    const ids = arr.map(t => t.id);
+    const r = await dcApi(DC_API.tickerReorder, { method: 'POST', body: { ids } });
+    if (!r.ok) { toast(r.error || 'Reorder failed', 'error'); return; }
+    toast('Order saved', 'success');
+    loadTicker();
+    return;
+  }
+}
+
+async function saveTicker(id, patch) {
+  if (DC.saving) return;
+  DC.saving = true;
+  const r = await dcApi(DC_API.tickerUpdate(id), { method: 'PUT', body: patch });
+  DC.saving = false;
+  if (!r.ok) { toast(r.error || 'Save failed', 'error'); return; }
+  toast('Ticker item saved', 'success');
+  DC.editingTicker = null;
+  loadTicker();
+}
+
+async function addTicker() {
+  const text = (document.getElementById('dcTickerText').value || '').trim();
+  if (!text) { toast('Text is required', 'error'); return; }
+
+  const customHex = (document.getElementById('dcTickerBadgeColorHex').value || '').trim();
+  const preset = document.getElementById('dcTickerBadgeColor').value || '';
+  const badgeColor = customHex || preset;
+  if (badgeColor && !isValidHex(badgeColor)) { toast('Badge colour must be #rrggbb', 'error'); return; }
+
+  const link = (document.getElementById('dcTickerLink').value || '').trim();
+  if (link && !isValidLink(link)) { toast('Link must start with "/" (no "//") or "https://"', 'error'); return; }
+
+  const body = {
+    text,
+    icon: (document.getElementById('dcTickerIcon').value || '').trim() || '📌',
+    badge: (document.getElementById('dcTickerBadge').value || '').trim() || null,
+    badge_color: badgeColor || null,
+    link: link || null,
+    starts_at: toIso(document.getElementById('dcTickerStartsAt').value || ''),
+    ends_at:   toIso(document.getElementById('dcTickerEndsAt').value || ''),
+    active: true
+  };
+
+  DC.saving = true;
+  const r = await dcApi(DC_API.tickerCreate, { method: 'POST', body });
+  DC.saving = false;
+  if (!r.ok) { toast(r.error || 'Create failed', 'error'); return; }
+  toast('Ticker item added', 'success');
+  document.getElementById('dcTickerText').value = '';
+  document.getElementById('dcTickerIcon').value = '';
+  document.getElementById('dcTickerBadge').value = '';
+  document.getElementById('dcTickerBadgeColor').value = '';
+  document.getElementById('dcTickerBadgeColorHex').value = '';
+  document.getElementById('dcTickerLink').value = '';
+  document.getElementById('dcTickerStartsAt').value = '';
+  document.getElementById('dcTickerEndsAt').value = '';
+  loadTicker();
+}
+
+/* ─── ANNOUNCEMENTS ─────────────────────────────────────── */
+async function loadAnn() {
+  const stateEl = document.getElementById('dcAnnState');
+  const listEl  = document.getElementById('dcAnnList');
+  if (!listEl) return;
+  stateEl.style.display = 'none';
+  listEl.innerHTML = '<div class="dc-empty"><i class="fas fa-spinner fa-spin"></i></div>';
+
+  const r = await dcApi(DC_API.annList);
+  if (!r.ok) {
+    stateEl.style.display = '';
+    stateEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i><div class="msg">Could not load announcements</div><div class="sub">${esc(r.error || '')}</div>`;
+    listEl.innerHTML = '';
+    return;
+  }
+  DC.ann = Array.isArray(r.data) ? r.data : [];
+  renderAnn();
+}
+
+function renderAnn() {
+  const listEl = document.getElementById('dcAnnList');
+  const prevEl = document.getElementById('dcAnnPreview');
+  if (!listEl) return;
+  const items = DC.ann;
+  if (!items.length) {
+    listEl.innerHTML = '<div class="dc-empty">No announcements yet.</div>';
+    if (prevEl) prevEl.innerHTML = '<div class="dc-empty">No items to preview</div>';
+    return;
   }
 
-  function renderSheetRows() {
-    if (!sheetList || !menu) return;
-    var scrollTop = sheetList.scrollTop;
-    sheetList.innerHTML = '';
-    qa('.m-item', menu).forEach(function (btn) {
-      var sec = btn.getAttribute('data-section');
-      var row = document.createElement('button');
-      row.type = 'button';
-      row.className = 'sheet-row' + (sec === 'emergency' ? ' is-danger' : '') + (btn.classList.contains('active') ? ' active' : '');
-      row.setAttribute('data-sheet-section', sec);
-      if (btn.classList.contains('active')) row.setAttribute('aria-current', 'true');
-
-      var icBox = document.createElement('span');
-      icBox.className = 's-ic';
-      var srcIcon = btn.querySelector('i');
-      var ic = document.createElement('i');
-      ic.className = srcIcon ? srcIcon.className : 'fas fa-circle';
-      ic.setAttribute('aria-hidden', 'true');
-      icBox.appendChild(ic);
-
-      var tx = document.createElement('span');
-      tx.className = 's-tx';
-      var labelSpan = btn.querySelector('span:not(.dot)');
-      var title = document.createElement('strong');
-      title.textContent = labelSpan ? labelSpan.textContent : sec;
-      var sub = document.createElement('span');
-      sub.textContent = SUBS[sec] || '';
-      tx.appendChild(title);
-      tx.appendChild(sub);
-
-      var dot = document.createElement('span');
-      dot.className = 's-dot';
-      var srcDot = btn.querySelector('.dot');
-      dot.hidden = !(srcDot && !srcDot.hidden);
-      dot.setAttribute('title', 'Unsaved changes');
-
-      var chk = document.createElement('i');
-      chk.className = 's-check fas fa-check';
-      chk.setAttribute('aria-hidden', 'true');
-
-      row.appendChild(icBox);
-      row.appendChild(tx);
-      row.appendChild(dot);
-      row.appendChild(chk);
-      sheetList.appendChild(row);
-    });
-    sheetList.scrollTop = scrollTop;
-  }
-
-  function openSheet() {
-    buildSheet();
-    sheetOpener = document.activeElement;
-    renderSheetRows();
-    sheetScrim.classList.add('open');
-    document.body.classList.add('lock');
-    if (sectionsBtn) sectionsBtn.setAttribute('aria-expanded', 'true');
-    setTimeout(function () {
-      var act = sheetList.querySelector('.sheet-row.active');
-      if (act) {
-        sheetList.scrollTop = Math.max(0, act.offsetTop - sheetList.clientHeight / 2 + act.offsetHeight / 2);
-        try { act.focus({ preventScroll: true }); } catch (e) {}
-      } else if (sheetCloseBtn) { sheetCloseBtn.focus(); }
-    }, 30);
-  }
-  function closeSheet(restoreFocus) {
-    if (!sheetScrim || !sheetScrim.classList.contains('open')) return;
-    sheetScrim.classList.remove('open');
-    if (!drawerOpen()) document.body.classList.remove('lock');
-    if (sectionsBtn) sectionsBtn.setAttribute('aria-expanded', 'false');
-    if (restoreFocus) {
-      var t = (sheetOpener && document.contains(sheetOpener)) ? sheetOpener : sectionsBtn;
-      if (t && t.focus) { try { t.focus({ preventScroll: true }); } catch (e) {} }
-    } else if (sectionsBtn && sectionsBtn.focus) {
-      try { sectionsBtn.focus({ preventScroll: true }); } catch (e) {}
+  listEl.innerHTML = items.map((a, i) => {
+    const editing = DC.editingAnn === a.id;
+    const theme = /^c[1-5]$/.test(a.theme || '') ? a.theme : 'c1';
+    if (editing) {
+      return `
+        <div class="dc-row editing" data-id="${esc(a.id)}">
+          <div class="dc-row-body" style="width:100%">
+            <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:8px">
+              <div class="field full"><label>Title</label><input type="text" data-edit="title" maxlength="60" value="${esc(a.title || '')}"></div>
+              <div class="field full"><label>Body</label><textarea data-edit="body" maxlength="160" rows="2">${esc(a.body || '')}</textarea></div>
+              <div class="field"><label>Button label</label><input type="text" data-edit="cta_label" maxlength="24" value="${esc(a.cta_label || '')}"></div>
+              <div class="field"><label>Link</label><input type="text" data-edit="link" maxlength="500" value="${esc(a.link || '')}"></div>
+              <div class="field"><label>Theme</label>
+                <select data-edit="theme">
+                  <option value="c1" ${theme==='c1'?'selected':''}>c1 — Amber</option>
+                  <option value="c2" ${theme==='c2'?'selected':''}>c2 — Purple</option>
+                  <option value="c3" ${theme==='c3'?'selected':''}>c3 — Navy</option>
+                  <option value="c4" ${theme==='c4'?'selected':''}>c4 — Green</option>
+                  <option value="c5" ${theme==='c5'?'selected':''}>c5 — Deep Navy</option>
+                </select>
+              </div>
+              <div class="field"><label>Starts at</label><input type="datetime-local" data-edit="starts_at" value="${esc(toLocalInput(a.starts_at))}"></div>
+              <div class="field"><label>Ends at</label><input type="datetime-local" data-edit="ends_at" value="${esc(toLocalInput(a.ends_at))}"></div>
+            </div>
+            <div class="dc-row-actions" style="margin-top:8px;justify-content:flex-end">
+              <button type="button" class="btn" data-action="cancel-edit">Cancel</button>
+              <button type="button" class="btn primary" data-action="save-edit">Save</button>
+            </div>
+          </div>
+        </div>`;
     }
-  }
-  if (sectionsBtn) sectionsBtn.addEventListener('click', openSheet);
-  onMq(mqCompact, function () { if (!isCompact()) closeSheet(false); });
+    const active = a.active !== false;
+    return `
+      <div class="dc-row" data-id="${esc(a.id)}">
+        <div class="dc-ann-preview ${theme}" style="flex:0 0 180px">
+          <h4>${esc(a.title || '')}</h4>
+          <p>${esc(a.body || '')}</p>
+          ${a.cta_label ? `<span class="lm">${esc(a.cta_label)} →</span>` : ''}
+        </div>
+        <div class="dc-row-body">
+          <div class="dc-row-text">${esc(a.title || '')}</div>
+          <div class="dc-row-meta">
+            <span class="badge ${active ? 'ok' : 'off'}">${active ? 'Active' : 'Inactive'}</span>
+            <span>${esc(theme)}</span>
+            ${a.link ? `<span><i class="fas fa-link"></i> ${esc(a.link)}</span>` : ''}
+          </div>
+        </div>
+        <div class="dc-row-actions">
+          ${i > 0 ? `<button type="button" class="btn" data-action="up" title="Move up"><i class="fas fa-arrow-up"></i></button>` : ''}
+          ${i < items.length - 1 ? `<button type="button" class="btn" data-action="down" title="Move down"><i class="fas fa-arrow-down"></i></button>` : ''}
+          <button type="button" class="btn" data-action="toggle" title="${active ? 'Deactivate' : 'Activate'}"><i class="fas ${active ? 'fa-pause' : 'fa-play'}"></i></button>
+          <button type="button" class="btn" data-action="edit" title="Edit"><i class="fas fa-pen"></i></button>
+          <button type="button" class="btn danger" data-action="delete" title="Delete"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>`;
+  }).join('');
 
-  /* ---- Escape closes the sheet or the drawer (modal keeps its own handler) ---- */
-  document.addEventListener('keydown', function (e) {
-    if (e.key !== 'Escape') return;
-    var modalScrim = g('modalScrim');
-    if (modalScrim && modalScrim.classList.contains('open')) return;
-    if (sheetIsOpen()) { e.preventDefault(); closeSheet(true); return; }
-    if (drawerOpen()) { e.preventDefault(); setSidebarOpen(false); }
+  listEl.querySelectorAll('.dc-row').forEach(row => {
+    const id = row.dataset.id;
+    row.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', () => handleAnnAction(btn.dataset.action, id, row));
+    });
   });
+
+  if (prevEl) {
+    prevEl.innerHTML = items.slice(0, 5).map(a => {
+      const theme = /^c[1-5]$/.test(a.theme || '') ? a.theme : 'c1';
+      return `<div class="dc-ann-preview ${theme}">
+        <h4>${esc(a.title || '')}</h4>
+        <p>${esc(a.body || '')}</p>
+        ${a.cta_label ? `<span class="lm">${esc(a.cta_label)} →</span>` : ''}
+      </div>`;
+    }).join('');
+  }
+}
+
+async function handleAnnAction(action, id, row) {
+  const item = DC.ann.find(a => a.id === id);
+  if (!item) return;
+
+  if (action === 'edit') { DC.editingAnn = id; renderAnn(); return; }
+  if (action === 'cancel-edit') { DC.editingAnn = null; renderAnn(); return; }
+  if (action === 'save-edit') {
+    const get = (k) => row.querySelector(`[data-edit="${k}"]`);
+    const link = (get('link')?.value || '').trim();
+    if (link && !isValidLink(link)) { toast('Link must start with "/" (no "//") or "https://"', 'error'); return; }
+    const patch = {
+      title: get('title')?.value ?? item.title,
+      body:  get('body')?.value  ?? item.body,
+      cta_label: (get('cta_label')?.value || '').trim() || null,
+      link: link || null,
+      theme: get('theme')?.value || item.theme,
+      starts_at: toIso(get('starts_at')?.value || ''),
+      ends_at:   toIso(get('ends_at')?.value || '')
+    };
+    await saveAnn(id, patch);
+    return;
+  }
+  if (action === 'toggle') { await saveAnn(id, { active: item.active === false }); return; }
+  if (action === 'delete') {
+    if (!confirm('Delete this announcement? This cannot be undone.')) return;
+    const r = await dcApi(DC_API.annDelete(id), { method: 'DELETE' });
+    if (!r.ok) { toast(r.error || 'Delete failed', 'error'); return; }
+    toast('Announcement deleted', 'success');
+    DC.editingAnn = null;
+    loadAnn();
+    return;
+  }
+  if (action === 'up' || action === 'down') {
+    const arr = DC.ann.slice();
+    const idx = arr.findIndex(a => a.id === id);
+    if (idx < 0) return;
+    const swap = action === 'up' ? idx - 1 : idx + 1;
+    if (swap < 0 || swap >= arr.length) return;
+    [arr[idx], arr[swap]] = [arr[swap], arr[idx]];
+    const ids = arr.map(a => a.id);
+    const r = await dcApi(DC_API.annReorder, { method: 'POST', body: { ids } });
+    if (!r.ok) { toast(r.error || 'Reorder failed', 'error'); return; }
+    toast('Order saved', 'success');
+    loadAnn();
+    return;
+  }
+}
+
+async function saveAnn(id, patch) {
+  if (DC.saving) return;
+  DC.saving = true;
+  const r = await dcApi(DC_API.annUpdate(id), { method: 'PUT', body: patch });
+  DC.saving = false;
+  if (!r.ok) { toast(r.error || 'Save failed', 'error'); return; }
+  toast('Announcement saved', 'success');
+  DC.editingAnn = null;
+  loadAnn();
+}
+
+async function addAnn() {
+  const title = (document.getElementById('dcAnnTitle').value || '').trim();
+  const body  = (document.getElementById('dcAnnBody').value  || '').trim();
+  if (!title) { toast('Title is required', 'error'); return; }
+  if (!body)  { toast('Body is required', 'error'); return; }
+  const link = (document.getElementById('dcAnnLink').value || '').trim();
+  if (link && !isValidLink(link)) { toast('Link must start with "/" (no "//") or "https://"', 'error'); return; }
+
+  const payload = {
+    title,
+    body,
+    cta_label: (document.getElementById('dcAnnCta').value || '').trim() || null,
+    link: link || null,
+    theme: document.getElementById('dcAnnTheme').value || 'c1',
+    starts_at: toIso(document.getElementById('dcAnnStartsAt').value || ''),
+    ends_at:   toIso(document.getElementById('dcAnnEndsAt').value || ''),
+    active: true
+  };
+
+  DC.saving = true;
+  const r = await dcApi(DC_API.annCreate, { method: 'POST', body: payload });
+  DC.saving = false;
+  if (!r.ok) { toast(r.error || 'Create failed', 'error'); return; }
+  toast('Announcement added', 'success');
+  document.getElementById('dcAnnTitle').value = '';
+  document.getElementById('dcAnnBody').value  = '';
+  document.getElementById('dcAnnCta').value   = '';
+  document.getElementById('dcAnnLink').value  = '';
+  document.getElementById('dcAnnTheme').value = 'c1';
+  document.getElementById('dcAnnStartsAt').value = '';
+  document.getElementById('dcAnnEndsAt').value   = '';
+  loadAnn();
+}
+
+/* ─── WIRING ──────────────────────────────────────────────── */
+function wire() {
+  if (DC.inited) return;
+  DC.inited = true;
+
+  bindSubTabs();
+
+  document.getElementById('dcRefreshBtn')?.addEventListener('click', () => {
+    const activeTab = document.querySelector('.dc-subtab.active')?.dataset.dcTab || 'ticker';
+    if (activeTab === 'ticker') loadTicker();
+    else loadAnn();
+  });
+
+  document.getElementById('dcTickerAddBtn')?.addEventListener('click', addTicker);
+  document.getElementById('dcAnnAddBtn')?.addEventListener('click', addAnn);
+
+  // Hook the settings sidebar: when user clicks "Dashboard Content", wire
+  // and load the panels. admin-settings.js owns the actual active-tab
+  // switching; we only react to it.
+  const sideMenu = document.getElementById('sideMenu');
+  if (sideMenu) {
+    sideMenu.addEventListener('click', (e) => {
+      const btn = e.target.closest('.m-item[data-section="dashboard-content"]');
+      if (!btn) return;
+      // Wait a tick so admin-settings.js can set the active panel first.
+      setTimeout(() => {
+        const activeTab = document.querySelector('.dc-subtab.active')?.dataset.dcTab || 'ticker';
+        if (activeTab === 'ticker') loadTicker();
+        else loadAnn();
+      }, 50);
+    });
+  }
+
+  // Also load on initial paint if dashboard-content happens to be the
+  // default section (it is not by default, but defensive).
+  const panel = document.getElementById('panel-dashboard-content');
+  if (panel && panel.classList.contains('active')) {
+    loadTicker();
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', wire, { once: true });
+} else {
+  wire();
+}
+
 })();
 </script>
+
+<script src="/js/admin-settings.js?v=2026-settings-v1" defer></script>
+<script src="/js/theme-init.js?v=1"></script>
+<script src="/js/admin-dashboard-content.js?v=2" defer></script>
 </body>
 </html>

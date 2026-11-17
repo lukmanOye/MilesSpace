@@ -19,6 +19,18 @@
 //
 // Thin pass-through. Sanitized errors. Idempotency-Key supported on
 // all mutating routes via the existing admin_idempotency table.
+//
+// REASON LENGTH
+//   Backend minimum: 4 chars (defensive). The admin UI enforces 10
+//   for refunds because a money-moving action should have a real
+//   note. If a caller ever sends fewer than 4, this returns
+//   REASON_REQUIRED at 422.
+//
+// IDEMPOTENCY
+//   Optional. If `admin_idempotency` does not exist, routes still
+//   work — they just are not replay-safe. The first missing-table
+//   error is logged once at warn level, then swallowed so a
+//   half-migrated deployment does not spam logs.
 // ─────────────────────────────────────────────────────────────────
 
 'use strict';
@@ -33,6 +45,7 @@ const bills = require('../../services/billsAdminService');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// ─── Per-request ID ─────────────────────────────────────────────
 router.use((req, res, next) => {
     req.billRequestId = req.headers['x-request-id']
         || `BI-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
@@ -40,6 +53,7 @@ router.use((req, res, next) => {
     next();
 });
 
+// ─── Safe messages (client never sees raw error strings) ────────
 const SAFE_MESSAGES = {
     INVALID_ID:                 'Invalid identifier.',
     REASON_REQUIRED:            'A reason is required.',
@@ -60,22 +74,38 @@ const SAFE_MESSAGES = {
     IDEMPOTENCY_CONFLICT:       'This idempotency key was already used with different parameters.'
 };
 
-function sendOk(res, payload) { if (!res.headersSent) res.json({ success: true, ...payload }); }
+function sendOk(res, payload) {
+    if (res.headersSent) return;
+    res.json({ success: true, ...payload });
+}
 
 function sendErr(res, req, err) {
     if (res.headersSent) return;
-    const status = err?.status || 500;
-    const code = err?.code || 'BILLS_ERROR';
+    const status  = Number(err?.status) || 500;
+    const code    = err?.code || 'BILLS_ERROR';
     const message = SAFE_MESSAGES[code] || 'Bill request failed.';
+
+    // Log only when the message is not already sanitized — keeps
+    // normal 4xx noise out of production logs.
     if (status >= 500 || !SAFE_MESSAGES[code]) {
         console.error('[ADMIN BILLS]', req.billRequestId, code, err?.message || err);
     }
-    const body = { success: false, code, message, request_id: req.billRequestId };
+
+    const body = {
+        success: false,
+        code,
+        message,
+        request_id: req.billRequestId
+    };
     if (err?.allowed_transitions) body.allowed_transitions = err.allowed_transitions;
-    if (err?.expected_status) body.expected_status = err.expected_status;
+    if (err?.expected_status)     body.expected_status     = err.expected_status;
+
     res.status(status).json(body);
 }
 
+// ─── Service ctx ────────────────────────────────────────────────
+// `billsAdminService` receives the actor fields it needs for audit
+// + IP + UA. `req.adminContext` is populated by requirePermission().
 function ctxFrom(req) {
     return {
         adminId:    req.adminContext?.id    || null,
@@ -86,16 +116,24 @@ function ctxFrom(req) {
     };
 }
 
+// ─── Idempotency ────────────────────────────────────────────────
+// The `admin_idempotency` table is optional. If it does not exist,
+// every mutation still runs — we just lose replay protection. Log
+// once the first time the table is missing so the deployment knows.
+let _idempotencyTableMissingLogged = false;
+
 async function withIdempotency({ req, bodyHash }) {
     const key = req.headers['idempotency-key'];
-    if (!key || String(key).length < 8) return { fresh: true, noKey: true };
+    if (!key || String(key).length < 8) {
+        return { fresh: true, noKey: true };
+    }
 
-    const adminId = req.adminContext?.id || 'anon';
-    const endpoint = `${req.method} ${req.baseUrl}${req.path}`;
+    const adminId   = req.adminContext?.id || 'anon';
+    const endpoint  = `${req.method} ${req.baseUrl}${req.path}`;
     const trimmedKey = String(key).slice(0, 200);
 
     try {
-        const { data: existing } = await supabaseAdmin
+        const { data: existing, error } = await supabaseAdmin
             .from('admin_idempotency')
             .select('response, status, request_hash')
             .eq('admin_id', adminId)
@@ -103,10 +141,23 @@ async function withIdempotency({ req, bodyHash }) {
             .eq('idempotency_key', trimmedKey)
             .maybeSingle();
 
+        if (error && (error.code === '42P01' || error.code === 'PGRST205')) {
+            if (!_idempotencyTableMissingLogged) {
+                _idempotencyTableMissingLogged = true;
+                console.warn(
+                    '[ADMIN BILLS] admin_idempotency table missing — ' +
+                    'mutations run without replay protection. ' +
+                    'Run the migration to enable it.'
+                );
+            }
+            return { fresh: true, noKey: true };
+        }
+
         if (existing) {
             if (existing.request_hash && bodyHash && existing.request_hash !== bodyHash) {
-                const e = new Error('This idempotency key was already used with different parameters.');
-                e.status = 409; e.code = 'IDEMPOTENCY_CONFLICT'; throw e;
+                const e = new Error('Idempotency key already used with different parameters.');
+                e.status = 409; e.code = 'IDEMPOTENCY_CONFLICT';
+                throw e;
             }
             if (existing.status === 'completed' && existing.response) {
                 return { fresh: false, replay: existing.response };
@@ -114,7 +165,7 @@ async function withIdempotency({ req, bodyHash }) {
         }
     } catch (e) {
         if (e.code === 'IDEMPOTENCY_CONFLICT') throw e;
-        // table missing — degrade
+        // Any other DB read error is non-fatal — degrade to "no key".
     }
 
     return {
@@ -122,15 +173,19 @@ async function withIdempotency({ req, bodyHash }) {
         complete: async (response) => {
             try {
                 await supabaseAdmin.from('admin_idempotency').insert({
-                    admin_id: adminId, endpoint,
+                    admin_id: adminId,
+                    endpoint,
                     idempotency_key: trimmedKey,
                     request_hash: bodyHash || null,
-                    response, status: 'completed',
+                    response,
+                    status: 'completed',
                     created_at: new Date().toISOString(),
                     expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
                 });
             } catch (e) {
-                console.warn('[ADMIN BILLS] idempotency insert failed:', e.message);
+                if (e?.code !== '42P01' && e?.code !== 'PGRST205') {
+                    console.warn('[ADMIN BILLS] idempotency insert failed:', e.message);
+                }
             }
         },
         release: async () => {}
@@ -138,8 +193,12 @@ async function withIdempotency({ req, bodyHash }) {
 }
 
 function hashBody(body) {
-    try { return crypto.createHash('sha256').update(JSON.stringify(body || {})).digest('hex'); }
-    catch { return null; }
+    try {
+        return crypto.createHash('sha256').update(JSON.stringify(body || {})).digest('hex');
+    } catch (e) {
+        console.warn('[ADMIN BILLS] hashBody failed:', e.message);
+        return null;
+    }
 }
 
 // ═════════════════════════════════════════════════════════════════
@@ -153,7 +212,7 @@ router.get(
         try {
             const stats = await bills.getStats({
                 from: req.query.from || null,
-                to: req.query.to || null
+                to:   req.query.to   || null
             });
             sendOk(res, { stats });
         } catch (err) { sendErr(res, req, err); }
@@ -166,15 +225,15 @@ router.get(
     async (req, res) => {
         try {
             const result = await bills.listOrders({
-                page: parseInt(req.query.page, 10) || 1,
-                limit: parseInt(req.query.limit, 10) || 25,
+                page:     parseInt(req.query.page,  10) || 1,
+                limit:    parseInt(req.query.limit, 10) || 25,
                 category: req.query.category || null,
-                status: req.query.status || null,
+                status:   req.query.status   || null,
                 provider: req.query.provider || null,
-                user_id: req.query.user_id || null,
-                from: req.query.from || null,
-                to: req.query.to || null,
-                search: req.query.search || null
+                user_id:  req.query.user_id  || null,
+                from:     req.query.from     || null,
+                to:       req.query.to       || null,
+                search:   req.query.search   || null
             });
             sendOk(res, result);
         } catch (err) { sendErr(res, req, err); }
@@ -199,7 +258,10 @@ router.post(
     async (req, res, next) => {
         if (!UUID_RE.test(String(req.params.id || ''))) return next();
         try {
-            const result = await bills.syncOrder({ orderId: req.params.id, ctx: ctxFrom(req) });
+            const result = await bills.syncOrder({
+                orderId: req.params.id,
+                ctx: ctxFrom(req)
+            });
             sendOk(res, result);
         } catch (err) { sendErr(res, req, err); }
     }
@@ -213,10 +275,14 @@ router.post(
         try {
             const { reason } = req.body || {};
             if (!reason || String(reason).trim().length < 4) {
-                const e = new Error('A reason is required.'); e.status = 422; e.code = 'REASON_REQUIRED'; throw e;
+                const e = new Error('A reason is required.');
+                e.status = 422; e.code = 'REASON_REQUIRED';
+                throw e;
             }
+
             const idem = await withIdempotency({ req, bodyHash: hashBody(req.body) });
             if (!idem.fresh) return res.json(idem.replay);
+
             try {
                 const result = await bills.retryOrder({
                     orderId: req.params.id,
@@ -226,7 +292,10 @@ router.post(
                 const response = { success: true, ...result };
                 await idem.complete?.(response);
                 sendOk(res, result);
-            } catch (inner) { await idem.release?.(); throw inner; }
+            } catch (inner) {
+                await idem.release?.();
+                throw inner;
+            }
         } catch (err) { sendErr(res, req, err); }
     }
 );
@@ -239,10 +308,14 @@ router.post(
         try {
             const { reason } = req.body || {};
             if (!reason || String(reason).trim().length < 4) {
-                const e = new Error('A reason is required.'); e.status = 422; e.code = 'REASON_REQUIRED'; throw e;
+                const e = new Error('A reason is required.');
+                e.status = 422; e.code = 'REASON_REQUIRED';
+                throw e;
             }
+
             const idem = await withIdempotency({ req, bodyHash: hashBody(req.body) });
             if (!idem.fresh) return res.json(idem.replay);
+
             try {
                 const result = await bills.refundOrder({
                     orderId: req.params.id,
@@ -252,7 +325,10 @@ router.post(
                 const response = { success: true, ...result };
                 await idem.complete?.(response);
                 sendOk(res, result);
-            } catch (inner) { await idem.release?.(); throw inner; }
+            } catch (inner) {
+                await idem.release?.();
+                throw inner;
+            }
         } catch (err) { sendErr(res, req, err); }
     }
 );
@@ -265,10 +341,14 @@ router.post(
         try {
             const { reason } = req.body || {};
             if (!reason || String(reason).trim().length < 4) {
-                const e = new Error('A reason is required.'); e.status = 422; e.code = 'REASON_REQUIRED'; throw e;
+                const e = new Error('A reason is required.');
+                e.status = 422; e.code = 'REASON_REQUIRED';
+                throw e;
             }
+
             const idem = await withIdempotency({ req, bodyHash: hashBody(req.body) });
             if (!idem.fresh) return res.json(idem.replay);
+
             try {
                 const result = await bills.reviewOrder({
                     orderId: req.params.id,
@@ -278,7 +358,10 @@ router.post(
                 const response = { success: true, ...result };
                 await idem.complete?.(response);
                 sendOk(res, result);
-            } catch (inner) { await idem.release?.(); throw inner; }
+            } catch (inner) {
+                await idem.release?.();
+                throw inner;
+            }
         } catch (err) { sendErr(res, req, err); }
     }
 );

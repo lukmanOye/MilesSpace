@@ -3,93 +3,65 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f4c5c">
 <title>Gift Cards · MilesSpace Admin</title>
+
+<link rel="icon" href="/images/miles.png" type="image/png">
+<link rel="apple-touch-icon" href="/images/miles.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<script src="/js/admin-session.js?v=2025-admin-dash-v4"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+<link rel="stylesheet" href="/css/admin-shell.css">
+<script src="/js/admin-session.js?v=2026-giftcards-v3"></script>
+<script src="/js/admin-shell.js?v=2026-giftcards-v3"></script>
+
 <style>
-:root{--brand:#0f4c5c;--brand-deep:#0a3542;--brand-light:#14607a;--gold:#f5a623;--gold-soft:#fde3ad;--bg:#f4f7fb;--surface:#fff;--border:rgba(15,76,92,.09);--text:#0c1f26;--text-dim:#5b7480;--text-faint:#8fa3ab;--success:#16a34a;--success-bg:#e9f9ef;--danger:#dc2626;--danger-bg:#fdecec;--warn:#f59e0b;--warn-bg:#fef3d9;--info:#2563a8;--info-bg:#e8f1fb;--purple:#8b5cf6;--purple-bg:#ede9fe;--radius:12px;--radius-lg:16px;--shadow-sm:0 1px 2px rgba(8,42,51,.06);--shadow-md:0 8px 24px -8px rgba(8,42,51,.16);--sidebar-w:264px;--topbar-h:68px}
-html.dark{--bg:#08151a;--surface:#12262c;--border:rgba(255,255,255,.08);--text:#eaf3f5;--text-dim:#9db4bb;--text-faint:#5b7480;--success-bg:rgba(22,163,74,.15);--danger-bg:rgba(220,38,38,.15);--warn-bg:rgba(245,158,11,.15);--info-bg:rgba(37,99,168,.18);--purple-bg:rgba(139,92,246,.18)}
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-html{overflow-x:hidden}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden;width:100%}
-::-webkit-scrollbar{width:9px;height:9px}
-::-webkit-scrollbar-thumb{background:rgba(15,76,92,.18);border-radius:99px}
-html.dark ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14)}
-:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:6px}
-.mono{font-family:'JetBrains Mono',monospace}
-
-/* ── Layout ────────────────────────────────────────────────── */
-.app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh}
-.sidebar{background:linear-gradient(180deg,var(--brand-deep),var(--brand) 70%);color:#eaf6f8;padding:20px 14px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;z-index:50;transition:transform .22s ease}
-.brand{display:flex;align-items:center;gap:11px;padding:6px 8px 18px}
-.brand-mark{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--gold),#d97e06);display:flex;align-items:center;justify-content:center;font-size:15px;color:#0c1d22;font-weight:800;flex-shrink:0}
-.brand-text strong{font-size:15px;font-weight:800;display:block}
-.brand-text span{font-size:10.5px;color:#9fd4de;text-transform:uppercase;letter-spacing:.06em}
-.nav-scroll{flex:1;overflow-y:auto;margin-top:6px}
-.nav-label{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:#6fa2ad;font-weight:700;padding:14px 10px 6px}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:9px;color:#cfe7ea;font-size:13px;font-weight:500;text-decoration:none;cursor:pointer;transition:background .15s;min-height:40px}
-.nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
-.nav-item.active{background:rgba(245,166,35,.16);color:#ffd899;font-weight:600}
-.nav-item .ic{width:17px;text-align:center;flex-shrink:0}
-.sidebar-foot{border-top:1px solid rgba(255,255,255,.08);padding-top:12px;margin-top:8px;display:flex;align-items:center;gap:10px;flex-shrink:0}
-.sidebar-foot .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#25748a,#0c3d4a);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px;color:#fff;flex-shrink:0}
-
-.main{display:flex;flex-direction:column;min-width:0}
-
-.topbar{height:var(--topbar-h);position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;padding:0 26px;background:rgba(255,255,255,.72);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
-html.dark .topbar{background:rgba(18,38,44,.75)}
-.hamburger{display:none;width:40px;height:40px;border-radius:10px;border:1px solid var(--border);background:var(--surface);align-items:center;justify-content:center;cursor:pointer;color:var(--brand);font-size:18px;flex-shrink:0}
-.topbar h1{margin:0;font-size:18px;font-weight:800}
-.topbar .sub{font-size:12px;color:var(--text-dim);margin-top:2px;line-height:1.35}
-.topbar-actions{margin-left:auto;display:flex;gap:8px;align-items:center;flex-shrink:0}
-.content{padding:22px 26px 60px;max-width:1440px;width:100%;margin:0 auto}
-
-/* ── Layout ─────────────────────────────────────────────── */
+/* ── Side-menu layout (same tokens as the old page) ────────── */
 .layout{display:flex;gap:22px;align-items:flex-start}
-.side-menu{width:220px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:10px;position:sticky;top:calc(var(--topbar-h) + 16px);max-height:calc(100vh - var(--topbar-h) - 40px);overflow-y:auto}
+.side-menu{width:220px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px;position:sticky;top:calc(var(--topbar-h) + 16px);max-height:calc(100vh - var(--topbar-h) - 40px);overflow-y:auto}
 .side-menu .item{padding:10px 12px;font-size:13px;color:var(--text-dim);border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:2px;min-height:40px}
 .side-menu .item:hover{background:var(--bg);color:var(--text)}
 .side-menu .item.active{background:var(--brand);color:#fff}
+.side-menu .item i{width:16px;text-align:center;flex-shrink:0}
 .panels{flex:1;min-width:0}
 .panel{display:none}
 .panel.active{display:block}
 
-/* ── Cards / KPI ─────────────────────────────────────────── */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow-sm)}
+/* ── Card / KPI ─────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow-sm)}
 .card + .card{margin-top:16px}
-.card h3{margin:0 0 12px;font-size:14px;font-weight:800}
+.card h3{margin:0 0 12px;font-size:14px;font-weight:800;display:flex;align-items:center;gap:8px}
 .kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
 .kpi{padding:14px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-sm)}
-.kpi .lbl{font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.kpi .lbl{font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;font-weight:700;display:flex;align-items:center;gap:6px}
+.kpi .lbl i{opacity:.7}
 .kpi .val{font-size:20px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums;word-break:break-word}
 .kpi .sub{font-size:11px;color:var(--text-faint);margin-top:4px}
 
-/* ── Filters ─────────────────────────────────────────────── */
+/* ── Filters / buttons / tables ────────────────────────── */
 .filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center}
 .filters input,.filters select{border:1px solid var(--border);background:var(--surface);border-radius:9px;padding:10px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;min-height:42px}
 .filters input[type="search"]{flex:1 1 260px;min-width:200px}
 .filters input[type="date"]{flex:0 1 160px}
-
-/* ── Buttons ─────────────────────────────────────────────── */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:10px 14px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--brand);font-family:inherit;min-height:42px;transition:background .15s}
 .btn:hover:not(:disabled){background:var(--gold-soft)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .btn-primary{background:var(--brand);color:#fff;border-color:var(--brand)}
-.btn-danger{background:var(--danger);color:#fff;border-color:var(--danger)}
 .btn-primary:hover:not(:disabled){background:var(--brand-light);color:#fff}
+.btn-danger{background:var(--danger);color:#fff;border-color:var(--danger)}
 .btn-danger:hover:not(:disabled){background:#b91c1c;color:#fff}
+.btn-sm{padding:6px 10px;font-size:11.5px;min-height:32px;border-radius:8px}
 
-/* ── Tables ──────────────────────────────────────────────── */
-.table-scroll{overflow-x:auto;overflow-y:auto;max-height:640px;border-radius:var(--radius)}
+.table-scroll{overflow-x:auto;overflow-y:auto;max-height:640px;border-radius:10px}
 table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:820px}
 th{text-align:left;padding:11px 14px;color:var(--text-dim);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1}
 td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
 tr.row-clickable{cursor:pointer}
 tr.row-clickable:hover{background:rgba(245,166,35,.05)}
 tr:last-child td{border-bottom:none}
+
 .badge{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px;display:inline-flex;align-items:center;gap:4px;text-transform:capitalize;white-space:nowrap}
 .badge.success{background:var(--success-bg);color:var(--success)}
 .badge.danger{background:var(--danger-bg);color:var(--danger)}
@@ -97,35 +69,26 @@ tr:last-child td{border-bottom:none}
 .badge.info{background:var(--info-bg);color:var(--info)}
 .badge.purple{background:var(--purple-bg);color:var(--purple)}
 .badge.neutral{background:var(--bg);color:var(--text-dim);border:1px solid var(--border)}
+
 .empty-box{text-align:center;padding:30px 20px;color:var(--text-faint);font-size:13px}
-.empty-box .ic{font-size:22px;margin-bottom:6px;display:block}
+.empty-box i{font-size:22px;margin-bottom:6px;display:block;opacity:.6}
 .unavailable-box{text-align:center;padding:24px 14px;color:var(--text-faint)}
 .unavailable-box button{margin-top:10px;border:1px solid var(--border);background:var(--surface);color:var(--brand);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer}
 
-/* ── Pagination ──────────────────────────────────────────── */
 .pagination{display:flex;justify-content:space-between;align-items:center;padding:12px 4px 0;font-size:12.5px;color:var(--text-dim);gap:8px;flex-wrap:wrap}
 .pagination .actions{display:flex;gap:6px}
 
-/* ── Drawer ──────────────────────────────────────────────── */
+/* ── Drawer ─────────────────────────────────────────────── */
 .drawer-scrim{position:fixed;inset:0;background:rgba(5,15,20,.5);backdrop-filter:blur(2px);z-index:300;opacity:0;pointer-events:none;transition:opacity 220ms ease}
 .drawer-scrim.show{opacity:1;pointer-events:auto}
-.drawer{
-    position:fixed;top:0;right:0;
-    height:100vh;
-    height:100dvh;
-    width:min(720px,96vw);
-    background:var(--bg);z-index:301;box-shadow:var(--shadow-md);
-    transform:translateX(100%);
-    transition:transform 260ms cubic-bezier(.4,0,.2,1);
-    display:flex;flex-direction:column;
-}
+.drawer{position:fixed;top:0;right:0;height:100vh;height:100dvh;width:min(720px,96vw);background:var(--bg);z-index:301;box-shadow:var(--shadow-md);transform:translateX(100%);transition:transform 260ms cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
 .drawer.open{transform:translateX(0)}
 .dh{display:flex;align-items:center;gap:14px;padding:20px 22px;background:linear-gradient(135deg,var(--brand),var(--brand-deep));color:#fff;flex-shrink:0}
 .dh .ic{width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
 .dh .titles{flex:1;min-width:0}
 .dh h2{margin:0;font-size:16px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dh .sub{font-size:11.5px;color:rgba(255,255,255,.7);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dh .close{width:40px;height:40px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;flex-shrink:0}
+.dh .close{width:40px;height:40px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;flex-shrink:0;display:grid;place-items:center}
 .db{flex:1;overflow-y:auto;padding:20px 22px 40px}
 .dd-hero{padding:16px 18px;border-radius:12px;background:var(--surface);border:1px solid var(--border);margin-bottom:16px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}
 .dd-hero .amt{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;word-break:break-word}
@@ -137,405 +100,115 @@ tr:last-child td{border-bottom:none}
 .field .k{color:var(--text-dim);font-weight:600;flex-shrink:0}
 .field .v{font-weight:700;text-align:right;word-break:break-word;overflow-wrap:anywhere;min-width:0}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding:12px;border-radius:12px;background:var(--surface);border:1px solid var(--border)}
-.timeline{display:flex;flex-direction:column;gap:4px;font-size:12px}
-.timeline .t-item{padding:8px 12px;border-left:2px solid var(--gold);background:var(--surface);border-radius:0 8px 8px 0;word-break:break-word}
-.timeline .t-when{font-size:10.5px;color:var(--text-faint)}
 .delivery-reveal{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-family:'JetBrains Mono',monospace;font-size:13px;flex-wrap:wrap;word-break:break-all}
 .delivery-reveal #codeDisplay{min-width:0;overflow-wrap:anywhere}
 
-/* ── Modal ───────────────────────────────────────────────── */
+/* ── Modal (shared shape) ───────────────────────────────── */
 .modal-scrim{position:fixed;inset:0;background:rgba(5,15,20,.6);z-index:400;display:none;align-items:center;justify-content:center;padding:20px}
 .modal-scrim.show{display:flex}
 .modal{background:var(--surface);border-radius:16px;max-width:480px;width:100%;box-shadow:var(--shadow-md);overflow:hidden;max-height:92vh;display:flex;flex-direction:column}
 .modal h3{margin:0;padding:18px 22px;font-size:16px;font-weight:800;border-bottom:1px solid var(--border)}
 .modal .body{padding:18px 22px;overflow-y:auto;flex:1}
+.modal .body p.note{font-size:12.5px;color:var(--text-dim);margin-bottom:12px;line-height:1.5}
 .modal .body label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px}
-.modal .body textarea{width:100%;border:1px solid var(--border);border-radius:9px;padding:12px;font-family:inherit;font-size:14px;background:var(--surface);color:var(--text);outline:none;resize:vertical;min-height:80px}
+.modal .body input[type="text"],.modal .body input[type="number"],.modal .body textarea,.modal .body select{width:100%;border:1px solid var(--border);border-radius:9px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--surface);color:var(--text);outline:none}
+.modal .body textarea{resize:vertical;min-height:80px}
+.modal .body input:focus,.modal .body textarea:focus,.modal .body select:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(15,76,92,.1)}
 .modal .foot{display:flex;justify-content:flex-end;gap:8px;padding:14px 22px;border-top:1px solid var(--border);flex-shrink:0}
+.modal .err{display:none;background:var(--danger-bg);color:var(--danger);padding:10px 12px;border-radius:8px;font-size:12px;margin-top:10px}
+.modal .err.show{display:block}
 
-/* ── Toast ───────────────────────────────────────────────── */
+/* ── Toast ──────────────────────────────────────────────── */
 .toast-stack{position:fixed;bottom:22px;right:22px;left:auto;display:flex;flex-direction:column;gap:10px;z-index:500;max-width:380px;pointer-events:none}
 .toast{background:#0c1f26;color:#fff;padding:12px 16px;border-radius:11px;font-size:12.8px;font-weight:600;border-left:3px solid var(--gold);box-shadow:var(--shadow-md);pointer-events:auto;word-break:break-word}
 .toast.success{border-left-color:var(--success)}
 .toast.error{border-left-color:var(--danger)}
 
-/* ── Mobile drawer for sidebar ───────────────────────────── */
-.scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:45;display:none;opacity:0;transition:opacity .2s}
-.scrim.show{display:block;opacity:1}
+/* ── Skeletons ──────────────────────────────────────────── */
+.skeleton{background:linear-gradient(90deg,var(--border) 25%,#eef1f7 37%,var(--border) 63%);background-size:400% 100%;animation:skel 1.4s ease infinite;border-radius:6px;height:12px;display:inline-block}
+@keyframes skel{0%{background-position:100% 50%}100%{background-position:0 50%}}
 
-/* ═══════════════════════════════════════════════════════════
-   RESPONSIVE BREAKPOINTS
-   ───────────────────────────────────────────────────────────
-   ≥1101px  Desktop: sidebar fixed, 3-column KPIs, side-menu
-                      left, table layout.
-   ≤1100px  Tablet:  side-menu becomes horizontal tabs above
-                      the panels; KPI grid 2 columns.
-   ≤900px   Mobile:  sidebar becomes slide-in drawer, hamburger
-                      appears, KPI grid 2 columns, tables turn
-                      into stacked cards, filters stack.
-   ≤480px   Phone:   KPI grid single column, table cards
-                      tighten, buttons full-width, toast at
-                      bottom edge.
-   ═══════════════════════════════════════════════════════════ */
+/* ── Provider card ──────────────────────────────────────── */
+.provider-card{padding:18px;border-radius:14px;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-sm)}
+.provider-card h4{margin:0 0 12px;font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px}
+.status-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:middle}
+.status-dot.ok{background:var(--success);box-shadow:0 0 0 3px rgba(22,163,74,.18)}
+.status-dot.warn{background:var(--warn);box-shadow:0 0 0 3px rgba(245,158,11,.18)}
+.status-dot.bad{background:var(--danger);box-shadow:0 0 0 3px rgba(220,38,38,.18)}
 
-/* ── Tablet ─────────────────────────────────────────────── */
+/* ── Pricing calculator ─────────────────────────────────── */
+.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.calc-panel{padding:16px;border-radius:12px;background:var(--bg);border:1px solid var(--border)}
+.calc-panel h4{margin:0 0 12px;font-size:13px;font-weight:800}
+.calc-result{display:flex;flex-direction:column;gap:6px}
+.calc-result .row{display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0}
+.calc-result .row.big{font-size:15px;font-weight:800;border-top:1px dashed var(--border);padding-top:8px;margin-top:8px}
+.calc-result .row .k{color:var(--text-dim)}
+.calc-result .row .v{font-variant-numeric:tabular-nums}
+
+/* ── Product cell ───────────────────────────────────────── */
+.prod-logo{width:32px;height:32px;border-radius:6px;background:var(--bg);display:grid;place-items:center;overflow:hidden;flex-shrink:0;font-size:11px;font-weight:800;color:var(--text-dim)}
+.prod-logo img{width:100%;height:100%;object-fit:contain;background:#fff}
+.prod-wrap{display:flex;align-items:center;gap:10px}
+
+/* ── Responsive ─────────────────────────────────────────── */
 @media (max-width:1100px){
     .layout{flex-direction:column;gap:14px}
     .side-menu{width:100%;position:static;max-height:none;display:flex;flex-wrap:wrap;gap:6px;padding:8px}
     .side-menu .item{flex:1 1 auto;min-width:120px;justify-content:center;margin-bottom:0}
     .kpi-grid{grid-template-columns:repeat(2,1fr)}
+    .calc-grid{grid-template-columns:1fr}
 }
-
-/* ── Mobile sidebar drawer ─────────────────────────────── */
 @media (max-width:900px){
-    .app{grid-template-columns:1fr}
-    .sidebar{
-        position:fixed;left:0;top:0;
-        height:100vh;
-        height:100dvh;
-        width:min(290px,86vw);
-        transform:translateX(-100%);
-        box-shadow:var(--shadow-md);
-        z-index:50;
-    }
-    .sidebar.open{transform:translateX(0)}
-    .hamburger{display:flex}
     .topbar{padding:0 14px;height:64px;gap:10px}
-    .topbar h1{font-size:16px}
-    .topbar .sub{
-        font-size:11.5px;
-        display:-webkit-box;
-        display:box;
-        -webkit-line-clamp:2;
-        line-clamp:2;
-        -webkit-box-orient:vertical;
-        box-orient:vertical;
-        overflow:hidden;
-    }
     .content{padding:14px 12px 80px}
     .card{padding:16px 14px}
     .kpi-grid{grid-template-columns:repeat(2,1fr);gap:10px}
     .kpi{padding:12px 12px}
     .kpi .val{font-size:18px}
-
-    /* Filters stack */
     .filters{flex-direction:column;align-items:stretch}
-    .filters input[type="search"],
-    .filters input[type="date"],
-    .filters select,
-    .filters .btn{width:100%;flex:1 1 auto;min-width:0}
-
-    /* Tables become cards */
-    .table-scroll{overflow:visible;max-height:none;border-radius:0}
+    .filters input,.filters select,.filters .btn{width:100%;min-width:0}
+    .table-scroll{overflow:visible;max-height:none}
     table{min-width:0;width:100%}
     thead{display:none}
     tbody,tr,td{display:block;width:100%}
-    tr{
-        border:1px solid var(--border);
-        border-radius:12px;
-        background:var(--surface);
-        padding:12px 14px;
-        margin-bottom:10px;
-        box-shadow:var(--shadow-sm);
-    }
-    tr:last-child{margin-bottom:0}
-    td{
-        border-bottom:1px dashed var(--border);
-        padding:8px 0;
-        display:flex;
-        justify-content:space-between;
-        gap:12px;
-        align-items:center;
-        font-size:13px;
-        text-align:right;
-    }
+    tr{border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:12px 14px;margin-bottom:10px;box-shadow:var(--shadow-sm)}
+    td{border-bottom:1px dashed var(--border);padding:8px 0;display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:13px;text-align:right}
     td:last-child{border-bottom:none}
-    /* Label each cell from the column header via data-label */
-    td::before{
-        content:attr(data-label);
-        flex-shrink:0;
-        font-size:10.5px;
-        text-transform:uppercase;
-        letter-spacing:.05em;
-        color:var(--text-dim);
-        font-weight:700;
-        text-align:left;
-    }
+    td::before{content:attr(data-label);flex-shrink:0;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);font-weight:700;text-align:left}
     td[data-label=""]::before{display:none}
-    td.cell-action{justify-content:flex-end}
-
-    /* Pagination stacks */
-    .pagination{flex-direction:column;align-items:stretch;gap:8px;text-align:center}
-    .pagination .actions{justify-content:center}
-
-    /* Drawer takes full width on phones */
     .drawer{width:100vw;max-width:100vw}
     .dh{padding:16px 18px}
-    .dh h2{font-size:15px}
     .db{padding:16px 18px 32px}
-
-    /* Toast stretches at the bottom */
-    .toast-stack{left:12px;right:12px;bottom:12px;max-width:none;align-items:stretch}
+    .toast-stack{left:12px;right:12px;bottom:12px;max-width:none}
 }
-
-/* ── Small phone ─────────────────────────────────────────── */
 @media (max-width:480px){
     .kpi-grid{grid-template-columns:1fr;gap:8px}
-    .content{padding:12px 10px 80px}
-    .card{padding:14px 12px}
     .side-menu .item{min-width:0;flex:1 1 calc(50% - 3px);font-size:12px;padding:9px 8px}
-    .side-menu .item i{display:none}
-
-    /* Buttons become full-width inside action stacks */
+    .side-menu .item span{display:none}
+    .side-menu .item i{font-size:14px}
     .actions{flex-direction:column}
     .actions .btn{width:100%}
     .dd-hero{flex-direction:column;align-items:flex-start}
-    .dd-hero > div:last-child{text-align:left!important}
     .modal .foot{flex-direction:column}
     .modal .foot .btn{width:100%}
     .field{flex-direction:column;align-items:flex-start;gap:2px}
     .field .v{text-align:left}
     .delivery-reveal{flex-direction:column;align-items:stretch}
     .delivery-reveal .btn{width:100%}
-    .pagination .actions .btn{flex:1}
-}
-
-/* Safe-area for iPhones with notch */
-@supports (padding: max(0px)){
-    @media (max-width:900px){
-        .topbar{padding-left:max(14px, env(safe-area-inset-left));padding-right:max(14px, env(safe-area-inset-right))}
-        .content{padding-left:max(12px, env(safe-area-inset-left));padding-right:max(12px, env(safe-area-inset-right))}
-        .toast-stack{bottom:max(12px, env(safe-area-inset-bottom))}
-    }
 }
 </style>
 </head>
 <body>
-<div class="app">
 
-<aside class="sidebar" id="sidebar" aria-label="Admin navigation">
-    <div class="brand">
-        <div class="brand-mark">M</div>
-        <div class="brand-text"><strong>MilesSpace</strong><span>Admin</span></div>
-    </div>
-    <nav class="nav-scroll">
-        <div class="nav-label">Overview</div>
-        <a href="/admin/dashboard.html" class="nav-item"><span class="ic">📊</span>Dashboard</a>
-        <div class="nav-label">Customers</div>
-        <a href="/admin/users.html" class="nav-item"><span class="ic">👥</span>Users</a>
-        <a href="/admin/support.html" class="nav-item"><span class="ic">💬</span>Support</a>
-        <div class="nav-label">Money</div>
-        <a href="/admin/transactions.html" class="nav-item"><span class="ic">💳</span>Transactions</a>
-        <a href="/admin/deposits.html" class="nav-item"><span class="ic">📥</span>Deposits</a>
-        <a href="/admin/ledger.html" class="nav-item"><span class="ic">📒</span>Ledger</a>
-        <a href="/admin/reconciliation.html" class="nav-item"><span class="ic">🔄</span>Reconciliation</a>
-        <div class="nav-label">Services</div>
-        <a href="/admin/gift-cards.html" class="nav-item active"><span class="ic">🎁</span>Gift Cards</a>
-        <a href="/admin/airtime-data.html" class="nav-item"><span class="ic">📶</span>Airtime &amp; Data</a>
-        <a href="/admin/bills.html" class="nav-item"><span class="ic">🧾</span>Bills &amp; Utilities</a>
-        <a href="/admin/esim.html" class="nav-item"><span class="ic">📡</span>eSIM</a>
-        <a href="/admin/virtual-sms.html" class="nav-item"><span class="ic">📱</span>Virtual SMS</a>
-        <a href="/admin/boost.html" class="nav-item"><span class="ic">📈</span>Boost</a>
-        <a href="/admin/marketplace-products.html" class="nav-item"><span class="ic">📦</span>Marketplace</a>
-        <div class="nav-label">System</div>
-        <a href="/admin/settings.html" class="nav-item"><span class="ic">⚙️</span>Settings</a>
-    </nav>
-    <div class="sidebar-foot">
-        <div class="av" id="adminAvatar">DA</div>
-        <div>
-            <strong id="adminName" style="font-size:12.5px">Admin</strong>
-            <div id="adminRole" style="font-size:10.5px;color:#8fbac2">Loading…</div>
-        </div>
-    </div>
-</aside>
-<div class="scrim" id="scrim"></div>
-
-<div class="main">
-    <header class="topbar">
-        <button class="hamburger" id="hamburger" aria-label="Open menu">☰</button>
-        <div style="min-width:0">
-            <h1>🎁 Gift Cards</h1>
-            <div class="sub">Sell gift cards via DT One. Every purchase is verified before an order is marked complete.</div>
-        </div>
-        <div class="topbar-actions">
-            <button class="btn" id="refreshBtn" aria-label="Refresh"><i class="fas fa-rotate-right"></i><span class="hide-sm"> Refresh</span></button>
-        </div>
-    </header>
-
-    <div class="content">
-        <div class="layout">
-            <aside class="side-menu" id="giftMenu" role="tablist">
-                <div class="item active" data-section="overview" role="tab"><i class="fas fa-chart-pie" style="width:16px"></i> Overview</div>
-                <div class="item" data-section="orders" role="tab"><i class="fas fa-receipt" style="width:16px"></i> Orders</div>
-                <div class="item" data-section="products" role="tab"><i class="fas fa-store" style="width:16px"></i> Products</div>
-                <div class="item" data-section="pricing" role="tab"><i class="fas fa-tags" style="width:16px"></i> Pricing</div>
-                <div class="item" data-section="failed" role="tab"><i class="fas fa-triangle-exclamation" style="width:16px"></i> Failed Orders</div>
-                <div class="item" data-section="refunds" role="tab"><i class="fas fa-rotate-left" style="width:16px"></i> Refunds</div>
-                <div class="item" data-section="provider" role="tab"><i class="fas fa-plug" style="width:16px"></i> Provider</div>
-            </aside>
-
-            <div class="panels">
-                <!-- ══ Overview ══ -->
-                <div class="panel active" id="panel-overview">
-                    <div class="kpi-grid" id="kpis">
-                        <div class="kpi"><div class="lbl">Today's Orders</div><div class="val" id="kpi-orders">—</div></div>
-                        <div class="kpi"><div class="lbl">Today's Revenue</div><div class="val" id="kpi-revenue">—</div><div class="sub" id="kpi-revenue-sub">Customer paid</div></div>
-                        <div class="kpi"><div class="lbl">Successful</div><div class="val" id="kpi-completed">—</div></div>
-                        <div class="kpi"><div class="lbl">Pending</div><div class="val" id="kpi-pending">—</div></div>
-                        <div class="kpi"><div class="lbl">Failed</div><div class="val" id="kpi-failed">—</div></div>
-                        <div class="kpi"><div class="lbl">Refunded</div><div class="val" id="kpi-refunded">—</div></div>
-                    </div>
-
-                    <div class="card">
-                        <h3>DT One provider health</h3>
-                        <div id="providerSummary"><div class="empty-box"><span class="ic">⏳</span>Loading…</div></div>
-                    </div>
-                </div>
-
-                <!-- ══ Orders ══ -->
-                <div class="panel" id="panel-orders">
-                    <div class="card">
-                        <h3>Gift Card Orders</h3>
-                        <div class="filters">
-                            <input type="search" id="oSearch" placeholder="Search order, brand, provider transaction…">
-                            <select id="oStatus">
-                                <option value="all">All Statuses</option>
-                                <option value="pending_payment">Pending payment</option>
-                                <option value="paid">Paid</option>
-                                <option value="processing">Processing</option>
-                                <option value="provider_pending">Provider pending</option>
-                                <option value="completed">Completed</option>
-                                <option value="failed">Failed</option>
-                                <option value="refund_pending">Refund pending</option>
-                                <option value="refunded">Refunded</option>
-                                <option value="cancelled">Cancelled</option>
-                            </select>
-                            <input type="date" id="oFrom" aria-label="From date">
-                            <input type="date" id="oTo" aria-label="To date">
-                            <button class="btn btn-primary" id="oApply"><i class="fas fa-filter"></i> Apply</button>
-                            <button class="btn" id="oClear">Clear</button>
-                        </div>
-                        <div class="table-scroll">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Order ID</th>
-                                        <th>User</th>
-                                        <th>Gift Card</th>
-                                        <th>Value</th>
-                                        <th>Price</th>
-                                        <th>Status</th>
-                                        <th>Created</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="ordersBody"></tbody>
-                            </table>
-                        </div>
-                        <div class="pagination">
-                            <div id="ordersPageInfo">—</div>
-                            <div class="actions">
-                                <button class="btn" id="ordersPrev" disabled>Previous</button>
-                                <button class="btn" id="ordersNext" disabled>Next</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ══ Products ══ -->
-                <div class="panel" id="panel-products">
-                    <div class="card">
-                        <h3>MilesSpace Gift Card Catalog</h3>
-                        <p style="font-size:12.5px;color:var(--text-dim);margin-bottom:12px">These are the products you have chosen to expose to customers. Import and enable from the DT One catalog.</p>
-                        <div class="table-scroll">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Brand</th>
-                                        <th>Country</th>
-                                        <th>Face Value</th>
-                                        <th>Customer Price</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="productsBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ══ Pricing ══ -->
-                <div class="panel" id="panel-pricing">
-                    <div class="card">
-                        <h3>Pricing Rules</h3>
-                        <p style="font-size:12.5px;color:var(--text-dim)">Gift-card pricing is configured in <a href="/admin/settings" style="color:var(--brand);font-weight:600">Settings → Service Pricing</a>. That is the single source of truth. This page shows the resolved markup that will be applied.</p>
-                        <div id="pricingSummary"><div class="empty-box"><span class="ic">⏳</span>Loading…</div></div>
-                    </div>
-                </div>
-
-                <!-- ══ Failed Orders ══ -->
-                <div class="panel" id="panel-failed">
-                    <div class="card">
-                        <h3>Failed Gift Card Orders</h3>
-                        <div class="table-scroll">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Order</th>
-                                        <th>User</th>
-                                        <th>Product</th>
-                                        <th>Amount</th>
-                                        <th>Provider</th>
-                                        <th>Error</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="failedBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ══ Refunds ══ -->
-                <div class="panel" id="panel-refunds">
-                    <div class="card">
-                        <h3>Refunded Gift Card Orders</h3>
-                        <div class="table-scroll">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Order</th>
-                                        <th>User</th>
-                                        <th>Refunded Amount</th>
-                                        <th>Refund Reference</th>
-                                        <th>Refunded At</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="refundsBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ══ Provider ══ -->
-                <div class="panel" id="panel-provider">
-                    <div class="card">
-                        <h3>DT One</h3>
-                        <div id="providerDetail"><div class="empty-box"><span class="ic">⏳</span>Loading…</div></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-</div>
+<div class="app" id="appRoot"></div>
 
 <div class="drawer-scrim" id="drawerScrim"></div>
 <aside class="drawer" id="drawer" role="dialog" aria-modal="true">
     <div class="dh">
-        <div class="ic" id="dIcon">🎁</div>
-        <div class="titles"><h2 id="dTitle">Gift Card Order</h2><div class="sub" id="dSub"></div></div>
-        <button class="close" id="dClose" aria-label="Close">✕</button>
+        <div class="ic" id="dIcon"><i class="fas fa-gift"></i></div>
+        <div class="titles"><h2 id="dTitle">Order</h2><div class="sub" id="dSub"></div></div>
+        <button class="close" id="dClose" aria-label="Close"><i class="fas fa-xmark"></i></button>
     </div>
     <div class="db" id="dBody"></div>
 </aside>
@@ -545,8 +218,8 @@ tr:last-child td{border-bottom:none}
         <h3 id="mTitle">Action</h3>
         <div class="body" id="mBody"></div>
         <div class="foot">
-            <button class="btn" id="mCancel">Cancel</button>
-            <button class="btn btn-primary" id="mConfirm">Confirm</button>
+            <button class="btn" id="mCancel" type="button">Cancel</button>
+            <button class="btn btn-primary" id="mConfirm" type="button">Confirm</button>
         </div>
     </div>
 </div>
@@ -556,121 +229,354 @@ tr:last-child td{border-bottom:none}
 <script>
 'use strict';
 
-/* ════════════════════════════════════════════════════════════════
-   Gift Cards admin — frontend
-   ────────────────────────────────────────────────────────────────
-   • No financial math here. Money is strings from the backend.
-   • reveal-code requires an explicit click and logs an audit entry.
-   • Retry asks the backend first — the backend checks the provider
-     before sending another purchase. The UI never decides.
-   • Responsive: sidebar collapses to a drawer below 900px;
-     tables become stacked cards on phones.
-   ════════════════════════════════════════════════════════════════ */
-
+// ─── API surface ─────────────────────────────────────────────
 const API = {
-    summary:      '/api/admin/gift-cards/summary',
-    orders:       '/api/admin/gift-cards/orders',
-    order:        id => `/api/admin/gift-cards/orders/${encodeURIComponent(id)}`,
-    reveal:       id => `/api/admin/gift-cards/orders/${encodeURIComponent(id)}/reveal-code`,
-    retry:        id => `/api/admin/gift-cards/orders/${encodeURIComponent(id)}/retry`,
-    refund:       id => `/api/admin/gift-cards/orders/${encodeURIComponent(id)}/refund`,
-    sync:         id => `/api/admin/gift-cards/orders/${encodeURIComponent(id)}/sync`,
-    products:     '/api/admin/gift-cards/products',
-    productEnabled: id => `/api/admin/gift-cards/products/${encodeURIComponent(id)}/enabled`,
-    provider:     '/api/admin/gift-cards/provider/health',
-    settings:     '/api/admin/settings'
+    summary:           '/api/admin/gift-cards/summary',
+    orders:            '/api/admin/gift-cards/orders',
+    order:             id => `/api/admin/gift-cards/orders/${encodeURIComponent(id)}`,
+    reveal:            id => `/api/admin/gift-cards/orders/${encodeURIComponent(id)}/reveal-code`,
+    retry:             id => `/api/admin/gift-cards/orders/${encodeURIComponent(id)}/retry`,
+    refund:            id => `/api/admin/gift-cards/orders/${encodeURIComponent(id)}/refund`,
+    sync:              id => `/api/admin/gift-cards/orders/${encodeURIComponent(id)}/sync`,
+    products:          '/api/admin/gift-cards/products',
+    productEnabled:    id => `/api/admin/gift-cards/products/${encodeURIComponent(id)}/enabled`,
+    productPricing:    id => `/api/admin/gift-cards/products/${encodeURIComponent(id)}/pricing`,
+    productUpdate:     id => `/api/admin/gift-cards/products/${encodeURIComponent(id)}`,
+    catalog:           '/api/admin/gift-cards/catalog',
+    import:            '/api/admin/gift-cards/products/import',
+    preview:           '/api/admin/gift-cards/pricing/preview',
+    pricingGet:        '/api/admin/gift-cards/pricing',
+    pricingPut:        '/api/admin/gift-cards/pricing',
+    refreshCosts:      '/api/admin/gift-cards/products/refresh-costs',
+    providerHealth:    '/api/admin/gift-cards/provider/health',
+    providerCheck:     '/api/admin/gift-cards/provider/health-check'
 };
 
-const CURRENCY_SYMBOLS = { NGN: '₦', USD: '$', GHS: 'GH₵', KES: 'KSh', ZAR: 'R', XOF: 'CFA', XAF: 'FCFA', TZS: 'TSh', EGP: 'E£' };
+const CURRENCY_SYMBOLS = { NGN:'₦', USD:'$', GHS:'GH₵', KES:'KSh', ZAR:'R', XOF:'CFA', XAF:'FCFA', TZS:'TSh', EGP:'E£' };
 
 const State = {
     orderPage: 1,
     orderLimit: 25,
     orderTotalPages: 1,
     filters: {},
-    currentOrder: null
+    currentOrder: null,
+    productsCache: [],
+    productsCacheAt: 0,
+    pricingConfig: null,
+    catalogSelected: new Set(),
+    catalogRows: []
 };
 
-function escapeHtml(s) {
-    if (s === null || s === undefined) return '';
-    return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+// ─── Utilities ──────────────────────────────────────────────
+function esc(s){
+    if (s == null) return '';
+    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
-function formatMoney(amount, currency) {
-    if (amount === null || amount === undefined || amount === '') return null;
-    const ccy = String(currency || '').toUpperCase();
+function fmtMoney(amount, ccy){
+    if (amount == null || amount === '') return null;
+    const c = String(ccy || '').toUpperCase();
     const n = Number(amount);
     if (!Number.isFinite(n)) return null;
     const s = n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    return (CURRENCY_SYMBOLS[ccy] || (ccy ? ccy + ' ' : '')) + s;
+    return (CURRENCY_SYMBOLS[c] || (c ? c + ' ' : '')) + s;
 }
-function formatNumber(n) {
-    if (n === null || n === undefined || n === '') return null;
-    const num = Number(n);
-    return Number.isFinite(num) ? num.toLocaleString('en-US') : null;
+function fmtNum(v){
+    const n = Number(v);
+    return Number.isFinite(n) ? n.toLocaleString('en-US') : '—';
 }
-function formatDateTime(iso) {
+function fmtDateTime(iso){
     if (!iso) return '—';
-    return new Date(iso).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return new Date(iso).toLocaleString('en-US', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
 }
-function timeAgo(iso) {
+function timeAgo(iso){
     if (!iso) return '—';
-    const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+    const s = Math.floor((Date.now() - new Date(iso).getTime())/1000);
     if (s < 60) return 'just now';
-    if (s < 3600) return Math.floor(s / 60) + 'm ago';
-    if (s < 86400) return Math.floor(s / 3600) + 'h ago';
-    if (s < 604800) return Math.floor(s / 86400) + 'd ago';
+    if (s < 3600) return Math.floor(s/60)+'m ago';
+    if (s < 86400) return Math.floor(s/3600)+'h ago';
+    if (s < 604800) return Math.floor(s/86400)+'d ago';
     return new Date(iso).toLocaleDateString();
 }
-function statusBadge(status) {
-    const s = String(status || '').toLowerCase();
+function statusBadge(status){
+    const s = String(status||'').toLowerCase();
     if (s === 'completed') return 'success';
     if (s === 'failed' || s === 'cancelled') return 'danger';
     if (s === 'refund_pending' || s === 'refunded') return 'info';
     if (['pending_payment','paid','processing','provider_pending','reconciliation_required'].includes(s)) return 'warn';
     return 'neutral';
 }
-function showToast(msg, type = 'info') {
+function toast(msg, kind='info'){
     const stack = document.getElementById('toastStack');
     if (!stack) return;
     const el = document.createElement('div');
-    el.className = 'toast ' + type;
+    el.className = 'toast ' + kind;
     el.textContent = msg;
     stack.appendChild(el);
-    setTimeout(() => el.remove(), 3400);
+    setTimeout(() => el.remove(), 3600);
 }
 
-async function api(url, opts = {}) {
+// ─── API wrapper ────────────────────────────────────────────
+async function api(url, opts = {}){
     try {
         const res = await AdminSession.fetch(url, opts);
         let json = null;
         try { json = await res.json(); } catch {}
-        if (!res.ok || json?.success === false) {
+        if (!res.ok || json?.success === false){
             return {
                 ok: false,
                 status: res.status,
                 code: json?.code,
-                error: json?.message || json?.error || 'Request failed',
+                message: json?.message || json?.error || `HTTP ${res.status}`,
                 requestId: json?.request_id
             };
         }
-        return { ok: true, data: json };
+        return { ok: true, data: json.data != null ? json.data : json };
     } catch (e) {
-        return { ok: false, status: 0, error: 'Network error' };
+        return { ok: false, status: 0, message: e.message || 'Network error' };
     }
 }
 
-/* ══ Sidebar drawer (mobile) ══ */
-function openSidebar() {
-    document.getElementById('sidebar')?.classList.add('open');
-    document.getElementById('scrim')?.classList.add('show');
-}
-function closeSidebar() {
-    document.getElementById('sidebar')?.classList.remove('open');
-    document.getElementById('scrim')?.classList.remove('show');
+// ─── Boot ───────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    if (!AdminSession.getToken()) return AdminSession.redirectToLogin();
+
+    // Sidebar from shared admin-shell.js
+    MS.init({
+        activeKey: 'sellgift',
+        title: 'Gift Cards',
+        breadcrumb: [
+            { label: 'Home', href: '/admin/dashboard.html' },
+            { label: 'Services' },
+            { label: 'Gift Cards' }
+        ]
+    });
+
+    // Load content into #content injected by admin-shell
+    document.getElementById('content').innerHTML = renderShell();
+    wireMenu();
+    wireModalGlobal();
+
+    // Load overview initially
+    showSection('overview');
+});
+
+function renderShell(){
+    return `
+        <div class="layout">
+            <aside class="side-menu" id="giftMenu" role="tablist">
+                <div class="item active" data-section="overview" role="tab"><i class="fas fa-chart-pie"></i><span>Overview</span></div>
+                <div class="item" data-section="orders" role="tab"><i class="fas fa-receipt"></i><span>Orders</span></div>
+                <div class="item" data-section="catalog" role="tab"><i class="fas fa-magnifying-glass"></i><span>Catalog</span></div>
+                <div class="item" data-section="products" role="tab"><i class="fas fa-store"></i><span>Products</span></div>
+                <div class="item" data-section="pricing" role="tab"><i class="fas fa-tags"></i><span>Pricing</span></div>
+                <div class="item" data-section="attention" role="tab"><i class="fas fa-triangle-exclamation"></i><span>Needs Attention</span></div>
+                <div class="item" data-section="refunds" role="tab"><i class="fas fa-rotate-left"></i><span>Refunds</span></div>
+                <div class="item" data-section="provider" role="tab"><i class="fas fa-plug"></i><span>Provider</span></div>
+            </aside>
+
+            <div class="panels">
+                <div class="panel active" id="panel-overview">
+                    <div class="kpi-grid" id="overviewKpis"></div>
+                    <div class="card">
+                        <h3><i class="fas fa-heart-pulse"></i> Provider health</h3>
+                        <div id="overviewProvider"><div class="empty-box"><i class="fas fa-circle-notch fa-spin"></i></div></div>
+                    </div>
+                </div>
+
+                <div class="panel" id="panel-orders">
+                    <div class="card">
+                        <h3><i class="fas fa-receipt"></i> Gift card orders</h3>
+                        <div class="filters">
+                            <input type="search" id="oSearch" placeholder="Search order, brand, provider transaction…">
+                            <select id="oStatus">
+                                <option value="all">All statuses</option>
+                                <option value="pending_payment">Pending payment</option>
+                                <option value="paid">Paid</option>
+                                <option value="processing">Processing</option>
+                                <option value="provider_pending">Provider pending</option>
+                                <option value="completed">Completed</option>
+                                <option value="failed">Failed</option>
+                                <option value="refund_pending">Refund pending</option>
+                                <option value="refunded">Refunded</option>
+                                <option value="cancelled">Cancelled</option>
+                                <option value="reconciliation_required">Reconciliation required</option>
+                            </select>
+                            <input type="date" id="oFrom" aria-label="From date">
+                            <input type="date" id="oTo" aria-label="To date">
+                            <button class="btn btn-primary" id="oApply" type="button"><i class="fas fa-filter"></i> Apply</button>
+                            <button class="btn" id="oClear" type="button">Clear</button>
+                        </div>
+                        <div class="table-scroll">
+                            <table>
+                                <thead><tr>
+                                    <th>Order</th><th>User</th><th>Gift card</th><th>Value</th><th>Price</th><th>Status</th><th>Created</th>
+                                </tr></thead>
+                                <tbody id="ordersBody"><tr><td colspan="7"><div class="empty-box"><i class="fas fa-circle-notch fa-spin"></i></div></td></tr></tbody>
+                            </table>
+                        </div>
+                        <div class="pagination">
+                            <div id="ordersPageInfo">—</div>
+                            <div class="actions">
+                                <button class="btn btn-sm" id="ordersPrev" type="button" disabled>Previous</button>
+                                <button class="btn btn-sm" id="ordersNext" type="button" disabled>Next</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel" id="panel-catalog">
+                    <div class="card">
+                        <h3><i class="fas fa-magnifying-glass"></i> Provider catalog</h3>
+                        <p class="note" style="font-size:12.5px;color:var(--text-dim);margin-bottom:12px">Browse gift cards available from the provider. Select rows to import them into your products.</p>
+                        <div class="filters">
+                            <input type="search" id="catSearch" placeholder="Search brand or country…">
+                            <input type="text" id="catCountry" placeholder="Country ISO3 (e.g. USA)" maxlength="3" style="flex:0 1 160px;text-transform:uppercase">
+                            <button class="btn btn-primary" id="catApply" type="button"><i class="fas fa-filter"></i> Filter</button>
+                            <button class="btn" id="catClear" type="button">Clear</button>
+                            <button class="btn btn-primary" id="catImport" type="button" disabled><i class="fas fa-download"></i> Import selected</button>
+                        </div>
+                        <div class="table-scroll">
+                            <table>
+                                <thead><tr>
+                                    <th style="width:36px"><input type="checkbox" id="catSelectAll"></th>
+                                    <th>Brand</th><th>Country</th><th>Face value</th><th>Wholesale</th><th>Suggested price (NGN)</th><th>Suggested price (USD)</th><th>Status</th>
+                                </tr></thead>
+                                <tbody id="catalogBody"><tr><td colspan="8"><div class="empty-box"><i class="fas fa-circle-notch fa-spin"></i></div></td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel" id="panel-products">
+                    <div class="card">
+                        <h3><i class="fas fa-store"></i> Imported products</h3>
+                        <p class="note" style="font-size:12.5px;color:var(--text-dim);margin-bottom:12px">These are the products shown to customers. Change their pricing, enable, feature, or refresh costs.</p>
+                        <div class="filters">
+                            <input type="search" id="pSearch" placeholder="Search brand…">
+                            <select id="pEnabled">
+                                <option value="">All</option>
+                                <option value="true">Enabled</option>
+                                <option value="false">Disabled</option>
+                            </select>
+                            <button class="btn btn-primary" id="pApply" type="button"><i class="fas fa-filter"></i> Filter</button>
+                            <button class="btn" id="pClear" type="button">Clear</button>
+                            <button class="btn" id="pRefreshCosts" type="button"><i class="fas fa-rotate"></i> Refresh costs</button>
+                        </div>
+                        <div class="table-scroll">
+                            <table>
+                                <thead><tr>
+                                    <th>Product</th><th>Country</th><th>Face value</th><th>Wholesale</th><th>Pricing</th><th>Customer (NGN)</th><th>Customer (USD)</th><th>Actions</th>
+                                </tr></thead>
+                                <tbody id="productsBody"><tr><td colspan="8"><div class="empty-box"><i class="fas fa-circle-notch fa-spin"></i></div></td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel" id="panel-pricing">
+                    <div class="card">
+                        <h3><i class="fas fa-tags"></i> Global pricing</h3>
+                        <div class="calc-grid">
+                            <div class="calc-panel">
+                                <h4>Current config</h4>
+                                <div id="pricingCurrent" class="calc-result"><div class="empty-box"><i class="fas fa-circle-notch fa-spin"></i></div></div>
+                                <div style="margin-top:12px">
+                                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px">USD → NGN rate</label>
+                                    <input type="text" id="pUsdNgn" placeholder="1600.00" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'JetBrains Mono',monospace">
+                                </div>
+                                <div style="margin-top:8px">
+                                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px">USD markup %</label>
+                                    <input type="text" id="pMarkupUsd" placeholder="15.7" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'JetBrains Mono',monospace">
+                                </div>
+                                <div style="margin-top:8px">
+                                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px">NGN markup %</label>
+                                    <input type="text" id="pMarkupNgn" placeholder="15.7" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'JetBrains Mono',monospace">
+                                </div>
+                                <div style="margin-top:8px">
+                                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px">Reason (required)</label>
+                                    <textarea id="pReason" rows="2" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit"></textarea>
+                                </div>
+                                <button class="btn btn-primary" id="pSave" type="button" style="width:100%;margin-top:12px"><i class="fas fa-check"></i> Save pricing</button>
+                            </div>
+                            <div class="calc-panel">
+                                <h4>Live calculator</h4>
+                                <div style="margin-bottom:8px">
+                                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px">Wholesale amount</label>
+                                    <div style="display:flex;gap:6px">
+                                        <input type="text" id="calcWholesale" placeholder="10000.00" style="flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'JetBrains Mono',monospace">
+                                        <select id="calcCurrency" style="padding:9px 12px;border:1px solid var(--border);border-radius:8px">
+                                            <option value="NGN">NGN</option>
+                                            <option value="USD">USD</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div style="margin-bottom:8px">
+                                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px">Mode</label>
+                                    <select id="calcMode" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px">
+                                        <option value="global">Global markup (default)</option>
+                                        <option value="markup_pct">Custom markup %</option>
+                                        <option value="fixed_ngn">Fixed NGN price</option>
+                                        <option value="fixed_usd">Fixed USD price</option>
+                                    </select>
+                                </div>
+                                <div style="margin-bottom:8px" id="calcValueWrap">
+                                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px">Value</label>
+                                    <input type="text" id="calcValue" placeholder="0.10 (for markup %) or 12500.00 (for fixed)" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'JetBrains Mono',monospace">
+                                </div>
+                                <button class="btn" id="calcRun" type="button" style="width:100%;margin-top:8px"><i class="fas fa-calculator"></i> Calculate</button>
+                                <div class="calc-result" id="calcResult" style="margin-top:12px"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel" id="panel-attention">
+                    <div class="card">
+                        <h3><i class="fas fa-triangle-exclamation"></i> Needs attention</h3>
+                        <p class="note" style="font-size:12.5px;color:var(--text-dim);margin-bottom:12px">Orders in a failed, reconciliation-required, or refund-pending state.</p>
+                        <div class="table-scroll">
+                            <table>
+                                <thead><tr>
+                                    <th>Order</th><th>User</th><th>Product</th><th>Price</th><th>Status</th><th>Reason</th><th>Actions</th>
+                                </tr></thead>
+                                <tbody id="attentionBody"><tr><td colspan="7"><div class="empty-box"><i class="fas fa-circle-notch fa-spin"></i></div></td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel" id="panel-refunds">
+                    <div class="card">
+                        <h3><i class="fas fa-rotate-left"></i> Refunded orders</h3>
+                        <div class="table-scroll">
+                            <table>
+                                <thead><tr>
+                                    <th>Order</th><th>User</th><th>Refunded amount</th><th>Reference</th><th>Refunded at</th>
+                                </tr></thead>
+                                <tbody id="refundsBody"><tr><td colspan="5"><div class="empty-box"><i class="fas fa-circle-notch fa-spin"></i></div></td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel" id="panel-provider">
+                    <div class="card">
+                        <h3><i class="fas fa-plug"></i> Provider</h3>
+                        <div id="providerDetail"><div class="empty-box"><i class="fas fa-circle-notch fa-spin"></i></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
-/* ══ Navigation ══ */
-function showSection(section) {
+function wireMenu(){
+    document.querySelectorAll('#giftMenu .item').forEach(el => {
+        el.addEventListener('click', () => showSection(el.dataset.section));
+    });
+}
+
+function showSection(section){
     document.querySelectorAll('#giftMenu .item').forEach(el => {
         el.classList.toggle('active', el.dataset.section === section);
     });
@@ -678,64 +584,118 @@ function showSection(section) {
     const target = document.getElementById('panel-' + section);
     if (target) target.classList.add('active');
 
-    if (section === 'orders') loadOrders();
-    if (section === 'products') loadProducts();
-    if (section === 'pricing') loadPricingSummary();
-    if (section === 'failed') loadFailed();
-    if (section === 'refunds') loadRefunds();
-    if (section === 'provider') loadProviderDetail();
+    if (section === 'overview') { loadOverview(); loadOverviewProvider(); }
+    else if (section === 'orders')  wireOrders(); 
+    else if (section === 'catalog') wireCatalog();
+    else if (section === 'products') wireProducts();
+    else if (section === 'pricing') { wirePricing(); loadPricingConfig(); }
+    else if (section === 'attention') loadAttention();
+    else if (section === 'refunds')  loadRefunds();
+    else if (section === 'provider') loadProviderDetail();
 }
 
-/* ══ Overview ══ */
-async function loadOverview() {
-    const { ok, data } = await api(API.summary);
-    if (!ok) {
-        ['kpi-orders','kpi-revenue','kpi-completed','kpi-pending','kpi-failed','kpi-refunded'].forEach(id => {
-            const el = document.getElementById(id); if (el) el.textContent = 'Unavailable';
-        });
+// ─── Overview ─────────────────────────────────────────────
+async function loadOverview(){
+    const el = document.getElementById('overviewKpis');
+    if (!el) return;
+    el.innerHTML = '<div class="kpi"><div class="lbl"><i class="fas fa-circle-notch fa-spin"></i></div><div class="val">—</div></div>'.repeat(9);
+
+    const r = await api(API.summary);
+    if (!r.ok){
+        el.innerHTML = `<div class="unavailable-box" style="grid-column:1/-1">${esc(r.message)} <button onclick="loadOverview()">Retry</button></div>`;
         return;
     }
-    const s = data.data?.summary || data.summary || {};
-    document.getElementById('kpi-orders').textContent = formatNumber(s.total) ?? '—';
-    document.getElementById('kpi-revenue').textContent = s.revenueNgn != null ? (formatMoney(s.revenueNgn, 'NGN') || '—') : '—';
-    document.getElementById('kpi-revenue-sub').textContent = s.summaryAvailable ? 'Customer paid (NGN)' : 'Aggregation RPC not deployed';
-    document.getElementById('kpi-completed').textContent = formatNumber(s.completed) ?? '—';
-    document.getElementById('kpi-pending').textContent = formatNumber(s.pending) ?? '—';
-    document.getElementById('kpi-failed').textContent = formatNumber(s.failed) ?? '—';
-    document.getElementById('kpi-refunded').textContent = formatNumber(s.refunded) ?? '—';
-    loadProviderSummary();
+    const s = r.data.summary || r.data || {};
+    const kpis = [
+        { lbl: 'Orders',           val: fmtNum(s.total),                    icon: 'fa-receipt',      color: '' },
+        { lbl: 'Revenue',          val: s.revenueNgn != null ? fmtMoney(s.revenueNgn,'NGN') : '—', icon: 'fa-naira-sign', color: 'var(--success)' },
+        { lbl: 'Cost',             val: s.costNgn != null ? fmtMoney(s.costNgn,'NGN') : '—',       icon: 'fa-money-bill-trend-up', color: 'var(--warn)' },
+        { lbl: 'Margin',           val: s.marginNgn != null ? fmtMoney(s.marginNgn,'NGN') : '—',   icon: 'fa-chart-line',   color: 'var(--success)' },
+        { lbl: 'Completed',        val: fmtNum(s.completed),                icon: 'fa-circle-check', color: 'var(--success)' },
+        { lbl: 'Pending',          val: fmtNum(s.pending),                  icon: 'fa-hourglass-half', color: 'var(--warn)' },
+        { lbl: 'Failed',           val: fmtNum(s.failed),                   icon: 'fa-circle-xmark', color: 'var(--danger)' },
+        { lbl: 'Needs attention',  val: fmtNum((s.reconciliationRequired||0)+(s.refundPending||0)+(s.failed||0)), icon: 'fa-triangle-exclamation', color: 'var(--danger)' },
+        { lbl: 'Refunded',         val: fmtNum(s.refunded),                 icon: 'fa-rotate-left',  color: 'var(--info)' }
+    ];
+    el.innerHTML = kpis.map(k => `
+        <div class="kpi">
+            <div class="lbl"><i class="fas ${k.icon}"></i> ${esc(k.lbl)}</div>
+            <div class="val" style="color:${k.color || 'inherit'}">${esc(String(k.val || '—'))}</div>
+        </div>`).join('');
 }
 
-async function loadProviderSummary() {
-    const el = document.getElementById('providerSummary');
-    el.innerHTML = '<div class="empty-box"><span class="ic">⏳</span>Loading…</div>';
-    const { ok, data } = await api(API.provider);
-    if (!ok) {
-        el.innerHTML = `<div class="unavailable-box">Unable to load provider health</div>`;
+async function loadOverviewProvider(){
+    const el = document.getElementById('overviewProvider');
+    if (!el) return;
+    el.innerHTML = '<div class="empty-box"><i class="fas fa-circle-notch fa-spin"></i></div>';
+    const r = await api(API.providerHealth);
+    if (!r.ok){
+        el.innerHTML = `<div class="unavailable-box">${esc(r.message)}</div>`;
         return;
     }
-    const h = data.data?.health || data.health || {};
+    renderProviderHealthInto(el, r.data.health || {});
+}
+
+function renderProviderHealthInto(el, h){
     const c = h.components || {};
-    const dot = (v) => v === true ? '<span style="color:var(--success)">●</span>'
-                    : v === false ? '<span style="color:var(--danger)">●</span>'
-                    : '<span style="color:var(--text-faint)">○</span>';
+    const labelFor = (v) => v === 'ok' || v === 'ok_recent' ? 'ok'
+                      : v === 'down' || v === 'degraded_recent' ? 'warn'
+                      : v === 'empty' ? 'warn'
+                      : 'neutral';
     el.innerHTML = `
-        <div class="field"><span class="k">Provider</span><span class="v">${escapeHtml(h.label || 'DT One')}</span></div>
-        <div class="field"><span class="k">Environment</span><span class="v">${escapeHtml(h.environment || '—')}</span></div>
-        <div class="field"><span class="k">Configured</span><span class="v">${dot(h.configured)} ${h.configured ? 'Yes' : 'No'}</span></div>
-        <div class="field"><span class="k">Connectivity</span><span class="v">${escapeHtml(c.connectivity || '—')}</span></div>
-        <div class="field"><span class="k">Balance check</span><span class="v">${escapeHtml(c.balance || '—')}</span></div>
-        <div class="field"><span class="k">Catalog</span><span class="v">${escapeHtml(c.catalog || '—')}</span></div>
-        <div class="field"><span class="k">Purchase capability</span><span class="v">${escapeHtml(c.purchase || '—')}</span></div>
-        <div class="field"><span class="k">Last successful order</span><span class="v">${h.lastSuccess ? escapeHtml(timeAgo(h.lastSuccess)) : '—'}</span></div>
-        <div class="field"><span class="k">Last failure</span><span class="v">${h.lastFailure?.at ? escapeHtml(timeAgo(h.lastFailure.at)) : '—'}</span></div>
-        <div class="field"><span class="k">Orders (24h)</span><span class="v">${formatNumber(h.recentCount) ?? '—'}</span></div>
-        <div style="font-size:11px;color:var(--text-faint);margin-top:8px">${escapeHtml(h.note || '')}</div>
-    `;
+        <div class="provider-card">
+            <h4><i class="fas fa-plug"></i> ${esc(h.label || 'Provider')}</h4>
+            <div class="field"><span class="k">Environment</span><span class="v">${esc(h.environment || '—')}</span></div>
+            <div class="field"><span class="k">Configured</span><span class="v">${h.configured ? '<span class="badge success">Yes</span>' : '<span class="badge danger">No</span>'}</span></div>
+            <div class="field"><span class="k">Connectivity</span><span class="v"><span class="status-dot ${labelFor(c.connectivity)}"></span>${esc(c.connectivity || '—')}</span></div>
+            <div class="field"><span class="k">Balance</span><span class="v"><span class="status-dot ${labelFor(c.balance)}"></span>${esc(c.balance || '—')}</span></div>
+            <div class="field"><span class="k">Catalog</span><span class="v"><span class="status-dot ${labelFor(c.catalog)}"></span>${esc(c.catalog || '—')}</span></div>
+            <div class="field"><span class="k">Purchase</span><span class="v">${esc(c.purchase || '—')}</span></div>
+            <div class="field"><span class="k">Last success</span><span class="v">${h.lastSuccess ? esc(timeAgo(h.lastSuccess)) : '—'}</span></div>
+            <div class="field"><span class="k">Last failure</span><span class="v">${h.lastFailure?.at ? esc(timeAgo(h.lastFailure.at)) : '—'}</span></div>
+            <div class="field"><span class="k">Orders (24h)</span><span class="v">${fmtNum(h.recentCount)}</span></div>
+        </div>`;
 }
 
-/* ══ Orders ══ */
-function buildOrdersQuery() {
+// ─── Orders ───────────────────────────────────────────────
+let ordersWired = false;
+function wireOrders(){
+    if (ordersWired) { loadOrders(); return; }
+    ordersWired = true;
+
+    document.getElementById('oApply').addEventListener('click', () => {
+        State.filters = {
+            search: document.getElementById('oSearch').value.trim(),
+            status: document.getElementById('oStatus').value,
+            from:   document.getElementById('oFrom').value,
+            to:     document.getElementById('oTo').value
+        };
+        State.orderPage = 1;
+        loadOrders();
+    });
+    document.getElementById('oClear').addEventListener('click', () => {
+        document.getElementById('oSearch').value = '';
+        document.getElementById('oStatus').value = 'all';
+        document.getElementById('oFrom').value = '';
+        document.getElementById('oTo').value = '';
+        State.filters = {};
+        State.orderPage = 1;
+        loadOrders();
+    });
+    document.getElementById('oSearch').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('oApply').click();
+    });
+    document.getElementById('ordersPrev').addEventListener('click', () => {
+        if (State.orderPage > 1) { State.orderPage--; loadOrders(); }
+    });
+    document.getElementById('ordersNext').addEventListener('click', () => {
+        if (State.orderPage < State.orderTotalPages) { State.orderPage++; loadOrders(); }
+    });
+
+    loadOrders();
+}
+
+function buildOrdersQuery(){
     const q = new URLSearchParams();
     q.set('page', State.orderPage);
     q.set('limit', State.orderLimit);
@@ -747,564 +707,856 @@ function buildOrdersQuery() {
     return q.toString();
 }
 
-function renderOrdersSkeleton() {
+async function loadOrders(){
     const tb = document.getElementById('ordersBody');
-    let html = '';
-    for (let i = 0; i < 6; i++) {
-        html += `<tr><td colspan="7"><span style="display:inline-block;width:60%;height:12px;background:var(--border);border-radius:6px"></span></td></tr>`;
-    }
-    tb.innerHTML = html;
-}
+    if (!tb) return;
+    tb.innerHTML = '<tr><td colspan="7"><div class="empty-box"><i class="fas fa-circle-notch fa-spin"></i></div></td></tr>';
 
-function renderOrders(rows) {
-    const tb = document.getElementById('ordersBody');
-    if (!rows.length) {
-        tb.innerHTML = `<tr><td colspan="7"><div class="empty-box"><span class="ic">📭</span>No gift card orders yet</div></td></tr>`;
+    const r = await api(API.orders + '?' + buildOrdersQuery());
+    if (!r.ok){
+        tb.innerHTML = `<tr><td colspan="7"><div class="unavailable-box">${esc(r.message)} <button onclick="loadOrders()">Retry</button></div></td></tr>`;
         return;
     }
-    // Each cell gets a data-label so it can be shown above the value
-    // in the mobile card layout.
+    const rows = r.data.orders || [];
+    State.orderTotalPages = r.data.totalPages || 1;
+
+    if (!rows.length){
+        tb.innerHTML = '<tr><td colspan="7"><div class="empty-box"><i class="fas fa-inbox"></i>No orders yet</div></td></tr>';
+        document.getElementById('ordersPageInfo').textContent = 'No results';
+        document.getElementById('ordersPrev').disabled = true;
+        document.getElementById('ordersNext').disabled = true;
+        return;
+    }
+
     tb.innerHTML = rows.map(o => `
-        <tr class="row-clickable" data-id="${escapeHtml(o.id)}">
-            <td data-label="Order ID"><span class="mono" style="font-size:11px">${escapeHtml(o.order_ref || '—')}</span></td>
-            <td data-label="User">${escapeHtml(o.user?.username || '—')}</td>
-            <td data-label="Gift Card">${escapeHtml(o.brand || '—')}<div style="font-size:10.5px;color:var(--text-dim)">${escapeHtml(o.country_name || '')}</div></td>
-            <td data-label="Value">${o.face_value != null ? escapeHtml(`${o.face_value} ${o.face_currency || ''}`.trim()) : '—'}</td>
-            <td data-label="Price">${formatMoney(o.customer_price_ngn, 'NGN') || '—'}</td>
-            <td data-label="Status"><span class="badge ${statusBadge(o.status)}">${escapeHtml(o.status)}</span></td>
-            <td data-label="Created" title="${escapeHtml(formatDateTime(o.created_at))}">${escapeHtml(timeAgo(o.created_at))}</td>
-        </tr>
-    `).join('');
+        <tr class="row-clickable" data-id="${esc(o.id)}">
+            <td data-label="Order"><span style="font-family:'JetBrains Mono',monospace;font-size:11px">${esc(o.order_ref || '—')}</span></td>
+            <td data-label="User">${esc(o.user?.username || '—')}</td>
+            <td data-label="Gift card">${esc(o.brand || '—')}<div style="font-size:10.5px;color:var(--text-dim)">${esc(o.country_name || '')}</div></td>
+            <td data-label="Value">${o.face_value != null ? esc(o.face_value + ' ' + (o.face_currency || '')) : '—'}</td>
+            <td data-label="Price">${fmtMoney(o.customer_price_ngn, 'NGN') || '—'}</td>
+            <td data-label="Status"><span class="badge ${statusBadge(o.status)}">${esc(o.status)}</span></td>
+            <td data-label="Created" title="${esc(fmtDateTime(o.created_at))}">${esc(timeAgo(o.created_at))}</td>
+        </tr>`).join('');
+
     tb.querySelectorAll('tr[data-id]').forEach(tr => {
         tr.addEventListener('click', () => openOrder(tr.dataset.id));
     });
-}
-
-async function loadOrders() {
-    renderOrdersSkeleton();
-    const { ok, data, error } = await api(API.orders + '?' + buildOrdersQuery());
-    if (!ok) {
-        document.getElementById('ordersBody').innerHTML = `<tr><td colspan="7"><div class="unavailable-box">${escapeHtml(error || 'Unable to load orders')}<button onclick="loadOrders()">Retry</button></div></td></tr>`;
-        return;
-    }
-    const payload = data.data || data;
-    State.orderTotalPages = payload.totalPages || 1;
-    renderOrders(payload.orders || []);
-    document.getElementById('ordersPageInfo').textContent = payload.count
-        ? `Showing ${(State.orderPage - 1) * State.orderLimit + 1}–${Math.min(State.orderPage * State.orderLimit, payload.count)} of ${payload.count}`
-        : 'No results';
+    const info = document.getElementById('ordersPageInfo');
+    info.textContent = r.data.count ? `Showing ${(State.orderPage-1)*State.orderLimit+1}–${Math.min(State.orderPage*State.orderLimit, r.data.count)} of ${r.data.count}` : 'No results';
     document.getElementById('ordersPrev').disabled = State.orderPage <= 1;
     document.getElementById('ordersNext').disabled = State.orderPage >= State.orderTotalPages;
 }
 
-/* ══ Products ══ */
-async function loadProducts() {
-    const tb = document.getElementById('productsBody');
-    tb.innerHTML = `<tr><td colspan="6"><div class="empty-box">Loading…</div></td></tr>`;
-    const { ok, data } = await api(API.products);
-    if (!ok) {
-        tb.innerHTML = `<tr><td colspan="6"><div class="unavailable-box">Unable to load products</div></td></tr>`;
-        return;
-    }
-    const payload = data.data || data;
-    const rows = payload.products || [];
-    if (!rows.length) {
-        tb.innerHTML = `<tr><td colspan="6"><div class="empty-box"><span class="ic">📦</span>No products have been enabled yet</div></td></tr>`;
-        return;
-    }
-    tb.innerHTML = rows.map(p => `
-        <tr>
-            <td data-label="Brand">${escapeHtml(p.brand || '—')}</td>
-            <td data-label="Country">${escapeHtml(p.country_name || p.country_iso || '—')}</td>
-            <td data-label="Face Value">${p.face_value != null ? escapeHtml(`${p.face_value} ${p.face_currency || ''}`.trim()) : '—'}</td>
-            <td data-label="Customer Price">${formatMoney(p.customer_price_ngn, 'NGN') || '—'}</td>
-            <td data-label="Status"><span class="badge ${p.enabled ? 'success' : 'neutral'}">${p.enabled ? 'Enabled' : 'Disabled'}</span></td>
-            <td data-label="" class="cell-action">
-                <button class="btn" data-toggle="${escapeHtml(p.id)}" data-enabled="${p.enabled ? 'false' : 'true'}">
-                    ${p.enabled ? 'Disable' : 'Enable'}
-                </button>
-            </td>
-        </tr>
-    `).join('');
-    tb.querySelectorAll('[data-toggle]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const enabled = btn.dataset.enabled === 'true';
-            const reason = prompt(enabled
-                ? 'Reason for enabling this product:'
-                : 'Reason for disabling this product:'
-            );
-            if (!reason || reason.trim().length < 4) {
-                showToast('A reason is required.', 'error');
-                return;
-            }
-            const { ok, error } = await api(API.productEnabled(btn.dataset.toggle), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled, reason })
-            });
-            if (!ok) { showToast(error || 'Update failed', 'error'); return; }
-            showToast(enabled ? 'Product enabled' : 'Product disabled', 'success');
-            loadProducts();
-        });
-    });
-}
-
-/* ══ Pricing ══ */
-async function loadPricingSummary() {
-    const el = document.getElementById('pricingSummary');
-    el.innerHTML = '<div class="empty-box"><span class="ic">⏳</span>Loading…</div>';
-    const { ok, data } = await api(API.settings);
-    if (!ok) {
-        el.innerHTML = `<div class="unavailable-box">Unable to load pricing settings</div>`;
-        return;
-    }
-    const sections = data.data?.sections || data.sections || {};
-    const rates = sections.rates || {};
-    const pricing = sections.pricing || {};
-    const usdToNgn = rates.usd_to_ngn;
-    const markupUsd = pricing.giftcard_markup_pct_usd;
-    const markupNgn = pricing.giftcard_markup_pct_ngn;
-    const wholesaleCurrency = rates.giftcard_wholesale_currency;
-
-    el.innerHTML = `
-        <div class="field"><span class="k">USD → NGN</span><span class="v">${usdToNgn != null ? escapeHtml(String(usdToNgn)) : '—'}</span></div>
-        <div class="field"><span class="k">Wholesale currency</span><span class="v">${escapeHtml(wholesaleCurrency || '—')}</span></div>
-        <div class="field"><span class="k">USD markup</span><span class="v">${markupUsd != null ? (Number(markupUsd) * 100).toFixed(2) + '%' : '—'}</span></div>
-        <div class="field"><span class="k">NGN markup</span><span class="v">${markupNgn != null ? (Number(markupNgn) * 100).toFixed(2) + '%' : '—'}</span></div>
-        <div style="font-size:11px;color:var(--text-faint);margin-top:8px">Change these in <a href="/admin/settings" style="color:var(--brand)">Settings → Service Pricing</a>.</div>
-    `;
-}
-
-/* ══ Failed / Refunds ══ */
-async function loadFailed() {
-    const tb = document.getElementById('failedBody');
-    tb.innerHTML = `<tr><td colspan="7"><div class="empty-box">Loading…</div></td></tr>`;
-    const { ok, data } = await api(API.orders + '?status=failed&limit=100');
-    if (!ok) {
-        tb.innerHTML = `<tr><td colspan="7"><div class="unavailable-box">Unable to load failed orders</div></td></tr>`;
-        return;
-    }
-    const payload = data.data || data;
-    const rows = payload.orders || [];
-    if (!rows.length) {
-        tb.innerHTML = `<tr><td colspan="7"><div class="empty-box"><span class="ic">✅</span>No failed orders</div></td></tr>`;
-        return;
-    }
-    tb.innerHTML = rows.map(o => `
-        <tr>
-            <td data-label="Order"><span class="mono" style="font-size:11px">${escapeHtml(o.order_ref || '—')}</span></td>
-            <td data-label="User">${escapeHtml(o.user?.username || '—')}</td>
-            <td data-label="Product">${escapeHtml(o.brand || '—')} ${o.face_value != null ? escapeHtml(`$${o.face_value}`) : ''}</td>
-            <td data-label="Amount">${formatMoney(o.customer_price_ngn, 'NGN') || '—'}</td>
-            <td data-label="Provider">${escapeHtml(o.provider || '—')}</td>
-            <td data-label="Error" style="max-width:260px">${escapeHtml(o.failure_reason || '—')}</td>
-            <td data-label="" class="cell-action">
-                <button class="btn" data-open="${escapeHtml(o.id)}">View</button>
-            </td>
-        </tr>
-    `).join('');
-    tb.querySelectorAll('[data-open]').forEach(btn => {
-        btn.addEventListener('click', () => openOrder(btn.dataset.open));
-    });
-}
-
-async function loadRefunds() {
-    const tb = document.getElementById('refundsBody');
-    tb.innerHTML = `<tr><td colspan="5"><div class="empty-box">Loading…</div></td></tr>`;
-    const { ok, data } = await api(API.orders + '?status=refunded&limit=100');
-    if (!ok) {
-        tb.innerHTML = `<tr><td colspan="5"><div class="unavailable-box">Unable to load refunds</div></td></tr>`;
-        return;
-    }
-    const payload = data.data || data;
-    const rows = payload.orders || [];
-    if (!rows.length) {
-        tb.innerHTML = `<tr><td colspan="5"><div class="empty-box"><span class="ic">📭</span>No refunds yet</div></td></tr>`;
-        return;
-    }
-    tb.innerHTML = rows.map(o => `
-        <tr>
-            <td data-label="Order"><span class="mono" style="font-size:11px">${escapeHtml(o.order_ref || '—')}</span></td>
-            <td data-label="User">${escapeHtml(o.user?.username || '—')}</td>
-            <td data-label="Refunded Amount">${formatMoney(o.customer_price_ngn, 'NGN') || '—'}</td>
-            <td data-label="Refund Reference"><span class="mono" style="font-size:11px">${escapeHtml(o.refund_transaction_id || '—')}</span></td>
-            <td data-label="Refunded At">${escapeHtml(formatDateTime(o.refunded_at))}</td>
-        </tr>
-    `).join('');
-}
-
-/* ══ Provider detail ══ */
-async function loadProviderDetail() {
-    const el = document.getElementById('providerDetail');
-    el.innerHTML = '<div class="empty-box"><span class="ic">⏳</span>Loading…</div>';
-    const { ok, data } = await api(API.provider);
-    if (!ok) {
-        el.innerHTML = `<div class="unavailable-box">Unable to load provider health</div>`;
-        return;
-    }
-    const h = data.data?.health || data.health || {};
-    const c = h.components || {};
-    el.innerHTML = `
-        <div class="field"><span class="k">Provider</span><span class="v">${escapeHtml(h.label || 'DT One')}</span></div>
-        <div class="field"><span class="k">Environment</span><span class="v">${escapeHtml(h.environment || '—')}</span></div>
-        <div class="field"><span class="k">Configured</span><span class="v">${h.configured ? '<span class="badge success">Yes</span>' : '<span class="badge danger">No</span>'}</span></div>
-        <div class="field"><span class="k">Connectivity</span><span class="v">${escapeHtml(c.connectivity || '—')}</span></div>
-        <div class="field"><span class="k">Balance check</span><span class="v">${escapeHtml(c.balance || '—')}</span></div>
-        <div class="field"><span class="k">Catalog</span><span class="v">${escapeHtml(c.catalog || '—')}</span></div>
-        <div class="field"><span class="k">Purchase capability</span><span class="v">${escapeHtml(c.purchase || '—')}</span></div>
-        <div class="field"><span class="k">Webhook</span><span class="v">${escapeHtml(c.webhook || '—')}</span></div>
-        <div class="field"><span class="k">Circuit breaker</span><span class="v">${escapeHtml(c.circuit || 'closed')}</span></div>
-        <div class="field"><span class="k">Last successful order</span><span class="v">${h.lastSuccess ? escapeHtml(formatDateTime(h.lastSuccess)) : '—'}</span></div>
-        <div class="field"><span class="k">Last failure</span><span class="v">${h.lastFailure?.at ? `${escapeHtml(timeAgo(h.lastFailure.at))} — ${escapeHtml(h.lastFailure.reason || '')}` : '—'}</span></div>
-        <div class="field"><span class="k">Orders (24h)</span><span class="v">${formatNumber(h.recentCount) ?? '—'}</span></div>
-        <div style="font-size:11px;color:var(--text-faint);margin-top:8px">${escapeHtml(h.note || '')}</div>
-    `;
-}
-
-/* ══ Order drawer ══ */
-function openDrawer() {
+// ─── Drawer ───────────────────────────────────────────────
+function openDrawer(){
     document.getElementById('drawer').classList.add('open');
     document.getElementById('drawerScrim').classList.add('show');
-    // lock scroll on mobile
     if (window.innerWidth <= 900) document.body.style.overflow = 'hidden';
 }
-function closeDrawer() {
+function closeDrawer(){
     document.getElementById('drawer').classList.remove('open');
     document.getElementById('drawerScrim').classList.remove('show');
     document.body.style.overflow = '';
     State.currentOrder = null;
 }
 
-async function openOrder(id) {
-    document.getElementById('dIcon').textContent = '🎁';
+async function openOrder(id){
+    document.getElementById('dIcon').innerHTML = '<i class="fas fa-gift"></i>';
     document.getElementById('dTitle').textContent = 'Loading…';
     document.getElementById('dSub').textContent = '';
-    document.getElementById('dBody').innerHTML = '<div class="empty-box">Loading order…</div>';
+    document.getElementById('dBody').innerHTML = '<div class="empty-box"><i class="fas fa-circle-notch fa-spin"></i></div>';
     openDrawer();
 
-    const { ok, data, error } = await api(API.order(id));
-    if (!ok) {
-        document.getElementById('dBody').innerHTML = `<div class="unavailable-box">${escapeHtml(error || 'Unable to load order')}</div>`;
+    const r = await api(API.order(id));
+    if (!r.ok){
+        document.getElementById('dBody').innerHTML = `<div class="unavailable-box">${esc(r.message)}</div>`;
         return;
     }
-    const payload = data.data || data;
-    State.currentOrder = payload.order;
-    renderOrder(payload);
+    State.currentOrder = r.data.order;
+    renderOrder(r.data);
 }
 
-function renderOrder(payload) {
+function renderOrder(payload){
     const o = payload.order;
     const u = payload.user;
     const tx = payload.transaction;
     const refund = payload.refund_transaction;
-    const led = payload.ledger_entries || [];
     const delivery = payload.delivery;
     const timeline = payload.timeline || [];
+    const pricing = payload.pricing_snapshot || {};
     const providerSnap = payload.provider_snapshot || {};
-    const pricingSnap = payload.pricing_snapshot || {};
 
-    document.getElementById('dIcon').textContent = '🎁';
-    document.getElementById('dTitle').textContent = o.order_ref;
-    document.getElementById('dSub').textContent = `${o.brand} ${o.country_name || ''} · ${o.face_value ?? ''} ${o.face_currency || ''}`.trim();
+    document.getElementById('dTitle').textContent = o.order_ref || 'Order';
+    document.getElementById('dSub').textContent = `${o.brand} ${o.country_name || ''}`.trim();
 
     const hero = `
         <div class="dd-hero">
             <div>
-                <div class="amt">${escapeHtml(`${o.face_value ?? '—'} ${o.face_currency || ''}`.trim())}</div>
-                <div class="meta">${escapeHtml(o.brand || '—')} · ${escapeHtml(o.country_name || '')}</div>
+                <div class="amt">${esc(o.face_value ?? '—')} ${esc(o.face_currency || '')}</div>
+                <div class="meta">${esc(o.brand || '—')} · ${esc(o.country_name || '')}</div>
             </div>
             <div style="text-align:right">
-                <span class="badge ${statusBadge(o.status)}" style="font-size:11.5px;padding:4px 12px">${escapeHtml(o.status)}</span>
-                <div class="meta" style="margin-top:6px">${escapeHtml(formatDateTime(o.created_at))}</div>
+                <span class="badge ${statusBadge(o.status)}" style="font-size:11.5px;padding:4px 12px">${esc(o.status)}</span>
+                <div class="meta" style="margin-top:6px">${esc(fmtDateTime(o.created_at))}</div>
             </div>
         </div>`;
 
-    const actions = buildActions(o);
+    const actions = buildOrderActions(o);
 
-    const customerSection = `
+    const customer = `
         <div class="dd-section">
             <h4>Customer</h4>
-            <div class="field"><span class="k">Username</span><span class="v">${escapeHtml(u?.username || '—')}</span></div>
-            <div class="field"><span class="k">User ID</span><span class="v mono" style="font-size:11px">${escapeHtml(o.user?.id || '—')}</span></div>
-            <div class="field"><span class="k">Email</span><span class="v">${escapeHtml(u?.email || '—')}</span></div>
+            <div class="field"><span class="k">Username</span><span class="v">${esc(u?.username || '—')}</span></div>
+            <div class="field"><span class="k">Email</span><span class="v">${esc(u?.email || '—')}</span></div>
         </div>`;
 
-    const productSection = `
+    const product = `
         <div class="dd-section">
             <h4>Product</h4>
-            <div class="field"><span class="k">Brand</span><span class="v">${escapeHtml(o.brand || '—')}</span></div>
-            <div class="field"><span class="k">Country</span><span class="v">${escapeHtml(o.country_name || o.country_iso || '—')}</span></div>
-            <div class="field"><span class="k">Face value</span><span class="v">${escapeHtml(`${o.face_value ?? '—'} ${o.face_currency || ''}`.trim())}</span></div>
-            <div class="field"><span class="k">Provider product ID</span><span class="v mono" style="font-size:11px">${escapeHtml(providerSnap.provider_product_id || o.provider_product_id || '—')}</span></div>
+            <div class="field"><span class="k">Brand</span><span class="v">${esc(o.brand || '—')}</span></div>
+            <div class="field"><span class="k">Country</span><span class="v">${esc(o.country_name || o.country_iso || '—')}</span></div>
+            <div class="field"><span class="k">Face value</span><span class="v">${esc(o.face_value ?? '—')} ${esc(o.face_currency || '')}</span></div>
         </div>`;
 
     const pricingSection = `
         <div class="dd-section">
-            <h4>Pricing</h4>
-            <div class="field"><span class="k">Provider cost (USD)</span><span class="v">${formatMoney(pricingSnap.provider_cost_usd ?? o.provider_cost_usd, 'USD') || '—'}</span></div>
-            <div class="field"><span class="k">Provider cost (NGN)</span><span class="v">${formatMoney(pricingSnap.provider_cost_ngn ?? o.provider_cost_ngn, 'NGN') || '—'}</span></div>
-            <div class="field"><span class="k">FX rate used</span><span class="v">${(pricingSnap.fx_rate ?? o.fx_rate) != null ? escapeHtml(String(pricingSnap.fx_rate ?? o.fx_rate)) : '—'}</span></div>
-            <div class="field"><span class="k">Customer paid</span><span class="v">${formatMoney(pricingSnap.customer_price_ngn ?? o.customer_price_ngn, 'NGN') || '—'}</span></div>
+            <h4>Pricing snapshot</h4>
+            <div class="field"><span class="k">Provider cost (USD)</span><span class="v">${fmtMoney(pricing.provider_cost_usd ?? o.provider_cost_usd, 'USD') || '—'}</span></div>
+            <div class="field"><span class="k">Provider cost (NGN)</span><span class="v">${fmtMoney(pricing.provider_cost_ngn ?? o.provider_cost_ngn, 'NGN') || '—'}</span></div>
+            <div class="field"><span class="k">FX rate used</span><span class="v">${(pricing.fx_rate ?? o.fx_rate) != null ? esc(String(pricing.fx_rate ?? o.fx_rate)) : '—'}</span></div>
+            <div class="field"><span class="k">Customer paid</span><span class="v" style="color:var(--success)">${fmtMoney(pricing.customer_price_ngn ?? o.customer_price_ngn, 'NGN') || '—'}</span></div>
         </div>`;
 
-    const paymentSection = tx ? `
+    const payment = tx ? `
         <div class="dd-section">
             <h4>Payment</h4>
-            <div class="field"><span class="k">Transaction ID</span><span class="v mono" style="font-size:11px">${escapeHtml(tx.id)}</span></div>
-            <div class="field"><span class="k">Reference</span><span class="v mono" style="font-size:11px">${escapeHtml(tx.ref || tx.reference || '—')}</span></div>
-            <div class="field"><span class="k">Amount</span><span class="v">${formatMoney(tx.amount, tx.currency) || '—'}</span></div>
-            <div class="field"><span class="k">Status</span><span class="v"><span class="badge ${statusBadge(tx.status)}">${escapeHtml(tx.status)}</span></span></div>
-            <div class="field"><span class="k">Created</span><span class="v">${escapeHtml(formatDateTime(tx.created_at))}</span></div>
-            ${led.length ? `
-                <h4 style="margin-top:12px">Ledger</h4>
-                ${led.map(e => `<div class="field"><span class="k">${escapeHtml(e.entry_type || '')} ${escapeHtml(e.currency || '')}</span><span class="v">${formatMoney(e.amount, e.currency) || '—'} · after ${formatMoney(e.balance_after, e.currency) || '—'}</span></div>`).join('')}
-            ` : ''}
+            <div class="field"><span class="k">Transaction ID</span><span class="v" style="font-family:'JetBrains Mono',monospace;font-size:11px">${esc(tx.id)}</span></div>
+            <div class="field"><span class="k">Reference</span><span class="v" style="font-family:'JetBrains Mono',monospace;font-size:11px">${esc(tx.ref || tx.reference || '—')}</span></div>
+            <div class="field"><span class="k">Amount</span><span class="v">${fmtMoney(tx.amount, tx.currency) || '—'}</span></div>
+            <div class="field"><span class="k">Status</span><span class="v"><span class="badge ${statusBadge(tx.status)}">${esc(tx.status)}</span></span></div>
         </div>` : '';
 
     const providerSection = `
         <div class="dd-section">
             <h4>Provider</h4>
-            <div class="field"><span class="k">Provider</span><span class="v">${escapeHtml(o.provider || '—')}</span></div>
-            <div class="field"><span class="k">Provider transaction ID</span><span class="v mono" style="font-size:11px">${escapeHtml(o.provider_transaction_id || '—')}</span></div>
-            <div class="field"><span class="k">Provider reference</span><span class="v mono" style="font-size:11px">${escapeHtml(o.provider_reference || '—')}</span></div>
-            ${providerSnap.provider_status ? `<div class="field"><span class="k">Provider status</span><span class="v">${escapeHtml(providerSnap.provider_status)}</span></div>` : ''}
-            ${providerSnap.last_provider_check_at ? `<div class="field"><span class="k">Last provider check</span><span class="v">${escapeHtml(formatDateTime(providerSnap.last_provider_check_at))}</span></div>` : ''}
-            ${o.failure_reason ? `<div class="field"><span class="k">Failure</span><span class="v" style="color:var(--danger)">${escapeHtml(o.failure_reason)}</span></div>` : ''}
-            <button class="btn" id="btnSync" style="margin-top:8px"><i class="fas fa-sync"></i> Sync with provider</button>
+            <div class="field"><span class="k">Provider</span><span class="v">Provider</span></div>
+            <div class="field"><span class="k">Transaction ID</span><span class="v" style="font-family:'JetBrains Mono',monospace;font-size:11px">${esc(o.provider_transaction_id || '—')}</span></div>
+            <div class="field"><span class="k">Reference</span><span class="v" style="font-family:'JetBrains Mono',monospace;font-size:11px">${esc(o.provider_reference || '—')}</span></div>
+            ${providerSnap.provider_status ? `<div class="field"><span class="k">Provider status</span><span class="v">${esc(providerSnap.provider_status)}</span></div>` : ''}
+            ${o.failure_reason ? `<div class="field"><span class="k">Failure</span><span class="v" style="color:var(--danger)">${esc(o.failure_reason)}</span></div>` : ''}
+            <button class="btn btn-sm" id="btnSync" type="button" style="margin-top:8px"><i class="fas fa-sync"></i> Sync with provider</button>
         </div>`;
 
     const deliverySection = delivery ? `
         <div class="dd-section">
             <h4>Delivery</h4>
-            <div class="field"><span class="k">Delivery type</span><span class="v">${escapeHtml(delivery.delivery_type || '—')}</span></div>
-            <div class="field"><span class="k">Delivered at</span><span class="v">${escapeHtml(formatDateTime(delivery.delivered_at))}</span></div>
-            ${delivery.serial ? `<div class="field"><span class="k">Serial</span><span class="v mono" style="font-size:11px">${escapeHtml(delivery.serial)}</span></div>` : ''}
+            <div class="field"><span class="k">Type</span><span class="v">${esc(delivery.delivery_type || '—')}</span></div>
+            <div class="field"><span class="k">Delivered at</span><span class="v">${esc(fmtDateTime(delivery.delivered_at))}</span></div>
+            ${delivery.serial ? `<div class="field"><span class="k">Serial</span><span class="v" style="font-family:'JetBrains Mono',monospace;font-size:11px">${esc(delivery.serial)}</span></div>` : ''}
             ${delivery.has_code ? `
                 <div class="delivery-reveal">
-                    <span id="codeDisplay">${escapeHtml(delivery.code_preview || '••••••••')}</span>
-                    <button class="btn" id="btnReveal"><i class="fas fa-eye"></i> Reveal</button>
+                    <span id="codeDisplay">${esc(delivery.code_preview || '••••••••')}</span>
+                    <button class="btn btn-sm" id="btnReveal" type="button"><i class="fas fa-eye"></i> Reveal</button>
                 </div>
-                <div style="font-size:11px;color:var(--text-faint);margin-top:6px">Revealing the code is logged to the audit trail.</div>
+                <div style="font-size:11px;color:var(--text-faint);margin-top:6px"><i class="fas fa-shield-halved"></i> Revealing the code is logged to the audit trail.</div>
             ` : '<div class="empty-box" style="padding:12px">No delivery code recorded.</div>'}
         </div>` : '';
 
     const refundSection = refund ? `
         <div class="dd-section">
             <h4>Refund</h4>
-            <div class="field"><span class="k">Refund transaction ID</span><span class="v mono" style="font-size:11px">${escapeHtml(refund.id)}</span></div>
-            <div class="field"><span class="k">Amount</span><span class="v">${formatMoney(refund.amount, refund.currency) || '—'}</span></div>
-            <div class="field"><span class="k">Refunded at</span><span class="v">${escapeHtml(formatDateTime(o.refunded_at))}</span></div>
+            <div class="field"><span class="k">Refund tx</span><span class="v" style="font-family:'JetBrains Mono',monospace;font-size:11px">${esc(refund.id)}</span></div>
+            <div class="field"><span class="k">Amount</span><span class="v">${fmtMoney(refund.amount, refund.currency) || '—'}</span></div>
+            <div class="field"><span class="k">Refunded at</span><span class="v">${esc(fmtDateTime(o.refunded_at))}</span></div>
         </div>` : '';
 
     const timelineSection = timeline.length ? `
         <div class="dd-section">
             <h4>Timeline</h4>
-            <div class="timeline">
-                ${timeline.map(t => `
-                    <div class="t-item">
-                        <div>${escapeHtml(t.label)}</div>
-                        <div class="t-when">${escapeHtml(formatDateTime(t.at))}</div>
-                    </div>
-                `).join('')}
-            </div>
+            ${timeline.map(t => `<div class="field"><span class="k">${esc(t.label)}</span><span class="v" style="font-weight:500;color:var(--text-dim)">${esc(fmtDateTime(t.at))}</span></div>`).join('')}
         </div>` : '';
 
     document.getElementById('dBody').innerHTML =
-        hero + actions +
-        customerSection +
-        productSection +
-        pricingSection +
-        paymentSection +
-        providerSection +
-        deliverySection +
-        refundSection +
-        timelineSection;
+        hero + actions + customer + product + pricingSection + payment + providerSection + deliverySection + refundSection + timelineSection;
 
-    document.getElementById('btnSync')?.addEventListener('click', async () => {
-        const { ok, error } = await api(API.sync(o.id), { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
-        if (!ok) { showToast(error || 'Sync failed', 'error'); return; }
-        showToast('Synced with provider', 'success');
+    document.getElementById('btnSync')?.addEventListener('click', async (e) => {
+        e.currentTarget.disabled = true;
+        const r = await api(API.sync(o.id), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        e.currentTarget.disabled = false;
+        if (!r.ok) { toast(r.message || 'Sync failed', 'error'); return; }
+        toast('Synced', 'success');
         openOrder(o.id);
     });
 
-    document.getElementById('btnReveal')?.addEventListener('click', async () => {
-        const { ok, data, error } = await api(API.reveal(o.id), { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
-        if (!ok) { showToast(error || 'Unable to reveal code', 'error'); return; }
-        const payload = data.data || data;
+    document.getElementById('btnReveal')?.addEventListener('click', async (e) => {
+        e.currentTarget.disabled = true;
+        const r = await api(API.reveal(o.id), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        e.currentTarget.disabled = false;
+        if (!r.ok) { toast(r.message || 'Reveal failed', 'error'); return; }
         const el = document.getElementById('codeDisplay');
-        if (el) {
-            el.textContent = payload.code || '—';
-            el.style.color = 'var(--success)';
-        }
-        document.getElementById('btnReveal').disabled = true;
+        if (el) { el.textContent = r.data.code || '—'; el.style.color = 'var(--success)'; }
+        e.currentTarget.remove();
     });
 
     document.getElementById('btnRetry')?.addEventListener('click', () => openRetryModal(o));
     document.getElementById('btnRefund')?.addEventListener('click', () => openRefundModal(o));
 }
 
-function buildActions(o) {
+function buildOrderActions(o){
     const buttons = [];
     if (o.status === 'failed') {
-        buttons.push(`<button class="btn btn-primary" id="btnRetry"><i class="fas fa-rotate-right"></i> Retry order</button>`);
-        buttons.push(`<button class="btn btn-danger" id="btnRefund"><i class="fas fa-rotate-left"></i> Refund customer</button>`);
+        buttons.push(`<button class="btn btn-sm btn-primary" id="btnRetry" type="button"><i class="fas fa-rotate-right"></i> Retry</button>`);
+        buttons.push(`<button class="btn btn-sm btn-danger" id="btnRefund" type="button"><i class="fas fa-rotate-left"></i> Refund</button>`);
     } else if (o.status === 'refund_pending') {
-        buttons.push(`<button class="btn btn-danger" id="btnRefund"><i class="fas fa-rotate-left"></i> Confirm refund</button>`);
+        buttons.push(`<button class="btn btn-sm btn-danger" id="btnRefund" type="button"><i class="fas fa-rotate-left"></i> Confirm refund</button>`);
     }
-    if (!buttons.length) return '';
-    return `<div class="actions">${buttons.join('')}</div>`;
+    return buttons.length ? `<div class="actions">${buttons.join('')}</div>` : '';
 }
 
-/* ══ Modal ══ */
-function openModal({ title, bodyHtml, confirmLabel = 'Confirm', onConfirm }) {
+// ─── Retry / Refund modals ────────────────────────────────
+function openRetryModal(o){
+    openModal({
+        title: 'Retry order',
+        confirmLabel: 'Retry',
+        bodyHtml: `
+            <p class="note">Provider state will be verified before any new purchase. If the original was already fulfilled, the existing card will be delivered instead of buying again.</p>
+            <label for="retryReason">Reason (required)</label>
+            <textarea id="retryReason" placeholder="Why is this being retried?"></textarea>
+            <div class="err" id="retryErr"></div>
+        `,
+        onConfirm: async () => {
+            const reason = document.getElementById('retryReason').value.trim();
+            const errEl = document.getElementById('retryErr');
+            errEl.classList.remove('show');
+            if (reason.length < 4) {
+                errEl.textContent = 'Reason must be at least 4 characters.';
+                errEl.classList.add('show');
+                return false;
+            }
+            const r = await api(API.retry(o.id), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason })
+            });
+            if (!r.ok) {
+                errEl.textContent = r.message || 'Retry failed.';
+                errEl.classList.add('show');
+                return false;
+            }
+            toast(`Retry outcome: ${r.data.outcome || 'unknown'}`, 'success');
+            openOrder(o.id);
+            loadOrders();
+            return true;
+        }
+    });
+}
+
+function openRefundModal(o){
+    openModal({
+        title: 'Refund order',
+        confirmLabel: 'Refund',
+        bodyHtml: `
+            <p class="note">This credits the customer's wallet for ${esc(fmtMoney(o.customer_price_ngn, 'NGN') || '—')} and marks the order as refunded. The original debit is left unchanged.</p>
+            <label for="refundReason">Reason (required)</label>
+            <textarea id="refundReason" placeholder="Why is this being refunded?"></textarea>
+            <div class="err" id="refundErr"></div>
+        `,
+        onConfirm: async () => {
+            const reason = document.getElementById('refundReason').value.trim();
+            const errEl = document.getElementById('refundErr');
+            errEl.classList.remove('show');
+            if (reason.length < 4) {
+                errEl.textContent = 'Reason must be at least 4 characters.';
+                errEl.classList.add('show');
+                return false;
+            }
+            const r = await api(API.refund(o.id), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason })
+            });
+            if (!r.ok) {
+                errEl.textContent = r.message || 'Refund failed.';
+                errEl.classList.add('show');
+                return false;
+            }
+            toast('Refund applied', 'success');
+            openOrder(o.id);
+            loadOrders();
+            return true;
+        }
+    });
+}
+
+// ─── Modal ────────────────────────────────────────────────
+function wireModalGlobal(){
+    document.getElementById('mCancel').addEventListener('click', () => {
+        document.getElementById('modalScrim').classList.remove('show');
+    });
+    document.getElementById('modalScrim').addEventListener('click', (e) => {
+        if (e.target.id === 'modalScrim') document.getElementById('modalScrim').classList.remove('show');
+    });
+    document.getElementById('dClose').addEventListener('click', closeDrawer);
+    document.getElementById('drawerScrim').addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.getElementById('modalScrim').classList.remove('show');
+            closeDrawer();
+        }
+    });
+}
+
+function openModal({ title, bodyHtml, confirmLabel = 'Confirm', onConfirm }){
     const scrim = document.getElementById('modalScrim');
     document.getElementById('mTitle').textContent = title;
     document.getElementById('mBody').innerHTML = bodyHtml;
-    document.getElementById('mConfirm').textContent = confirmLabel;
-    const cancel = () => {
-        scrim.classList.remove('show');
-        document.getElementById('mConfirm').onclick = null;
-    };
-    document.getElementById('mCancel').onclick = cancel;
-    document.getElementById('mConfirm').onclick = async () => {
-        const ok = await onConfirm();
-        if (ok) cancel();
+    const confirmBtn = document.getElementById('mConfirm');
+    confirmBtn.textContent = confirmLabel;
+    confirmBtn.onclick = async () => {
+        confirmBtn.disabled = true;
+        try {
+            const ok = await onConfirm();
+            if (ok) scrim.classList.remove('show');
+        } finally {
+            confirmBtn.disabled = false;
+        }
     };
     scrim.classList.add('show');
 }
 
-function openRetryModal(o) {
+// ─── Catalog ──────────────────────────────────────────────
+let catalogWired = false;
+function wireCatalog(){
+    if (catalogWired) { loadCatalog(); return; }
+    catalogWired = true;
+
+    document.getElementById('catApply').addEventListener('click', loadCatalog);
+    document.getElementById('catClear').addEventListener('click', () => {
+        document.getElementById('catSearch').value = '';
+        document.getElementById('catCountry').value = '';
+        loadCatalog();
+    });
+    document.getElementById('catImport').addEventListener('click', importSelected);
+    document.getElementById('catSelectAll').addEventListener('change', (e) => {
+        const rows = document.querySelectorAll('#catalogBody tr[data-provider-id]');
+        rows.forEach(tr => {
+            const imported = tr.dataset.imported === 'true';
+            if (imported) return;
+            const cb = tr.querySelector('input[type=checkbox]');
+            if (!cb) return;
+            cb.checked = e.target.checked;
+            if (e.target.checked) State.catalogSelected.add(tr.dataset.providerId);
+            else State.catalogSelected.delete(tr.dataset.providerId);
+        });
+        updateImportButton();
+    });
+
+    loadCatalog();
+}
+
+async function loadCatalog(){
+    const tb = document.getElementById('catalogBody');
+    if (!tb) return;
+    tb.innerHTML = '<tr><td colspan="8"><div class="empty-box"><i class="fas fa-circle-notch fa-spin"></i></div></td></tr>';
+    State.catalogSelected.clear();
+    updateImportButton();
+
+    const params = new URLSearchParams();
+    const search = document.getElementById('catSearch').value.trim();
+    const country = document.getElementById('catCountry').value.trim().toUpperCase();
+    if (search) params.set('search', search);
+    if (country) params.set('country', country);
+
+    const r = await api(API.catalog + (params.toString() ? '?' + params.toString() : ''));
+    if (!r.ok){
+        tb.innerHTML = `<tr><td colspan="8"><div class="unavailable-box">${esc(r.message)} <button onclick="loadCatalog()">Retry</button></div></td></tr>`;
+        return;
+    }
+
+    State.catalogRows = r.data.products || [];
+    if (!State.catalogRows.length){
+        tb.innerHTML = '<tr><td colspan="8"><div class="empty-box"><i class="fas fa-inbox"></i>No products in catalog for this filter</div></td></tr>';
+        return;
+    }
+
+    tb.innerHTML = State.catalogRows.map(p => `
+        <tr data-provider-id="${esc(p.providerProductId)}" data-imported="${p.alreadyImported ? 'true' : 'false'}">
+            <td style="width:36px">${p.alreadyImported
+                ? '<i class="fas fa-check" style="color:var(--success)"></i>'
+                : `<input type="checkbox" data-catalog-cb="${esc(p.providerProductId)}">`}</td>
+            <td data-label="Brand">${esc(p.name)}</td>
+            <td data-label="Country">${esc(p.countryName || p.countryIso || '—')}</td>
+            <td data-label="Face value">${esc(p.faceValue ?? '—')} ${esc(p.faceCurrency || '')}</td>
+            <td data-label="Wholesale">${esc(p.wholesaleAmount)} ${esc(p.wholesaleCurrency)}</td>
+            <td data-label="Suggested NGN">${fmtMoney(p.suggestedPriceNgn, 'NGN') || '—'}</td>
+            <td data-label="Suggested USD">${fmtMoney(p.suggestedPriceUsd, 'USD') || '—'}</td>
+            <td data-label="Status">${p.alreadyImported
+                ? '<span class="badge success">Imported</span>'
+                : '<span class="badge neutral">Not imported</span>'}</td>
+        </tr>`).join('');
+
+    tb.querySelectorAll('input[data-catalog-cb]').forEach(cb => {
+        cb.addEventListener('change', () => {
+            if (cb.checked) State.catalogSelected.add(cb.dataset.catalogCb);
+            else State.catalogSelected.delete(cb.dataset.catalogCb);
+            updateImportButton();
+        });
+    });
+}
+
+function updateImportButton(){
+    const btn = document.getElementById('catImport');
+    const count = State.catalogSelected.size;
+    btn.disabled = count === 0;
+    btn.innerHTML = `<i class="fas fa-download"></i> Import ${count ? `(${count})` : 'selected'}`;
+}
+
+function importSelected(){
+    if (!State.catalogSelected.size) return;
     openModal({
-        title: 'Retry gift card order',
-        confirmLabel: 'Retry',
+        title: `Import ${State.catalogSelected.size} product${State.catalogSelected.size === 1 ? '' : 's'}`,
+        confirmLabel: 'Import',
         bodyHtml: `
-            <p style="font-size:12.5px;color:var(--text-dim);margin-bottom:10px">
-                Before sending a new purchase, MilesSpace will ask DT One what actually happened to the original order.
-                If DT One already fulfilled it, the existing card will be delivered instead of buying a second one.
-            </p>
-            <label for="retryReason">Reason (required)</label>
-            <textarea id="retryReason" rows="3" placeholder="Why is this being retried?"></textarea>
+            <p class="note">Imported products are created disabled by default. Enable them individually after reviewing their pricing.</p>
+            <label for="importReason">Reason (required)</label>
+            <textarea id="importReason" placeholder="Why is this being imported?"></textarea>
+            <div class="err" id="importErr"></div>
         `,
         onConfirm: async () => {
-            const reason = document.getElementById('retryReason').value.trim();
-            if (reason.length < 4) { showToast('Reason is required.', 'error'); return false; }
-            const { ok, error, data } = await api(API.retry(o.id), {
+            const reason = document.getElementById('importReason').value.trim();
+            const errEl = document.getElementById('importErr');
+            errEl.classList.remove('show');
+            if (reason.length < 4) {
+                errEl.textContent = 'Reason must be at least 4 characters.';
+                errEl.classList.add('show');
+                return false;
+            }
+            const r = await api(API.import, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason })
+                body: JSON.stringify({
+                    provider_product_ids: Array.from(State.catalogSelected),
+                    enable: false,
+                    reason
+                })
             });
-            if (!ok) { showToast(error || 'Retry failed', 'error'); return false; }
-            const payload = data.data || data;
-            const outcome = payload.outcome;
-            showToast(`Retry: ${outcome}`, 'success');
-            openOrder(o.id);
-            loadOrders();
+            if (!r.ok) {
+                errEl.textContent = r.message || 'Import failed.';
+                errEl.classList.add('show');
+                return false;
+            }
+            toast(`Imported ${r.data.imported.length} product${r.data.imported.length === 1 ? '' : 's'}`, 'success');
+            loadCatalog();
             return true;
         }
     });
 }
 
-function openRefundModal(o) {
+// ─── Products ─────────────────────────────────────────────
+let productsWired = false;
+function wireProducts(){
+    if (productsWired) { loadProducts(); return; }
+    productsWired = true;
+
+    document.getElementById('pApply').addEventListener('click', loadProducts);
+    document.getElementById('pClear').addEventListener('click', () => {
+        document.getElementById('pSearch').value = '';
+        document.getElementById('pEnabled').value = '';
+        loadProducts();
+    });
+    document.getElementById('pRefreshCosts').addEventListener('click', refreshCosts);
+
+    loadProducts();
+}
+
+async function loadProducts(){
+    const tb = document.getElementById('productsBody');
+    if (!tb) return;
+    tb.innerHTML = '<tr><td colspan="8"><div class="empty-box"><i class="fas fa-circle-notch fa-spin"></i></div></td></tr>';
+
+    const params = new URLSearchParams();
+    const search = document.getElementById('pSearch').value.trim();
+    const enabled = document.getElementById('pEnabled').value;
+    if (search) params.set('search', search);
+    if (enabled) params.set('enabled', enabled);
+
+    const r = await api(API.products + (params.toString() ? '?' + params.toString() : ''));
+    if (!r.ok){
+        tb.innerHTML = `<tr><td colspan="8"><div class="unavailable-box">${esc(r.message)} <button onclick="loadProducts()">Retry</button></div></td></tr>`;
+        return;
+    }
+    State.productsCache = r.data.products || [];
+    State.productsCacheAt = Date.now();
+
+    if (!State.productsCache.length){
+        tb.innerHTML = '<tr><td colspan="8"><div class="empty-box"><i class="fas fa-inbox"></i>No products yet. Import some from the Catalog.</div></td></tr>';
+        return;
+    }
+
+    tb.innerHTML = State.productsCache.map(p => `
+        <tr data-product-id="${esc(p.id)}">
+            <td data-label="Product">
+                <div class="prod-wrap">
+                    <div class="prod-logo">${p.logo_url
+                        ? `<img src="${esc(p.logo_url)}" alt="" onerror="this.style.display='none'">`
+                        : (p.display_name || p.brand || '?').slice(0,2).toUpperCase()}</div>
+                    <div>
+                        <div style="font-weight:600">${esc(p.display_name || p.brand || '—')}</div>
+                        <div style="font-size:10.5px;color:var(--text-dim)">${p.featured ? '<i class="fas fa-fire" style="color:var(--gold)"></i> Featured' : ''}</div>
+                    </div>
+                </div>
+            </td>
+            <td data-label="Country">${esc(p.country_name || p.country_iso || '—')}</td>
+            <td data-label="Face value">${esc(p.face_value ?? '—')} ${esc(p.face_currency || '')}</td>
+            <td data-label="Wholesale">${esc(p.wholesale_amount || '—')} ${esc(p.wholesale_currency || '')}</td>
+            <td data-label="Pricing">${esc(p.pricing_mode || 'global')}${p.pricing_value ? ' · ' + esc(String(p.pricing_value)) : ''}</td>
+            <td data-label="Customer NGN">${fmtMoney(p.customer_price_ngn, 'NGN') || '—'}</td>
+            <td data-label="Customer USD">${fmtMoney(p.customer_price_usd, 'USD') || '—'}</td>
+            <td data-label="Actions">
+                <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+                    <button class="btn btn-sm" data-edit-pricing="${esc(p.id)}" type="button"><i class="fas fa-tag"></i> Price</button>
+                    <button class="btn btn-sm" data-toggle="${esc(p.id)}" data-enabled="${p.enabled ? 'false' : 'true'}" type="button">${p.enabled ? 'Disable' : 'Enable'}</button>
+                    <button class="btn btn-sm" data-feature="${esc(p.id)}" data-featured="${p.featured ? 'false' : 'true'}" type="button" title="Toggle featured"><i class="fas fa-fire"></i></button>
+                </div>
+            </td>
+        </tr>`).join('');
+
+    tb.querySelectorAll('[data-edit-pricing]').forEach(b => b.addEventListener('click', () => openPricingModal(State.productsCache.find(p => p.id === b.dataset.editPricing))));
+    tb.querySelectorAll('[data-toggle]').forEach(b => b.addEventListener('click', () => toggleEnabled(b.dataset.toggle, b.dataset.enabled === 'true')));
+    tb.querySelectorAll('[data-feature]').forEach(b => b.addEventListener('click', () => toggleFeatured(b.dataset.feature, b.dataset.featured === 'true')));
+}
+
+async function toggleEnabled(id, enabled){
     openModal({
-        title: 'Refund gift card order',
-        confirmLabel: 'Refund',
+        title: `${enabled ? 'Enable' : 'Disable'} product`,
+        confirmLabel: enabled ? 'Enable' : 'Disable',
         bodyHtml: `
-            <p style="font-size:12.5px;color:var(--text-dim);margin-bottom:10px">
-                This will credit the customer's wallet for ${escapeHtml(formatMoney(o.customer_price_ngn, 'NGN') || '—')}
-                and mark the order as refunded. The original wallet transaction is left unchanged.
-            </p>
-            <label for="refundReason">Reason (required)</label>
-            <textarea id="refundReason" rows="3" placeholder="Why is this being refunded?"></textarea>
+            <label for="enabledReason">Reason (required)</label>
+            <textarea id="enabledReason"></textarea>
+            <div class="err" id="enabledErr"></div>
         `,
         onConfirm: async () => {
-            const reason = document.getElementById('refundReason').value.trim();
-            if (reason.length < 4) { showToast('Reason is required.', 'error'); return false; }
-            const { ok, error } = await api(API.refund(o.id), {
-                method: 'POST',
+            const reason = document.getElementById('enabledReason').value.trim();
+            const errEl = document.getElementById('enabledErr');
+            errEl.classList.remove('show');
+            if (reason.length < 4) { errEl.textContent = 'Reason required (min 4 chars).'; errEl.classList.add('show'); return false; }
+            const r = await api(API.productEnabled(id), {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason })
+                body: JSON.stringify({ enabled, reason })
             });
-            if (!ok) { showToast(error || 'Refund failed', 'error'); return false; }
-            showToast('Refund applied', 'success');
-            openOrder(o.id);
-            loadOrders();
+            if (!r.ok) { errEl.textContent = r.message || 'Update failed.'; errEl.classList.add('show'); return false; }
+            toast(enabled ? 'Enabled' : 'Disabled', 'success');
+            loadProducts();
             return true;
         }
     });
 }
 
-/* ══ Admin profile ══ */
-async function loadAdminProfile() {
-    const { ok, data } = await api('/api/admin/me');
-    if (!ok) return;
-    const payload = data.data || data;
-    const user = payload.user;
-    if (!user) return;
-    const name = user.username || user.email?.split('@')[0] || 'Admin';
-    const role = user.role || 'admin';
-    document.getElementById('adminName').textContent = name;
-    document.getElementById('adminRole').textContent = role.charAt(0).toUpperCase() + role.slice(1);
-    document.getElementById('adminAvatar').textContent = name.slice(0, 1).toUpperCase();
+async function toggleFeatured(id, featured){
+    const r = await api(API.productUpdate(id), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ featured })
+    });
+    if (!r.ok) { toast(r.message || 'Update failed', 'error'); return; }
+    toast(featured ? 'Marked as featured' : 'Unfeatured', 'success');
+    loadProducts();
 }
 
-/* ══ Init ══ */
-document.addEventListener('DOMContentLoaded', () => {
-    if (!AdminSession.getToken()) return AdminSession.redirectToLogin();
-
-    document.querySelectorAll('#giftMenu .item').forEach(el => {
-        el.addEventListener('click', () => showSection(el.dataset.section));
+function openPricingModal(product){
+    if (!product) return;
+    const currentMode = product.pricing_mode || 'global';
+    const currentValue = product.pricing_value || '';
+    openModal({
+        title: `Pricing — ${product.display_name || product.brand}`,
+        confirmLabel: 'Save pricing',
+        bodyHtml: `
+            <p class="note">The customer price is recomputed from the provider cost using the mode you pick here.</p>
+            <label>Mode</label>
+            <select id="mMode">
+                <option value="global" ${currentMode === 'global' ? 'selected' : ''}>Global markup (default)</option>
+                <option value="markup_pct" ${currentMode === 'markup_pct' ? 'selected' : ''}>Custom markup %</option>
+                <option value="fixed_ngn" ${currentMode === 'fixed_ngn' ? 'selected' : ''}>Fixed NGN price</option>
+                <option value="fixed_usd" ${currentMode === 'fixed_usd' ? 'selected' : ''}>Fixed USD price</option>
+            </select>
+            <label style="margin-top:10px">Value</label>
+            <input type="text" id="mValue" value="${esc(currentValue)}" placeholder="0.10 or 12500.00">
+            <label style="margin-top:10px">Reason (required)</label>
+            <textarea id="mReason"></textarea>
+            <div class="err" id="mErr"></div>
+        `,
+        onConfirm: async () => {
+            const mode = document.getElementById('mMode').value;
+            const value = document.getElementById('mValue').value.trim();
+            const reason = document.getElementById('mReason').value.trim();
+            const errEl = document.getElementById('mErr');
+            errEl.classList.remove('show');
+            if (reason.length < 4) { errEl.textContent = 'Reason required.'; errEl.classList.add('show'); return false; }
+            if (mode !== 'global' && !value) { errEl.textContent = 'Value is required for this mode.'; errEl.classList.add('show'); return false; }
+            const r = await api(API.productPricing(product.id), {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mode,
+                    value: mode === 'global' ? null : value,
+                    reason,
+                    expected_updated_at: product.price_updated_at || null
+                })
+            });
+            if (!r.ok) { errEl.textContent = r.message || 'Update failed.'; errEl.classList.add('show'); return false; }
+            toast('Pricing updated', 'success');
+            loadProducts();
+            return true;
+        }
     });
+}
 
-    document.getElementById('hamburger')?.addEventListener('click', openSidebar);
-    document.getElementById('scrim')?.addEventListener('click', closeSidebar);
-
-    document.getElementById('refreshBtn')?.addEventListener('click', () => {
-        loadOverview();
-        const active = document.querySelector('#giftMenu .item.active')?.dataset.section;
-        if (active) showSection(active);
+async function refreshCosts(){
+    openModal({
+        title: 'Refresh provider costs',
+        confirmLabel: 'Refresh',
+        bodyHtml: `
+            <p class="note">Re-reads the current wholesale price from the provider for up to 25 enabled products, recomputes customer prices, and reports any products now below cost or unavailable.</p>
+            <div class="err" id="refreshErr"></div>
+        `,
+        onConfirm: async () => {
+            const errEl = document.getElementById('refreshErr');
+            errEl.classList.remove('show');
+            const r = await api(API.refreshCosts, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ limit: 25 })
+            });
+            if (!r.ok) { errEl.textContent = r.message || 'Refresh failed.'; errEl.classList.add('show'); return false; }
+            const d = r.data;
+            toast(`Checked ${d.checked}, updated ${d.updated}${d.belowCost.length ? `, ${d.belowCost.length} below cost` : ''}`, d.belowCost.length ? 'error' : 'success');
+            loadProducts();
+            return true;
+        }
     });
+}
 
-    document.getElementById('oApply')?.addEventListener('click', () => {
-        State.filters = {
-            search: document.getElementById('oSearch').value.trim(),
-            status: document.getElementById('oStatus').value,
-            from: document.getElementById('oFrom').value,
-            to: document.getElementById('oTo').value
+// ─── Pricing ──────────────────────────────────────────────
+let pricingWired = false;
+function wirePricing(){
+    if (pricingWired) return;
+    pricingWired = true;
+
+    document.getElementById('pSave').addEventListener('click', savePricing);
+    document.getElementById('calcRun').addEventListener('click', runCalculator);
+}
+
+async function loadPricingConfig(){
+    const el = document.getElementById('pricingCurrent');
+    if (!el) return;
+    el.innerHTML = '<div class="empty-box"><i class="fas fa-circle-notch fa-spin"></i></div>';
+
+    const r = await api(API.pricingGet);
+    if (!r.ok){
+        el.innerHTML = `<div class="unavailable-box">${esc(r.message)}</div>`;
+        return;
+    }
+    State.pricingConfig = r.data;
+    const d = r.data.display || {};
+
+    el.innerHTML = `
+        <div class="row"><span class="k">USD → NGN</span><span class="v">${esc(r.data.usdToNgn || '—')}</span></div>
+        <div class="row"><span class="k">USD markup</span><span class="v">${esc(d.markupUsdPct || '—')}</span></div>
+        <div class="row"><span class="k">NGN markup</span><span class="v">${esc(d.markupNgnPct || '—')}</span></div>
+        <div class="row"><span class="k">Version</span><span class="v">${esc(r.data.pricingVersion || '—')}</span></div>
+    `;
+
+    document.getElementById('pUsdNgn').value = r.data.usdToNgn || '';
+    // Convert stored decimal (0.1570) to display percent (15.7) client-side,
+    // but only for populating the input — the value sent back is converted
+    // to decimal before submitting.
+    document.getElementById('pMarkupUsd').value = (parseFloat(r.data.markupUsd || 0) * 100).toFixed(2);
+    document.getElementById('pMarkupNgn').value = (parseFloat(r.data.markupNgn || 0) * 100).toFixed(2);
+}
+
+async function savePricing(){
+    const usdNgn = document.getElementById('pUsdNgn').value.trim();
+    const markupUsd = document.getElementById('pMarkupUsd').value.trim();
+    const markupNgn = document.getElementById('pMarkupNgn').value.trim();
+    const reason = document.getElementById('pReason').value.trim();
+
+    if (reason.length < 4){ toast('Reason required (min 4 chars).', 'error'); return; }
+
+    // Convert display percent (15.7) → decimal (0.1570) using string math
+    // so the wire format is exactly what adminSettings expects.
+    const toDecimal = (pctStr) => {
+        const s = String(pctStr).trim();
+        if (!/^\d+(\.\d+)?$/.test(s)) throw new Error(`Invalid percent: ${s}`);
+        const [intP, fracP = ''] = s.split('.');
+        const paddedFrac = (fracP + '0000').slice(0, 4);
+        const wholePart = intP === '0' ? '0' : intP.slice(0, -2) || '0';
+        const takeFromInt = intP.length < 2 ? intP.padStart(2, '0') : intP.slice(-2);
+        const combined = wholePart + '.' + (takeFromInt + paddedFrac).slice(0, 6).replace(/0+$/, '') || '0';
+        const [w, f = ''] = combined.split('.');
+        return w + '.' + (f + '0000').slice(0, 4);
+    };
+
+    let patch;
+    try {
+        patch = {
+            usd_to_ngn: usdNgn,
+            giftcard_markup_pct_usd: toDecimal(markupUsd),
+            giftcard_markup_pct_ngn: toDecimal(markupNgn)
         };
-        State.orderPage = 1;
-        loadOrders();
-    });
-    document.getElementById('oClear')?.addEventListener('click', () => {
-        document.getElementById('oSearch').value = '';
-        document.getElementById('oStatus').value = 'all';
-        document.getElementById('oFrom').value = '';
-        document.getElementById('oTo').value = '';
-        State.filters = {};
-        State.orderPage = 1;
-        loadOrders();
-    });
-    document.getElementById('ordersPrev')?.addEventListener('click', () => {
-        if (State.orderPage > 1) { State.orderPage--; loadOrders(); }
-    });
-    document.getElementById('ordersNext')?.addEventListener('click', () => {
-        if (State.orderPage < State.orderTotalPages) { State.orderPage++; loadOrders(); }
-    });
+    } catch (e) {
+        toast(e.message, 'error');
+        return;
+    }
 
-    document.getElementById('dClose')?.addEventListener('click', closeDrawer);
-    document.getElementById('drawerScrim')?.addEventListener('click', closeDrawer);
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
-            closeDrawer();
-            closeSidebar();
-            document.getElementById('modalScrim').classList.remove('show');
+    const r = await api(API.pricingPut, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            patch,
+            reason,
+            expectedVersion: State.pricingConfig?.pricingVersion
+        })
+    });
+    if (!r.ok){ toast(r.message || 'Save failed', 'error'); return; }
+    toast('Pricing saved', 'success');
+    document.getElementById('pReason').value = '';
+    loadPricingConfig();
+}
+
+async function runCalculator(){
+    const wholesale = document.getElementById('calcWholesale').value.trim();
+    const currency = document.getElementById('calcCurrency').value;
+    const mode = document.getElementById('calcMode').value;
+    const value = document.getElementById('calcValue').value.trim();
+    const resultEl = document.getElementById('calcResult');
+
+    if (!wholesale){ resultEl.innerHTML = '<div class="empty-box">Enter a wholesale amount.</div>'; return; }
+
+    const r = await api(API.preview, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            wholesale_amount: wholesale,
+            wholesale_currency: currency,
+            mode,
+            value: mode === 'global' ? null : value
+        })
+    });
+    if (!r.ok){ resultEl.innerHTML = `<div class="unavailable-box">${esc(r.message)}</div>`; return; }
+
+    const d = r.data;
+    resultEl.innerHTML = `
+        <div class="row"><span class="k">Cost (NGN)</span><span class="v">${fmtMoney(d.costNgn, 'NGN') || '—'}</span></div>
+        <div class="row"><span class="k">Cost (USD)</span><span class="v">${fmtMoney(d.costUsd, 'USD') || '—'}</span></div>
+        <div class="row big"><span class="k">Customer (NGN)</span><span class="v">${fmtMoney(d.priceNgn, 'NGN') || '—'}</span></div>
+        <div class="row big"><span class="k">Customer (USD)</span><span class="v">${fmtMoney(d.priceUsd, 'USD') || '—'}</span></div>
+        <div class="row"><span class="k">Profit (NGN)</span><span class="v">${fmtMoney(d.profitNgn, 'NGN') || '—'}</span></div>
+        <div class="row"><span class="k">Margin</span><span class="v">${esc(String(d.marginPct || 0))}%</span></div>
+    `;
+}
+
+// ─── Attention / Refunds / Provider ───────────────────────
+async function loadAttention(){
+    const tb = document.getElementById('attentionBody');
+    if (!tb) return;
+    tb.innerHTML = '<tr><td colspan="7"><div class="empty-box"><i class="fas fa-circle-notch fa-spin"></i></div></td></tr>';
+
+    // Three separate queries, merged.
+    const [failed, recon, refundPending] = await Promise.all([
+        api(API.orders + '?status=failed&limit=50'),
+        api(API.orders + '?status=reconciliation_required&limit=50'),
+        api(API.orders + '?status=refund_pending&limit=50')
+    ]);
+
+    const merged = [];
+    for (const r of [failed, recon, refundPending]) {
+        if (r.ok) {
+            for (const o of r.data.orders || []) merged.push(o);
         }
+    }
+
+    if (!merged.length) {
+        tb.innerHTML = '<tr><td colspan="7"><div class="empty-box"><i class="fas fa-check-circle" style="color:var(--success)"></i>Nothing needs attention</div></td></tr>';
+        return;
+    }
+
+    tb.innerHTML = merged.map(o => `
+        <tr class="row-clickable" data-id="${esc(o.id)}">
+            <td data-label="Order"><span style="font-family:'JetBrains Mono',monospace;font-size:11px">${esc(o.order_ref || '—')}</span></td>
+            <td data-label="User">${esc(o.user?.username || '—')}</td>
+            <td data-label="Product">${esc(o.brand || '—')} ${o.face_value != null ? esc(o.face_value + ' ' + (o.face_currency || '')) : ''}</td>
+            <td data-label="Price">${fmtMoney(o.customer_price_ngn, 'NGN') || '—'}</td>
+            <td data-label="Status"><span class="badge ${statusBadge(o.status)}">${esc(o.status)}</span></td>
+            <td data-label="Reason" style="max-width:260px">${esc(o.failure_reason || '—')}</td>
+            <td data-label="" style="text-align:right"><button class="btn btn-sm" data-open="${esc(o.id)}" type="button">View</button></td>
+        </tr>`).join('');
+
+    tb.querySelectorAll('tr[data-id]').forEach(tr => tr.addEventListener('click', () => openOrder(tr.dataset.id)));
+}
+
+async function loadRefunds(){
+    const tb = document.getElementById('refundsBody');
+    if (!tb) return;
+    tb.innerHTML = '<tr><td colspan="5"><div class="empty-box"><i class="fas fa-circle-notch fa-spin"></i></div></td></tr>';
+
+    const r = await api(API.orders + '?status=refunded&limit=100');
+    if (!r.ok){
+        tb.innerHTML = `<tr><td colspan="5"><div class="unavailable-box">${esc(r.message)}</div></td></tr>`;
+        return;
+    }
+    const rows = r.data.orders || [];
+    if (!rows.length){
+        tb.innerHTML = '<tr><td colspan="5"><div class="empty-box"><i class="fas fa-inbox"></i>No refunds yet</div></td></tr>';
+        return;
+    }
+    tb.innerHTML = rows.map(o => `
+        <tr class="row-clickable" data-id="${esc(o.id)}">
+            <td data-label="Order"><span style="font-family:'JetBrains Mono',monospace;font-size:11px">${esc(o.order_ref || '—')}</span></td>
+            <td data-label="User">${esc(o.user?.username || '—')}</td>
+            <td data-label="Refunded">${fmtMoney(o.customer_price_ngn, 'NGN') || '—'}</td>
+            <td data-label="Reference"><span style="font-family:'JetBrains Mono',monospace;font-size:11px">${esc(o.refund_transaction_id || '—')}</span></td>
+            <td data-label="Refunded at">${esc(fmtDateTime(o.refunded_at))}</td>
+        </tr>`).join('');
+    tb.querySelectorAll('tr[data-id]').forEach(tr => tr.addEventListener('click', () => openOrder(tr.dataset.id)));
+}
+
+async function loadProviderDetail(){
+    const el = document.getElementById('providerDetail');
+    if (!el) return;
+    el.innerHTML = '<div class="empty-box"><i class="fas fa-circle-notch fa-spin"></i></div>';
+
+    const r = await api(API.providerHealth);
+    if (!r.ok){
+        el.innerHTML = `<div class="unavailable-box">${esc(r.message)}</div>`;
+        return;
+    }
+    renderProviderHealthInto(el, r.data.health || {});
+
+    // Add the test button below the health card
+    const extra = document.createElement('button');
+    extra.className = 'btn btn-primary';
+    extra.type = 'button';
+    extra.style.marginTop = '12px';
+    extra.innerHTML = '<i class="fas fa-heart-pulse"></i> Test connection';
+    extra.addEventListener('click', async () => {
+        extra.disabled = true;
+        const rr = await api(API.providerCheck, { method: 'POST' });
+        extra.disabled = false;
+        if (!rr.ok) { toast(rr.message || 'Test failed', 'error'); return; }
+        toast(rr.data.reachable ? 'Reachable' : 'Unreachable', rr.data.reachable ? 'success' : 'error');
+        loadProviderDetail();
     });
+    el.appendChild(extra);
+}
 
-    loadAdminProfile();
-    loadOverview();
-});
-
+// ─── Expose helpers for inline onclick hooks ─────────────
 window.loadOrders = loadOrders;
+window.loadProducts = loadProducts;
+window.loadCatalog = loadCatalog;
+window.loadOverview = loadOverview;
+
 </script>
 </body>
 </html>

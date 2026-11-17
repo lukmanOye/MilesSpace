@@ -1,25 +1,26 @@
 // routes/admin/transactionAdminRoutes.js
 // ─────────────────────────────────────────────────────────────────
-// REVISION 2026-11-04 (Batch 6)
+// REVISION 2026-11-13 (Batch 7) — adds transaction feedback.
 //
 // Admin Transactions — ROUTES.
 //
-// Fixes vs. Batch 5:
-//   • The trailing JSON 404 is now SCOPED to ['/transactions', '/refunds'].
-//     Batch 5's unscoped `router.use((req,res)=>...)` swallowed every
-//     sibling /api/admin/* route (meRoutes, permissionsRoutes,
-//     stepUpRoutes, dashboardRoutes, …) because this router is mounted
-//     at the shared /api/admin prefix. That made GET /api/admin/me
-//     return {code:'ROUTE_NOT_FOUND'} and broke the whole admin UI.
-//   • The rate-limiter cleanup interval is wrapped in try/catch so
-//     process shutdown can't throw out of it.
-//   • Scoped 404 sets no-store so a browser can't cache a miss.
+// Adds vs. Batch 6:
+//   • GET  /feedback                   (TRANSACTIONS_READ)
+//   • GET  /feedback/summary           (TRANSACTIONS_READ)
+//   • PUT  /feedback/:id/review        (TRANSACTIONS_RESOLVE)
+//   • GET  /feedback/export            (REPORTS_EXPORT)
+//   • SAFE_500 entries for the feedback service's stable codes.
+//   • Scoped middleware + scoped 404 now include /feedback so admin
+//     headers and the JSON 404 apply there too.
 //
-// Unchanged vs. Batch 5:
+// Preserved from Batch 6:
+//   • Scoped `router.use(['/transactions', '/refunds'], …)` — never
+//     an unscoped middleware, so sibling mounts (meRoutes,
+//     permissionsRoutes, dashboardRoutes, …) keep working.
 //   • Cache-Control: no-store + X-Content-Type-Options: nosniff on
-//     every response under /transactions and /refunds.
-//   • In-memory rate limiting on refund, approve, reject, export,
-//     and status endpoints.
+//     every response under this router's own prefixes.
+//   • In-memory rate limiting on refund, approve, reject, export
+//     and status.
 //   • Endpoints: /transactions/types, /refunds/:id/approve,
 //     /refunds/:id/reject.
 //   • Input validation → 422 with UI-renderable codes.
@@ -42,22 +43,14 @@ const {
 const { requireStepUpAuth } = require('../../middleware/adminStepUp');
 const txAdmin = require('../../services/transactionAdminService');
 const refundSvc = require('../../services/refundService');
+const fbAdmin = require('../../services/feedbackAdminService');
 const { supabaseAdmin } = require('../../db/supabase');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const IDEMPOTENCY_KEY_RE = /^[A-Za-z0-9._:\-]{8,200}$/;
 const MAX_REFUND_AMOUNT = refundSvc.MAX_REFUND_AMOUNT || 10_000_000;
 
-// Step-up error codes emitted by adminStepUp.js (Batch 0):
-//   STEP_UP_EXPIRED     403 — verification is stale, prompt to re-verify
-//   MFA_REQUIRED        403 — no verification at all for this session
-//   SESSION_EXPIRED     401 — the whole session is gone; sign in again
-//   SESSION_NOT_FOUND   401 — session row missing
-//   SESSION_REVOKED     401 — revoked
-//   STEP_UP_UNAVAILABLE 503 — auth DB failure
-//   STEP_UP_ERROR       500 — anything else
-// The UI must handle STEP_UP_EXPIRED and MFA_REQUIRED by prompting
-// for MFA and retrying with the SAME Idempotency-Key.
+// Step-up error codes emitted by adminStepUp.js.
 const STEP_UP_CODES = Object.freeze({
     EXPIRED: 'STEP_UP_EXPIRED',
     MFA_REQUIRED: 'MFA_REQUIRED',
@@ -69,9 +62,6 @@ const STEP_UP_CODES = Object.freeze({
 });
 
 // ─── Safe error messages ────────────────────────────────────────
-// For 5xx, only the code-to-message table decides what the client
-// sees. Anything not in the table returns a generic message. Raw
-// DB / provider text goes to the server log with the request ID.
 const SAFE_500 = {
     TX_LIST_FAILED:                   'Could not load transactions.',
     TX_RECENT_FAILED:                 'Could not load recent transactions.',
@@ -95,7 +85,15 @@ const SAFE_500 = {
     PROVIDER_REFUND_DISPATCH_FAILED:  'Provider refund dispatch failed.',
     LEDGER_REJECTED:                  'The ledger rejected the operation.',
     RECONCILE_REQUIRED:               'The operation is in a reconcilable state. Contact engineering.',
-    PERMISSION_SERVICE_UNAVAILABLE:   'Permission service unavailable. Please try again.'
+    PERMISSION_SERVICE_UNAVAILABLE:   'Permission service unavailable. Please try again.',
+
+    // Feedback (Batch 7)
+    FB_LIST_FAILED:                   'Could not load feedback.',
+    FB_SUMMARY_FAILED:                'Could not load feedback summary.',
+    FB_EXPORT_FAILED:                 'Could not export feedback.',
+    FB_LOOKUP_FAILED:                 'Could not load feedback.',
+    FB_UPDATE_FAILED:                 'Could not update feedback.',
+    FB_NOT_FOUND:                     'Feedback not found.',
 };
 
 function sendOk(res, payload) {
@@ -175,7 +173,6 @@ function strOnly(v, maxLen = 500) {
 function isoDateOrNull(v) {
     const s = strOnly(v, 40);
     if (!s) return null;
-    // Accept YYYY-MM-DD or full ISO.
     if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
     const d = new Date(s);
     if (isNaN(d.getTime())) return null;
@@ -213,7 +210,7 @@ function requireIdempotencyKey(req) {
         throw e;
     }
     const s = raw.trim();
-    if (!IDEMPOTENCY_KEY_RE.match(s)) {
+    if (!IDEMPOTENCY_KEY_RE.test(s)) {
         const e = new Error('Idempotency-Key must be 8-200 characters using A-Z a-z 0-9 . _ : -');
         e.code = 'INVALID_IDEMPOTENCY_KEY';
         e.status = 422;
@@ -298,29 +295,22 @@ function adminResponseHeaders(req, res, next) {
     next();
 }
 
-// Scoped so a sibling mount (/api/admin/me, /api/admin/permissions,
-// …) can never be affected by these middlewares. Batch 5 wrote
-// `router.use('/transactions', …)` at the very top of a file that is
-// mounted at /api/admin — harmless because the path is scoped — but
-// the pattern is easy to get wrong, so this comment block now
-// documents the rule: EVERY middleware and EVERY fallback in this
-// file must carry a path.
-router.use(['/transactions', '/refunds'], adminResponseHeaders);
-router.use(['/transactions', '/refunds'], attachRequestId);
+// Scoped so a sibling mount can never be affected by these.
+// Rule: EVERY middleware and EVERY fallback in this file MUST
+// carry a path prefix. Add '/feedback' here when its routes are
+// added below.
+router.use(['/transactions', '/refunds', '/feedback'], adminResponseHeaders);
+router.use(['/transactions', '/refunds', '/feedback'], attachRequestId);
 
 // ─── In-memory rate limiter ─────────────────────────────────────
-// Small, dependency-free. Buckets per (adminId || ip) per route
-// family. Not shared across processes — acceptable for a single
-// Node instance. Replace with a shared store (Redis) if you scale
-// horizontally; the interface is one function.
 
-const RATE_BUCKETS = new Map();   // key → { count, resetAt }
+const RATE_BUCKETS = new Map();
 const RATE_LIMITS = {
-    refund:  { max: 10,  windowMs: 60_000 },     // 10 refunds / min / admin
-    approve: { max: 20,  windowMs: 60_000 },     // 20 approvals / min / admin
+    refund:  { max: 10,  windowMs: 60_000 },
+    approve: { max: 20,  windowMs: 60_000 },
     reject:  { max: 20,  windowMs: 60_000 },
-    status:  { max: 30,  windowMs: 60_000 },     // 30 status changes / min / admin
-    export:  { max: 3,   windowMs: 60_000 }      // 3 exports / min / admin
+    status:  { max: 30,  windowMs: 60_000 },
+    export:  { max: 3,   windowMs: 60_000 }
 };
 
 function rateLimit(name) {
@@ -354,9 +344,6 @@ function rateLimit(name) {
     };
 }
 
-// Periodic cleanup — drop expired buckets so the map doesn't grow
-// unbounded on a long-running process. Never throw out of the
-// interval: a stray error here must not crash shutdown.
 const _rateCleanupInterval = setInterval(() => {
     try {
         const now = Date.now();
@@ -364,7 +351,6 @@ const _rateCleanupInterval = setInterval(() => {
             if (now >= b.resetAt) RATE_BUCKETS.delete(k);
         }
     } catch (e) {
-        // Never let cleanup crash the process.
         console.warn('[ADMIN TX] rate-bucket cleanup error:', e && e.message);
     }
 }, 60_000);
@@ -407,9 +393,6 @@ router.get(
     }
 );
 
-// ─── Type registry ──────────────────────────────────────────────
-// The UI filter dropdown reads from this. One source: the shared
-// transactionTypes module.
 router.get(
     '/transactions/types',
     requirePermission(PERMISSIONS.TRANSACTIONS_READ),
@@ -423,9 +406,6 @@ router.get(
     }
 );
 
-// ─── Export ─────────────────────────────────────────────────────
-// Audit BEFORE streaming. If the audit row can't be written, the
-// file is not generated. Filename uses ISO date in WAT.
 router.get(
     '/transactions/export',
     requirePermission(PERMISSIONS.REPORTS_EXPORT),
@@ -446,7 +426,6 @@ router.get(
 
             const result = await txAdmin.exportTransactions(filters);
 
-            // Audit insert — before the file leaves the server.
             const auditReason = `Exported ${result.rowCount} row(s) with filters: ${JSON.stringify(filters)}`.slice(0, 500);
             const { error: auditErr } = await supabaseAdmin
                 .from('admin_audit_logs')
@@ -477,7 +456,6 @@ router.get(
                 });
             }
 
-            // Filename: transactions_2026-11-03_<timestamp>.csv (WAT date)
             const watDate = new Intl.DateTimeFormat('en-CA', {
                 timeZone: 'Africa/Lagos',
                 year: 'numeric', month: '2-digit', day: '2-digit'
@@ -487,11 +465,133 @@ router.get(
             res.setHeader('Content-Type', 'text/csv; charset=utf-8');
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
             res.setHeader('X-Export-Row-Count', String(result.rowCount));
-            if (result.truncated) {
-                res.setHeader('X-Export-Truncated', 'true');
-            }
+            if (result.truncated) res.setHeader('X-Export-Truncated', 'true');
             res.setHeader('X-Export-Timezone', result.timezone || 'Africa/Lagos');
             res.send(result.csv);
+        } catch (err) { sendErr(res, err, ctx); }
+    }
+);
+
+// ═════════════════════════════════════════════════════════════════
+//  FEEDBACK (declared before /transactions/:id, /feedback/:id)
+// ═════════════════════════════════════════════════════════════════
+
+router.get(
+    '/feedback',
+    requirePermission(PERMISSIONS.TRANSACTIONS_READ),
+    async (req, res) => {
+        const ctx = adminCtx(req);
+        try {
+            const result = await fbAdmin.listFeedback({
+                rating:        strOnly(req.query.rating, 4),
+                review_status: strOnly(req.query.review_status, 20),
+                type:          strOnly(req.query.type, 20),
+                from:          isoDateOrNull(req.query.from),
+                to:            isoDateOrNull(req.query.to),
+                search:        strOnly(req.query.search, 100),
+                page:          intOrNull(req.query.page, { min: 1, max: 100_000 }) || 1,
+                limit:         intOrNull(req.query.limit, { min: 1, max: 200 }) || 25
+            });
+            sendOk(res, result);
+        } catch (err) { sendErr(res, err, ctx); }
+    }
+);
+
+router.get(
+    '/feedback/summary',
+    requirePermission(PERMISSIONS.TRANSACTIONS_READ),
+    async (req, res) => {
+        const ctx = adminCtx(req);
+        try {
+            const result = await fbAdmin.getSummary({
+                from: isoDateOrNull(req.query.from),
+                to:   isoDateOrNull(req.query.to)
+            });
+            sendOk(res, { summary: result });
+        } catch (err) { sendErr(res, err, ctx); }
+    }
+);
+
+router.get(
+    '/feedback/export',
+    requirePermission(PERMISSIONS.REPORTS_EXPORT),
+    async (req, res) => {
+        const ctx = adminCtx(req);
+        try {
+            const result = await fbAdmin.exportCsv({
+                rating:        strOnly(req.query.rating, 4),
+                review_status: strOnly(req.query.review_status, 20),
+                type:          strOnly(req.query.type, 20),
+                from:          isoDateOrNull(req.query.from),
+                to:            isoDateOrNull(req.query.to),
+                search:        strOnly(req.query.search, 100)
+            });
+
+            const auditReason = `Exported ${result.rowCount} feedback row(s)`.slice(0, 500);
+            const { error: auditErr } = await supabaseAdmin
+                .from('admin_audit_logs')
+                .insert({
+                    admin_id:    ctx.adminId,
+                    admin_email: ctx.adminEmail,
+                    action:      'transaction.feedback_export',
+                    target_type: 'transaction_feedback_export',
+                    target_id:   null,
+                    reason:      auditReason,
+                    ip_address:  ctx.ip,
+                    user_agent:  ctx.userAgent,
+                    request_id:  ctx.requestId,
+                    created_at:  new Date().toISOString()
+                });
+
+            if (auditErr) {
+                console.error('[ADMIN TX] feedback export audit failed', {
+                    requestId: ctx.requestId,
+                    adminId: ctx.adminId,
+                    error: auditErr.message
+                });
+                return res.status(500).json({
+                    success: false,
+                    code: 'EXPORT_AUDIT_FAILED',
+                    error: SAFE_500.EXPORT_AUDIT_FAILED,
+                    requestId: ctx.requestId
+                });
+            }
+
+            const watDate = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Africa/Lagos',
+                year: 'numeric', month: '2-digit', day: '2-digit'
+            }).format(new Date());
+            const filename = `feedback_${watDate}_${Date.now()}.csv`;
+
+            res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            res.setHeader('X-Export-Row-Count', String(result.rowCount));
+            if (result.truncated) res.setHeader('X-Export-Truncated', 'true');
+            res.setHeader('X-Export-Timezone', result.timezone || 'Africa/Lagos');
+            res.send(result.csv);
+        } catch (err) { sendErr(res, err, ctx); }
+    }
+);
+
+// PUT must be declared before the /:id route to avoid the /:id
+// matcher shadowing this. Express is method-aware, so `PUT /:id/review`
+// vs `GET /:id` don't collide, but keeping PUT above GET /:id keeps
+// the intent obvious when scanning the file.
+router.put(
+    '/feedback/:id/review',
+    requirePermission(PERMISSIONS.TRANSACTIONS_RESOLVE),
+    async (req, res, next) => {
+        if (!UUID_RE.test(String(req.params.id || ''))) return next();
+        const ctx = adminCtx(req);
+        try {
+            const result = await fbAdmin.reviewFeedback({
+                id: req.params.id,
+                review_status: req.body?.review_status,
+                admin_note:    req.body?.admin_note,
+                reason:        req.body?.reason,
+                ctx
+            });
+            sendOk(res, result);
         } catch (err) { sendErr(res, err, ctx); }
     }
 );
@@ -527,7 +627,7 @@ router.get(
 );
 
 // ═════════════════════════════════════════════════════════════════
-//  PARAM ROUTES (each validates :id is a UUID)
+//  PARAM ROUTES
 // ═════════════════════════════════════════════════════════════════
 
 router.get(
@@ -548,7 +648,6 @@ router.get(
     }
 );
 
-// ─── Status change ──────────────────────────────────────────────
 router.put(
     '/transactions/:id/status',
     requirePermission(PERMISSIONS.TRANSACTIONS_RESOLVE),
@@ -578,7 +677,6 @@ router.put(
     }
 );
 
-// ─── Refund (step-up + idempotency-required + rate-limited) ────
 router.post(
     '/transactions/:id/refund',
     requirePermission(PERMISSIONS.TRANSACTIONS_REFUND),
@@ -604,7 +702,6 @@ router.post(
     }
 );
 
-// ─── Note ───────────────────────────────────────────────────────
 router.post(
     '/transactions/:id/note',
     requirePermission(PERMISSIONS.TRANSACTIONS_RESOLVE),
@@ -624,7 +721,7 @@ router.post(
 );
 
 // ═════════════════════════════════════════════════════════════════
-//  REFUNDS — listing + approve/reject
+//  REFUNDS
 // ═════════════════════════════════════════════════════════════════
 
 router.get(
@@ -656,9 +753,6 @@ router.get(
     }
 );
 
-// ─── Approve a pending refund ───────────────────────────────────
-// Step-up required (financial action). Approver ≠ requester is
-// enforced inside the RPC. Rate-limited.
 router.post(
     '/refunds/:id/approve',
     requirePermission(PERMISSIONS.TRANSACTIONS_REFUND),
@@ -681,7 +775,6 @@ router.post(
     }
 );
 
-// ─── Reject a pending refund ────────────────────────────────────
 router.post(
     '/refunds/:id/reject',
     requirePermission(PERMISSIONS.TRANSACTIONS_REFUND),
@@ -704,22 +797,9 @@ router.post(
 
 // ═════════════════════════════════════════════════════════════════
 //  SCOPED 404 — only for this router's own prefixes.
-//
-//  This router is mounted at /api/admin alongside meRoutes,
-//  permissionsRoutes, stepUpRoutes, dashboardRoutes, settingsRoutes,
-//  and many more. An UNSCOPED `router.use((req,res)=>...)` here
-//  would swallow every sibling mount because Express falls through
-//  to the next matching layer in registration order.
-//
-//  Scoping by path guarantees that a request for /api/admin/me falls
-//  through this router untouched and reaches meRoutes.
-//
-//  Rule for this file: every middleware and every fallback must
-//  carry a path.
 // ═════════════════════════════════════════════════════════════════
-router.use(['/transactions', '/refunds'], (req, res) => {
+router.use(['/transactions', '/refunds', '/feedback'], (req, res) => {
     if (res.headersSent) return;
-    // Belt-and-braces: never cache a miss.
     try {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.setHeader('Pragma', 'no-cache');

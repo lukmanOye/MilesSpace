@@ -180,7 +180,7 @@
 
   // ─── API WRAPPER with AbortController + step-up ────────────
   async function api(url, opts = {}) {
-    const mySeq = ++_requestSeq;
+    // const mySeq = ++_requestSeq;
     const ctrl = new AbortController();
     const { signal: userSignal, ...rest } = opts;
 
@@ -197,9 +197,9 @@
       const res = await AdminSession.fetch(url, { ...rest, signal: ctrl.signal });
 
       // If a newer call started, ignore this response.
-      if (mySeq !== _requestSeq) {
-        return { ok: false, aborted: true, stale: true };
-      }
+      // if (mySeq !== _requestSeq) {
+      //   return { ok: false, aborted: true, stale: true };
+      // }
 
       let json = null;
       const ct = res.headers.get('content-type') || '';

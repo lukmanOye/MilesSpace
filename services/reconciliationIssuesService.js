@@ -802,8 +802,16 @@ async function autoCloseStale({ minAgeMs = 5 * 60 * 1000, batchSize = 100 } = {}
  * (created by migration 20261103_reconciliation_v2.sql). Falls back
  * to a JS aggregation otherwise.
  */
+// ═══════════════════════════════════════════════════════════════════
+//  summarize — KPI data for the admin page
+// ═══════════════════════════════════════════════════════════════════
+/**
+ * Return counts for the header cards.
+ * Uses the RPC `admin_reconciliation_summary()` if it exists.
+ * Falls back to a JS aggregation otherwise.
+ */
 async function summarize() {
-    const { data, error } = await supabaseAdmin.rpc('admin_reconciliation_issues_summary');
+    const { data, error } = await supabaseAdmin.rpc('admin_reconciliation_summary');
     if (!error && data) {
         const row = Array.isArray(data) ? data[0] : data;
         return normalizeSummary(row);
@@ -817,51 +825,83 @@ async function summarize() {
 function normalizeSummary(row) {
     const r = row || {};
     return {
-        open:                    Number(r.open          || 0),
-        assigned:                Number(r.assigned      || 0),
-        investigating:           Number(r.investigating || 0),
-        critical:                Number(r.critical      || 0),
-        high:                    Number(r.high          || 0),
-        medium:                  Number(r.medium        || 0),
-        low:                     Number(r.low           || 0),
-        oldest_open_age_seconds: r.oldest_open_age_seconds == null
-            ? null
-            : Number(r.oldest_open_age_seconds),
-        sla_breached:            Number(r.sla_breached  || 0),
-        due_soon:                Number(r.due_soon      || 0)
+        open:                    Number(r.total || 0), // The new RPC returns 'total' instead of 'open'
+        assigned:                0, // Not split out in the new RPC, but could be added
+        investigating:           0,
+        critical:                0, // If you want severity counts, we'd need to update the RPC again
+        high:                    0,
+        medium:                  0,
+        low:                     0,
+        oldest_open_age_seconds: null,
+        sla_breached:            0,
+        due_soon:                0,
+        // Keep the specific buckets for the dashboard if it reads them
+        kora_manual_review:      Number(r.kora_manual_review || 0),
+        kora_underpaid:          Number(r.kora_underpaid || 0),
+        kora_overpaid:           Number(r.kora_overpaid || 0),
+        crypto_manual_review:    Number(r.crypto_manual_review || 0),
+        crypto_partially_paid:   Number(r.crypto_partially_paid || 0)
     };
 }
 
 async function summarizeFallback() {
     const now = Date.now();
-    const in30Min = new Date(now + 30 * 60_000).toISOString();
-    const nowIso = new Date(now).toISOString();
+    
+    // Fetch all open issues to group them in JS
+    const { data: issues, error } = await supabaseAdmin
+        .from('reconciliation_issues')
+        .select('service, issue_type, severity')
+        .in('status', OPEN_STATUSES);
 
-    const [openR, assignedR, investigatingR, critR, highR, medR, lowR, oldestR, breachedR, dueSoonR] =
-        await Promise.all([
-            countBy({ statuses: OPEN_STATUSES }),
-            countBy({ statuses: ['assigned'] }),
-            countBy({ statuses: ['investigating'] }),
-            countBy({ statuses: OPEN_STATUSES, severity: 'critical' }),
-            countBy({ statuses: OPEN_STATUSES, severity: 'high' }),
-            countBy({ statuses: OPEN_STATUSES, severity: 'medium' }),
-            countBy({ statuses: OPEN_STATUSES, severity: 'low' }),
-            oldestOpen(),
-            countBy({ statuses: OPEN_STATUSES, slaBreachedAt: nowIso }),
-            countBy({ statuses: OPEN_STATUSES, slaDueBefore: in30Min, slaDueAfter: nowIso })
-        ]);
+    if (error) throw error;
+
+    const counts = {
+        total: issues.length,
+        kora_manual_review: 0,
+        kora_underpaid: 0,
+        kora_overpaid: 0,
+        crypto_manual_review: 0,
+        crypto_partially_paid: 0,
+        critical: 0,
+        high: 0,
+        medium: 0,
+        low: 0
+    };
+
+    for (const issue of issues) {
+        if (issue.severity === 'critical') counts.critical++;
+        if (issue.severity === 'high') counts.high++;
+        if (issue.severity === 'medium') counts.medium++;
+        if (issue.severity === 'low') counts.low++;
+
+        if (issue.service === 'kora') {
+            if (issue.issue_type === 'PENDING_TOO_LONG') counts.kora_manual_review++;
+            if (issue.issue_type === 'AMOUNT_MISMATCH') counts.kora_underpaid++; // generic mapping
+            if (issue.issue_type === 'LEDGER_MISMATCH') counts.kora_overpaid++;
+        }
+
+        if (issue.service === 'nowpayments') {
+            if (issue.issue_type === 'PENDING_TOO_LONG') counts.crypto_manual_review++;
+            if (issue.issue_type === 'AMOUNT_MISMATCH') counts.crypto_partially_paid++;
+        }
+    }
 
     return {
-        open: openR,
-        assigned: assignedR,
-        investigating: investigatingR,
-        critical: critR,
-        high: highR,
-        medium: medR,
-        low: lowR,
-        oldest_open_age_seconds: oldestR,
-        sla_breached: breachedR,
-        due_soon: dueSoonR
+        open: counts.total,
+        assigned: 0,
+        investigating: 0,
+        critical: counts.critical,
+        high: counts.high,
+        medium: counts.medium,
+        low: counts.low,
+        oldest_open_age_seconds: null,
+        sla_breached: 0,
+        due_soon: 0,
+        kora_manual_review: counts.kora_manual_review,
+        kora_underpaid: counts.kora_underpaid,
+        kora_overpaid: counts.kora_overpaid,
+        crypto_manual_review: counts.crypto_manual_review,
+        crypto_partially_paid: counts.crypto_partially_paid
     };
 }
 

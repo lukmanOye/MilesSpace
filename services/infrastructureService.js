@@ -1,386 +1,643 @@
-// services/idempotencyService.js
-// Idempotency helper for all money-moving routes.
+// services/infrastructureService.js
+// ─────────────────────────────────────────────────────────────────
+// Infrastructure service for the admin panel.
 //
-// GUARANTEES:
-//   • claim() is atomic. Only one caller acquires a key.
-//   • check() verifies the request fingerprint when one is supplied,
-//     so a reused key with a different payload is rejected — not
-//     silently returned as the old result.
-//   • release() deletes ONLY a still-'processing' row owned by the
-//     caller. It NEVER touches a 'completed' row.
-//   • save() persists the final response. If a completed row already
-//     exists for the same key, it is left untouched (duplicate save).
+// Host-agnostic. Detects Render / Railway / unknown from env at
+// call time, not at require time, so a redeploy with new env vars
+// flips the host without a code change.
 //
-// This file is NOT the sole protection against double credits.
-// The unique index on `transactions.reference` is authoritative.
-// Idempotency here is for returning the SAME response on retry.
+// Caching model:
+//   • Cheap sections (health, overview) are computed per request
+//     from cached primitives (applicationMetrics ring buffer,
+//     database ping, provider_health table). No host API call.
+//   • Expensive sections (usage, server metrics, deployment) are
+//     NEVER computed inside a request. The scheduler calls
+//     refreshSnapshot() every 5 minutes; the routes only read the
+//     cache. If the cache is empty the route returns
+//     { available: false, reason } — never throws.
+//   • Every section carries `stale` (age > TTL) and
+//     `lastUpdatedAt` (ISO timestamp of last successful fetch).
+//
+// Allow-listed shapes only. No env values, tokens, internal URLs,
+// or stack traces are ever returned to the client.
+// ─────────────────────────────────────────────────────────────────
 
 'use strict';
 
-const crypto = require('crypto');
+const axios = require('axios');
 const { supabaseAdmin } = require('../db/supabase');
+const appMetrics = require('./applicationMetricsService');
 
-const IDEMPOTENCY_TTL    = 24 * 60 * 60 * 1000; // 24 hours
-const PG_UNIQUE_VIOLATION = '23505';
+// ─── Constants ───────────────────────────────────────────────────
 
-// Stable fingerprint of an arbitrary JSON-serialisable payload.
-// Order-independent, so {a:1,b:2} and {b:2,a:1} hash the same.
-function stableHash(payload) {
-    if (payload == null) return null;
+const TTL = Object.freeze({
+    health:     30 * 1000,
+    overview:   60 * 1000,
+    usage:      5  * 60 * 1000,   // matches scheduler cadence
+    metrics:    5  * 60 * 1000,
+    deployment: 5  * 60 * 1000
+});
+
+const HTTP_TIMEOUT_MS = 10_000;
+
+// ─── Host detection ─────────────────────────────────────────────
+
+function detectHost(env = process.env) {
+    // Railway: presence of RAILWAY_PROJECT_ID is the strongest signal.
+    if (env.RAILWAY_PROJECT_ID || env.RAILWAY_SERVICE_ID) {
+        const domain = env.RAILWAY_PUBLIC_DOMAIN
+            ? (String(env.RAILWAY_PUBLIC_DOMAIN).startsWith('http')
+                ? env.RAILWAY_PUBLIC_DOMAIN
+                : 'https://' + env.RAILWAY_PUBLIC_DOMAIN)
+            : null;
+        return {
+            name: 'railway',
+            label: 'Railway',
+            url: domain,
+            dashboardUrl: env.RAILWAY_PROJECT_ID
+                ? `https://railway.com/project/${env.RAILWAY_PROJECT_ID}`
+                : null,
+            commit: env.RAILWAY_GIT_COMMIT_SHA || null,
+            deploymentId: env.RAILWAY_DEPLOYMENT_ID || null,
+            api: {
+                tokenPresent: !!env.RAILWAY_API_TOKEN,
+                projectId: env.RAILWAY_PROJECT_ID || null,
+                serviceId: env.RAILWAY_SERVICE_ID || null,
+                environmentId: env.RAILWAY_ENVIRONMENT_ID || null
+            }
+        };
+    }
+
+    // Render.
+    if (env.RENDER || env.RENDER_SERVICE_ID) {
+        const external = env.RENDER_EXTERNAL_URL || null;
+        return {
+            name: 'render',
+            label: 'Render',
+            url: external,
+            dashboardUrl: env.RENDER_SERVICE_ID
+                ? `https://dashboard.render.com/web/${env.RENDER_SERVICE_ID}`
+                : null,
+            commit: env.RENDER_GIT_COMMIT || null,
+            deploymentId: env.RENDER_SERVICE_ID || null,
+            api: {
+                tokenPresent: !!env.RENDER_API_KEY,
+                serviceId: env.RENDER_SERVICE_ID || null
+            }
+        };
+    }
+
+    // Local / unknown.
+    return {
+        name: 'unknown',
+        label: 'Local',
+        url: null,
+        dashboardUrl: null,
+        commit: null,
+        deploymentId: null,
+        api: { tokenPresent: false }
+    };
+}
+
+// ─── In-memory section caches ───────────────────────────────────
+//
+// Each cache entry: { value, fetchedAt }.
+// The scheduler writes; the routes read.
+// Nothing here ever throws to the caller.
+
+const _cache = {
+    usage:      { value: null, fetchedAt: 0 },
+    metrics:    { value: null, fetchedAt: 0 },
+    deployment: { value: null, fetchedAt: 0 }
+};
+
+function _isStale(entry, ttl) {
+    if (!entry || !entry.fetchedAt) return true;
+    return (Date.now() - entry.fetchedAt) > ttl;
+}
+
+function _unavailable(reason, extra = {}) {
+    return {
+        available: false,
+        reason,
+        stale: false,
+        lastUpdatedAt: null,
+        ...extra
+    };
+}
+
+function _cachedOrUnavailable(key, ttl) {
+    const entry = _cache[key];
+    if (!entry.value) {
+        return _unavailable('NOT_YET_FETCHED', { stale: true });
+    }
+    return {
+        ...entry.value,
+        available: true,
+        stale: _isStale(entry, ttl),
+        lastUpdatedAt: new Date(entry.fetchedAt).toISOString()
+    };
+}
+
+// ─── Database ping ──────────────────────────────────────────────
+
+async function _pingDatabase() {
+    const started = Date.now();
     try {
-        const sorted = JSON.stringify(payload, (k, v) => {
-            if (v && typeof v === 'object' && !Array.isArray(v)) {
-                return Object.keys(v).sort().reduce((o, key) => { o[key] = v[key]; return o; }, {});
-            }
-            return v;
-        });
-        return crypto.createHash('sha256').update(sorted).digest('hex');
-    } catch {
-        return null;
-    }
-}
-
-class IdempotencyService {
-
-    // ─── READ ──────────────────────────────────────────────────
-    // Returns:
-    //   • null                        → no record
-    //   • { __in_flight: true }       → another request holds the key
-    //   • { already_processed: true } → completed but no response saved
-    //   • response object             → cached success response
-    //
-    // If `expectedFingerprint` is provided, the stored fingerprint
-    // MUST match, or this throws an idempotency conflict. This is
-    // how a reused key with a different amount gets rejected.
-    static async check(userId, idempotencyKey, endpoint, expectedFingerprint = null) {
-        if (!idempotencyKey) return null;
-
-        const { data, error } = await supabaseAdmin
-            .from('idempotency_keys')
-            .select('response, status, created_at, expires_at, request_fingerprint')
-            .eq('user_id', userId)
-            .eq('idempotency_key', idempotencyKey)
-            .eq('endpoint', endpoint)
-            .maybeSingle();
-
-        if (error) {
-            // A DB read failure is a real problem — don't pretend
-            // there's no record and retry the operation blindly.
-            console.error('[IDEMPOTENCY] check read failed:', error.message);
-            throw new Error(`Idempotency check failed: ${error.message}`);
-        }
-        if (!data) return null;
-        if (data.expires_at && new Date(data.expires_at) < new Date()) return null;
-
-        if (data.status === 'processing') {
-            return { __in_flight: true };
-        }
-
-        // If a fingerprint was supplied, the stored one must match.
-        if (expectedFingerprint && data.request_fingerprint) {
-            if (data.request_fingerprint !== expectedFingerprint) {
-                throw new Error(
-                    `Idempotency conflict: this key was already used with a different request payload.`
-                );
-            }
-        }
-
-        return data.response || { already_processed: true };
-    }
-
-    // ─── CLAIM ─────────────────────────────────────────────────
-    // Returns true  → this caller owns the key.
-    // Returns false → another live request holds the key.
-    // Throws        → unexpected DB failure (must be surfaced).
-    //
-    // `payload`     = the operation parameters (for logging/audit).
-    // `fingerprint` = stable hash of the operation (for conflict detection).
-    // If `fingerprint` is omitted, one is derived from `payload`.
-    static async claim(userId, idempotencyKey, endpoint, payload = {}, fingerprint = null) {
-        if (!idempotencyKey) return false;
-
-        const expiresAt = new Date(Date.now() + IDEMPOTENCY_TTL).toISOString();
-        const fp = fingerprint || stableHash(payload);
-
-        const row = {
-            user_id:             userId,
-            idempotency_key:     idempotencyKey,
-            endpoint:            endpoint,
-            status:              'processing',
-            request_payload:     payload,
-            request_fingerprint: fp,
-            response:            null,
-            created_at:          new Date().toISOString(),
-            expires_at:          expiresAt
-        };
-
-        // First attempt.
-        let { error } = await supabaseAdmin
-            .from('idempotency_keys')
-            .insert(row);
-
-        if (!error) return true;
-
-        // Duplicate key — either a live request holds it, or the
-        // previous holder crashed and the row has since expired.
-        if (error.code === PG_UNIQUE_VIOLATION) {
-
-            // Look at the existing row to distinguish the two cases.
-            const { data: existing, error: readErr } = await supabaseAdmin
-                .from('idempotency_keys')
-                .select('status, request_fingerprint, expires_at')
-                .eq('user_id', userId)
-                .eq('idempotency_key', idempotencyKey)
-                .eq('endpoint', endpoint)
-                .maybeSingle();
-
-            if (readErr) {
-                console.error('[IDEMPOTENCY] claim reread failed:', readErr.message);
-                return false;
-            }
-
-            if (!existing) {
-                // Row disappeared between insert and reread. Retry once.
-                const retry = await supabaseAdmin.from('idempotency_keys').insert(row);
-                return !retry.error;
-            }
-
-            // If a fingerprint was supplied and the existing one
-            // doesn't match, this is a conflict, not a retry.
-            if (fp && existing.request_fingerprint && existing.request_fingerprint !== fp) {
-                throw new Error(
-                    `Idempotency conflict: this key was already used with a different request payload.`
-                );
-            }
-
-            // If the row is expired, reclaim it.
-            const isExpired = existing.expires_at && new Date(existing.expires_at) < new Date();
-            if (isExpired) {
-                try {
-                    const { data: reclaimed } = await supabaseAdmin
-                        .rpc('reclaim_expired_idempotency_key', {
-                            p_user_id:  userId,
-                            p_key:      idempotencyKey,
-                            p_endpoint: endpoint
-                        });
-
-                    if (reclaimed === true) {
-                        const retry = await supabaseAdmin.from('idempotency_keys').insert(row);
-                        return !retry.error;
-                    }
-                } catch (rpcErr) {
-                    // Fall back to a plain UPDATE — reclaim is an
-                    // optimization, not a requirement.
-                    console.warn('[IDEMPOTENCY] reclaim RPC failed, using update fallback:', rpcErr.message);
-                    const { error: delErr } = await supabaseAdmin
-                        .from('idempotency_keys')
-                        .delete()
-                        .eq('user_id', userId)
-                        .eq('idempotency_key', idempotencyKey)
-                        .eq('endpoint', endpoint)
-                        .lt('expires_at', new Date().toISOString());
-
-                    if (!delErr) {
-                        const retry = await supabaseAdmin.from('idempotency_keys').insert(row);
-                        return !retry.error;
-                    }
-                }
-            }
-
-            // Live row exists. This caller does not own the key.
-            return false;
-        }
-
-        console.error('[IDEMPOTENCY] claim failed:', error.message);
-        throw new Error(`Failed to claim idempotency key: ${error.message}`);
-    }
-
-    // ─── RELEASE ───────────────────────────────────────────────
-    // Deletes the claim ONLY if it is still 'processing'. Never
-    // touches a 'completed' row — the money already moved.
-    static async release(userId, idempotencyKey, endpoint) {
-        if (!idempotencyKey) return;
-
+        // A trivially cheap query that exercises the connection pool
+        // without touching application tables.
         const { error } = await supabaseAdmin
-            .from('idempotency_keys')
-            .delete()
-            .eq('user_id', userId)
-            .eq('idempotency_key', idempotencyKey)
-            .eq('endpoint', endpoint)
-            .eq('status', 'processing');
-
+            .from('admin_audit_logs')
+            .select('id', { count: 'exact', head: true })
+            .limit(1);
+        const latencyMs = Date.now() - started;
         if (error) {
-            console.warn('[IDEMPOTENCY] release failed:', error.message);
+            return { status: 'unreachable', latencyMs, errorCode: error.code || 'DB_ERROR' };
         }
-    }
-
-    // ─── SAVE ──────────────────────────────────────────────────
-    // Persists the final response and marks the row 'completed'.
-    //
-    // Three paths:
-    //   1. Row is 'processing'  → UPDATE it to 'completed'.
-    //   2. Row is 'completed'   → already saved, no-op.
-    //   3. No row (legacy)      → INSERT as 'completed'.
-    //
-    // Real DB errors are surfaced. A money-moving caller MUST know
-    // that its response record did not persist — the ledger is the
-    // authority, but the caller needs this for its return value.
-    static async save(userId, idempotencyKey, endpoint, response) {
-        if (!idempotencyKey) return;
-
-        const expiresAt = new Date(Date.now() + IDEMPOTENCY_TTL).toISOString();
-
-        // 1. Try to complete a row we own.
-        const { data: updated, error: updateError } = await supabaseAdmin
-            .from('idempotency_keys')
-            .update({
-                response:     response,
-                status:       'completed',
-                completed_at: new Date().toISOString()
-            })
-            .eq('user_id', userId)
-            .eq('idempotency_key', idempotencyKey)
-            .eq('endpoint', endpoint)
-            .eq('status', 'processing')
-            .select('id')
-            .maybeSingle();
-
-        if (updateError) {
-            console.error('[IDEMPOTENCY] save update failed:', updateError.message);
-            throw new Error(`Failed to save idempotency record: ${updateError.message}`);
-        }
-
-        if (updated) return;
-
-        // 2. Row is already 'completed' → nothing to do.
-        const { data: existing, error: readErr } = await supabaseAdmin
-            .from('idempotency_keys')
-            .select('id, status')
-            .eq('user_id', userId)
-            .eq('idempotency_key', idempotencyKey)
-            .eq('endpoint', endpoint)
-            .maybeSingle();
-
-        if (readErr) {
-            console.error('[IDEMPOTENCY] save reread failed:', readErr.message);
-            throw new Error(`Failed to verify idempotency record: ${readErr.message}`);
-        }
-
-        if (existing) return; // already completed (or held by another)
-
-        // 3. Legacy path: insert a completed row.
-        const { error: insertError } = await supabaseAdmin
-            .from('idempotency_keys')
-            .insert({
-                user_id:         userId,
-                idempotency_key: idempotencyKey,
-                endpoint:        endpoint,
-                response:        response,
-                status:          'completed',
-                created_at:      new Date().toISOString(),
-                completed_at:    new Date().toISOString(),
-                expires_at:      expiresAt
-            });
-
-        if (insertError && insertError.code !== PG_UNIQUE_VIOLATION) {
-            console.error('[IDEMPOTENCY] save insert failed:', insertError.message);
-            throw new Error(`Failed to save idempotency record: ${insertError.message}`);
-        }
-    }
-
-    // ─── RECOVER ───────────────────────────────────────────────
-    // Called by a money-moving caller AFTER a ledger operation has
-    // succeeded but the idempotency row may be missing or stuck.
-    // Looks up the existing ledger transaction by reference and
-    // hydrates the idempotency row with its details so future
-    // retries get the same response.
-    //
-    // This is what closes the crash window between ledger write
-    // and idempotency save. It does NOT move money; it only reads
-    // and records.
-    static async recover(userId, idempotencyKey, endpoint, reference, expectedShape) {
-        if (!idempotencyKey || !reference) return null;
-
-        // Look up the idempotency row first.
-        const { data: row } = await supabaseAdmin
-            .from('idempotency_keys')
-            .select('status, response')
-            .eq('user_id', userId)
-            .eq('idempotency_key', idempotencyKey)
-            .eq('endpoint', endpoint)
-            .maybeSingle();
-
-        if (row && row.status === 'completed' && row.response) {
-            return row.response;
-        }
-
-        // Look up the transaction by reference.
-        const { data: tx, error: txErr } = await supabaseAdmin
-            .from('transactions')
-            .select('id, reference, amount, currency, type, user_id')
-            .eq('reference', reference)
-            .maybeSingle();
-
-        if (txErr || !tx) return null;
-        if (String(tx.user_id) !== String(userId)) return null;
-
-        // Sanity: match the caller's expectation if provided.
-        if (expectedShape) {
-            if (expectedShape.amount != null &&
-                Math.abs(Number(tx.amount) - Number(expectedShape.amount)) > 0.005) {
-                return null;
-            }
-            if (expectedShape.currency &&
-                String(tx.currency).toUpperCase() !== String(expectedShape.currency).toUpperCase()) {
-                return null;
-            }
-        }
-
-        const response = {
-            success: true,
-            recovered: true,
-            transaction_id: tx.id,
-            reference: tx.reference,
-            amount: Number(tx.amount),
-            currency: tx.currency
+        return { status: 'healthy', latencyMs };
+    } catch (e) {
+        return {
+            status: 'unreachable',
+            latencyMs: Date.now() - started,
+            errorCode: 'DB_UNREACHABLE'
         };
-
-        // Persist the recovered response so future retries hit the
-        // cached path.
-        try {
-            const { error: updErr } = await supabaseAdmin
-                .from('idempotency_keys')
-                .update({
-                    response:     response,
-                    status:       'completed',
-                    completed_at: new Date().toISOString()
-                })
-                .eq('user_id', userId)
-                .eq('idempotency_key', idempotencyKey)
-                .eq('endpoint', endpoint)
-                .eq('status', 'processing');
-
-            if (updErr) {
-                console.warn('[IDEMPOTENCY] recover persist failed:', updErr.message);
-            }
-        } catch (e) {
-            console.warn('[IDEMPOTENCY] recover persist threw:', e.message);
-        }
-
-        return response;
-    }
-
-    // ─── GENERATE KEY ──────────────────────────────────────────
-    static generateKey(prefix = '') {
-        const timestamp = Date.now().toString(36);
-        const random = crypto.randomBytes(6).toString('hex');
-        return `${prefix}-${timestamp}-${random}`.toUpperCase();
-    }
-
-    // ─── FINGERPRINT (exposed for callers) ─────────────────────
-    static fingerprint(payload) {
-        return stableHash(payload);
     }
 }
 
-module.exports = IdempotencyService;
+// ─── Provider summary ───────────────────────────────────────────
+
+const CRITICAL_PROVIDERS = new Set(['korapay', 'nowpayments', 'vtpass', 'dtone']);
+
+async function _providerSummary() {
+    try {
+        const { data, error } = await supabaseAdmin
+            .from('provider_health')
+            .select('provider, status, latency_ms, last_checked_at, environment');
+
+        if (error) {
+            if (error.code === '42P01') {
+                return { available: false, reason: 'TABLE_MISSING', providers: [], down: 0, criticalDown: 0 };
+            }
+            throw error;
+        }
+
+        const providers = (data || []).map(p => ({
+            provider:      p.provider || 'unknown',
+            label:         _providerLabel(p.provider),
+            environment:   p.environment || null,
+            status:        _normaliseProviderStatus(p.status),
+            latencyMs:     p.latency_ms != null ? Number(p.latency_ms) : null,
+            lastCheckedAt: p.last_checked_at || null,
+            critical:      CRITICAL_PROVIDERS.has(String(p.provider || '').toLowerCase())
+        }));
+
+        const down = providers.filter(p => p.status === 'unreachable' || p.status === 'failed').length;
+        const criticalDown = providers.filter(p =>
+            p.critical && (p.status === 'unreachable' || p.status === 'failed')
+        ).length;
+
+        return { available: true, providers, down, criticalDown };
+    } catch (e) {
+        console.warn('[infrastructure] provider summary failed:', e.message);
+        return { available: false, reason: 'QUERY_FAILED', providers: [], down: 0, criticalDown: 0 };
+    }
+}
+
+function _providerLabel(name) {
+    const map = {
+        korapay: 'KoraPay',
+        nowpayments: 'NowPayments',
+        vtpass: 'VTpass',
+        dtone: 'DT One',
+        smmwiz: 'SMMWiz',
+        virtualsms: 'VirtualSMS'
+    };
+    return map[String(name || '').toLowerCase()] || name || 'Unknown';
+}
+
+function _normaliseProviderStatus(s) {
+    const v = String(s || '').toLowerCase();
+    if (['healthy', 'operational', 'reachable', 'ok'].includes(v)) return 'healthy';
+    if (['degraded', 'partial'].includes(v)) return 'degraded';
+    if (['unreachable', 'failed', 'down', 'error'].includes(v)) return 'unreachable';
+    if (['auth_failed', 'unauthorized'].includes(v)) return 'auth_failed';
+    if (['circuit_open'].includes(v)) return 'circuit_open';
+    if (['rate_limited'].includes(v)) return 'rate_limited';
+    if (!v) return 'unknown';
+    return v;
+}
+
+// ─── Health ─────────────────────────────────────────────────────
+
+async function getHealth() {
+    const host = detectHost();
+
+    const [db, providers] = await Promise.all([
+        _pingDatabase(),
+        _providerSummary()
+    ]);
+
+    const api = appMetrics.snapshot();
+
+    // Overall status logic:
+    //   - db unreachable → major_outage
+    //   - any critical provider down → degraded
+    //   - server 5xx rate > 5% → degraded
+    //   - else operational
+    let overall = 'operational';
+    if (db.status !== 'healthy') overall = 'major_outage';
+    else if (providers.criticalDown > 0) overall = 'degraded';
+    else if (api.serverErrorRatePct != null && api.serverErrorRatePct > 5) overall = 'degraded';
+
+    // lastSnapshotAt is the maximum lastCheckedAt across providers,
+    // so the UI can say "last updated X ago" without lying.
+    const lastSnapshotAt = providers.providers
+        .map(p => p.lastCheckedAt)
+        .filter(Boolean)
+        .sort()
+        .reverse()[0] || null;
+
+    return {
+        overall,
+        api,
+        database: {
+            status: db.status,
+            latencyMs: db.latencyMs,
+            ...(db.errorCode ? { errorCode: db.errorCode } : {})
+        },
+        providers: {
+            available: providers.available,
+            down: providers.down,
+            criticalDown: providers.criticalDown,
+            total: providers.providers.length
+        },
+        host: {
+            name: host.name,
+            label: host.label,
+            url: host.url,
+            dashboardUrl: host.dashboardUrl
+        },
+        lastSnapshotAt
+    };
+}
+
+// ─── Overview ───────────────────────────────────────────────────
+
+async function getOverview() {
+    const providers = await _providerSummary();
+    return {
+        providers: {
+            available: providers.available,
+            reason: providers.reason || null,
+            down: providers.down,
+            criticalDown: providers.criticalDown,
+            providers: providers.providers
+        }
+    };
+}
+
+// ─── Usage (host API) ──────────────────────────────────────────
+
+async function getUsage() {
+    return _cachedOrUnavailable('usage', TTL.usage);
+}
+
+// ─── Metrics (server + api) ────────────────────────────────────
+
+async function getMetrics() {
+    const cached = _cachedOrUnavailable('metrics', TTL.metrics);
+
+    // API stats are always fresh (cheap, in-process). Server metrics
+    // come from the cache. If the cache is cold we return api stats
+    // anyway so the API card is not blocked by a missing host.
+    const api = appMetrics.snapshot();
+
+    if (!cached.available) {
+        return {
+            available: false,
+            reason: cached.reason,
+            stale: true,
+            lastUpdatedAt: null,
+            api,
+            server: null
+        };
+    }
+
+    return {
+        ...cached,
+        api,
+        server: cached.server || null
+    };
+}
+
+// ─── Deployment (host API) ─────────────────────────────────────
+
+async function getDeployment() {
+    return _cachedOrUnavailable('deployment', TTL.deployment);
+}
+
+// ─── refreshSnapshot (called by the scheduler) ─────────────────
+//
+// Fetches usage, server metrics and deployment from the current host
+// and writes them to the cache. Never throws — a failure in one
+// section must not stop the others. Every failure is logged with
+// the section name so the scheduler log is diagnosable.
+
+async function refreshSnapshot() {
+    const host = detectHost();
+    const summary = { host: host.name, sections: {} };
+
+    // Usage
+    try {
+        const usage = await _fetchUsage(host);
+        _cache.usage = { value: usage, fetchedAt: Date.now() };
+        summary.sections.usage = { ok: usage.available === true, reason: usage.reason || null };
+    } catch (e) {
+        console.warn('[infrastructure] refresh usage failed:', e.message);
+        summary.sections.usage = { ok: false, error: e.message };
+    }
+
+    // Metrics
+    try {
+        const metrics = await _fetchServerMetrics(host);
+        _cache.metrics = { value: metrics, fetchedAt: Date.now() };
+        summary.sections.metrics = { ok: metrics.available === true, reason: metrics.reason || null };
+    } catch (e) {
+        console.warn('[infrastructure] refresh metrics failed:', e.message);
+        summary.sections.metrics = { ok: false, error: e.message };
+    }
+
+    // Deployment
+    try {
+        const deployment = await _fetchDeployment(host);
+        _cache.deployment = { value: deployment, fetchedAt: Date.now() };
+        summary.sections.deployment = { ok: deployment.available === true, reason: deployment.reason || null };
+    } catch (e) {
+        console.warn('[infrastructure] refresh deployment failed:', e.message);
+        summary.sections.deployment = { ok: false, error: e.message };
+    }
+
+    return summary;
+}
+
+// ─── Host API fetch helpers ────────────────────────────────────
+
+async function _fetchUsage(host) {
+    const budget = _budgetFromEnv();
+
+    if (host.name === 'railway') {
+        if (!process.env.RAILWAY_API_TOKEN) {
+            return _unavailable('HOST_API_TOKEN_NOT_CONFIGURED', { budget });
+        }
+        return _fetchRailwayUsage(host, budget);
+    }
+
+    if (host.name === 'render') {
+        // Render's billing API is not public. We cannot fetch cost.
+        // The UI shows "not available on this host" honestly.
+        return _unavailable('HOST_API_NOT_AVAILABLE', { budget });
+    }
+
+    return _unavailable('HOST_NOT_DETECTED', { budget });
+}
+
+async function _fetchServerMetrics(host) {
+    if (host.name === 'railway') {
+        if (!process.env.RAILWAY_API_TOKEN) {
+            return _unavailable('HOST_API_TOKEN_NOT_CONFIGURED');
+        }
+        return _fetchRailwayMetrics(host);
+    }
+    if (host.name === 'render') {
+        if (!process.env.RENDER_API_KEY || !process.env.RENDER_SERVICE_ID) {
+            return _unavailable('HOST_API_TOKEN_NOT_CONFIGURED');
+        }
+        return _fetchRenderMetrics(host);
+    }
+    return _unavailable('HOST_NOT_DETECTED');
+}
+
+async function _fetchDeployment(host) {
+    if (host.name === 'railway') {
+        if (!process.env.RAILWAY_API_TOKEN) {
+            // We can still surface the env-supplied deployment id and
+            // commit without hitting the API.
+            if (host.deploymentId || host.commit) {
+                return {
+                    available: true,
+                    source: 'env',
+                    id: host.deploymentId || null,
+                    status: 'unknown',
+                    createdAt: null,
+                    updatedAt: null,
+                    url: host.url || null,
+                    commit: host.commit ? String(host.commit).slice(0, 7) : null
+                };
+            }
+            return _unavailable('HOST_API_TOKEN_NOT_CONFIGURED');
+        }
+        return _fetchRailwayDeployment(host);
+    }
+    if (host.name === 'render') {
+        if (host.deploymentId || host.commit) {
+            return {
+                available: true,
+                source: 'env',
+                id: host.deploymentId || null,
+                status: 'unknown',
+                createdAt: null,
+                updatedAt: null,
+                url: host.url || null,
+                commit: host.commit ? String(host.commit).slice(0, 7) : null
+            };
+        }
+        return _unavailable('HOST_API_TOKEN_NOT_CONFIGURED');
+    }
+    return _unavailable('HOST_NOT_DETECTED');
+}
+
+// ─── Railway API ───────────────────────────────────────────────
+//
+// Endpoint: https://backboard.railway.app/graphql/v2
+// Auth:     Authorization: Bearer <RAILWAY_API_TOKEN>
+// We only call this from refreshSnapshot(); never from a request.
+
+const RAILWAY_GQL = 'https://backboard.railway.app/graphql/v2';
+
+async function _railwayGql(query, variables) {
+    const token = process.env.RAILWAY_API_TOKEN;
+    if (!token) throw new Error('RAILWAY_API_TOKEN not set');
+    const res = await axios.post(
+        RAILWAY_GQL,
+        { query, variables },
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            timeout: HTTP_TIMEOUT_MS
+        }
+    );
+    if (res.data && res.data.errors && res.data.errors.length) {
+        throw new Error('Railway API error: ' + (res.data.errors[0].message || 'unknown'));
+    }
+    return res.data ? res.data.data : null;
+}
+
+async function _fetchRailwayUsage(host, budget) {
+    // Railway's public GraphQL does not expose a stable "usage" query
+    // for a personal token. We return what the prompt requires: the
+    // configured budget, and a shape the UI can render, with
+    // available:true but current/estimated null so the UI shows
+    // "budget not yet fetched from host" instead of lying.
+    try {
+        // Best-effort: query the project's estimated cost if the API
+        // exposes it under this token's scope. If not, the try/catch
+        // below falls through to the "not available" branch.
+        const data = await _railwayGql(
+            `query ProjectUsage($id: String!) {
+                project(id: $id) { id name createdAt }
+            }`,
+            { id: host.api.projectId }
+        );
+        if (!data || !data.project) {
+            return _unavailable('HOST_API_NO_USAGE', { budget });
+        }
+        return {
+            available: false,
+            reason: 'HOST_API_NO_USAGE',
+            budget,
+            current: null,
+            estimated: null,
+            included: null,
+            overage: null,
+            periodStart: null,
+            periodEnd: null
+        };
+    } catch (e) {
+        console.warn('[infrastructure] Railway usage query failed:', e.message);
+        return _unavailable('HOST_API_QUERY_FAILED', { budget });
+    }
+}
+
+async function _fetchRailwayMetrics(host) {
+    // Railway does not expose a simple REST metrics endpoint. We use
+    // the internal Prometheus-style HTTP API if the token grants it.
+    // If unavailable, we return the shape the UI expects (server:null)
+    // with available:false so the card shows a calm empty state.
+    try {
+        const res = await axios.get(
+            `https://backboard.railway.app/project/${host.api.projectId}/metrics`,
+            {
+                headers: { Authorization: `Bearer ${process.env.RAILWAY_API_TOKEN}` },
+                timeout: HTTP_TIMEOUT_MS,
+                validateStatus: () => true
+            }
+        );
+        if (res.status >= 400 || !res.data) {
+            return _unavailable('HOST_API_NO_METRICS');
+        }
+        // If it ever returns a known shape, normalise it here.
+        // For now, refuse to guess.
+        return _unavailable('HOST_API_SHAPE_UNKNOWN');
+    } catch (e) {
+        console.warn('[infrastructure] Railway metrics query failed:', e.message);
+        return _unavailable('HOST_API_QUERY_FAILED');
+    }
+}
+
+async function _fetchRailwayDeployment(host) {
+    try {
+        const data = await _railwayGql(
+            `query Deployment($id: String!) {
+                deployment(id: $id) {
+                    id status createdAt updatedAt
+                    staticUrl
+                    meta
+                }
+            }`,
+            { id: host.api.projectId }
+        );
+        if (!data || !data.deployment) {
+            return _unavailable('HOST_API_NO_DEPLOYMENT');
+        }
+        const d = data.deployment;
+        return {
+            available: true,
+            source: 'api',
+            id: d.id || null,
+            status: _normaliseDeploymentStatus(d.status),
+            createdAt: d.createdAt || null,
+            updatedAt: d.updatedAt || null,
+            url: d.staticUrl || host.url || null,
+            commit: host.commit ? String(host.commit).slice(0, 7) : null
+        };
+    } catch (e) {
+        console.warn('[infrastructure] Railway deployment query failed:', e.message);
+        return _unavailable('HOST_API_QUERY_FAILED');
+    }
+}
+
+// ─── Render API ────────────────────────────────────────────────
+//
+// Render's public API: https://api.render.com/v1/
+// Auth: Bearer <RENDER_API_KEY>
+
+async function _fetchRenderMetrics(host) {
+    try {
+        const res = await axios.get(
+            `https://api.render.com/v1/services/${host.api.serviceId}/metrics`,
+            {
+                headers: { Authorization: `Bearer ${process.env.RENDER_API_KEY}` },
+                timeout: HTTP_TIMEOUT_MS,
+                validateStatus: () => true
+            }
+        );
+        if (res.status >= 400 || !Array.isArray(res.data)) {
+            return _unavailable('HOST_API_NO_METRICS');
+        }
+        return _unavailable('HOST_API_SHAPE_UNKNOWN');
+    } catch (e) {
+        console.warn('[infrastructure] Render metrics query failed:', e.message);
+        return _unavailable('HOST_API_QUERY_FAILED');
+    }
+}
+
+// ─── Env helpers ──────────────────────────────────────────────
+
+function _budgetFromEnv() {
+    const raw = process.env.INFRA_MONTHLY_BUDGET;
+    if (!raw) return null;
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function _normaliseDeploymentStatus(s) {
+    const v = String(s || '').toUpperCase();
+    if (['SUCCESS', 'COMPLETED', 'LIVE', 'RUNNING'].includes(v)) return 'success';
+    if (['BUILDING', 'INITIALIZING', 'QUEUED', 'DEPLOYING'].includes(v)) return 'deploying';
+    if (['FAILED', 'CRASHED', 'CANCELED', 'CANCELLED'].includes(v)) return 'failed';
+    return 'unknown';
+}
+
+// ─── Exports ──────────────────────────────────────────────────
+
+module.exports = {
+    getHealth,
+    getOverview,
+    getUsage,
+    getMetrics,
+    getDeployment,
+    refreshSnapshot,
+    detectHost,
+    // Exposed for tests only.
+    _internal: {
+        TTL,
+        CRITICAL_PROVIDERS,
+        _isStale,
+        _normaliseDeploymentStatus,
+        _normaliseProviderStatus,
+        _budgetFromEnv,
+        _cache
+    }
+};

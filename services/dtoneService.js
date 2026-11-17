@@ -1169,8 +1169,8 @@ class DTOneService {
         const {
             subserviceKey = null,
             productType = 'FIXED_VALUE_PIN_PURCHASE',
-            maxPages = 6,
-            maxTotalMs = 20000,
+            maxPages = 50,           // ← CHANGE from 6 to 50 (allows up to 5,000 items)
+            maxTotalMs = 120000,  
             requestTimeoutMs = 8000,
             requireComplete = false
         } = options;
@@ -1308,7 +1308,8 @@ class DTOneService {
         destinationAmount,
         destinationCurrency,
         callbackUrl,
-        orderReference
+        orderReference,
+        autoConfirm = false 
     }) {
         const externalId = validateExternalId(
             orderReference
@@ -1319,7 +1320,7 @@ class DTOneService {
         const body = {
             external_id: externalId,
             product_id: assertPositiveIntegerId(productId, 'product ID'),
-            auto_confirm: false
+            auto_confirm: Boolean(autoConfirm) 
         };
 
         if (iccid) {

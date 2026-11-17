@@ -1958,27 +1958,53 @@ async function loadRecentDeposits() {
     attachCellLabels(tbody);
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   FAILED ORDERS
+   ════════════════════════════════════════════════════════════════════ */
 async function loadFailedOrders() {
     const tbody = document.getElementById('failedOrdersBody');
     if (!tbody) return;
-    if (!hasPerm('orders_read')) { tbody.innerHTML = ''; return; }
-    tableSkeleton(tbody, 6);
-    const res = await safeFetch(withRange(API.failedOrders + '?limit=10'), {}, 'rx-fail');
-    if (!res.ok) return tableUnavailable(tbody, 6, unavailableMessage(res.reason), loadFailedOrders);
-    const rows = Array.isArray(res.data) ? res.data : [];
-    if (!rows.length) return tableEmpty(tbody, 6, 'No failed orders in this period');
-    tbody.innerHTML = rows.map(o => {
-        const route = withRange('/admin/orders.html?status=failed');
-        return `<tr class="row-clickable" data-route="${escapeHtml(route)}">
-            <td class="cell-mobile-primary mono" style="font-size:10.6px">${escapeHtml(o.orderRef || o.id || '—')}</td>
-            <td data-label="Customer">${escapeHtml(o.customer || '—')}</td>
-            <td data-label="Service">${escapeHtml(o.service || '—')}</td>
-            <td data-label="Amount">${formatMoneyFull(o.amount, o.currency) || '—'}</td>
-            <td data-label="Reason" style="max-width:200px">${escapeHtml(o.reason || '—')}</td>
-            <td data-label="When">${timeAgo(o.created_at)}</td>
-        </tr>`;
+
+    // Show loading state
+    tableSkeleton(tbody, 6, 3);
+
+    // Fetch data from the API (using the date range)
+    const res = await safeFetch(withRange(API.failedOrders), {}, 'failed-orders');
+
+    if (!res.ok) {
+        tableUnavailable(tbody, 6, unavailableMessage(res.reason), loadFailedOrders);
+        return;
+    }
+
+    // The backend returns { items: [...] }
+    const items = res.data?.items || res.data || [];
+
+    if (!items.length) {
+        tableEmpty(tbody, 6, 'No failed orders in this period.');
+        return;
+    }
+
+    tbody.innerHTML = items.map(r => {
+        const amount = formatMoneyFull(r.amount, r.currency) || '—';
+        
+        return `
+            <tr class="row-clickable" data-route="/admin/orders.html?status=failed&ref=${escapeHtml(r.reference || r.orderRef || '')}">
+                <td data-label="Order"><span class="mono" style="font-size:11px">${escapeHtml(r.orderRef || r.reference || '—')}</span></td>
+                <td data-label="Customer">
+                    <div class="cell-user">
+                        <div class="meta">
+                            <strong>${escapeHtml(r.customer || 'Unknown')}</strong>
+                            <span>${escapeHtml(r.userEmail || '')}</span>
+                        </div>
+                    </div>
+                </td>
+                <td data-label="Service">${escapeHtml(r.service || r.type || '—')}</td>
+                <td data-label="Amount"><strong>${amount}</strong></td>
+                <td data-label="Reason"><span class="badge danger">${escapeHtml(r.reason || 'No reason provided')}</span></td>
+                <td data-label="When">${timeAgo(r.created_at)}</td>
+            </tr>
+        `;
     }).join('');
-    attachCellLabels(tbody);
 }
 
 async function loadRecentUsers() {
@@ -2010,33 +2036,58 @@ async function loadRecentUsers() {
     }).join('');
     attachCellLabels(tbody);
 }
+/* ════════════════════════════════════════════════════════════════════
+   SERVICE PERFORMANCE
+   ════════════════════════════════════════════════════════════════════ */
 async function loadServicePerformance() {
     const tbody = document.getElementById('servicePerfBody');
     if (!tbody) return;
-    if (!hasPerm('services_read')) { tbody.innerHTML = ''; return; }
-    tableSkeleton(tbody, 8);
-    const res = await safeFetch(withRange(API.servicePerformance), {}, 'svc');
-    if (!res.ok || !Array.isArray(res.data)) {
-        return tableUnavailable(tbody, 8, unavailableMessage(res.reason), loadServicePerformance);
+
+    // Show loading state
+    tableSkeleton(tbody, 8, 3);
+
+    // Fetch data from the API (using the date range)
+    const res = await safeFetch(withRange(API.servicePerformance), {}, 'services');
+
+    if (!res.ok) {
+        tableUnavailable(tbody, 8, unavailableMessage(res.reason), loadServicePerformance);
+        return;
     }
-    if (!res.data.length) return tableEmpty(tbody, 8, 'No service activity in this period');
-    tbody.innerHTML = res.data.map(r => {
-        const route = r.route ? withRange(r.route) : '';
-        const clickAttr = route
-            ? ` class="row-clickable" data-route="${escapeHtml(route)}"`
-            : '';
-        return `<tr${clickAttr}>
-            <td class="cell-mobile-primary"><strong>${escapeHtml(r.label || r.service || '—')}</strong></td>
-            <td data-label="Orders">${formatNumberFull(r.orders) ?? '—'}</td>
-            <td data-label="Completed">${formatNumberFull(r.completed) ?? '—'}</td>
-            <td data-label="Pending">${formatNumberFull(r.pending) ?? '—'}</td>
-            <td data-label="Failed">${formatNumberFull(r.failed) ?? '—'}</td>
-            <td data-label="Volume">${formatMoneyFull(r.volumeNgn, 'NGN') || '—'} · ${formatMoneyFull(r.volumeUsd, 'USD') || '—'}</td>
-            <td data-label="Revenue">${formatMoneyFull(r.revenueNgn, 'NGN') || '—'} · ${formatMoneyFull(r.revenueUsd, 'USD') || '—'}</td>
-            <td data-label="Rate">${r.successRate != null ? Number(r.successRate).toFixed(1) + '%' : '—'}</td>
-        </tr>`;
+
+    const rows = res.data || [];
+
+    if (!rows.length) {
+        tableEmpty(tbody, 8, 'No service activity in this period.');
+        return;
+    }
+
+    // Render the rows
+    tbody.innerHTML = rows.map(r => {
+        // Format money properly
+        const volNgn = formatMoneyFull(r.volumeNgn, 'NGN') || '₦0.00';
+        const revNgn = formatMoneyFull(r.revenueNgn, 'NGN') || '₦0.00';
+        
+        // Handle USD if needed (optional, based on your backend)
+        const volUsd = Number(r.volumeUsd) > 0 ? ` / ${formatMoneyFull(r.volumeUsd, 'USD')}` : '';
+        const revUsd = Number(r.revenueUsd) > 0 ? ` / ${formatMoneyFull(r.revenueUsd, 'USD')}` : '';
+
+        // Success rate badge
+        const rate = Number(r.successRate) || 0;
+        const rateClass = rate >= 90 ? 'success' : rate >= 50 ? 'warn' : 'danger';
+
+        return `
+            <tr>
+                <td data-label="Service"><strong>${escapeHtml(r.label || r.service)}</strong></td>
+                <td data-label="Orders">${formatNumberFull(r.orders) || 0}</td>
+                <td data-label="Completed"><span class="badge success">${formatNumberFull(r.completed) || 0}</span></td>
+                <td data-label="Pending"><span class="badge ${r.pending > 0 ? 'warn' : 'neutral'}">${formatNumberFull(r.pending) || 0}</span></td>
+                <td data-label="Failed"><span class="badge ${r.failed > 0 ? 'danger' : 'neutral'}">${formatNumberFull(r.failed) || 0}</span></td>
+                <td data-label="Volume" class="mono">${volNgn}${volUsd}</td>
+                <td data-label="Revenue" class="mono" style="font-weight:600; color:var(--navy)">${revNgn}${revUsd}</td>
+                <td data-label="Rate"><span class="badge ${rateClass}">${rate.toFixed(1)}%</span></td>
+            </tr>
+        `;
     }).join('');
-    attachCellLabels(tbody);
 }
 /* ════════════════════════════════════════════════════════════════════
    DRAWER — focus trap, bottom-sheet on mobile, restore focus on close

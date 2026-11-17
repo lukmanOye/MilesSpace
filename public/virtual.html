@@ -3,36 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="description" content="MilesSpace brings your wallet and everyday digital services together. Fund your wallet, buy airtime and data, pay bills, get gift cards, use eSIM and more." />
+  <meta name="description" content="Rent virtual phone numbers from 150+ countries for OTP verification." />
   <meta name="robots" content="index, follow" />
   <meta name="theme-color" content="#fbfaf7" />
-  <link rel="canonical" href="https://www.milesspaceedigital.com/" />
+  <link rel="canonical" href="https://www.milesspaceedigital.com/virtual" />
   <link rel="icon" href="/images/miles.png" type="image/png" />
   <link rel="apple-touch-icon" href="/images/miles.png" />
 
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="MilesSpace" />
-  <meta property="og:title" content="MilesSpace — Digital Wallet & Digital Services" />
-  <meta property="og:description" content="Fund your wallet, buy airtime and data, pay bills, get gift cards, use eSIM and more." />
-  <meta property="og:url" content="https://www.milesspaceedigital.com/" />
-  <meta property="og:image" content="https://www.milesspaceedigital.com/images/social-preview.png" />
-  <meta property="og:image:secure_url" content="https://www.milesspaceedigital.com/images/social-preview.png" />
-  <meta property="og:image:alt" content="MilesSpace digital wallet and services dashboard" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="MilesSpace — Digital Wallet & Digital Services" />
-  <meta name="twitter:description" content="Fund your wallet, buy airtime and data, pay bills, get gift cards, use eSIM and more." />
-  <meta name="twitter:image" content="https://www.milesspaceedigital.com/images/social-preview.png" />
+  <meta property="og:title" content="MilesSpace | Virtual Numbers" />
+  <meta property="og:description" content="Rent virtual phone numbers from 150+ countries. Auto-refund if no SMS arrives." />
+  <meta property="og:url" content="https://www.milesspaceedigital.com/virtual" />
 
   <title>MilesSpace | Virtual Numbers</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" as="style" />
-  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" as="style" />
-
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
@@ -43,9 +30,6 @@
   <script src="/js/ms-shell.js?v=1" defer></script>
 
   <style>
-    /* ═══════════════════════════════════════════════════════════
-       DESIGN TOKENS
-       ═══════════════════════════════════════════════════════════ */
     :root {
       --p:   #0B1220;
       --pm:  #1A2C3E;
@@ -72,7 +56,6 @@
       --t2:  #445d6e;
       --t3:  #8ea8b4;
 
-      --sw:  264px;
       --r:   10px;
       --rl:  16px;
       --rxl: 22px;
@@ -84,18 +67,38 @@
 
       --fd: 'Inter', system-ui, sans-serif;
       --fb: 'Inter', system-ui, sans-serif;
-
       --ease: cubic-bezier(.25,.8,.25,1);
 
       --safe-b: env(safe-area-inset-bottom, 0px);
       --safe-t: env(safe-area-inset-top, 0px);
     }
 
-    *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:   #0b1220;
+        --srf:  #0f1a28;
+        --srf2: #152434;
+        --bdr:  #1d2d40;
+        --t1:   #e6eef5;
+        --t2:   #9db0c0;
+        --t3:   #5b7185;
+        --pl:   #1a2c3e;
+        --pxl:  #16283a;
+        --okl:  #064e3b;
+        --erl:  #7f1d1d;
+        --warnl:#78350f;
+        --acl:  #422d0d;
+      }
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+      }
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     html {
       font-size: 15px;
@@ -103,12 +106,7 @@
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
     }
-
-    html, body {
-      max-width: 100vw;
-      overflow-x: hidden;
-    }
-
+    html, body { max-width: 100vw; overflow-x: hidden; }
     body {
       font-family: var(--fb);
       background: var(--bg);
@@ -117,32 +115,14 @@
       min-height: 100dvh;
       -webkit-font-smoothing: antialiased;
     }
-
     body.sb-open { overflow: hidden; }
-
     a { text-decoration: none; color: inherit; }
-
-    button {
-      font-family: inherit;
-      cursor: pointer;
-      border: none;
-      background: none;
-      color: inherit;
-      font-size: inherit;
-    }
-
-    input, select, textarea {
-      font-family: inherit;
-      font-size: 16px;
-      color: inherit;
-    }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; font-size: inherit; }
+    input, select, textarea { font-family: inherit; font-size: 16px; color: inherit; }
 
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb {
-      background: var(--bdr);
-      border-radius: 4px;
-    }
+    ::-webkit-scrollbar-thumb { background: var(--bdr); border-radius: 4px; }
 
     .skeleton { animation: shimmer 1.5s ease-in-out infinite; }
     @keyframes shimmer {
@@ -166,153 +146,7 @@
       pointer-events: none;
       transition: opacity .25s var(--ease);
     }
-    .ov.on {
-      display: block;
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .sidebar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      height: 100vh;
-      height: 100dvh;
-      width: min(86vw, 290px);
-      max-width: 290px;
-      background: var(--srf);
-      z-index: 600;
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
-      overflow-x: hidden;
-      transform: translateX(-100%);
-      visibility: hidden;
-      transition: transform .3s var(--ease), visibility .3s;
-      box-shadow: 0 0 40px rgba(11,18,32,.18);
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: thin;
-      scrollbar-color: var(--bdr) transparent;
-    }
-    .sidebar.open {
-      transform: none;
-      visibility: visible;
-    }
-    .sidebar::-webkit-scrollbar { width: 6px; }
-    .sidebar::-webkit-scrollbar-track { background: transparent; }
-    .sidebar::-webkit-scrollbar-thumb {
-      background: var(--bdr);
-      border-radius: 6px;
-    }
-    .sidebar::-webkit-scrollbar-thumb:hover { background: var(--t3); }
-
-    .sb-brand {
-      padding: 20px 18px 14px;
-      border-bottom: 1px solid var(--bdr);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 800;
-      font-size: 1.05rem;
-      flex-shrink: 0;
-      font-family: var(--fd);
-      color: var(--t1);
-    }
-    .sb-lic {
-      width: 32px;
-      height: 32px;
-      border-radius: 9px;
-      background: var(--acc);
-      display: grid;
-      place-items: center;
-      font-size: .8rem;
-      color: #fff;
-      flex-shrink: 0;
-      overflow: hidden;
-    }
-    .sb-lic img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      border-radius: 9px;
-    }
-
-    .sb-sec {
-      padding: 16px 18px 6px;
-      font-size: .72rem;
-      font-weight: 700;
-      color: var(--t3);
-      text-transform: uppercase;
-      letter-spacing: .05em;
-    }
-
-    .sb-nav { padding: 0 10px; }
-
-    .sb-lnk {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px;
-      border-radius: 12px;
-      color: var(--t2);
-      font-size: .9rem;
-      font-weight: 600;
-      margin-bottom: 2px;
-      min-height: 44px;
-      text-decoration: none;
-      transition: background .15s, color .15s;
-      cursor: pointer;
-    }
-    .sb-lnk i {
-      width: 18px;
-      text-align: center;
-      font-size: .9rem;
-      flex-shrink: 0;
-      opacity: .75;
-    }
-    .sb-lnk:hover { background: var(--bg); color: var(--t1); }
-    .sb-lnk.active { background: var(--pl); color: var(--p); }
-    .sb-lnk.active i { opacity: 1; color: var(--p); }
-
-    .sb-foot {
-      margin-top: auto;
-      padding: 12px 10px;
-      padding-bottom: calc(12px + var(--safe-b));
-      border-top: 1px solid var(--bdr);
-      flex-shrink: 0;
-    }
-    .sb-prof { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 12px; }
-    .sb-prof-link { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; text-decoration: none; cursor: pointer; }
-    .sb-av {
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      background: var(--p);
-      color: #fff;
-      display: grid;
-      place-items: center;
-      font-weight: 700;
-      font-size: .85rem;
-      flex-shrink: 0;
-      overflow: hidden;
-      border: 2px solid var(--acc);
-    }
-    .sb-ui { flex: 1; min-width: 0; }
-    .sb-un { font-size: .82rem; font-weight: 700; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sb-ue { font-size: .7rem; color: var(--t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sb-out {
-      width: 36px;
-      height: 36px;
-      border-radius: 8px;
-      display: grid;
-      place-items: center;
-      color: var(--t3);
-      font-size: .85rem;
-      transition: all .18s;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-    .sb-out:hover { background: var(--erl); color: var(--err); }
+    .ov.on { display: block; opacity: 1; pointer-events: auto; }
 
     .app { display: flex; min-height: 100vh; }
     .main {
@@ -336,8 +170,7 @@
       gap: 10px;
     }
     .tb-hbg {
-      width: 42px;
-      height: 42px;
+      width: 44px; height: 44px;
       border-radius: 10px;
       background: var(--pl);
       color: var(--p);
@@ -346,7 +179,6 @@
       place-items: center;
       flex-shrink: 0;
       cursor: pointer;
-      transition: all .2s;
       border: none;
     }
     .tb-hbg:hover { background: var(--p); color: #fff; }
@@ -361,16 +193,9 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .tb-right {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      flex-shrink: 0;
-    }
+    .tb-right { margin-left: auto; display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
     .tb-btn {
-      width: 40px;
-      height: 40px;
+      width: 44px; height: 44px;
       border-radius: 10px;
       background: var(--srf2);
       border: 1px solid var(--bdr);
@@ -379,24 +204,12 @@
       color: var(--t2);
       font-size: .85rem;
       cursor: pointer;
-      transition: all .2s;
       position: relative;
       text-decoration: none;
     }
     .tb-btn:hover { background: var(--pl); color: var(--p); }
-    .notif-dot {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--err);
-      border: 2px solid var(--srf);
-    }
     .tb-av {
-      width: 38px;
-      height: 38px;
+      width: 40px; height: 40px;
       border-radius: 50%;
       background: var(--p);
       display: grid;
@@ -407,8 +220,6 @@
       color: #fff;
       border: 2px solid var(--acc);
       cursor: pointer;
-      overflow: hidden;
-      flex-shrink: 0;
       text-decoration: none;
     }
 
@@ -416,6 +227,9 @@
       padding: 16px;
       padding-bottom: calc(90px + var(--safe-b));
       flex: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
     }
     @media (min-width: 641px) {
       .content { padding: 22px; padding-bottom: 60px; }
@@ -424,7 +238,7 @@
       .content { padding: 26px 28px 40px; }
     }
 
-    .page-header { margin-bottom: 22px; }
+    .page-header { margin-bottom: 20px; }
     .page-header h1 {
       font-family: var(--fd);
       font-size: 1.45rem;
@@ -459,8 +273,7 @@
     .ph-pill i { font-size: .68rem; color: var(--acc); }
     .live-dot {
       display: inline-block;
-      width: 7px;
-      height: 7px;
+      width: 7px; height: 7px;
       border-radius: 50%;
       background: var(--ok);
       animation: pulse 2s infinite;
@@ -469,69 +282,6 @@
     @keyframes pulse {
       0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,.5); }
       50%      { box-shadow: 0 0 0 5px rgba(16,185,129,0); }
-    }
-
-    .steps-bar {
-      display: flex;
-      align-items: center;
-      margin-bottom: 22px;
-      background: var(--srf);
-      border: 1px solid var(--bdr);
-      border-radius: var(--rxl);
-      padding: 14px 20px;
-      box-shadow: var(--s0);
-    }
-    .step-dot {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 5px;
-      flex: 1;
-      position: relative;
-    }
-    .step-dot::after {
-      content: '';
-      position: absolute;
-      top: 15px;
-      left: 50%;
-      width: 100%;
-      height: 2px;
-      background: var(--bdr);
-      z-index: 0;
-      transition: background .4s;
-    }
-    .step-dot:last-child::after { display: none; }
-    .step-dot.done::after { background: var(--ok); }
-    .step-dot-ic {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      background: var(--bdr);
-      display: grid;
-      place-items: center;
-      font-size: .78rem;
-      color: var(--t3);
-      font-weight: 700;
-      position: relative;
-      z-index: 1;
-      transition: all .3s;
-    }
-    .step-dot.active .step-dot-ic { background: var(--p); color: #fff; }
-    .step-dot.done .step-dot-ic { background: var(--ok); color: #fff; }
-    .step-dot-lbl {
-      font-size: .65rem;
-      font-weight: 600;
-      color: var(--t3);
-      text-align: center;
-      white-space: nowrap;
-      transition: color .3s;
-    }
-    .step-dot.active .step-dot-lbl { color: var(--p); }
-    .step-dot.done .step-dot-lbl   { color: var(--ok); }
-
-    @media (max-width: 500px) {
-      .step-dot-lbl { display: none; }
-      .steps-bar    { padding: 12px 14px; }
     }
 
     .cw-bar {
@@ -547,25 +297,16 @@
       margin-bottom: 16px;
       box-shadow: var(--s0);
     }
-    .cw-wallets {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      flex-wrap: wrap;
-    }
+    .cw-wallets { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
     .cw-wallet {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: .74rem;
-      color: var(--t2);
+      display: flex; align-items: center; gap: 6px;
+      font-size: .74rem; color: var(--t2);
     }
     .cw-wallet i { font-size: .66rem; color: var(--t3); }
     .cw-wallet b {
       font-weight: 700;
       color: var(--t1);
       font-variant-numeric: tabular-nums;
-      transition: color .2s;
     }
     .cw-wallet.hi b { color: var(--acd); }
     .cw-curr { display: flex; align-items: center; gap: 8px; }
@@ -583,9 +324,6 @@
       font-size: .74rem;
       font-weight: 700;
       color: var(--t2);
-      transition: all .18s;
-      cursor: pointer;
-      white-space: nowrap;
       min-height: 32px;
       display: inline-flex;
       align-items: center;
@@ -596,143 +334,184 @@
       .cw-wallets { justify-content: space-between; }
     }
 
-    .recent-row {
+    /* ─── Active rentals strip ─────────────────────────────────────── */
+    .rentals-strip {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+      scrollbar-width: thin;
+    }
+    .rentals-strip::-webkit-scrollbar { height: 6px; }
+    .rentals-strip::-webkit-scrollbar-thumb { background: var(--bdr); border-radius: 6px; }
+
+    .rental-card {
+      flex: 0 0 320px;
+      background: linear-gradient(135deg, var(--p) 0%, var(--pm) 100%);
+      border-radius: var(--rxl);
+      padding: 16px;
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--s1);
+      min-width: 320px;
+    }
+    .rental-card.securing { background: linear-gradient(135deg, #1a2c3e 0%, #2c3e52 100%); }
+    .rental-card.waiting  { background: linear-gradient(135deg, var(--p) 0%, var(--pm) 100%); }
+    .rental-card.code     { background: linear-gradient(135deg, var(--ok) 0%, #047857 100%); }
+    .rental-card.refunded { background: linear-gradient(135deg, #4b5563 0%, #374151 100%); }
+    .rental-card.failed   { background: linear-gradient(135deg, var(--err) 0%, #b91c1c 100%); }
+
+    .rc-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+    .rc-label {
+      font-size: .6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: rgba(255,255,255,.55);
       display: flex;
       align-items: center;
       gap: 6px;
-      flex-wrap: wrap;
-      margin-bottom: 10px;
     }
-    .recent-lbl {
-      font-size: .66rem;
-      font-weight: 700;
-      color: var(--t3);
-      text-transform: uppercase;
-      letter-spacing: .05em;
-      flex-shrink: 0;
-      margin-right: 2px;
-    }
-    .recent-chip {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      padding: 5px 10px;
-      border-radius: var(--rp);
-      background: var(--srf2);
-      border: 1px solid var(--bdr);
-      font-size: .71rem;
-      font-weight: 600;
-      color: var(--t2);
-      cursor: pointer;
-      transition: all .18s;
-      min-height: 32px;
-    }
-    .recent-chip:hover {
-      border-color: var(--p);
-      background: var(--pl);
-      color: var(--p);
-    }
-
-    .oc-error {
-      margin: 13px;
-      padding: 11px 13px;
-      border-radius: var(--r);
-      background: var(--erl);
-      border: 1px solid #fecaca;
-      display: none;
-      gap: 8px;
-      align-items: flex-start;
-    }
-    .oc-error.on { display: flex; }
-    .oc-error i { color: var(--err); margin-top: 1px; flex-shrink: 0; }
-    .oc-error span { font-size: .76rem; color: #991b1b; line-height: 1.5; }
-
-    .success-panel {
-      margin: 13px;
-      padding: 15px;
-      border-radius: var(--rl);
-      background: linear-gradient(135deg, var(--okl), #ecfdf5);
-      border: 1px solid #a7f3d0;
-      display: none;
-    }
-    .success-panel.on {
-      display: block;
-      animation: popIn .35s var(--ease);
-    }
-    .sp-head {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 11px;
-    }
-    .sp-head i {
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      background: var(--ok);
+    .rc-close {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.2);
       color: #fff;
       display: grid;
       place-items: center;
       font-size: .72rem;
-      flex-shrink: 0;
+      cursor: pointer;
     }
-    .sp-head span {
+    .rc-close:hover { background: rgba(255,255,255,.2); }
+
+    .rc-service {
       font-family: var(--fd);
-      font-size: .86rem;
+      font-size: .9rem;
       font-weight: 800;
-      color: #065f46;
-    }
-    .sp-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-    .sp-row {
-      background: rgba(255,255,255,.55);
-      border-radius: var(--r);
-      padding: 7px 10px;
-    }
-    .sp-row.full {
-      grid-column: 1 / -1;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    }
-    .sp-k {
-      font-size: .6rem;
-      color: #065f46;
-      opacity: .7;
-      text-transform: uppercase;
-      letter-spacing: .04em;
       margin-bottom: 2px;
     }
-    .sp-v {
-      font-size: .78rem;
-      font-weight: 700;
-      color: #064e3b;
-      font-variant-numeric: tabular-nums;
-      word-break: break-word;
+    .rc-country {
+      font-size: .72rem;
+      color: rgba(255,255,255,.65);
+      margin-bottom: 12px;
     }
-    .sp-copy {
-      background: rgba(255,255,255,.7);
-      border: 1px solid #a7f3d0;
+
+    .rc-phone {
+      font-family: var(--fd);
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: .04em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .rc-copy {
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.25);
       border-radius: 6px;
-      padding: 6px 10px;
+      padding: 5px 9px;
       font-size: .66rem;
       font-weight: 700;
-      color: #065f46;
+      color: #fff;
       cursor: pointer;
-      transition: all .18s;
-      flex-shrink: 0;
       min-height: 32px;
     }
-    .sp-copy:hover { background: #fff; }
+    .rc-copy:hover { background: rgba(255,255,255,.25); }
 
+    .rc-sms {
+      background: rgba(255,255,255,.12);
+      border-radius: var(--r);
+      padding: 10px 12px;
+      font-size: .78rem;
+      color: rgba(255,255,255,.85);
+      margin-bottom: 10px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .rc-sms .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .rc-code {
+      font-family: var(--fd);
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: .15em;
+      color: #fff;
+    }
+    .rc-code-copy {
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.28);
+      border-radius: 5px;
+      padding: 5px 9px;
+      font-size: .66rem;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      min-height: 32px;
+    }
+
+    .rc-timer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: .62rem;
+      color: rgba(255,255,255,.55);
+      margin-bottom: 10px;
+    }
+
+    .rc-actions { display: flex; gap: 6px; }
+    .rc-btn {
+      flex: 1;
+      padding: 9px;
+      border-radius: var(--r);
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.2);
+      color: #fff;
+      font-size: .7rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      min-height: 40px;
+    }
+    .rc-btn:hover:not(:disabled) { background: rgba(255,255,255,.2); }
+    .rc-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .rc-btn.cancel {
+      background: rgba(239,68,68,.2);
+      border-color: rgba(239,68,68,.4);
+    }
+
+    .rc-note {
+      font-size: .62rem;
+      color: rgba(255,255,255,.55);
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    /* ─── Main layout ──────────────────────────────────────────────── */
     .virtual-layout {
       display: grid;
-      grid-template-columns: 1fr 360px;
+      grid-template-columns: 1fr 380px;
       gap: 18px;
       align-items: start;
     }
@@ -756,8 +535,7 @@
       gap: 10px;
     }
     .panel-hd-ic {
-      width: 32px;
-      height: 32px;
+      width: 32px; height: 32px;
       border-radius: 9px;
       display: grid;
       place-items: center;
@@ -787,19 +565,15 @@
       text-transform: uppercase;
       letter-spacing: .03em;
     }
-    .pb-live { background: var(--okl);   color: #065f46; }
+    .pb-live { background: var(--okl); color: #065f46; }
     .pb-warn { background: var(--warnl); color: #92400e; }
     .pb-err  { background: var(--erl);   color: #991b1b; }
     .panel-bd { padding: 14px; }
 
-    .search-wrap {
-      position: relative;
-      margin-bottom: 12px;
-    }
+    .search-wrap { position: relative; margin-bottom: 12px; }
     .search-wrap .si {
       position: absolute;
-      left: 11px;
-      top: 50%;
+      left: 11px; top: 50%;
       transform: translateY(-50%);
       color: var(--t3);
       font-size: .76rem;
@@ -814,29 +588,51 @@
       color: var(--t1);
       background: var(--srf2);
       outline: none;
-      transition: all .18s;
       min-height: 44px;
-      scroll-margin-block: 16px;
     }
     .search-inp::placeholder { color: var(--t3); }
-    .search-inp:focus {
-      border-color: var(--p);
-      background: var(--srf);
-    }
+    .search-inp:focus { border-color: var(--p); background: var(--srf); }
     .search-clr {
       position: absolute;
-      right: 10px;
-      top: 50%;
+      right: 10px; top: 50%;
       transform: translateY(-50%);
       color: var(--t3);
       font-size: .72rem;
       cursor: pointer;
       display: none;
-      transition: color .18s;
       padding: 8px;
     }
-    .search-clr:hover { color: var(--err); }
     .search-clr.show { display: block; }
+
+    .recent-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .recent-lbl {
+      font-size: .66rem;
+      font-weight: 700;
+      color: var(--t3);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .recent-chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 10px;
+      border-radius: var(--rp);
+      background: var(--srf2);
+      border: 1px solid var(--bdr);
+      font-size: .71rem;
+      font-weight: 600;
+      color: var(--t2);
+      cursor: pointer;
+      min-height: 32px;
+    }
+    .recent-chip:hover { border-color: var(--p); background: var(--pl); color: var(--p); }
 
     .country-grid {
       display: grid;
@@ -846,11 +642,6 @@
       overflow-y: auto;
       padding-right: 2px;
     }
-    .country-grid::-webkit-scrollbar { width: 3px; }
-    .country-grid::-webkit-scrollbar-thumb {
-      background: var(--bdr);
-      border-radius: 3px;
-    }
     .c-card {
       display: flex;
       align-items: center;
@@ -859,25 +650,15 @@
       border: 1.5px solid var(--bdr);
       border-radius: var(--r);
       cursor: pointer;
-      transition: all .18s;
       background: var(--srf);
-      user-select: none;
       min-height: 48px;
+      text-align: left;
+      width: 100%;
+      color: inherit;
     }
-    .c-card:hover {
-      border-color: var(--p);
-      background: var(--pl);
-      transform: translateY(-1px);
-    }
-    .c-card.sel {
-      border-color: var(--p);
-      background: var(--pl);
-    }
-    .c-flag {
-      font-size: 1.22rem;
-      flex-shrink: 0;
-      line-height: 1;
-    }
+    .c-card:hover { border-color: var(--p); background: var(--pl); }
+    .c-card.sel { border-color: var(--p); background: var(--pl); }
+    .c-flag { font-size: 1.22rem; flex-shrink: 0; line-height: 1; }
     .c-name {
       font-size: .74rem;
       font-weight: 600;
@@ -889,8 +670,7 @@
       min-width: 0;
     }
     .c-chk {
-      width: 15px;
-      height: 15px;
+      width: 15px; height: 15px;
       border-radius: 50%;
       background: var(--p);
       display: none;
@@ -909,11 +689,6 @@
       overflow-y: auto;
       padding-right: 2px;
     }
-    .svc-list::-webkit-scrollbar { width: 3px; }
-    .svc-list::-webkit-scrollbar-thumb {
-      background: var(--bdr);
-      border-radius: 3px;
-    }
     .svc-item {
       display: flex;
       align-items: center;
@@ -922,22 +697,16 @@
       border: 1.5px solid var(--bdr);
       border-radius: var(--r);
       cursor: pointer;
-      transition: all .18s;
       background: var(--srf);
-      user-select: none;
       min-height: 56px;
+      text-align: left;
+      width: 100%;
+      color: inherit;
     }
-    .svc-item:hover {
-      border-color: var(--p);
-      background: var(--pxl);
-    }
-    .svc-item.sel {
-      border-color: var(--p);
-      background: var(--pl);
-    }
+    .svc-item:hover { border-color: var(--p); background: var(--pxl); }
+    .svc-item.sel { border-color: var(--p); background: var(--pl); }
     .svc-ic {
-      width: 34px;
-      height: 34px;
+      width: 34px; height: 34px;
       border-radius: 9px;
       display: grid;
       place-items: center;
@@ -955,7 +724,6 @@
       font-size: .6rem;
       color: var(--t3);
       font-family: monospace;
-      letter-spacing: .04em;
     }
     .svc-right { text-align: right; flex-shrink: 0; min-width: 80px; }
     .svc-usd {
@@ -1029,12 +797,11 @@
       color: var(--p);
       font-size: .76rem;
       font-weight: 700;
-      cursor: pointer;
-      transition: all .2s;
       min-height: 40px;
     }
     .btn-retry:hover { background: var(--p); color: #fff; }
 
+    /* ─── Order sidebar card ───────────────────────────────────────── */
     .order-card {
       background: var(--srf);
       border: 1px solid var(--bdr);
@@ -1057,22 +824,10 @@
       display: none;
     }
     .oc-hero.on { display: block; }
-    .oc-hero::before {
-      content: '';
-      position: absolute;
-      top: -30px;
-      right: -30px;
-      width: 140px;
-      height: 140px;
-      background: radial-gradient(circle, rgba(245,166,35,.22), transparent 70%);
-      pointer-events: none;
-    }
     .oc-top {
-      position: relative;
-      z-index: 1;
       display: flex;
-      align-items: flex-start;
       justify-content: space-between;
+      align-items: flex-start;
       margin-bottom: 13px;
     }
     .oc-lbl {
@@ -1087,10 +842,6 @@
       font-weight: 600;
       color: rgba(255,255,255,.6);
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      transition: color .2s;
       min-height: 32px;
       padding: 4px 6px;
     }
@@ -1099,8 +850,6 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      position: relative;
-      z-index: 1;
       margin-bottom: 13px;
     }
     .oc-flag { font-size: 1.6rem; flex-shrink: 0; line-height: 1; }
@@ -1119,8 +868,6 @@
       border: 1px solid rgba(255,255,255,.14);
       border-radius: var(--rl);
       padding: 11px 13px;
-      position: relative;
-      z-index: 1;
     }
     .pb-row {
       display: flex;
@@ -1145,34 +892,6 @@
     }
 
     .oc-body { padding: 15px; }
-    .oc-avail {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-    .avail-bar {
-      flex: 1;
-      height: 5px;
-      background: var(--bdr);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-    .avail-fill {
-      height: 100%;
-      border-radius: 3px;
-      background: var(--ok);
-      transition: width .6s ease;
-    }
-    .avail-fill.lo { background: var(--warn); }
-    .avail-fill.cr { background: var(--err); }
-    .avail-lbl {
-      font-size: .68rem;
-      font-weight: 700;
-      color: var(--t2);
-      flex-shrink: 0;
-      white-space: nowrap;
-    }
     .timing-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -1213,6 +932,7 @@
       margin-bottom: 12px;
     }
     .warn-box i { flex-shrink: 0; margin-top: 1px; }
+
     .btn-rent {
       width: 100%;
       padding: 14px;
@@ -1222,211 +942,45 @@
       font-family: var(--fd);
       font-weight: 700;
       font-size: .86rem;
-      transition: all .22s;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 7px;
-      margin-bottom: 8px;
       min-height: 48px;
+      margin-bottom: 8px;
     }
     .btn-rent:hover:not(:disabled) {
       background: var(--pm);
-      transform: translateY(-1px);
       box-shadow: 0 6px 20px rgba(11,18,32,.22);
     }
-    .btn-rent:disabled {
-      opacity: .4;
-      cursor: not-allowed;
-      transform: none !important;
+    .btn-rent:disabled { opacity: .4; cursor: not-allowed; }
+
+    .btn-fund {
+      width: 100%;
+      padding: 12px;
+      border-radius: var(--rp);
+      background: var(--warnl);
+      color: #92400e;
+      font-family: var(--fd);
+      font-weight: 700;
+      font-size: .82rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 44px;
+      margin-bottom: 8px;
+      border: 1px solid #fde68a;
+      text-decoration: none;
     }
+    .btn-fund:hover { background: var(--warn); color: #fff; }
+
     .btn-sec-lbl {
       font-size: .65rem;
       color: var(--t3);
       text-align: center;
     }
     .btn-sec-lbl i { color: var(--p); }
-
-    .act-banner {
-      border-radius: var(--rl);
-      padding: 14px;
-      margin: 13px;
-      display: none;
-      background: linear-gradient(135deg, var(--ok), #047857);
-      animation: popIn .35s var(--ease);
-    }
-    .act-banner.on { display: block; }
-    @keyframes popIn {
-      from { opacity: 0; transform: scale(.96); }
-      to   { opacity: 1; transform: scale(1); }
-    }
-    .ab-lbl {
-      font-size: .58rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .07em;
-      color: rgba(255,255,255,.55);
-      margin-bottom: 5px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .ab-num {
-      font-family: var(--fd);
-      font-size: 1.2rem;
-      font-weight: 800;
-      color: #fff;
-      letter-spacing: .05em;
-      margin-bottom: 9px;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      flex-wrap: wrap;
-    }
-    .ab-copy {
-      background: rgba(255,255,255,.18);
-      border: 1px solid rgba(255,255,255,.28);
-      border-radius: 6px;
-      padding: 6px 10px;
-      font-size: .68rem;
-      font-weight: 700;
-      color: #fff;
-      cursor: pointer;
-      transition: all .18s;
-      flex-shrink: 0;
-      min-height: 32px;
-    }
-    .ab-copy:hover { background: rgba(255,255,255,.3); }
-    .ab-sms {
-      background: rgba(255,255,255,.1);
-      border-radius: var(--r);
-      padding: 9px 12px;
-      font-size: .78rem;
-      color: rgba(255,255,255,.82);
-      margin-bottom: 9px;
-      min-height: 36px;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      flex-wrap: wrap;
-    }
-    .ab-code {
-      font-family: var(--fd);
-      font-size: 1.1rem;
-      font-weight: 800;
-      color: #fff;
-      letter-spacing: .14em;
-    }
-    .ab-code-cp {
-      background: rgba(255,255,255,.18);
-      border: 1px solid rgba(255,255,255,.25);
-      border-radius: 5px;
-      padding: 5px 9px;
-      font-size: .65rem;
-      font-weight: 700;
-      color: #fff;
-      cursor: pointer;
-      transition: all .18s;
-      min-height: 32px;
-    }
-    .ab-code-cp:hover { background: rgba(255,255,255,.3); }
-    .ab-acts { display: flex; gap: 6px; margin-bottom: 6px; }
-    .ab-btn {
-      flex: 1;
-      padding: 10px;
-      border-radius: var(--r);
-      background: rgba(255,255,255,.12);
-      border: 1px solid rgba(255,255,255,.2);
-      color: #fff;
-      font-size: .71rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all .18s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      min-height: 40px;
-    }
-    .ab-btn:hover { background: rgba(255,255,255,.22); }
-    .ab-btn.cxl {
-      background: rgba(239,68,68,.2);
-      border-color: rgba(239,68,68,.38);
-    }
-    .ab-btn:disabled { opacity: .4; cursor: not-allowed; }
-    .ab-timer {
-      font-size: .6rem;
-      color: rgba(255,255,255,.5);
-      text-align: center;
-    }
-
-    .mini-hist {
-      padding: 13px 16px;
-      border-top: 1px solid var(--bdr);
-    }
-    .mini-hist h4 {
-      font-family: var(--fd);
-      font-size: .76rem;
-      font-weight: 700;
-      color: var(--t1);
-      margin-bottom: 9px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .mini-hist h4 .badge-count {
-      font-size: .6rem;
-      font-weight: 600;
-      color: var(--t3);
-      background: var(--bg);
-      padding: 2px 8px;
-      border-radius: 99px;
-    }
-    .mh-row {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      padding: 9px 0;
-      border-bottom: 1px solid var(--bdr);
-      cursor: pointer;
-      transition: background .15s;
-      min-height: 48px;
-    }
-    .mh-row:last-child { border-bottom: none; }
-    .mh-row:hover {
-      background: var(--bg);
-      border-radius: var(--r);
-    }
-    .mh-flag { font-size: 1.05rem; flex-shrink: 0; }
-    .mh-info { flex: 1; min-width: 0; }
-    .mh-name {
-      font-size: .75rem;
-      font-weight: 600;
-      color: var(--t1);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .mh-meta { font-size: .63rem; color: var(--t3); }
-    .mh-price {
-      font-size: .65rem;
-      font-weight: 700;
-      color: var(--t2);
-      flex-shrink: 0;
-    }
-    .mh-bdg {
-      font-size: .58rem;
-      font-weight: 700;
-      padding: 2px 7px;
-      border-radius: 4px;
-      text-transform: uppercase;
-      flex-shrink: 0;
-    }
-    .bdg-ok       { background: var(--okl);    color: #065f46; }
-    .bdg-pe       { background: var(--warnl);  color: #92400e; }
-    .bdg-err      { background: var(--erl);    color: #991b1b; }
-    .bdg-active   { background: var(--pl);     color: var(--p); }
-    .bdg-refunded { background: var(--bg);     color: var(--t3); }
 
     .toasts {
       position: fixed;
@@ -1441,7 +995,7 @@
       pointer-events: none;
     }
     @media (min-width: 641px) {
-      .toasts { left: auto; max-width: 300px; }
+      .toasts { left: auto; max-width: 340px; }
     }
     .toast {
       display: flex;
@@ -1453,17 +1007,12 @@
       font-size: .75rem;
       font-weight: 500;
       pointer-events: auto;
-      animation: tIn .2s ease;
       word-break: break-word;
     }
     .toast.ok   { background: var(--okl);   color: #065f46; }
     .toast.err  { background: var(--erl);   color: #991b1b; }
     .toast.warn { background: var(--warnl); color: #92400e; }
     .toast.info { background: var(--srf); color: var(--t1); border: 1px solid var(--bdr); }
-    @keyframes tIn {
-      from { opacity: 0; transform: translateX(32px); }
-      to   { opacity: 1; transform: none; }
-    }
 
     .mnav {
       display: none;
@@ -1498,12 +1047,7 @@
       min-height: 44px;
       justify-content: center;
     }
-    .mni i {
-      font-size: .84rem;
-      padding: 5px 6px;
-      border-radius: 9px;
-      transition: all .18s;
-    }
+    .mni i { font-size: .84rem; padding: 5px 6px; border-radius: 9px; }
     .mni.active { color: var(--p); }
     .mni.active i { background: var(--pl); color: var(--p); }
     @media (max-width: 768px) {
@@ -1513,133 +1057,115 @@
       .virtual-layout { grid-template-columns: 1fr; }
     }
 
-    .fu { animation: fadeUp .38s var(--ease) both; }
-    .d1 { animation-delay: .03s; }
-    .d2 { animation-delay: .07s; }
-    .d3 { animation-delay: .11s; }
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(12px); }
-      to   { opacity: 1; transform: none; }
+    /* Confirm sheet */
+    .sheet-scrim {
+      position: fixed;
+      inset: 0;
+      background: rgba(11,18,32,.5);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 800;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s;
     }
-
-    html { width: 100%; min-height: 100%; -webkit-text-size-adjust: 100%; }
-    body {
-      width: 100%; min-width: 0; min-height: 100vh; min-height: 100dvh;
-      overflow-wrap: anywhere;
+    .sheet-scrim.on { opacity: 1; pointer-events: auto; }
+    .sheet {
+      position: fixed;
+      left: 50%;
+      bottom: 0;
+      transform: translate(-50%, 100%);
+      width: 100%;
+      max-width: 480px;
+      background: var(--srf);
+      border-radius: var(--rxl) var(--rxl) 0 0;
+      padding: 20px 20px calc(20px + var(--safe-b));
+      z-index: 801;
+      transition: transform .3s var(--ease);
+      box-shadow: 0 -16px 44px rgba(11,18,32,.18);
     }
-    .main { width: 100%; min-width: 0; flex: 1 0 auto; }
-    .search-inp {
-      font-size: 16px; -webkit-appearance: none; appearance: none;
-      scroll-margin-block: 16px;
+    .sheet.on { transform: translate(-50%, 0); }
+    .sheet h3 {
+      font-family: var(--fd);
+      font-size: 1.05rem;
+      font-weight: 800;
+      margin-bottom: 12px;
     }
-    .toasts {
-      width: auto; max-width: calc(100% - 24px); right: 12px;
-      bottom: max(12px, env(safe-area-inset-bottom));
-    }
-    .content { overflow: visible; }
-    .country-grid, .svc-list { -webkit-overflow-scrolling: touch; }
-    @media (max-height: 600px) {
-      .country-grid { max-height: 260px; }
-      .svc-list     { max-height: 280px; }
-      .order-card   { position: static; }
-    }
-
-    /* Stale banner */
-    .tx-stale-banner {
+    .sheet-row {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      gap: 10px;
-      padding: 10px 14px;
-      margin: 8px 0;
-      border-radius: 10px;
-      background: rgba(245, 166, 35, 0.12);
-      border: 1px solid rgba(245, 166, 35, 0.35);
-      font-size: 12.5px;
+      padding: 8px 0;
+      font-size: .82rem;
+      border-bottom: 1px solid var(--bdr);
+    }
+    .sheet-row:last-of-type { border-bottom: none; }
+    .sheet-row .k { color: var(--t3); }
+    .sheet-row .v { font-weight: 700; color: var(--t1); }
+    .sheet-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .sheet-btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: var(--rp);
+      font-family: var(--fd);
+      font-weight: 700;
+      font-size: .86rem;
+      min-height: 48px;
+    }
+    .sheet-btn.cancel {
+      background: var(--srf2);
       color: var(--t2);
+      border: 1px solid var(--bdr);
     }
-    .tx-stale-banner strong { color: var(--t1); font-weight: 600; }
-    .tx-stale-banner button {
-      padding: 6px 12px;
-      border-radius: 8px;
-      border: none;
-      background: #0f4c5c;
+    .sheet-btn.confirm {
+      background: var(--p);
       color: #fff;
-      font-size: 12px;
+    }
+    .sheet-btn.confirm:disabled { opacity: .5; cursor: not-allowed; }
+
+    .offline-banner {
+      display: none;
+      padding: 8px 14px;
+      background: var(--warnl);
+      color: #92400e;
+      font-size: .74rem;
       font-weight: 600;
-      cursor: pointer;
-      flex-shrink: 0;
+      text-align: center;
+      border-bottom: 1px solid #fde68a;
     }
-    .tx-stale-banner button:disabled { opacity: .55; cursor: not-allowed; }
-    @media (max-width: 420px) {
-      .tx-stale-banner { flex-direction: column; align-items: stretch; }
-      .tx-stale-banner button { width: 100%; min-height: 44px; }
-    }
+    .offline-banner.on { display: block; }
   </style>
 </head>
 
 <body>
 
+<div class="offline-banner" id="offlineBanner" role="alert">
+  <i class="fas fa-wifi"></i> You're offline. We'll retry automatically.
+</div>
+
 <div class="ov" id="ov"></div>
 
 <div class="app">
 
-  <aside class="sidebar" id="sb">
-    <div class="sb-brand">
-      <div class="sb-lic">
-        <img src="/images/miles.png" alt="MilesSpace" onerror="this.style.display='none'">
-      </div>
-      MilesSpace
-    </div>
-
-    <p class="sb-sec">Menu</p>
-    <nav class="sb-nav">
-      <a href="dashboard.html"    class="sb-lnk"><i class="fas fa-home"></i> Dashboard</a>
-      <a href="boost.html"        class="sb-lnk"><i class="fas fa-chart-line"></i> Social Boosting</a>
-      <a href="virtual.html"      class="sb-lnk active"><i class="fas fa-phone-alt"></i> Virtual Numbers</a>
-      <a href="market.html"       class="sb-lnk"><i class="fas fa-store"></i> Marketplace</a>
-      <a href="airtime.html"      class="sb-lnk"><i class="fas fa-globe"></i> Global Airtime</a>
-      <a href="bills.html"        class="sb-lnk"><i class="fas fa-file-invoice-dollar"></i> Airtime, Data & Bills</a>
-      <a href="esim.html"         class="sb-lnk"><i class="fas fa-sim-card"></i> Buy eSIM</a>
-      <a href="giftcards.html"    class="sb-lnk"><i class="fas fa-gift"></i> Gift Cards</a>
-      <a href="history.html"      class="sb-lnk"><i class="fas fa-history"></i> History</a>
-      <a href="fund.html"         class="sb-lnk"><i class="fas fa-wallet"></i> Fund Account</a>
-    </nav>
-
-    <p class="sb-sec">Account</p>
-    <nav class="sb-nav">
-      <a href="usersettings.html"  class="sb-lnk"><i class="fas fa-user-cog"></i> Settings</a>
-      <a href="notifications.html" class="sb-lnk"><i class="fas fa-bell"></i> Notifications</a>
-    </nav>
-
-    <div class="sb-foot">
-      <div class="sb-prof">
-        <a href="usersettings.html" class="sb-prof-link">
-          <div class="sb-av" id="sbAv">U</div>
-          <div class="sb-ui">
-            <p class="sb-un" id="sbName">Loading…</p>
-            <p class="sb-ue" id="sbEmail"></p>
-          </div>
-        </a>
-        <button class="sb-out" id="logoutBtn" title="Logout" aria-label="Logout"><i class="fas fa-sign-out-alt"></i></button>
-      </div>
-    </div>
-  </aside>
+  <aside class="sidebar" id="sb" aria-label="Main navigation"></aside>
 
   <div class="main">
     <header class="topbar">
       <button class="tb-hbg" id="hbg" aria-label="Open menu"><i class="fas fa-bars"></i></button>
-      <p class="tb-title">MilesSpace</p>
+      <p class="tb-title">Virtual Numbers</p>
       <div class="tb-right">
-        <button class="tb-btn" id="histBtn" title="Virtual number history" aria-label="Virtual number history"><i class="fas fa-history"></i></button>
-        <a href="notifications.html" class="tb-btn" aria-label="Notifications"><i class="fas fa-bell"></i><span class="notif-dot"></span></a>
+        <button class="tb-btn" id="histBtn" title="History" aria-label="History"><i class="fas fa-history"></i></button>
+        <a href="notifications.html" class="tb-btn" aria-label="Notifications"><i class="fas fa-bell"></i></a>
         <a href="usersettings.html" class="tb-av" id="tbAv">U</a>
       </div>
     </header>
 
     <main class="content">
 
-      <div class="page-header fu d1">
+      <div class="page-header">
         <h1>Virtual Numbers</h1>
         <p>Rent real SIM-based phone numbers from 150+ countries for OTP verification. Auto-refund if no SMS arrives.</p>
         <div class="ph-pills">
@@ -1650,36 +1176,24 @@
         </div>
       </div>
 
-      <div class="cw-bar fu d2">
+      <div class="cw-bar">
         <div class="cw-wallets">
           <span class="cw-wallet" id="cwNgn"><i class="fas fa-wallet"></i> NGN Wallet&nbsp;<b id="cwNgnVal">—</b></span>
           <span class="cw-wallet" id="cwUsd"><i class="fas fa-wallet"></i> USD Wallet&nbsp;<b id="cwUsdVal">—</b></span>
         </div>
         <div class="cw-curr">
           <span class="cw-curr-lbl">Pay with</span>
-          <div class="seg" id="currSeg">
-            <span class="seg-opt on" data-curr="NGN" onclick="setCurrency('NGN')">₦ NGN</span>
-            <span class="seg-opt" data-curr="USD" onclick="setCurrency('USD')">$ USD</span>
+          <div class="seg" id="currSeg" role="tablist">
+            <button class="seg-opt on" data-curr="NGN" role="tab" aria-selected="true">₦ NGN</button>
+            <button class="seg-opt" data-curr="USD" role="tab" aria-selected="false">$ USD</button>
           </div>
         </div>
       </div>
 
-      <div class="steps-bar fu d2">
-        <div class="step-dot active" id="step1">
-          <div class="step-dot-ic">1</div>
-          <span class="step-dot-lbl">Country</span>
-        </div>
-        <div class="step-dot" id="step2">
-          <div class="step-dot-ic">2</div>
-          <span class="step-dot-lbl">Service</span>
-        </div>
-        <div class="step-dot" id="step3">
-          <div class="step-dot-ic"><i class="fas fa-check" style="font-size:.6rem"></i></div>
-          <span class="step-dot-lbl">Rent</span>
-        </div>
-      </div>
+      <!-- Active rentals strip (multiple concurrent) -->
+      <div id="rentalsStrip" class="rentals-strip" hidden></div>
 
-      <div class="virtual-layout fu d3">
+      <div class="virtual-layout">
 
         <div>
           <div class="panel" id="pCountries">
@@ -1695,21 +1209,14 @@
               <div class="search-wrap">
                 <i class="fas fa-search si"></i>
                 <input class="search-inp" id="cSearch" placeholder="Search 150+ countries…" autocomplete="off" aria-label="Search countries" />
-                <i class="fas fa-xmark search-clr" id="cClr"></i>
+                <button class="search-clr" id="cClr" aria-label="Clear search"><i class="fas fa-xmark"></i></button>
               </div>
-              <div class="recent-row" id="recentRow" style="display:none">
-                <span class="recent-lbl">Recent</span>
-              </div>
-              <div class="country-grid" id="cGrid">
-                <div class="skel skel-cc skeleton"></div><div class="skel skel-cc skeleton"></div>
-                <div class="skel skel-cc skeleton"></div><div class="skel skel-cc skeleton"></div>
-                <div class="skel skel-cc skeleton"></div><div class="skel skel-cc skeleton"></div>
-                <div class="skel skel-cc skeleton"></div><div class="skel skel-cc skeleton"></div>
-              </div>
+              <div class="recent-row" id="recentRow" hidden></div>
+              <div class="country-grid" id="cGrid" role="radiogroup" aria-label="Countries"></div>
             </div>
           </div>
 
-          <div class="panel" id="pServices" style="display:none">
+          <div class="panel" id="pServices" hidden>
             <div class="panel-hd">
               <div class="panel-hd-ic" style="background:#7c3aed"><i class="fas fa-mobile-screen-button"></i></div>
               <div class="panel-hd-main">
@@ -1722,59 +1229,19 @@
               <div class="search-wrap">
                 <i class="fas fa-search si"></i>
                 <input class="search-inp" id="sSearch" placeholder="Search WhatsApp, Telegram, Google…" autocomplete="off" aria-label="Search services" />
-                <i class="fas fa-xmark search-clr" id="sClr"></i>
+                <button class="search-clr" id="sClr" aria-label="Clear search"><i class="fas fa-xmark"></i></button>
               </div>
-              <div class="svc-list" id="svcList">
-                <div class="skel skel-svc skeleton"></div>
-                <div class="skel skel-svc skeleton"></div>
-                <div class="skel skel-svc skeleton"></div>
-              </div>
+              <div class="svc-list" id="svcList" role="radiogroup" aria-label="Services"></div>
             </div>
           </div>
         </div>
 
         <div>
           <div class="order-card" id="orderCard">
-            <div class="act-banner" id="actBanner">
-              <div class="ab-lbl"><span class="live-dot"></span>&nbsp;Active Number</div>
-              <div class="ab-num">
-                <span id="abPhone">—</span>
-                <button class="ab-copy" onclick="copyPhone()"><i class="fas fa-copy"></i> Copy</button>
-              </div>
-              <div class="ab-sms" id="abSms">
-                <i class="fas fa-spinner fa-spin" style="opacity:.6;flex-shrink:0"></i>
-                <span>Waiting for SMS code…</span>
-              </div>
-              <div class="ab-acts">
-                <button class="ab-btn" onclick="doRetry()"><i class="fas fa-rotate-right"></i> Resend</button>
-                <button class="ab-btn cxl" id="cxlBtn" onclick="doCancel()" disabled><i class="fas fa-xmark"></i> Cancel</button>
-              </div>
-              <div class="ab-timer" id="abTimer">0:00 / 20:00</div>
-            </div>
-
-            <div class="success-panel" id="successPanel">
-              <div class="sp-head"><i class="fas fa-check"></i><span>Order confirmed</span></div>
-              <div class="sp-grid">
-                <div class="sp-row"><div class="sp-k">Country</div><div class="sp-v" id="spCountry">—</div></div>
-                <div class="sp-row"><div class="sp-k">Service</div><div class="sp-v" id="spService">—</div></div>
-                <div class="sp-row full">
-                  <div><div class="sp-k">Phone number</div><div class="sp-v" id="spPhone">—</div></div>
-                  <button class="sp-copy" onclick="copyPhone()"><i class="fas fa-copy"></i> Copy</button>
-                </div>
-                <div class="sp-row"><div class="sp-k">Price paid</div><div class="sp-v" id="spPrice">—</div></div>
-                <div class="sp-row"><div class="sp-k">Reference</div><div class="sp-v" id="spRef">—</div></div>
-              </div>
-            </div>
-
-            <div class="oc-error" id="ocError">
-              <i class="fas fa-triangle-exclamation"></i>
-              <span id="ocErrorMsg">Something went wrong.</span>
-            </div>
-
             <div class="oc-hero" id="ocHero">
               <div class="oc-top">
                 <span class="oc-lbl">Selected</span>
-                <span class="oc-chg" onclick="resetSelection()"><i class="fas fa-pencil"></i> Change</span>
+                <button class="oc-chg" id="ocChangeBtn"><i class="fas fa-pencil"></i> Change</button>
               </div>
               <div class="oc-sel">
                 <span class="oc-flag" id="ocFlag">🌐</span>
@@ -1795,37 +1262,24 @@
                 <p>No number selected</p>
                 <span>Pick a country, then a service</span>
               </div>
-              <div id="ocReady" style="display:none">
-                <div class="oc-avail">
-                  <div class="avail-bar"><div class="avail-fill" id="availFill" style="width:0%"></div></div>
-                  <span class="avail-lbl" id="availLbl">—</span>
-                </div>
+              <div id="ocReady" hidden>
                 <div class="timing-row">
                   <div class="t-tile"><div class="t-val">~15s</div><div class="t-lbl">SMS speed</div></div>
                   <div class="t-tile"><div class="t-val">20m</div><div class="t-lbl">Validity</div></div>
                 </div>
                 <div class="warn-box">
                   <i class="fas fa-triangle-exclamation"></i>
-                  <span>If no SMS arrives within 20 minutes your order auto-cancels and a full refund is issued. Cancellation is blocked for the first 5 minutes.</span>
+                  <span id="ocWarnText">If no SMS arrives within 20 minutes your order auto-cancels and a full refund is issued. Cancellation is blocked for the first 5 minutes.</span>
                 </div>
-                <button class="btn-rent" id="rentBtn" onclick="rentNumber()">
+                <button class="btn-rent" id="rentBtn" disabled>
                   <i class="fas fa-sim-card"></i> Rent Number
                 </button>
+                <a class="btn-fund" id="fundBtn" hidden href="fund.html">
+                  <i class="fas fa-plus-circle"></i> Fund wallet
+                </a>
                 <p class="btn-sec-lbl"><i class="fas fa-lock"></i> Secure · Real SIM · Auto-refund guaranteed</p>
               </div>
             </div>
-
-            <div class="mini-hist">
-              <h4>Recent Rentals <span class="badge-count" id="orderCount">0</span></h4>
-              <div id="recentOrdersList">
-                <div class="state-empty" style="padding:16px 8px;">
-                  <i class="fas fa-clock-rotate-left" style="font-size:1.2rem;"></i>
-                  <p style="font-size:.7rem;">No rentals yet</p>
-                  <span style="font-size:.65rem;">Your orders will appear here</span>
-                </div>
-              </div>
-            </div>
-
           </div>
         </div>
 
@@ -1844,1110 +1298,1089 @@
 
 <div class="toasts" id="toastWrap" aria-live="polite"></div>
 
+<!-- Confirm / price-change sheet -->
+<div class="sheet-scrim" id="sheetScrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <h3 id="sheetTitle">Confirm</h3>
+  <div id="sheetBody"></div>
+  <div class="sheet-actions">
+    <button class="sheet-btn cancel" id="sheetCancel">Cancel</button>
+    <button class="sheet-btn confirm" id="sheetConfirm">Continue</button>
+  </div>
+</div>
+
 <script>
 'use strict';
 
+// ─── CONFIG ─────────────────────────────────────────────────────────────────
 const CONFIG = {
   API: '/api/virtual',
-  CACHE_TTL: 5 * 60 * 1000,
-  MAX_RETRIES: 2,
-  RETRY_DELAY: 1000,
-  POLL_SCHEDULE: [2000, 3000, 5000, 8000, 12000, 20000, 30000],
-  RECENT_KEY: 'mx_recent_countries',
-  RECENT_MAX: 6
+  MAX_GET_RETRIES: 2,
+  RETRY_DELAY: 800,
+  POLL_START_MS: 3000,
+  POLL_MAX_MS: 15000,
+  POLL_HIDDEN_MS: 30000,
+  RECENT_KEY: 'mx_recent_countries_v2',
+  RECENT_MAX: 6,
+  MAX_ACTIVE: 5, // server enforces the real cap; this is a UI guard
+  DEFAULT_CANCEL_MINUTES: 5
 };
 
+// ─── STATE ──────────────────────────────────────────────────────────────────
 const State = {
   countries: [],
   services: [],
   selCountry: null,
   selSvc: null,
-  rental: null,
-  timerId: null,
-  timerSecs: 0,
-  isLoading: false,
-  orders: [],
-  activeOrder: null,
   currency: 'NGN',
   wallet: { ngn: 0, usd: 0 },
-  svcAbort: null,
-  pollStep: 0,
-  pollTimeout: null
+  rentals: new Map(),        // orderId → rental object { id, phone, service, country, expiresAt, cancelAvailableAt, ... }
+  cardEls: new Map(),        // orderId → DOM element
+  pollTimer: null,
+  pollDelay: CONFIG.POLL_START_MS,
+  timers: new Map(),         // orderId → interval
+  serverOffsetMs: 0,         // serverNow - clientNow; added to Date.now() when rendering timers
+  lastServerNow: 0,
+  idempotencyKey: null,      // the current in-flight order attempt
+  pendingOrder: null         // { countryId, countryName, countryFlag, svc, amount, currency, expectedAmount, idempotencyKey }
 };
 
-const Cache = {
-  _store: new Map(),
-  _timestamps: new Map(),
-  get(key) {
-    const data = this._store.get(key);
-    const ts = this._timestamps.get(key);
-    if (!data || !ts) return null;
-    if (Date.now() - ts > CONFIG.CACHE_TTL) {
-      this._store.delete(key);
-      this._timestamps.delete(key);
-      return null;
-    }
-    return data;
-  },
-  set(key, value) {
-    this._store.set(key, value);
-    this._timestamps.set(key, Date.now());
-  },
-  clear() {
-    this._store.clear();
-    this._timestamps.clear();
+// ─── UTIL ───────────────────────────────────────────────────────────────────
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+function fmtUSD(n) { return '$' + (Number(n) || 0).toFixed(2); }
+function fmtNGN(n) { return '₦' + (Number(n) || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function fmtMoney(n, ccy) { return String(ccy).toUpperCase() === 'USD' ? fmtUSD(n) : fmtNGN(n); }
+
+function serverNow() {
+  return Date.now() + State.serverOffsetMs;
+}
+function updateServerOffset(isoNow) {
+  if (!isoNow) return;
+  const t = new Date(isoNow).getTime();
+  if (Number.isFinite(t)) {
+    State.serverOffsetMs = t - Date.now();
+    State.lastServerNow = t;
   }
-};
-
-function debounce(fn, delay = 300) {
-  let timer = null;
-  return function (...args) {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn.apply(this, args), delay);
-  };
 }
 
-function delay(ms) {
-  return new Promise(r => setTimeout(r, ms));
+function fmtDuration(ms) {
+  if (ms <= 0) return '0:00';
+  const total = Math.ceil(ms / 1000);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function getCurrentUser() {
-  return (typeof window.getUser === 'function') ? window.getUser() : null;
-}
-
-function redirectToLogin() {
-  if (typeof window.redirectToUserLogin === 'function') window.redirectToUserLogin();
-  else window.location.replace('/login.html');
-}
-
-async function apiCall(path, opts = {}) {
-  const fetcher = (typeof window.userFetch === 'function')
-    ? window.userFetch
-    : (url, o) => fetch(url, { ...o, credentials: 'include' });
-
-  const externalSignal = opts.externalSignal;
-  let lastError = null;
-
-  for (let attempt = 0; attempt <= CONFIG.MAX_RETRIES; attempt++) {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
-      const onExternalAbort = () => controller.abort();
-
-      if (externalSignal) {
-        if (externalSignal.aborted) controller.abort();
-        else externalSignal.addEventListener('abort', onExternalAbort);
-      }
-
-      let response;
-      try {
-        response = await fetcher(CONFIG.API + path, {
-          ...opts,
-          signal: controller.signal,
-          headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) }
-        });
-      } finally {
-        clearTimeout(timeout);
-        if (externalSignal) externalSignal.removeEventListener('abort', onExternalAbort);
-      }
-
-      if (response.status === 401) {
-        redirectToLogin();
-        return null;
-      }
-
-      const data = await response.json().catch(() => ({ error: 'Parse error' }));
-      if (!response.ok) {
-        const err = new Error(data.error || `HTTP ${response.status}`);
-        err.code = data.code || null;
-        err.data = data.data || null;
-        throw err;
-      }
-      return data;
-    } catch (error) {
-      if (externalSignal?.aborted || error.name === 'AbortError') {
-        if (externalSignal?.aborted) {
-          const abortErr = new Error('Request superseded');
-          abortErr.aborted = true;
-          throw abortErr;
-        }
-      }
-      lastError = error;
-      if (attempt < CONFIG.MAX_RETRIES) await delay(CONFIG.RETRY_DELAY * (attempt + 1));
-    }
+function uuid() {
+  if (crypto && typeof crypto.randomUUID === 'function') {
+    try { return crypto.randomUUID(); } catch (_) {}
   }
-  throw lastError || new Error('Request failed');
+  // Fallback
+  const a = new Uint8Array(16);
+  crypto.getRandomValues(a);
+  a[6] = (a[6] & 0x0f) | 0x40;
+  a[8] = (a[8] & 0x3f) | 0x80;
+  const h = [...a].map(b => b.toString(16).padStart(2, '0')).join('');
+  return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
 }
 
-const ERROR_MESSAGES = {
-  NO_INVENTORY:                 'No numbers are currently available for this service. Please choose another service.',
-  SERVICE_NOT_FOUND:            'This service is no longer available. Please pick another.',
-  COUNTRY_BLOCKED:              'This country is not supported for virtual numbers.',
-  PROVIDER_UNAVAILABLE:         'Our SMS provider is temporarily unavailable. Please try again shortly.',
-  INSUFFICIENT_BALANCE:         'Insufficient balance for this purchase. Please fund your wallet.',
-  DUPLICATE_REQUEST:            'This order was already placed. Check your recent rentals.',
-  MANUAL_REVIEW_NEEDED:         'Your payment needs manual review. Support has been notified.',
-  REFUND_FAILED:                'The order was cancelled but the refund is still processing.',
-  PROVIDER_FAILURE_REFUNDED:    'No numbers were available — your payment was automatically refunded.',
-  INVALID_PRICE:                'Pricing for this service is temporarily unavailable.',
-  ORDER_ERROR:                  'Could not complete this order. Please try again.'
-};
-
-function friendlyError(error) {
-  if (error?.code && ERROR_MESSAGES[error.code]) return ERROR_MESSAGES[error.code];
-  return error?.message || 'Something went wrong. Please try again.';
-}
-
-function toast(msg, type = 'info') {
+function toast(msg, type) {
   const container = document.getElementById('toastWrap');
   if (!container) return;
-
-  const icons = {
-    ok:   'fa-check-circle',
-    err:  'fa-times-circle',
-    warn: 'fa-triangle-exclamation',
-    info: 'fa-circle-info'
-  };
-
+  const icons = { ok: 'fa-check-circle', err: 'fa-times-circle', warn: 'fa-triangle-exclamation', info: 'fa-circle-info' };
   const el = document.createElement('div');
-  el.className = `toast ${type}`;
-
+  el.className = `toast ${type || 'info'}`;
   const icon = document.createElement('i');
   icon.className = `fas ${icons[type] || icons.info}`;
-
   const span = document.createElement('span');
   span.textContent = msg;
-
   el.appendChild(icon);
   el.appendChild(span);
   container.appendChild(el);
-
   setTimeout(() => {
     el.style.cssText = 'opacity:0;transition:.3s;transform:translateX(30px)';
     setTimeout(() => el.remove(), 300);
-  }, 3800);
+  }, 4000);
 }
 
-const FLAG_MAP = {
-  'nigeria':'🇳🇬','united kingdom':'🇬🇧','germany':'🇩🇪','france':'🇫🇷',
-  'spain':'🇪🇸','italy':'🇮🇹','netherlands':'🇳🇱','poland':'🇵🇱',
-  'sweden':'🇸🇪','ireland':'🇮🇪','austria':'🇦🇹','romania':'🇷🇴',
-  'croatia':'🇭🇷','serbia':'🇷🇸','canada':'🇨🇦','brazil':'🇧🇷',
-  'india':'🇮🇳','indonesia':'🇮🇩','philippines':'🇵🇭','vietnam':'🇻🇳',
-  'egypt':'🇪🇬','south africa':'🇿🇦','kenya':'🇰🇪','china':'🇨🇳',
-  'thailand':'🇹🇭','malaysia':'🇲🇾','colombia':'🇨🇴','argentina':'🇦🇷'
+// Friendly error mapping — never echo raw provider/internal text.
+const ERROR_MAP = {
+  IDEMPOTENCY_KEY_REQUIRED: 'Please retry — the request was missing a key.',
+  INVALID_COUNTRY: 'Please choose a valid country.',
+  INVALID_SERVICE: 'Please choose a valid service.',
+  COUNTRY_BLOCKED: 'This country is not supported.',
+  SERVICE_NOT_FOUND: 'This service is no longer available. Pick another.',
+  NO_INVENTORY: 'No numbers available for this service. Try another.',
+  PROVIDER_COST_MISSING: 'This service is temporarily unavailable. Try another.',
+  INSUFFICIENT_BALANCE: 'Not enough balance. Please fund your wallet.',
+  ACTIVE_ORDERS_LIMIT: 'You already have active rentals. Wait for one to finish.',
+  BELOW_MIN_LIMIT: 'Order is below the minimum for this service.',
+  ABOVE_MAX_LIMIT: 'Order is above the maximum for this service.',
+  PRICE_CHANGED: 'The price was updated. Please confirm.',
+  PROVIDER_UNAVAILABLE: 'Our SMS provider is temporarily unavailable. Try again shortly.',
+  PROVIDER_OUT_OF_BALANCE: 'Our SMS provider is temporarily unavailable. Try again shortly.',
+  PROVIDER_FAILURE_REFUNDED: 'No numbers were available — your payment was refunded.',
+  RATE_LIMIT: 'Too many requests. Please slow down.',
+  CANCEL_TOO_EARLY: 'You can cancel in a moment.',
+  SMS_CODE_DELIVERED: 'A code has already been delivered.',
+  SMS_ALREADY_RECEIVED: 'The SMS has already arrived.',
+  ORDER_INACTIVE: 'This order has already finished.',
+  NETWORK_ERROR: 'Connection problem. We\'ll retry automatically.'
 };
+function friendlyError(err) {
+  if (!err) return 'Something went wrong. Please try again.';
+  if (err.code && ERROR_MAP[err.code]) return ERROR_MAP[err.code];
+  if (err.message) return err.message;
+  return 'Something went wrong. Please try again.';
+}
 
-function getFlag(name) {
-  if (!name) return '🌐';
-  const key = name.toLowerCase().trim();
-  if (FLAG_MAP[key]) return FLAG_MAP[key];
-  for (const [k, v] of Object.entries(FLAG_MAP)) {
-    if (key.includes(k) || k.includes(key)) return v;
+// ─── API ────────────────────────────────────────────────────────────────────
+async function apiCall(path, opts) {
+  opts = opts || {};
+  const fetcher = (typeof window.userFetch === 'function')
+    ? window.userFetch
+    : (url, o) => fetch(url, Object.assign({ credentials: 'include' }, o));
+  const isGet = !opts.method || String(opts.method).toUpperCase() === 'GET';
+  const maxAttempts = isGet ? (CONFIG.MAX_GET_RETRIES + 1) : 1; // NEVER retry POST
+  let lastErr = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 20000);
+      let res;
+      try {
+        res = await fetcher(CONFIG.API + path, Object.assign({}, opts, {
+          signal: controller.signal,
+          headers: Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {})
+        }));
+      } finally {
+        clearTimeout(timer);
+      }
+
+      if (res.status === 401) {
+        if (typeof window.redirectToUserLogin === 'function') window.redirectToUserLogin();
+        else window.location.replace('/login.html');
+        return null;
+      }
+
+      let data = null;
+      try { data = await res.json(); } catch { data = { error: 'Parse error', code: 'PARSE_ERROR' }; }
+
+      // Update server offset if the response includes server_now
+      if (data && data.server_now) updateServerOffset(data.server_now);
+
+      if (!res.ok) {
+        const err = new Error(data.error || data.message || `HTTP ${res.status}`);
+        err.code = data.code || `HTTP_${res.status}`;
+        err.data = data.data || data;
+        err.status = res.status;
+        throw err;
+      }
+      return data;
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        lastErr = Object.assign(new Error('Request timed out'), { code: 'TIMEOUT' });
+      } else {
+        lastErr = e;
+      }
+      if (attempt < maxAttempts) {
+        await new Promise(r => setTimeout(r, CONFIG.RETRY_DELAY * attempt));
+        continue;
+      }
+      if (!e.status) {
+        // Network-level error
+        lastErr = Object.assign(new Error('Network error'), { code: 'NETWORK_ERROR' });
+      }
+      throw lastErr;
+    }
   }
-  return '🌐';
+  throw lastErr;
 }
 
-const SVC_ICONS = {
-  wa: { icon: 'fab fa-whatsapp', bg: '#25d366' },
-  tg: { icon: 'fab fa-telegram', bg: '#0088cc' },
-  go: { icon: 'fab fa-google', bg: '#4285f4' },
-  fb: { icon: 'fab fa-facebook', bg: '#1877f2' },
-  ig: { icon: 'fab fa-instagram', bg: 'linear-gradient(135deg,#833ab4,#fd1d1d)' },
-  tw: { icon: 'fab fa-twitter', bg: '#1da1f2' },
-  tk: { icon: 'fab fa-tiktok', bg: '#111' },
-  dc: { icon: 'fab fa-discord', bg: '#5865f2' },
-  yt: { icon: 'fab fa-youtube', bg: '#ff0000' },
-  default: { icon: 'fas fa-mobile-screen-button', bg: '#6b7280' }
-};
-
-function getSvcIcon(code) {
-  if (!code) return SVC_ICONS.default;
-  const key = code.toLowerCase().slice(0, 2);
-  return SVC_ICONS[key] || SVC_ICONS.default;
-}
-
-const fUSD  = n => '$' + (Number(n) || 0).toFixed(2);
-const fNGN  = n => '₦' + (Number(n) || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const fTime = s => {
-  const m = Math.floor(s / 60);
-  const sec = String(s % 60).padStart(2, '0');
-  return `${m}:${sec}`;
-};
-
-function getStatusBadge(status) {
-  const map = {
-    completed:    'bdg-ok',
-    sms_received: 'bdg-ok',
-    active:       'bdg-active',
-    processing:   'bdg-pe',
-    pending:      'bdg-pe',
-    cancelled:    'bdg-err',
-    expired:      'bdg-err',
-    failed:       'bdg-err',
-    refunded:     'bdg-refunded'
-  };
-  return map[status] || 'bdg-pe';
-}
-
-function getStatusLabel(status) {
-  if (window.MS && MS.statusLabel) return MS.statusLabel(status);
-  const map = {
-    completed:    'Done', sms_received: 'Done', active: 'Active',
-    processing:   'Processing', pending: 'Pending', cancelled: 'Cancelled',
-    expired:      'Expired', failed: 'Failed', refunded: 'Refunded'
-  };
-  return map[status] || status;
-}
-
-function showOrderError(msg) {
-  hideSuccessPanel();
-  const box = document.getElementById('ocError');
-  const txt = document.getElementById('ocErrorMsg');
-  if (txt) txt.textContent = msg;
-  if (box) box.classList.add('on');
-}
-
-function hideOrderError() {
-  document.getElementById('ocError')?.classList.remove('on');
-}
-
-function showSuccessPanel(order) {
-  hideOrderError();
-  document.getElementById('spCountry').textContent = State.selCountry?.eng || '—';
-  document.getElementById('spService').textContent = order.service || State.selSvc?.name || '—';
-  document.getElementById('spPhone').textContent = order.phoneNumber || '—';
-
-  const curr = order.chargeCurrency || State.currency;
-  const amt = order.chargeAmount != null ? order.chargeAmount : (curr === 'USD' ? order.priceUsd : order.priceNgn);
-  document.getElementById('spPrice').textContent = curr === 'USD' ? fUSD(amt) : fNGN(amt);
-  document.getElementById('spRef').textContent = order.transaction?.reference || order.orderId || '—';
-
-  document.getElementById('successPanel').classList.add('on');
-}
-
-function hideSuccessPanel() {
-  document.getElementById('successPanel')?.classList.remove('on');
-}
-
-function setCurrency(curr) {
-  State.currency = curr;
-  document.querySelectorAll('#currSeg .seg-opt').forEach(el => el.classList.toggle('on', el.dataset.curr === curr));
-  document.getElementById('cwNgn')?.classList.toggle('hi', curr === 'NGN');
-  document.getElementById('cwUsd')?.classList.toggle('hi', curr === 'USD');
-
-  if (State.services?.length) {
-    const q = document.getElementById('sSearch')?.value.toLowerCase().trim() || '';
-    const filtered = q
-      ? State.services.filter(s => s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q))
-      : State.services;
-    renderServices(filtered);
+// ─── WALLET ─────────────────────────────────────────────────────────────────
+async function loadWallet() {
+  // Cache-first paint
+  try {
+    const cached = JSON.parse(sessionStorage.getItem('ms:virtual:wallet') || 'null');
+    if (cached && Number.isFinite(cached.ngn)) {
+      State.wallet.ngn = cached.ngn;
+      State.wallet.usd = cached.usd || 0;
+      paintWallet();
+    }
+  } catch (_) {}
+  try {
+    const data = await apiCall('/me');
+    if (data && data.user) {
+      State.wallet.ngn = Number(data.user.wallet_ngn) || 0;
+      State.wallet.usd = Number(data.user.wallet_usd) || 0;
+      paintWallet();
+      try {
+        sessionStorage.setItem('ms:virtual:wallet', JSON.stringify(State.wallet));
+      } catch (_) {}
+    }
+  } catch (e) {
+    console.warn('[wallet]', e.message);
   }
-
-  if (State.selSvc) updatePriceBox(State.selSvc.sellingUSD, State.selSvc.sellingNGN);
+}
+function paintWallet() {
+  const ngnEl = document.getElementById('cwNgnVal');
+  const usdEl = document.getElementById('cwUsdVal');
+  if (ngnEl) ngnEl.textContent = fmtNGN(State.wallet.ngn);
+  if (usdEl) usdEl.textContent = fmtUSD(State.wallet.usd);
+  document.getElementById('cwNgn').classList.toggle('hi', State.currency === 'NGN');
+  document.getElementById('cwUsd').classList.toggle('hi', State.currency === 'USD');
+  updateRentButtonState();
 }
 
-function updatePriceBox(usd, ngn) {
+// ─── CURRENCY ───────────────────────────────────────────────────────────────
+function setCurrency(ccy) {
+  State.currency = ccy === 'USD' ? 'USD' : 'NGN';
+  document.querySelectorAll('#currSeg .seg-opt').forEach(el => {
+    const on = el.dataset.curr === State.currency;
+    el.classList.toggle('on', on);
+    el.setAttribute('aria-selected', String(on));
+  });
+  paintWallet();
+  if (State.services.length) renderServices(filterServices());
+  if (State.selSvc) updatePriceBox(State.selSvc);
+}
+function updatePriceBox(svc) {
   const primaryLbl = document.getElementById('pbPrimaryLbl');
   const primary = document.getElementById('pbPrimary');
   const secondary = document.getElementById('pbSecondary');
   if (!primary || !secondary) return;
-
   if (State.currency === 'USD') {
     primaryLbl.textContent = 'Price (USD)';
-    primary.textContent = fUSD(usd);
-    secondary.textContent = fNGN(ngn) + ' NGN';
+    primary.textContent = fmtUSD(svc.sellingUSD);
+    secondary.textContent = fmtNGN(svc.sellingNGN);
   } else {
     primaryLbl.textContent = 'Price (NGN)';
-    primary.textContent = fNGN(ngn);
-    secondary.textContent = fUSD(usd) + ' USD';
+    primary.textContent = fmtNGN(svc.sellingNGN);
+    secondary.textContent = fmtUSD(svc.sellingUSD);
   }
+  updateRentButtonState();
 }
 
-async function loadWallet() {
-  /* Fast paint from session cache */
-  try {
-    const cached = JSON.parse(sessionStorage.getItem('ms:virtual:wallet') || 'null');
-    if (cached && cached.ngn != null) {
-      State.wallet.ngn = cached.ngn || 0;
-      State.wallet.usd = cached.usd || 0;
-      const ngnEl = document.getElementById('cwNgnVal');
-      const usdEl = document.getElementById('cwUsdVal');
-      if (ngnEl) ngnEl.textContent = fNGN(State.wallet.ngn);
-      if (usdEl) usdEl.textContent = fUSD(State.wallet.usd);
-    }
-  } catch (_) {}
-
-  try {
-    const data = await apiCall('/me');
-    if (data?.success && data.user) {
-      State.wallet.ngn = data.user.wallet_ngn || 0;
-      State.wallet.usd = data.user.wallet_usd || 0;
-
-      const ngnEl = document.getElementById('cwNgnVal');
-      const usdEl = document.getElementById('cwUsdVal');
-      if (ngnEl) ngnEl.textContent = fNGN(State.wallet.ngn);
-      if (usdEl) usdEl.textContent = fUSD(State.wallet.usd);
-
-      try {
-        sessionStorage.setItem('ms:virtual:wallet', JSON.stringify({
-          ngn: State.wallet.ngn, usd: State.wallet.usd
-        }));
-      } catch (_) {}
-    }
-  } catch (error) {
-    console.warn('[wallet]', error.message);
-  }
-}
-
-function getRecentCountries() {
-  try {
-    return JSON.parse(localStorage.getItem(CONFIG.RECENT_KEY) || '[]');
-  } catch { return []; }
-}
-
-function saveRecentCountry(c) {
-  try {
-    let recent = getRecentCountries().filter(r => r.id !== c.id);
-    recent.unshift({ id: c.id, eng: c.eng, flag: c.flag });
-    recent = recent.slice(0, CONFIG.RECENT_MAX);
-    localStorage.setItem(CONFIG.RECENT_KEY, JSON.stringify(recent));
-    renderRecentCountries();
-  } catch { /* ignore quota errors */ }
-}
-
-function renderRecentCountries() {
-  const row = document.getElementById('recentRow');
-  if (!row) return;
-
-  const recent = getRecentCountries();
-  if (!recent.length) {
-    row.style.display = 'none';
-    return;
-  }
-
-  row.style.display = 'flex';
-  row.innerHTML = '<span class="recent-lbl">Recent</span>' + recent.map(c => `
-    <span class="recent-chip" onclick="selectCountry(${c.id}, '${c.eng.replace(/'/g, "\\'")}', '${c.flag}')">
-      <span>${c.flag}</span><span>${c.eng}</span>
-    </span>
-  `).join('');
-}
-
-function setStep(n) {
-  for (let i = 1; i <= 3; i++) {
-    const el = document.getElementById('step' + i);
-    if (!el) continue;
-    if (i < n)        el.className = 'step-dot done';
-    else if (i === n) el.className = 'step-dot active';
-    else              el.className = 'step-dot';
-  }
-}
-
-function initLogout() {
-  const logoutBtn = document.getElementById('logoutBtn');
-  if (!logoutBtn) return;
-
-  logoutBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (typeof window.doUserLogout === 'function') window.doUserLogout();
-    else redirectToLogin();
-  });
-}
-
-function initSidebar() {
-  const sb  = document.getElementById('sb');
-  const ov  = document.getElementById('ov');
-  const hbg = document.getElementById('hbg');
-  if (!sb || !ov || !hbg) return;
-  if (sb.dataset.bound === '1') return;
-  sb.dataset.bound = '1';
-
-  const close = () => {
-    sb.classList.remove('open');
-    ov.classList.remove('on');
-    document.body.classList.remove('sb-open');
-  };
-  const open = () => {
-    sb.classList.add('open');
-    ov.classList.add('on');
-    document.body.classList.add('sb-open');
-  };
-
-  hbg.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (sb.classList.contains('open')) close();
-    else open();
-  });
-
-  ov.addEventListener('click', close);
-  sb.querySelectorAll('.sb-lnk').forEach(link => link.addEventListener('click', () => close()));
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && sb.classList.contains('open')) close();
-  });
-
-  window.addEventListener('resize', () => {
-    if (!sb.classList.contains('open')) {
-      ov.classList.remove('on');
-      document.body.classList.remove('sb-open');
-    }
-  });
-}
-
-function loadUser() {
-  try {
-    const user = getCurrentUser();
-    if (!user) return;
-
-    const name = user.username || user.full_name || user.email?.split('@')[0] || 'User';
-    const email = user.email || '';
-    const initial = name.charAt(0).toUpperCase() || 'U';
-
-    const sbName  = document.getElementById('sbName');
-    const sbEmail = document.getElementById('sbEmail');
-    const sbAv    = document.getElementById('sbAv');
-    const tbAv    = document.getElementById('tbAv');
-
-    if (sbName)  sbName.textContent  = name;
-    if (sbEmail) sbEmail.textContent = email;
-    if (sbAv)    sbAv.textContent    = initial;
-    if (tbAv)    tbAv.textContent    = initial;
-  } catch (error) {
-    console.warn('[USER] Failed to load:', error);
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════
-   COUNTRIES — cache-first (sessionStorage) for FAST load
-   ═══════════════════════════════════════════════════════════ */
+// ─── COUNTRIES ──────────────────────────────────────────────────────────────
 async function loadCountries() {
   const grid = document.getElementById('cGrid');
-  if (!grid) return;
-
-  /* Paint cached list immediately */
-  try {
-    const cached = JSON.parse(sessionStorage.getItem('ms:virtual:countries') || 'null');
-    if (cached && Array.isArray(cached) && cached.length) {
-      State.countries = cached;
-      renderCountries(cached);
-      const badge = document.getElementById('cntBadge');
-      if (badge) badge.textContent = cached.length + ' countries';
-    } else {
-      grid.innerHTML = Array(8).fill('<div class="skel skel-cc skeleton"></div>').join('');
-    }
-  } catch (_) {
-    grid.innerHTML = Array(8).fill('<div class="skel skel-cc skeleton"></div>').join('');
-  }
-
+  grid.innerHTML = Array(8).fill('<div class="skel skel-cc skeleton"></div>').join('');
   try {
     const data = await apiCall('/countries');
-    const countries = Object.values(data).map(c => ({
-      id: c.id,
-      eng: c.eng || 'Unknown',
-      flag: c.flag || getFlag(c.eng)
-    })).sort((a, b) => a.eng.localeCompare(b.eng));
-
-    State.countries = countries;
-    Cache.set('countries', countries);
-    try {
-      sessionStorage.setItem('ms:virtual:countries', JSON.stringify(countries));
-    } catch (_) {}
-
-    document.getElementById('cntBadge').textContent = countries.length + ' countries';
-    renderCountries(countries);
-  } catch (error) {
-    console.error('[countries]', error);
-    if (!State.countries.length) {
-      document.getElementById('cntBadge').textContent = 'Error';
-      document.getElementById('cntBadge').className = 'panel-badge pb-err';
-      grid.innerHTML = `<div class="state-err" style="grid-column:1/-1"><i class="fas fa-exclamation-triangle"></i><p>Could not load countries</p><span>${friendlyError(error)}</span><button class="btn-retry" onclick="loadCountries()"><i class="fas fa-rotate-right"></i> Retry</button></div>`;
-      toast('Failed to load countries: ' + friendlyError(error), 'err');
-    }
+    const list = (data.countries || []).slice().sort((a, b) => a.eng.localeCompare(b.eng));
+    State.countries = list;
+    document.getElementById('cntBadge').textContent = list.length + ' countries';
+    document.getElementById('cntBadge').className = 'panel-badge pb-live';
+    renderCountries(list);
+    renderRecentCountries();
+  } catch (e) {
+    grid.innerHTML = '<div class="state-err" style="grid-column:1/-1"><i class="fas fa-exclamation-triangle"></i><p>Could not load countries</p><span>' + esc(friendlyError(e)) + '</span><button class="btn-retry" data-action="retry-countries"><i class="fas fa-rotate-right"></i> Retry</button></div>';
+    document.getElementById('cntBadge').textContent = 'Error';
+    document.getElementById('cntBadge').className = 'panel-badge pb-err';
   }
 }
 
 function renderCountries(list) {
   const grid = document.getElementById('cGrid');
-  if (!grid) return;
-
-  if (!list || !list.length) {
-    grid.innerHTML = `<div class="state-empty" style="grid-column:1/-1"><i class="fas fa-search"></i><p>No countries found</p><span>Try a different search</span></div>`;
+  if (!list.length) {
+    grid.innerHTML = '<div class="state-empty" style="grid-column:1/-1"><i class="fas fa-search"></i><p>No countries found</p><span>Try a different search</span></div>';
     return;
   }
-
   grid.innerHTML = list.map(c => `
-    <div class="c-card${State.selCountry?.id === c.id ? ' sel' : ''}" onclick="selectCountry(${c.id}, '${c.eng.replace(/'/g, "\\'")}', '${c.flag}')" role="button" tabindex="0">
-      <span class="c-flag">${c.flag}</span>
-      <span class="c-name">${c.eng}</span>
-      <span class="c-chk"><i class="fas fa-check" style="font-size:.42rem"></i></span>
-    </div>
+    <button class="c-card${State.selCountry && State.selCountry.id === c.id ? ' sel' : ''}" data-country-id="${c.id}" data-country-name="${esc(c.eng)}" data-country-flag="${esc(c.flag || '🌐')}" role="radio" aria-checked="${State.selCountry && State.selCountry.id === c.id ? 'true' : 'false'}">
+      <span class="c-flag" aria-hidden="true">${esc(c.flag || '🌐')}</span>
+      <span class="c-name">${esc(c.eng)}</span>
+      <span class="c-chk" aria-hidden="true"><i class="fas fa-check" style="font-size:.42rem"></i></span>
+    </button>
   `).join('');
 }
 
-const filterCountries = debounce(() => {
-  const q = document.getElementById('cSearch').value.toLowerCase().trim();
-  const clr = document.getElementById('cClr');
-  if (clr) clr.classList.toggle('show', !!q);
-  const filtered = q ? State.countries.filter(c => c.eng.toLowerCase().includes(q)) : State.countries;
-  renderCountries(filtered);
-}, 300);
+function filterCountries() {
+  const q = (document.getElementById('cSearch').value || '').toLowerCase().trim();
+  document.getElementById('cClr').classList.toggle('show', !!q);
+  const list = q ? State.countries.filter(c => c.eng.toLowerCase().includes(q)) : State.countries;
+  renderCountries(list);
+}
 
 async function selectCountry(id, name, flag) {
   State.selCountry = { id, eng: name, flag };
-  State.selSvc = null;
-  saveRecentCountry({ id, eng: name, flag });
-
-  if (State.svcAbort) State.svcAbort.abort();
-  const abortCtrl = new AbortController();
-  State.svcAbort = abortCtrl;
-
-  const q = document.getElementById('cSearch').value.toLowerCase().trim();
-  const filtered = q ? State.countries.filter(c => c.eng.toLowerCase().includes(q)) : State.countries;
-  renderCountries(filtered);
-
-  setStep(2);
-
-  const sp = document.getElementById('pServices');
-  if (sp) {
-    sp.style.display = 'block';
-    document.getElementById('svcSub').textContent = `In-stock services for ${name} ${flag}`;
-  }
-
+  saveRecentCountry(State.selCountry);
+  renderCountries(filterCountries0());
+  resetServiceSelection();
+  const pSvc = document.getElementById('pServices');
+  pSvc.hidden = false;
+  document.getElementById('svcSub').textContent = `In-stock services for ${name} ${flag}`;
   document.getElementById('sSearch').value = '';
-  const svcList = document.getElementById('svcList');
-
-  /* Check sessionStorage cache for this country's services */
-  let paintedFromCache = false;
-  try {
-    const cached = JSON.parse(sessionStorage.getItem(`ms:virtual:svcs:${id}`) || 'null');
-    if (cached && Array.isArray(cached) && cached.length) {
-      State.services = cached;
-      document.getElementById('svcBadge').textContent = cached.length + ' available';
-      document.getElementById('svcBadge').className = 'panel-badge pb-live';
-      renderServices(cached);
-      paintedFromCache = true;
-    }
-  } catch (_) {}
-
-  if (!paintedFromCache) {
-    svcList.innerHTML = `<div class="skel skel-svc skeleton"></div><div class="skel skel-svc skeleton"></div><div class="skel skel-svc skeleton"></div>`;
-    const badge = document.getElementById('svcBadge');
-    badge.textContent = 'Loading…';
-    badge.className = 'panel-badge pb-live';
-  }
-
-  resetOrderBody();
+  document.getElementById('sClr').classList.remove('show');
+  document.getElementById('svcList').innerHTML = '<div class="skel skel-svc skeleton"></div><div class="skel skel-svc skeleton"></div><div class="skel skel-svc skeleton"></div>';
 
   try {
-    const cacheKey = `services_${id}`;
-    const memCached = Cache.get(cacheKey);
-    if (memCached) {
-      State.services = memCached;
-      document.getElementById('svcBadge').textContent = memCached.length + ' available';
-      renderServices(memCached);
-      if (sp) sp.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const data = await apiCall(`/services-with-prices?country=${encodeURIComponent(id)}`);
+    if (data && data.enabled === false) {
+      document.getElementById('svcBadge').textContent = data.reason || 'Disabled';
+      document.getElementById('svcBadge').className = 'panel-badge pb-warn';
+      document.getElementById('svcList').innerHTML = '<div class="state-empty"><i class="fas fa-box-open"></i><p>Service is disabled</p><span>' + esc(data.reason || 'Try again later.') + '</span></div>';
       return;
     }
-
-    const data = await apiCall(`/services-with-prices?country=${id}`, { externalSignal: abortCtrl.signal });
-    if (State.svcAbort !== abortCtrl) return;
-
-    const services = data.services || [];
-    State.services = services;
-    Cache.set(cacheKey, services);
-    try {
-      sessionStorage.setItem(`ms:virtual:svcs:${id}`, JSON.stringify(services));
-    } catch (_) {}
-
-    const badge = document.getElementById('svcBadge');
-    badge.textContent = services.length + ' available';
-    badge.className = services.length > 0 ? 'panel-badge pb-live' : 'panel-badge pb-warn';
-    renderServices(services);
-
-    if (sp) sp.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  } catch (error) {
-    if (error.aborted) return;
-    console.error('[services]', error);
-    if (!paintedFromCache) {
-      const badge = document.getElementById('svcBadge');
-      badge.textContent = 'Error';
-      badge.className = 'panel-badge pb-err';
-      svcList.innerHTML = `<div class="state-err"><i class="fas fa-exclamation-circle"></i><p>Could not load services</p><span>${friendlyError(error)}</span></div>`;
-      toast('Failed to load services: ' + friendlyError(error), 'err');
-    }
+    const list = data.services || [];
+    State.services = list;
+    document.getElementById('svcBadge').textContent = list.length + ' available';
+    document.getElementById('svcBadge').className = 'panel-badge ' + (list.length > 0 ? 'pb-live' : 'pb-warn');
+    renderServices(list);
+  } catch (e) {
+    document.getElementById('svcBadge').textContent = 'Error';
+    document.getElementById('svcBadge').className = 'panel-badge pb-err';
+    document.getElementById('svcList').innerHTML = '<div class="state-err"><i class="fas fa-exclamation-circle"></i><p>Could not load services</p><span>' + esc(friendlyError(e)) + '</span></div>';
   }
+}
+
+function filterCountries0() {
+  const q = (document.getElementById('cSearch').value || '').toLowerCase().trim();
+  return q ? State.countries.filter(c => c.eng.toLowerCase().includes(q)) : State.countries;
+}
+
+function resetServiceSelection() {
+  State.selSvc = null;
+  document.getElementById('ocHero').classList.remove('on');
+  document.getElementById('ocEmpty').hidden = false;
+  document.getElementById('ocReady').hidden = true;
 }
 
 function renderServices(list) {
   const el = document.getElementById('svcList');
-  if (!el) return;
-
-  if (!list || !list.length) {
-    el.innerHTML = `<div class="state-empty"><i class="fas fa-box-open"></i><p>No services available</p><span>No in-stock services for this country right now</span></div>`;
+  if (!list.length) {
+    el.innerHTML = '<div class="state-empty"><i class="fas fa-box-open"></i><p>No services available</p><span>No in-stock services for this country right now</span></div>';
     return;
   }
-
   el.innerHTML = list.map(s => {
     const icon = getSvcIcon(s.code);
-    const sel = State.selSvc?.code === s.code;
-    const count = s.count || 0;
-    const cls = count < 10 ? 'av-lo' : 'av-hi';
-    const lbl = count > 0 ? `${count} available` : '';
-
+    const sel = State.selSvc && State.selSvc.code === s.code;
+    const primary = State.currency === 'USD' ? fmtUSD(s.sellingUSD) : fmtNGN(s.sellingNGN);
+    const secondary = State.currency === 'USD' ? fmtNGN(s.sellingNGN) : fmtUSD(s.sellingUSD);
     return `
-      <div class="svc-item${sel ? ' sel' : ''}" onclick="selectService('${s.code.replace(/'/g, "\\'")}', '${s.name.replace(/'/g, "\\'")}', ${count}, ${s.sellingUSD || 0}, ${s.sellingNGN || 0})" role="button" tabindex="0">
-        <div class="svc-ic" style="background:${icon.bg}"><i class="${icon.icon}" style="color:#fff"></i></div>
+      <button class="svc-item${sel ? ' sel' : ''}" data-svc-code="${esc(s.code)}" role="radio" aria-checked="${sel ? 'true' : 'false'}">
+        <div class="svc-ic" style="background:${icon.bg}" aria-hidden="true"><i class="${icon.icon}" style="color:#fff"></i></div>
         <div class="svc-info">
-          <div class="svc-name">${s.name}</div>
-          <div class="svc-code">${s.code}</div>
+          <div class="svc-name">${esc(s.name)}</div>
+          <div class="svc-code">${esc(s.code)}</div>
         </div>
         <div class="svc-right">
-          ${State.currency === 'USD'
-            ? `<div class="svc-usd">${fUSD(s.sellingUSD)}</div><div class="svc-ngn">${fNGN(s.sellingNGN)}</div>`
-            : `<div class="svc-usd">${fNGN(s.sellingNGN)}</div><div class="svc-ngn">${fUSD(s.sellingUSD)}</div>`}
-          ${lbl ? `<div class="svc-avail ${cls}">${lbl}</div>` : ''}
+          <div class="svc-usd">${esc(primary)}</div>
+          <div class="svc-ngn">${esc(secondary)}</div>
+          <div class="svc-avail ${s.count < 10 ? 'av-lo' : 'av-hi'}">${s.count} available</div>
         </div>
-      </div>
+      </button>
     `;
   }).join('');
+  // Store enriched list on the element for selection
+  el._services = list;
 }
 
-const filterServices = debounce(() => {
-  const q = document.getElementById('sSearch').value.toLowerCase().trim();
-  const clr = document.getElementById('sClr');
-  if (clr) clr.classList.toggle('show', !!q);
-  const filtered = q ? State.services.filter(s => s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q)) : State.services;
-  renderServices(filtered);
-}, 300);
+function filterServices() {
+  const q = (document.getElementById('sSearch').value || '').toLowerCase().trim();
+  document.getElementById('sClr').classList.toggle('show', !!q);
+  return q ? State.services.filter(s => s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q)) : State.services;
+}
 
-function selectService(code, name, count, usd, ngn) {
-  State.selSvc = { code, name, count, sellingUSD: usd, sellingNGN: ngn };
-
-  const q = document.getElementById('sSearch').value.toLowerCase().trim();
-  const filtered = q
-    ? State.services.filter(s => s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q))
-    : State.services;
-  renderServices(filtered);
-
-  setStep(3);
+function selectService(code) {
+  const list = document.getElementById('svcList')._services || State.services;
+  const svc = list.find(s => s.code === code);
+  if (!svc) return;
+  State.selSvc = svc;
+  renderServices(list);
 
   const hero = document.getElementById('ocHero');
-  if (hero) hero.classList.add('on');
+  hero.classList.add('on');
+  document.getElementById('ocFlag').textContent = State.selCountry.flag || '🌐';
+  document.getElementById('ocCountry').textContent = State.selCountry.eng;
+  document.getElementById('ocSvc').textContent = svc.name;
+  updatePriceBox(svc);
 
-  document.getElementById('ocFlag').textContent = State.selCountry?.flag || '🌐';
-  document.getElementById('ocCountry').textContent = State.selCountry?.eng || '—';
-  document.getElementById('ocSvc').textContent = name;
-
-  updatePriceBox(usd, ngn);
-  hideOrderError();
-  hideSuccessPanel();
-
-  const pct = Math.min(100, Math.round((count / 500) * 100));
-  const fill = document.getElementById('availFill');
-  fill.style.width = pct + '%';
-  fill.className = 'avail-fill' + (count < 10 ? ' cr' : count < 50 ? ' lo' : '');
-  document.getElementById('availLbl').textContent = count > 0 ? `${count} available` : 'Limited';
-
-  document.getElementById('ocEmpty').style.display = 'none';
-  document.getElementById('ocReady').style.display = 'block';
-  document.getElementById('rentBtn').disabled = false;
+  document.getElementById('ocEmpty').hidden = true;
+  document.getElementById('ocReady').hidden = false;
 }
 
-function resetOrderBody() {
-  State.selSvc = null;
-  document.getElementById('ocHero').classList.remove('on');
-  document.getElementById('ocEmpty').style.display = 'block';
-  document.getElementById('ocReady').style.display = 'none';
-  document.getElementById('actBanner').classList.remove('on');
-  hideOrderError();
-  hideSuccessPanel();
+// ─── RECENT COUNTRIES ───────────────────────────────────────────────────────
+function getRecent() {
+  try { return JSON.parse(localStorage.getItem(CONFIG.RECENT_KEY) || '[]'); } catch { return []; }
+}
+function saveRecentCountry(c) {
+  try {
+    let recent = getRecent().filter(r => r.id !== c.id);
+    recent.unshift({ id: c.id, eng: c.eng, flag: c.flag });
+    recent = recent.slice(0, CONFIG.RECENT_MAX);
+    localStorage.setItem(CONFIG.RECENT_KEY, JSON.stringify(recent));
+  } catch (_) {}
+}
+function renderRecentCountries() {
+  const row = document.getElementById('recentRow');
+  const recent = getRecent();
+  if (!recent.length) { row.hidden = true; return; }
+  row.hidden = false;
+  row.innerHTML = '<span class="recent-lbl">Recent</span>' + recent.map(c =>
+    `<button class="recent-chip" data-country-id="${c.id}" data-country-name="${esc(c.eng)}" data-country-flag="${esc(c.flag)}"><span aria-hidden="true">${esc(c.flag)}</span><span>${esc(c.eng)}</span></button>`
+  ).join('');
 }
 
-function resetSelection() {
-  resetOrderBody();
-  setStep(1);
-  document.getElementById('pCountries').scrollIntoView({ behavior: 'smooth' });
+// ─── SERVICE ICONS ──────────────────────────────────────────────────────────
+function getSvcIcon(code) {
+  const k = (code || '').toLowerCase().slice(0, 2);
+  const map = {
+    wa: { icon: 'fab fa-whatsapp', bg: '#25d366' },
+    tg: { icon: 'fab fa-telegram', bg: '#0088cc' },
+    go: { icon: 'fab fa-google', bg: '#4285f4' },
+    fb: { icon: 'fab fa-facebook', bg: '#1877f2' },
+    ig: { icon: 'fab fa-instagram', bg: 'linear-gradient(135deg,#833ab4,#fd1d1d)' },
+    tw: { icon: 'fab fa-twitter', bg: '#1da1f2' },
+    tk: { icon: 'fab fa-tiktok', bg: '#111' },
+    dc: { icon: 'fab fa-discord', bg: '#5865f2' },
+    yt: { icon: 'fab fa-youtube', bg: '#ff0000' }
+  };
+  return map[k] || { icon: 'fas fa-mobile-screen-button', bg: '#6b7280' };
+}
+
+// ─── RENT FLOW ──────────────────────────────────────────────────────────────
+function updateRentButtonState() {
+  const btn = document.getElementById('rentBtn');
+  const fundBtn = document.getElementById('fundBtn');
+  if (!btn || !fundBtn) return;
+  if (!State.selSvc || !State.selCountry) { btn.disabled = true; fundBtn.hidden = true; return; }
+  const price = State.currency === 'USD' ? State.selSvc.sellingUSD : State.selSvc.sellingNGN;
+  const bal = State.currency === 'USD' ? State.wallet.usd : State.wallet.ngn;
+  const active = State.rentals.size;
+  if (active >= CONFIG.MAX_ACTIVE) {
+    btn.disabled = true; fundBtn.hidden = true;
+    btn.innerHTML = '<i class="fas fa-ban"></i> Too many active rentals';
+    return;
+  }
+  if (bal + 0.005 < price) {
+    btn.disabled = true;
+    fundBtn.hidden = false;
+    const shortfall = (price - bal).toFixed(2);
+    fundBtn.innerHTML = `<i class="fas fa-plus-circle"></i> Fund ${State.currency === 'USD' ? '$' : '₦'}${shortfall}`;
+    fundBtn.href = `fund.html?amount=${encodeURIComponent(shortfall)}&currency=${State.currency}`;
+    btn.innerHTML = '<i class="fas fa-sim-card"></i> Rent Number';
+    return;
+  }
+  btn.disabled = false;
+  fundBtn.hidden = true;
+  btn.innerHTML = '<i class="fas fa-sim-card"></i> Rent Number';
 }
 
 async function rentNumber() {
-  if (!State.selCountry || !State.selSvc) {
-    toast('Select a country and service first', 'err');
-    return;
-  }
+  if (!State.selSvc || !State.selCountry) { toast('Please pick a country and a service.', 'warn'); return; }
+  if (!State.idempotencyKey) State.idempotencyKey = uuid();
+  State.pendingOrder = {
+    countryId: State.selCountry.id,
+    countryName: State.selCountry.eng,
+    countryFlag: State.selCountry.flag,
+    svc: State.selSvc,
+    currency: State.currency,
+    expectedAmount: State.currency === 'USD' ? State.selSvc.sellingUSD : State.selSvc.sellingNGN,
+    idempotencyKey: State.idempotencyKey
+  };
+  openSheet({
+    title: 'Confirm rental',
+    body: `
+      <div class="sheet-row"><span class="k">Country</span><span class="v">${esc(State.selCountry.eng)} ${esc(State.selCountry.flag)}</span></div>
+      <div class="sheet-row"><span class="k">Service</span><span class="v">${esc(State.selSvc.name)}</span></div>
+      <div class="sheet-row"><span class="k">Price</span><span class="v">${fmtMoney(State.pendingOrder.expectedAmount, State.currency)}</span></div>
+      <div class="sheet-row"><span class="k">Validity</span><span class="v">20 minutes</span></div>
+      <p style="margin-top:12px;font-size:.74rem;color:var(--t3);line-height:1.5;">If no SMS arrives within 20 minutes, the order is auto-cancelled and a full refund is issued. Cancellation is blocked for the first 5 minutes.</p>
+    `,
+    confirmLabel: 'Rent now',
+    onConfirm: submitOrder
+  });
+}
 
+async function submitOrder() {
+  if (!State.pendingOrder) return;
+  const po = State.pendingOrder;
+  closeSheet();
   const btn = document.getElementById('rentBtn');
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Renting…';
-  hideOrderError();
 
   try {
     const data = await apiCall('/order', {
       method: 'POST',
+      headers: { 'Idempotency-Key': po.idempotencyKey },
       body: JSON.stringify({
-        country: State.selCountry.id,
-        service: State.selSvc.code,
-        currency: State.currency
+        country: po.countryId,
+        service: po.svc.code,
+        currency: po.currency,
+        expectedAmount: po.expectedAmount
       })
     });
 
-    if (data.status === 'processing') {
-      toast('Order is being processed...', 'info');
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fas fa-sim-card"></i> Rent Number';
-      loadOrders();
-      return;
+    // Reset the local key so the next purchase is fresh.
+    State.idempotencyKey = null;
+
+    if (data.duplicate) {
+      toast('We already placed this order. Check your rentals.', 'info');
     }
-
-    State.rental = {
-      id: String(data.orderId || data.activationId || ''),
-      phone: data.phoneNumber || '—'
-    };
-
-    showSuccessPanel(data);
-    startRental();
-    toast('Number rented! Waiting for SMS…', 'ok');
+    if (data.status === 'active' && data.phoneNumber) {
+      toast('Number rented! Waiting for SMS…', 'ok');
+    } else if (data.status === 'processing') {
+      toast('Securing your number… we\'ll let you know when it\'s ready.', 'info');
+    }
+    if (data.orderId) {
+      upsertRental({
+        id: data.orderId,
+        phone: data.phoneNumber || null,
+        service: po.svc.name,
+        country: po.countryName,
+        countryFlag: po.countryFlag,
+        currency: data.chargeCurrency || po.currency,
+        amount: data.chargeAmount || po.expectedAmount,
+        status: data.status || 'processing',
+        expiresAt: data.expiresAt,
+        canCancelAt: data.canCancelAt || data.cancel_available_at,
+        smsCode: data.smsCode || null,
+        smsText: data.smsText || null
+      });
+    }
+    State.pendingOrder = null;
+    resetServiceSelection();
     loadWallet();
-  } catch (error) {
-    showOrderError(friendlyError(error));
-    toast(friendlyError(error), 'err');
+    schedulePoll(0);
+  } catch (e) {
+    if (e.code === 'PRICE_CHANGED' && e.data && e.data.newAmount != null) {
+      // Show a second sheet with the new price.
+      const nd = e.data;
+      State.pendingOrder.expectedAmount = Number(nd.newAmount);
+      openSheet({
+        title: 'Price updated',
+        body: `
+          <p style="margin-bottom:12px;font-size:.82rem;color:var(--t2);line-height:1.5;">The price for this service has changed. Please confirm the new price.</p>
+          <div class="sheet-row"><span class="k">New price</span><span class="v">${fmtMoney(nd.newAmount, nd.newCurrency || po.currency)}</span></div>
+        `,
+        confirmLabel: 'Continue',
+        onConfirm: submitOrder
+      });
+    } else {
+      toast(friendlyError(e), 'err');
+      // Reset the key on non-retryable errors so a new attempt gets a new key.
+      State.idempotencyKey = null;
+      State.pendingOrder = null;
+    }
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-sim-card"></i> Rent Number';
+    updateRentButtonState();
   }
 }
 
-function startRental() {
-  const banner = document.getElementById('actBanner');
-  if (banner) banner.classList.add('on');
-
-  document.getElementById('abPhone').textContent = State.rental.phone;
-
-  const sms = document.getElementById('abSms');
-  sms.innerHTML = `<i class="fas fa-spinner fa-spin" style="opacity:.6;flex-shrink:0"></i><span>Waiting for SMS code…</span>`;
-
-  document.getElementById('cxlBtn').disabled = true;
-  State.timerSecs = 0;
-  State.pollStep = 0;
-  clearInterval(State.timerId);
-  clearTimeout(State.pollTimeout);
-  State.timerId = setInterval(tick, 1000);
-  scheduleNextPoll();
-  document.getElementById('orderCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+// ─── RENTALS STRIP ──────────────────────────────────────────────────────────
+function upsertRental(rec) {
+  const id = String(rec.id);
+  const existing = State.rentals.get(id) || {};
+  const merged = Object.assign({}, existing, rec, { id });
+  State.rentals.set(id, merged);
+  renderRentalCard(merged);
+  paintRentalsStrip();
+  startCardTimer(id);
+  updateRentButtonState();
 }
 
-function scheduleNextPoll() {
-  const schedule = CONFIG.POLL_SCHEDULE;
-  const wait = schedule[Math.min(State.pollStep, schedule.length - 1)];
-  State.pollStep++;
-  State.pollTimeout = setTimeout(async () => {
-    await poll();
-    if (State.rental) scheduleNextPoll();
-  }, wait);
+function paintRentalsStrip() {
+  const strip = document.getElementById('rentalsStrip');
+  strip.hidden = State.rentals.size === 0;
 }
 
-function tick() {
-  State.timerSecs++;
-  const elapsed = State.timerSecs;
-  document.getElementById('abTimer').textContent = `${fTime(elapsed)} / 20:00`;
-
-  const cxlBtn = document.getElementById('cxlBtn');
-  if (cxlBtn && elapsed >= 300) cxlBtn.disabled = false;
-
-  if (elapsed >= 1200) {
-    stopAll();
-    const sms = document.getElementById('abSms');
-    sms.innerHTML = `<i class="fas fa-clock" style="opacity:.6;flex-shrink:0"></i><span>Timed out — auto-cancelled, refund issued</span>`;
-    toast('No SMS received — auto-refund issued', 'warn');
+function renderRentalCard(r) {
+  const strip = document.getElementById('rentalsStrip');
+  let el = State.cardEls.get(r.id);
+  if (!el) {
+    el = document.createElement('article');
+    el.className = 'rental-card';
+    el.dataset.orderId = r.id;
+    el.setAttribute('aria-label', `Rental ${r.service || ''} ${r.country || ''}`);
+    strip.appendChild(el);
+    State.cardEls.set(r.id, el);
   }
+  const cls = r.smsCode ? 'code'
+           : r.status === 'refunded' ? 'refunded'
+           : r.status === 'failed' || r.status === 'cancelled' || r.status === 'expired' ? 'failed'
+           : r.status === 'processing' ? 'securing'
+           : 'waiting';
+  el.className = 'rental-card ' + cls;
+
+  const isTerminal = ['refunded', 'failed', 'cancelled', 'expired', 'completed'].includes(r.status);
+  const hasCode = !!r.smsCode;
+
+  let headBadge = '';
+  if (hasCode) headBadge = '<span class="rc-label"><i class="fas fa-check-circle"></i> Code received</span>';
+  else if (r.status === 'processing') headBadge = '<span class="rc-label"><span class="spinner" style="border-top-color:#fff"></span> Securing number…</span>';
+  else if (r.status === 'refunded') headBadge = '<span class="rc-label"><i class="fas fa-rotate-left"></i> Refunded</span>';
+  else if (isTerminal) headBadge = `<span class="rc-label"><i class="fas fa-circle-xmark"></i> ${esc(r.status)}</span>`;
+  else headBadge = '<span class="rc-label"><span class="live-dot"></span>&nbsp;Waiting for SMS</span>';
+
+  const phone = r.phone || 'Securing…';
+  const showCopy = !!r.phone;
+
+  const codeBlock = hasCode
+    ? `<div class="rc-sms"><i class="fas fa-check-circle" aria-hidden="true"></i><span>Your code:&nbsp;</span><span class="rc-code">${esc(r.smsCode)}</span><button class="rc-code-copy" data-action="copy-code" data-code="${esc(r.smsCode)}"><i class="fas fa-copy"></i></button></div>`
+    : r.status === 'refunded'
+      ? `<div class="rc-sms"><i class="fas fa-rotate-left"></i><span>Refunded ${esc(fmtMoney(r.amount, r.currency))}. No charge was kept.</span></div>`
+      : r.status === 'processing'
+        ? `<div class="rc-sms"><span class="spinner"></span><span>Securing your number…</span></div>`
+        : isTerminal
+          ? `<div class="rc-sms"><i class="fas fa-circle-xmark"></i><span>${esc(r.status)}. ${esc(fmtMoney(r.amount, r.currency))} was not charged${r.status === 'expired' ? ' (auto-expired)' : ''}.</span></div>`
+          : `<div class="rc-sms"><span class="spinner"></span><span>Waiting for the SMS code…</span></div>`;
+
+  const canCancel = r.status === 'active' && !hasCode && r.canCancelAt && new Date(r.canCancelAt) <= new Date(serverNow());
+  const timerText = (() => {
+    if (r.expiresAt && !hasCode && !isTerminal) {
+      const ms = new Date(r.expiresAt).getTime() - serverNow();
+      return `Expires in ${fmtDuration(ms)}`;
+    }
+    if (hasCode) return 'Code received';
+    return '';
+  })();
+
+  el.innerHTML = `
+    <div class="rc-head">
+      <div>${headBadge}</div>
+      <button class="rc-close" data-action="dismiss-rental" aria-label="Dismiss"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="rc-service">${esc(r.service || '')}</div>
+    <div class="rc-country">${esc(r.country || '')} ${r.countryFlag ? '<span aria-hidden="true">' + esc(r.countryFlag) + '</span>' : ''}</div>
+    <div class="rc-phone">${esc(phone)}${showCopy ? '<button class="rc-copy" data-action="copy-phone" data-phone="' + esc(r.phone) + '"><i class="fas fa-copy"></i> Copy</button>' : ''}</div>
+    ${codeBlock}
+    <div class="rc-timer">
+      <span>${esc(timerText)}</span>
+      ${!hasCode && !isTerminal ? `<span>${esc(r.currency || 'NGN')} ${esc(fmtMoney(r.amount, r.currency))}</span>` : ''}
+    </div>
+    ${!isTerminal ? `
+    <div class="rc-actions">
+      <button class="rc-btn" data-action="retry-sms" ${!r.phone || hasCode ? 'disabled' : ''}><i class="fas fa-rotate-right"></i> Resend</button>
+      <button class="rc-btn cancel" data-action="cancel-rental" ${canCancel ? '' : 'disabled'}>
+        <i class="fas fa-xmark"></i> ${canCancel ? 'Cancel' : 'Cancel'}
+      </button>
+    </div>
+    ${!canCancel && r.canCancelAt && !hasCode ? `<div class="rc-note" data-cancel-countdown>Cancel available in ${fmtDuration(new Date(r.canCancelAt).getTime() - serverNow())}</div>` : ''}
+    ` : ''}
+  `;
+}
+
+function startCardTimer(id) {
+  if (State.timers.has(id)) clearInterval(State.timers.get(id));
+  const tick = () => {
+    const r = State.rentals.get(id);
+    if (!r) { clearInterval(State.timers.get(id)); State.timers.delete(id); return; }
+    renderRentalCard(r);
+  };
+  State.timers.set(id, setInterval(tick, 1000));
+  tick();
+}
+
+// ─── POLLING ────────────────────────────────────────────────────────────────
+function schedulePoll(delayMs) {
+  if (State.pollTimer) clearTimeout(State.pollTimer);
+  const ms = Math.max(500, delayMs == null ? State.pollDelay : delayMs);
+  State.pollTimer = setTimeout(poll, ms);
 }
 
 async function poll() {
-  if (!State.rental?.id) return;
+  if (document.hidden) {
+    schedulePoll(CONFIG.POLL_HIDDEN_MS);
+    return;
+  }
   try {
-    const data = await apiCall(`/status?id=${State.rental.id}`);
+    const data = await apiCall('/active');
+    const serverOrders = (data.orders || []).slice();
+    const serverIds = new Set(serverOrders.map(o => String(o.id)));
 
-    if (data.status === 'STATUS_OK' && data.code) {
-      const code = data.code;
-      stopAll();
-      const sms = document.getElementById('abSms');
-      sms.innerHTML = `<i class="fas fa-check-circle" style="color:#fff;flex-shrink:0"></i><span>Your code:&nbsp;</span><span class="ab-code">${code}</span><button class="ab-code-cp" onclick="copyCode('${code}')"><i class="fas fa-copy"></i></button>`;
-      toast('SMS code: ' + code, 'ok');
-      setTimeout(() => loadOrders(), 6000);
-      loadOrders();
-    } else if (data.status === 'COMPLETED' || data.status === 'CANCELLED' || data.status === 'EXPIRED') {
-      stopAll();
-      document.getElementById('actBanner').classList.remove('on');
-      State.rental = null;
-      loadOrders();
+    // Reconcile: add/update server orders
+    for (const o of serverOrders) {
+      upsertRental({
+        id: o.id,
+        phone: o.phone,
+        service: o.service,
+        country: o.country,
+        countryFlag: o.country_flag || null,
+        status: o.status,
+        currency: o.charge_currency,
+        amount: o.charge_amount,
+        expiresAt: o.expires_at,
+        canCancelAt: o.can_cancel_at,
+        smsCode: o.sms_code || null,
+        smsText: o.sms_text || null
+      });
     }
-  } catch (error) { /* silent */ }
-}
 
-function stopAll() {
-  clearInterval(State.timerId);
-  clearTimeout(State.pollTimeout);
-  State.timerId = null;
-  State.pollTimeout = null;
-  State.pollStep = 0;
-}
-
-function copyPhone() {
-  if (!State.rental?.phone) return;
-  navigator.clipboard?.writeText(State.rental.phone)
-    .then(() => toast('Phone number copied', 'ok'))
-    .catch(() => toast('Could not copy', 'err'));
-}
-
-function copyCode(code) {
-  navigator.clipboard?.writeText(code)
-    .then(() => toast('Code copied', 'ok'))
-    .catch(() => toast('Could not copy', 'err'));
-}
-
-async function doRetry() {
-  if (!State.rental?.id) {
-    toast('No active rental', 'err');
-    return;
-  }
-  try {
-    await apiCall('/retry', { method: 'POST', body: JSON.stringify({ id: State.rental.id }) });
-    toast('Resend requested', 'info');
-  } catch (error) {
-    toast('Resend failed: ' + friendlyError(error), 'err');
-  }
-}
-
-async function doCancel() {
-  if (!State.rental?.id) {
-    toast('No active rental', 'err');
-    return;
-  }
-  if (State.timerSecs < 300) {
-    const mins = Math.ceil((300 - State.timerSecs) / 60);
-    toast(`Wait ${mins} more minute(s) to cancel`, 'warn');
-    return;
-  }
-  try {
-    await apiCall('/cancel', { method: 'POST', body: JSON.stringify({ id: State.rental.id }) });
-    stopAll();
-    document.getElementById('actBanner').classList.remove('on');
-    State.rental = null;
-    toast('Order cancelled — refund issued', 'ok');
-    loadOrders();
-    loadWallet();
-  } catch (error) {
-    toast('Cancel failed: ' + friendlyError(error), 'err');
-  }
-}
-
-async function loadOrders() {
-  /* Fast paint from session cache */
-  try {
-    const cached = JSON.parse(sessionStorage.getItem('ms:virtual:orders') || 'null');
-    if (cached && Array.isArray(cached) && cached.length) {
-      State.orders = cached;
-      renderOrders(cached);
-      document.getElementById('orderCount').textContent = cached.length;
-    }
-  } catch (_) {}
-
-  try {
-    const data = await apiCall('/orders?limit=20');
-    if (data.success && data.orders) {
-      State.orders = data.orders;
+    // Local rentals not in the server's active list → they may have
+    // terminated. Fetch each individually to confirm.
+    for (const [id, local] of State.rentals) {
+      if (serverIds.has(id)) continue;
+      if (['refunded', 'failed', 'cancelled', 'expired', 'completed'].includes(local.status)) continue;
       try {
-        sessionStorage.setItem('ms:virtual:orders', JSON.stringify(data.orders.slice(0, 20)));
-      } catch (_) {}
-      renderOrders(data.orders);
-      document.getElementById('orderCount').textContent = data.orders.length;
-
-      const activeOrder = data.orders.find(o =>
-        o.status === 'active' ||
-        o.status === 'processing' ||
-        o.status === 'sms_received'
-      );
-
-      if (activeOrder && !State.rental) {
-        State.rental = { id: activeOrder.id, phone: activeOrder.phone || '—' };
-        startRental();
+        const status = await apiCall('/status?id=' + encodeURIComponent(id));
+        const finished = ['refunded', 'failed', 'cancelled', 'expired', 'completed'].includes(status.status);
+        upsertRental(Object.assign({}, local, {
+          status: status.status,
+          smsCode: status.code || local.smsCode,
+          smsText: status.sms_text || local.smsText,
+          refunded: finished && status.refund && status.refund.amount ? status.refund : null
+        }));
+        if (finished) {
+          maybeNotifyCompletion(id);
+          loadWallet();
+        }
+      } catch (_) {
+        // Ignore — retry next poll
       }
     }
-  } catch (error) {
-    console.warn('[ORDERS] Failed to load:', error.message);
+
+    // Adjust next poll interval by state
+    const anyCodeWaiting = Array.from(State.rentals.values()).some(r => !r.smsCode && !['refunded', 'failed', 'cancelled', 'expired', 'completed'].includes(r.status));
+    State.pollDelay = anyCodeWaiting ? Math.min(CONFIG.POLL_MAX_MS, State.pollDelay + 1000) : CONFIG.POLL_MAX_MS;
+    schedulePoll(State.pollDelay);
+  } catch (e) {
+    if (e.code === 'RATE_LIMIT') {
+      State.pollDelay = Math.min(60000, State.pollDelay * 2);
+    } else {
+      State.pollDelay = Math.min(CONFIG.POLL_MAX_MS, State.pollDelay + 1000);
+    }
+    schedulePoll(State.pollDelay);
   }
 }
 
-function renderOrders(orders) {
-  const container = document.getElementById('recentOrdersList');
-  if (!container) return;
+function maybeNotifyCompletion(id) {
+  const r = State.rentals.get(id);
+  if (!r) return;
+  if (r.status === 'refunded' && !r._notified) {
+    r._notified = true;
+    toast(`Refunded ${fmtMoney(r.amount, r.currency)} to your wallet.`, 'ok');
+  }
+}
 
-  if (!orders || orders.length === 0) {
-    container.innerHTML = `<div class="state-empty" style="padding:16px 8px;"><i class="fas fa-clock-rotate-left" style="font-size:1.2rem;"></i><p style="font-size:.7rem;">No rentals yet</p><span style="font-size:.65rem;">Your orders will appear here</span></div>`;
+// ─── ACTIONS ────────────────────────────────────────────────────────────────
+async function copyToClipboard(text, success) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    toast(success || 'Copied', 'ok');
+  } catch { toast('Could not copy', 'err'); }
+}
+
+async function retrySms(orderId) {
+  try {
+    await apiCall('/retry', {
+      method: 'POST',
+      body: JSON.stringify({ id: orderId })
+    });
+    toast('Resend requested', 'info');
+  } catch (e) {
+    toast(friendlyError(e), 'err');
+  }
+}
+
+async function cancelRental(orderId) {
+  try {
+    const data = await apiCall('/cancel', {
+      method: 'POST',
+      body: JSON.stringify({ id: orderId })
+    });
+    const r = State.rentals.get(orderId);
+    if (r) {
+      upsertRental(Object.assign({}, r, {
+        status: 'refunded',
+        refunded: data.refund
+      }));
+    }
+    toast(`Refunded ${fmtMoney(data.refund && data.refund.amount, data.refund && data.refund.currency)}`, 'ok');
+    loadWallet();
+  } catch (e) {
+    if (e.code === 'CANCEL_TOO_EARLY') {
+      const wait = e.data && e.data.wait_seconds;
+      toast(`Cancel available in ${wait != null ? fmtDuration(wait * 1000) : 'a moment'}`, 'warn');
+    } else {
+      toast(friendlyError(e), 'err');
+    }
+  }
+}
+
+function dismissRental(orderId) {
+  const r = State.rentals.get(orderId);
+  if (!r) return;
+  if (!['refunded', 'failed', 'cancelled', 'expired', 'completed'].includes(r.status)) {
+    toast('This rental is still active.', 'warn');
+    return;
+  }
+  State.rentals.delete(orderId);
+  const el = State.cardEls.get(orderId);
+  if (el) el.remove();
+  State.cardEls.delete(orderId);
+  if (State.timers.has(orderId)) {
+    clearInterval(State.timers.get(orderId));
+    State.timers.delete(orderId);
+  }
+  paintRentalsStrip();
+  updateRentButtonState();
+}
+
+// ─── SHEET ──────────────────────────────────────────────────────────────────
+let _sheetConfirm = null;
+function openSheet({ title, body, confirmLabel, onConfirm }) {
+  document.getElementById('sheetTitle').textContent = title || 'Confirm';
+  document.getElementById('sheetBody').innerHTML = body || '';
+  document.getElementById('sheetConfirm').textContent = confirmLabel || 'Continue';
+  document.getElementById('sheetConfirm').disabled = false;
+  _sheetConfirm = onConfirm;
+  document.getElementById('sheetScrim').classList.add('on');
+  document.getElementById('sheet').classList.add('on');
+  setTimeout(() => {
+    const btn = document.getElementById('sheetConfirm');
+    if (btn) btn.focus();
+  }, 50);
+}
+function closeSheet() {
+  document.getElementById('sheetScrim').classList.remove('on');
+  document.getElementById('sheet').classList.remove('on');
+  _sheetConfirm = null;
+}
+
+// ─── EVENT DELEGATION ───────────────────────────────────────────────────────
+document.addEventListener('click', async (ev) => {
+  const t = ev.target.closest('[data-action],[data-country-id],[data-svc-code]');
+  if (!t) return;
+
+  // Currency seg
+  if (ev.target.closest('#currSeg .seg-opt')) {
+    const ccy = ev.target.closest('.seg-opt').dataset.curr;
+    setCurrency(ccy);
     return;
   }
 
-  container.innerHTML = orders.slice(0, 10).map((o, idx) => {
-    const flag = getFlag(o.country || '');
-    const service = o.service || o.service_code || 'Unknown';
-    const statusBadge = getStatusBadge(o.status);
-    const statusLabel = getStatusLabel(o.status);
-    const price = o.price_ngn ? `₦${Number(o.price_ngn).toFixed(2)}` : '';
+  // Country chips + recent chips
+  if (t.dataset.countryId) {
+    const id = parseInt(t.dataset.countryId, 10);
+    const name = t.dataset.countryName;
+    const flag = t.dataset.countryFlag;
+    if (Number.isFinite(id) && name) selectCountry(id, name, flag);
+    return;
+  }
 
-    return `<div class="mh-row" data-vi="${idx}" onclick="openVirtualDetails && openVirtualDetails(${idx})">
-      <span class="mh-flag">${flag}</span>
-      <div class="mh-info">
-        <div class="mh-name">${service} · ${o.country || 'Unknown'}</div>
-        <div class="mh-meta">${o.phone || '—'} · ${timeAgo(o.created_at)}</div>
-      </div>
-      ${price ? `<span class="mh-price">${price}</span>` : ''}
-      <span class="mh-bdg ${statusBadge}">${statusLabel}</span>
-    </div>`;
-  }).join('');
+  // Service item
+  if (t.dataset.svcCode) {
+    selectService(t.dataset.svcCode);
+    return;
+  }
+
+  // Retry country load
+  if (t.dataset.action === 'retry-countries') {
+    loadCountries();
+    return;
+  }
+
+  // Rental card actions
+  const card = t.closest('.rental-card');
+  const orderId = card && card.dataset.orderId;
+  switch (t.dataset.action) {
+    case 'copy-phone':
+      copyToClipboard(t.dataset.phone, 'Phone copied');
+      return;
+    case 'copy-code':
+      copyToClipboard(t.dataset.code, 'Code copied');
+      return;
+    case 'retry-sms':
+      if (orderId) retrySms(orderId);
+      return;
+    case 'cancel-rental':
+      if (orderId) cancelRental(orderId);
+      return;
+    case 'dismiss-rental':
+      if (orderId) dismissRental(orderId);
+      return;
+  }
+
+  // Change selection
+  if (t.id === 'ocChangeBtn') {
+    resetServiceSelection();
+    document.getElementById('pCountries').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+
+  // Sheet actions
+  if (t.id === 'sheetCancel' || t.id === 'sheetScrim') {
+    closeSheet();
+    return;
+  }
+  if (t.id === 'sheetConfirm' && _sheetConfirm) {
+    t.disabled = true;
+    try { await _sheetConfirm(); } finally { t.disabled = false; }
+    return;
+  }
+
+  // Rent
+  if (t.id === 'rentBtn') {
+    rentNumber();
+    return;
+  }
+});
+
+// Search inputs (debounced)
+let _cDebounce, _sDebounce;
+document.addEventListener('input', (ev) => {
+  if (ev.target.id === 'cSearch') {
+    clearTimeout(_cDebounce);
+    _cDebounce = setTimeout(filterCountries, 150);
+  } else if (ev.target.id === 'sSearch') {
+    clearTimeout(_sDebounce);
+    _sDebounce = setTimeout(() => renderServices(filterServices()), 150);
+  }
+});
+
+// Clear buttons
+document.addEventListener('click', (ev) => {
+  if (ev.target.closest('#cClr')) {
+    document.getElementById('cSearch').value = '';
+    document.getElementById('cClr').classList.remove('show');
+    renderCountries(State.countries);
+  } else if (ev.target.closest('#sClr')) {
+    document.getElementById('sSearch').value = '';
+    document.getElementById('sClr').classList.remove('show');
+    renderServices(State.services);
+  }
+});
+
+// Escape closes sheet
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape') closeSheet();
+});
+
+// Visibility → resume poll
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) schedulePoll(0);
+});
+
+// Online / offline
+window.addEventListener('online', () => {
+  document.getElementById('offlineBanner').classList.remove('on');
+  schedulePoll(0);
+});
+window.addEventListener('offline', () => {
+  document.getElementById('offlineBanner').classList.add('on');
+});
+
+// ─── SIDEBAR INIT ───────────────────────────────────────────────────────────
+function initSidebar() {
+  const sb = document.getElementById('sb');
+  if (sb && window.MS && typeof window.MS.esc === 'function') {
+    // If MS's shell already populated it, skip. Otherwise leave the
+    // empty aside for ms-shell to fill.
+  }
+  // hbg handler
+  const hbg = document.getElementById('hbg');
+  const ov = document.getElementById('ov');
+  if (hbg && sb && ov) {
+    hbg.addEventListener('click', () => {
+      sb.classList.toggle('open');
+      ov.classList.toggle('on');
+      document.body.classList.toggle('sb-open');
+    });
+    ov.addEventListener('click', () => {
+      sb.classList.remove('open');
+      ov.classList.remove('on');
+      document.body.classList.remove('sb-open');
+    });
+  }
 }
 
-function timeAgo(date) {
-  if (!date) return 'Just now';
-  const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-  if (diff < 60)     return 'Just now';
-  if (diff < 3600)   return Math.floor(diff / 60) + 'm ago';
-  if (diff < 86400)  return Math.floor(diff / 3600) + 'h ago';
-  if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
-  return Math.floor(diff / 604800) + 'w ago';
+// ─── USER ───────────────────────────────────────────────────────────────────
+function fillUserAvatar() {
+  try {
+    const u = (typeof window.getUser === 'function') ? window.getUser() : null;
+    if (!u) return;
+    const name = u.username || (u.email ? u.email.split('@')[0] : 'U');
+    const initial = (name[0] || 'U').toUpperCase();
+    const tb = document.getElementById('tbAv');
+    if (tb) tb.textContent = initial;
+  } catch (_) {}
 }
 
-/* Virtual number history drawer */
-function initHistoryButton() {
+// ─── HISTORY DRAWER ─────────────────────────────────────────────────────────
+function initHistoryDrawer() {
   const histBtn = document.getElementById('histBtn');
-  if (!histBtn) return;
-  if (!window.MS || !MS.historyDrawer) return;
+  if (!histBtn || !window.MS || typeof window.MS.historyDrawer !== 'function') return;
 
-  const vHist = MS.historyDrawer({
-    id: 'vHist',
+  const drawer = MS.historyDrawer({
+    id: 'vhist',
     title: 'Virtual number history',
-    subtitle: 'Your rented numbers',
-    load: async () => {
-      const d = await apiCall('/orders?limit=50');
-      return { items: d.orders || [], hasMore: false };
+    subtitle: 'Your recent rentals',
+    load: async (page, pageSize) => {
+      const offset = (page - 1) * pageSize;
+      const d = await apiCall('/orders?limit=' + pageSize + '&offset=' + offset);
+      const orders = d.orders || [];
+      return { items: orders, hasMore: orders.length === pageSize };
     },
-    keyOf: (o) => o.id,
+    keyOf: (o) => o && o.id,
     render: (o) => {
-      const flag = getFlag(o.country || '');
-      const service = o.service || o.service_code || 'Unknown';
-      const stLabel = getStatusLabel(o.status);
-      const stKey = window.MS && MS.statusKey ? MS.statusKey(o.status) : (o.status || 'pending');
-      const price = o.price_ngn ? `₦${Number(o.price_ngn).toFixed(2)}` : (o.price_usd ? `$${Number(o.price_usd).toFixed(2)}` : '');
-      return '<div class="ms-hd-item">' +
-        '<div class="ms-hd-row1">' +
-        '<span style="font-size:1.1rem">' + MS.esc(flag) + '</span>' +
-        '<span class="ms-hd-title">' + MS.esc(service) + ' · ' + MS.esc(o.country || 'Unknown') + '</span>' +
-        '<span class="ms-pill ' + MS.esc(stKey) + '">' + MS.esc(stLabel) + '</span>' +
-        '</div>' +
-        '<div class="ms-hd-meta">' + MS.esc(o.phone || '—') + ' · ' + MS.esc(timeAgo(o.created_at)) + '</div>' +
-        (price ? '<div class="ms-hd-meta">' + MS.esc(price) + '</div>' : '') +
-        '</div>';
+      if (!o) return '';
+      const status = o.status || 'pending';
+      const when = o.created_at ? new Date(o.created_at).toLocaleString() : '';
+      const price = o.charge_amount != null ? fmtMoney(o.charge_amount, o.charge_currency) : '';
+      return `
+        <div class="ms-hd-item">
+          <div class="ms-hd-row1">
+            <span style="font-size:1.1rem" aria-hidden="true">${esc(o.country_flag || '🌐')}</span>
+            <span class="ms-hd-title">${esc(o.service || 'Unknown')} · ${esc(o.country || '')}</span>
+            <span class="ms-pill ${esc(status)}">${esc(status)}</span>
+          </div>
+          <div class="ms-hd-meta">${esc(o.phone || '—')} · ${esc(when)}</div>
+          ${price ? `<div class="ms-hd-meta">${esc(price)}</div>` : ''}
+        </div>
+      `;
     },
-    onItemClick: () => { /* no detail view for virtual */ },
     emptyText: 'No virtual number rentals yet.'
   });
 
-  histBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    vHist.open();
-  });
-
-  /* Stale banner — drawer */
-  MS.stale.init({
-    rows: '#vHist-list .ms-hd-item',
-    record: el => vHist.items[Number(el.dataset.i)] || null,
-    stalable: ['pending', 'processing'],
-    refresh: () => { vHist.reload(); loadOrders(); loadWallet(); },
-    toast: (m, k) => toast(m, k === 'ok' ? 'ok' : (k === 'err' ? 'err' : 'info')),
-    observe: '#vHist-list'
+  histBtn.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    drawer.open();
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const cSearch = document.getElementById('cSearch');
-  cSearch?.addEventListener('input', filterCountries);
-
-  document.getElementById('cClr')?.addEventListener('click', () => {
-    const search = document.getElementById('cSearch');
-    if (search) {
-      search.value = '';
-      document.getElementById('cClr').classList.remove('show');
-      renderCountries(State.countries);
-    }
-  });
-
-  document.getElementById('sSearch')?.addEventListener('input', filterServices);
-
-  document.getElementById('sClr')?.addEventListener('click', () => {
-    const search = document.getElementById('sSearch');
-    if (search) {
-      search.value = '';
-      document.getElementById('sClr').classList.remove('show');
-      renderServices(State.services);
-    }
-  });
-});
-
-window.selectCountry  = selectCountry;
-window.selectService  = selectService;
-window.resetSelection = resetSelection;
-window.loadCountries  = loadCountries;
-window.rentNumber     = rentNumber;
-window.doRetry        = doRetry;
-window.doCancel       = doCancel;
-window.copyPhone      = copyPhone;
-window.copyCode       = copyCode;
-window.loadOrders     = loadOrders;
-window.setCurrency    = setCurrency;
-
+// ─── BOOT ───────────────────────────────────────────────────────────────────
 (async function init() {
-  await new Promise(r => setTimeout(r, 0));
-
-  if (!getCurrentUser()) {
-    setTimeout(() => { if (!getCurrentUser()) redirectToLogin(); }, 1500);
+  if (typeof window.getUser === 'function' && !window.getUser()) {
+    setTimeout(() => {
+      if (typeof window.getUser === 'function' && !window.getUser()) {
+        if (typeof window.redirectToUserLogin === 'function') window.redirectToUserLogin();
+        else window.location.replace('/login.html');
+      }
+    }, 1500);
     return;
   }
 
+  fillUserAvatar();
   initSidebar();
-  initLogout();
-  initHistoryButton();
-  loadUser();
-  renderRecentCountries();
+  initHistoryDrawer();
 
-  /* Parallel: countries + wallet at the same time. Orders refresh after. */
   await Promise.all([loadCountries(), loadWallet()]);
-  await loadOrders();
-})();
-</script>
+  paintWallet();
+  schedulePoll(0);
 
-<script>
-/* Stale banner — recent rentals mini list */
-(function () {
-  'use strict';
-
-  function wire() {
-    if (!window.MS || !MS.stale) return;
-    MS.stale.init({
-      rows: '#recentOrdersList .mh-row[data-vi]',
-      record: el => State.orders[Number(el.dataset.vi)] || null,
-      stalable: ['pending', 'processing'],
-      refresh: () => loadOrders(),
-      toast: (m, k) => toast(m, k === 'ok' ? 'ok' : (k === 'err' ? 'err' : 'info')),
-      observe: '#recentOrdersList'
-    });
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => setTimeout(wire, 100), { once: true });
-  } else {
-    setTimeout(wire, 100);
-  }
+  // If the URL is ?currency=USD, honour it
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('currency') === 'USD') setCurrency('USD');
+  } catch (_) {}
 })();
 </script>
 </body>

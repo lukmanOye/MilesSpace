@@ -646,8 +646,14 @@
       display: flex;
       flex-direction: column;
       cursor: pointer;
+      outline: none;
     }
     .prod-card:active { transform: scale(.97); }
+    .prod-card:focus-visible {
+      box-shadow: 0 0 0 3px rgba(15,76,92,.25);
+      border-color: var(--p);
+    }
+    .prod-card.sold-out { opacity: .62; }
     .pc-img {
       height: 60px;
       display: flex;
@@ -673,6 +679,7 @@
       text-transform: uppercase;
     }
     .pc-badge.oos { background: var(--erl); color: #991b1b; }
+    .pc-badge.low { background: var(--acl); color: var(--acd); }
     .pc-badge.new { background: var(--okl); color: #065f46; }
     .pc-badge.hot { background: var(--acl); color: var(--acd); }
     .pc-body {
@@ -720,6 +727,15 @@
       color: var(--t2);
       border: 1px solid var(--bdr);
     }
+    .pc-country {
+      padding: 1px 5px;
+      border-radius: var(--rp);
+      font-size: .52rem;
+      font-weight: 600;
+      background: var(--pl);
+      color: var(--p);
+      border: 1px solid var(--bdr);
+    }
     .pc-footer {
       display: flex;
       align-items: center;
@@ -749,6 +765,7 @@
       color: var(--ok);
       font-weight: 600;
     }
+    .pc-qty.low span { color: var(--acd); }
     .btn-buy {
       padding: 8px 12px;
       background: var(--p);
@@ -789,8 +806,14 @@
       gap: 10px;
       transition: var(--tr);
       cursor: pointer;
+      outline: none;
     }
     .prod-list-item:active { background: var(--pxl); }
+    .prod-list-item:focus-visible {
+      box-shadow: 0 0 0 3px rgba(15,76,92,.25);
+      border-color: var(--p);
+    }
+    .prod-list-item.sold-out { opacity: .62; }
     .pli-icon {
       width: 36px;
       height: 36px;
@@ -971,7 +994,7 @@
     }
 
     /* ═══════════════════════════════════════════════════════════
-       PRODUCT DETAIL — screenshot layout
+       PRODUCT DETAIL
        ═══════════════════════════════════════════════════════════ */
     .pd-icon {
       width: 64px;
@@ -1272,10 +1295,31 @@
       transition: var(--tr);
       text-align: center;
       min-height: 96px;
+      outline: none;
     }
     .wc-opt:active { transform: scale(.97); }
+    .wc-opt:focus-visible {
+      box-shadow: 0 0 0 3px rgba(15,76,92,.25);
+    }
     .wc-opt.selected.ngn { border-color: var(--p); background: var(--pl); }
     .wc-opt.selected.usd { border-color: var(--usd); background: var(--usdl); }
+    .wc-opt.disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      position: relative;
+    }
+    .wc-opt.disabled::after {
+      content: 'Insufficient';
+      position: absolute;
+      bottom: 4px;
+      left: 0;
+      right: 0;
+      font-size: .55rem;
+      font-weight: 700;
+      color: var(--err);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
     .wc-ico {
       width: 32px;
       height: 32px;
@@ -1298,6 +1342,15 @@
       color: var(--t2);
     }
     .wc-bal .val { font-weight: 700; }
+    .fund-link {
+      display: block;
+      text-align: center;
+      font-size: .68rem;
+      color: var(--p);
+      font-weight: 600;
+      text-decoration: underline;
+      margin-bottom: 12px;
+    }
     .mo-total {
       background: var(--srf2);
       border: 1px solid var(--bdr);
@@ -1570,12 +1623,17 @@
       margin-bottom: 10px;
       cursor: pointer;
       transition: var(--tr);
+      outline: none;
     }
     .hist-item:hover {
       border-color: var(--p);
       background: var(--srf);
       box-shadow: var(--s0);
       transform: translateY(-1px);
+    }
+    .hist-item:focus-visible {
+      box-shadow: 0 0 0 3px rgba(15,76,92,.25);
+      border-color: var(--p);
     }
     .hist-item .hi-top {
       display: flex;
@@ -1860,7 +1918,7 @@
     }
 
     /* ═══════════════════════════════════════════════════════════
-       Stale transaction banner (from the pasted spec)
+       Stale transaction banner
        ═══════════════════════════════════════════════════════════ */
     .tx-stale-banner {
       display: flex;
@@ -1891,6 +1949,15 @@
     @media (max-width: 420px) {
       .tx-stale-banner { flex-direction: column; align-items: stretch; }
       .tx-stale-banner button { width: 100%; min-height: 44px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+      }
     }
   </style>
 </head>
@@ -1930,7 +1997,7 @@
 
     <div class="sb-foot">
       <div class="sb-prof">
-        <a href="usersettings.html" class="sb-prof-link" style="display:flex;align-items:center;gap:9px;flex:1;min-width:0;text-decoration:none">
+        <a href="usersettings.html" class="sb-prof-link">
           <div class="sb-av" id="sbAv">U</div>
           <div class="sb-ui">
             <p class="sb-un" id="sbName">Loading…</p>
@@ -1962,7 +2029,7 @@
     <main class="content">
 
       <div class="search-hero fu d1">
-        <p class="sh-title">🛒 Marketplace</p>
+        <p class="sh-title"><i class="fas fa-store" style="margin-right:6px"></i>Marketplace</p>
         <p class="sh-sub">Browse digital products & accounts</p>
         <div class="search-wrap">
           <div class="search-input-box">
@@ -1973,16 +2040,8 @@
         </div>
       </div>
 
-      <div class="cat-tabs fu d2" id="catTabs">
-        <button class="cat-tab active" data-cat="all"><i class="fas fa-th-large"></i> All</button>
-        <button class="cat-tab" data-cat="gmail"><i class="fab fa-google"></i> Gmail</button>
-        <button class="cat-tab" data-cat="facebook"><i class="fab fa-facebook-f"></i> FB</button>
-        <button class="cat-tab" data-cat="instagram"><i class="fab fa-instagram"></i> IG</button>
-        <button class="cat-tab" data-cat="tiktok"><i class="fab fa-tiktok"></i> TT</button>
-        <button class="cat-tab" data-cat="twitter"><i class="fab fa-twitter"></i> X</button>
-        <button class="cat-tab" data-cat="gaming"><i class="fas fa-gamepad"></i> Gaming</button>
-        <button class="cat-tab" data-cat="crypto"><i class="fas fa-coins"></i> Crypto</button>
-        <button class="cat-tab" data-cat="other"><i class="fas fa-ellipsis-h"></i> Other</button>
+      <div class="cat-tabs fu d2" id="catTabs" role="tablist" aria-label="Categories">
+        <button class="cat-tab active" data-cat="all" role="tab" aria-selected="true"><i class="fas fa-th-large"></i> All</button>
       </div>
 
       <div class="sort-row fu d3">
@@ -2009,20 +2068,20 @@
 </div>
 
 <div class="modal-bg" id="productModal">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Product Details">
     <div class="modal-hd">
       <h3><i class="fas fa-circle-info" style="color:var(--p);margin-right:6px"></i>Product Details</h3>
-      <button class="modal-x" onclick="closeModal('productModal')" aria-label="Close"><i class="fas fa-xmark"></i></button>
+      <button class="modal-x" data-close="productModal" aria-label="Close"><i class="fas fa-xmark"></i></button>
     </div>
     <div class="modal-bd" id="productModalBody"></div>
   </div>
 </div>
 
 <div class="modal-bg" id="checkoutModal">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Checkout">
     <div class="modal-hd">
       <h3><i class="fas fa-shopping-cart" style="color:var(--p);margin-right:6px"></i>Checkout</h3>
-      <button class="modal-x" onclick="closeModal('checkoutModal')" aria-label="Close"><i class="fas fa-xmark"></i></button>
+      <button class="modal-x" data-close="checkoutModal" aria-label="Close"><i class="fas fa-xmark"></i></button>
     </div>
     <div class="modal-bd">
       <div class="mo-product">
@@ -2035,27 +2094,28 @@
 
       <p style="font-size:.7rem;font-weight:600;color:var(--t2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Pay with</p>
       <div class="wallet-choice">
-        <div class="wc-opt ngn selected" id="wcNGN" onclick="selectWallet('ngn')" role="button" tabindex="0">
+        <div class="wc-opt ngn selected" id="wcNGN" data-wallet="ngn" role="button" tabindex="0" aria-pressed="true">
           <div class="wc-ico"><i class="fas fa-naira-sign"></i></div>
           <p class="wc-lbl">Naira</p>
           <p class="wc-bal">Balance: <span class="val" id="wcNGNBal">₦0.00</span></p>
         </div>
-        <div class="wc-opt usd" id="wcUSD" onclick="selectWallet('usd')" role="button" tabindex="0">
+        <div class="wc-opt usd" id="wcUSD" data-wallet="usd" role="button" tabindex="0" aria-pressed="false">
           <div class="wc-ico"><i class="fas fa-dollar-sign"></i></div>
           <p class="wc-lbl">Dollar</p>
           <p class="wc-bal">Balance: <span class="val" id="wcUSDBal">$0.00</span></p>
         </div>
       </div>
+      <a class="fund-link" href="fund.html"><i class="fas fa-plus-circle"></i> Fund your wallet</a>
 
       <div class="mo-total">
         <div class="mo-total-row"><span class="mo-tval">Product</span><span class="mo-tamount" id="moQtyDisplay">1 × item</span></div>
         <div class="mo-total-row"><span class="mo-tval">Total</span><span class="mo-tamount ok" id="moTotal">—</span></div>
       </div>
 
-      <button class="btn-confirm" id="btnConfirm" onclick="confirmPurchase()">
+      <button class="btn-confirm" id="btnConfirm" type="button">
         <i class="fas fa-lock"></i> Confirm Purchase
       </button>
-      <button class="btn-ghost" onclick="closeModal('checkoutModal')">
+      <button class="btn-ghost" data-close="checkoutModal" type="button">
         <i class="fas fa-xmark"></i> Cancel
       </button>
     </div>
@@ -2063,26 +2123,26 @@
 </div>
 
 <div class="modal-bg" id="successModal">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Purchase Successful">
     <div class="modal-hd">
       <h3><i class="fas fa-circle-check" style="color:var(--ok);margin-right:6px"></i>Purchase Successful</h3>
-      <button class="modal-x" onclick="closeModal('successModal')" aria-label="Close"><i class="fas fa-xmark"></i></button>
+      <button class="modal-x" data-close="successModal" aria-label="Close"><i class="fas fa-xmark"></i></button>
     </div>
     <div class="modal-bd" id="successModalBody"></div>
   </div>
 </div>
 
 <div class="modal-bg" id="orderModal">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Purchase Receipt">
     <div class="modal-hd">
       <h3><i class="fas fa-receipt" style="color:var(--p);margin-right:6px"></i>Purchase Receipt</h3>
-      <button class="modal-x" onclick="closeModal('orderModal')" aria-label="Close"><i class="fas fa-xmark"></i></button>
+      <button class="modal-x" data-close="orderModal" aria-label="Close"><i class="fas fa-xmark"></i></button>
     </div>
     <div class="modal-bd" id="orderModalBody"></div>
   </div>
 </div>
 
-<aside class="hist-drawer" id="histDrawer" role="dialog" aria-modal="true">
+<aside class="hist-drawer" id="histDrawer" role="dialog" aria-modal="true" aria-label="Purchase History">
   <div class="hist-hd">
     <h3><i class="fas fa-clock-rotate-left" style="color:var(--p);margin-right:6px"></i>Purchase History</h3>
     <button class="hist-close" id="histCloseBtn" aria-label="Close history"><i class="fas fa-times"></i></button>
@@ -2092,7 +2152,7 @@
   </div>
 </aside>
 
-<nav class="mnav">
+<nav class="mnav" aria-label="Mobile navigation">
   <a href="dashboard.html" class="mni"><i class="fas fa-home"></i><span>Home</span></a>
   <a href="boost.html"     class="mni"><i class="fas fa-chart-line"></i><span>Boost</span></a>
   <a href="fund.html"      class="mni"><i class="fas fa-wallet"></i><span>Fund</span></a>
@@ -2104,6 +2164,31 @@
 
 <script>
 'use strict';
+
+// ═══════════════════════════════════════════════════════════════════
+// MilesSpace Marketplace — customer storefront
+//
+// This file talks to exactly these endpoints (all shipped in the
+// marketplace backend):
+//
+//   GET  /api/market/products?page=&limit=&category=&search=&sort=
+//   GET  /api/market/products/:id
+//   GET  /api/market/categories
+//   GET  /api/market/balances
+//   POST /api/market/purchase            (Idempotency-Key required)
+//   GET  /api/market/orders
+//   GET  /api/market/orders/:id
+//   GET  /api/market/orders/:id/download
+//
+// Nothing else. No admin endpoints. No credential content in any
+// product response (backend enforces; this file assumes it).
+//
+// IDEMPOTENCY: purchase keys are stored in sessionStorage keyed by
+// (productId, wallet) and survive failed attempts. They are cleared
+// only on a DEFINITIVE outcome (success, or a definitive error like
+// INSUFFICIENT_BALANCE). On PRICE_CHANGED or PURCHASE_PENDING the
+// key is kept so a retry doesn't double-charge.
+// ═══════════════════════════════════════════════════════════════════
 
 const API_BASE = '/api';
 
@@ -2161,7 +2246,7 @@ function friendlyError(err) {
 
 const fNGN = n => '₦' + (Number(n) || 0).toLocaleString('en-NG', {
   minimumFractionDigits: 2,
-  maximumFractionDigits: 2
+  maximumFractionDigits: 2,
 });
 
 const fUSD = n => '$' + (Number(n) || 0).toFixed(2);
@@ -2173,7 +2258,7 @@ const esc = s => {
     '<': '&lt;',
     '>': '&gt;',
     '"': '&quot;',
-    "'": '&#39;'
+    "'": '&#39;',
   }[m] || m));
 };
 
@@ -2181,9 +2266,7 @@ const fmtDate = iso => {
   if (!iso) return '—';
   try {
     return new Date(iso).toLocaleDateString('en-NG', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
+      day: '2-digit', month: 'short', year: 'numeric',
     });
   } catch { return iso; }
 };
@@ -2192,9 +2275,7 @@ const fmtTime = iso => {
   if (!iso) return '—';
   try {
     return new Date(iso).toLocaleTimeString('en-NG', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
+      hour: '2-digit', minute: '2-digit', hour12: true,
     });
   } catch { return iso; }
 };
@@ -2205,11 +2286,9 @@ function renderLongDescription(text) {
   if (!text) return '';
   const html = esc(text);
   const lines = html.split('\n');
-
   const out = lines.map((line) => {
     const trimmed = line.trim();
     if (!trimmed) return '';
-
     if (/^[A-Z][A-Z0-9 &'\-:,.!?()]+$/.test(trimmed) && trimmed.length >= 4) {
       return `<strong>${trimmed}</strong>`;
     }
@@ -2220,7 +2299,6 @@ function renderLongDescription(text) {
     }
     return trimmed;
   });
-
   return out.join('\n').replace(/\n{3,}/g, '\n\n');
 }
 
@@ -2235,7 +2313,7 @@ function toast(msg, type = 'info') {
     ok:   'fa-check-circle',
     err:  'fa-times-circle',
     warn: 'fa-exclamation-triangle',
-    info: 'fa-info-circle'
+    info: 'fa-info-circle',
   };
 
   el.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i><span>${esc(msg)}</span>`;
@@ -2247,20 +2325,23 @@ function toast(msg, type = 'info') {
   }, 3500);
 }
 
+// Category fallback palette. Populated by loadCategoryTabs() from
+// the server response. Admin-created categories get the neutral
+// "Other" styling unless a matching palette entry exists.
 const CATS = {
-  gmail:     { label: 'Gmail',     icon: '<i class="fab fa-google"></i>',     bg: '#fce8e6', clr: '#d93025' },
-  facebook:  { label: 'Facebook',  icon: '<i class="fab fa-facebook-f"></i>', bg: '#e7f3ff', clr: '#1877f2' },
-  instagram: { label: 'Instagram', icon: '<i class="fab fa-instagram"></i>',  bg: '#fce4ec', clr: '#c2185b' },
-  tiktok:    { label: 'TikTok',    icon: '<i class="fab fa-tiktok"></i>',     bg: '#e8f5e9', clr: '#000' },
-  twitter:   { label: 'Twitter/X', icon: '<i class="fab fa-twitter"></i>',    bg: '#e3f2fd', clr: '#1da1f2' },
-  gaming:    { label: 'Gaming',    icon: '<i class="fas fa-gamepad"></i>',    bg: '#ede7f6', clr: '#7b1fa2' },
-  crypto:    { label: 'Crypto',    icon: '<i class="fas fa-coins"></i>',      bg: '#fff8e1', clr: '#f59e0b' },
-  social:    { label: 'Social',    icon: '<i class="fas fa-users"></i>',      bg: '#e0f2fe', clr: '#0284c7' },
-  other:     { label: 'Other',     icon: '<i class="fas fa-box"></i>',        bg: '#f3f4f6', clr: '#6b7280' },
+  gmail:     { label: 'Gmail',     icon: '<i class="fab fa-google"></i>',      bg: '#fce8e6', clr: '#d93025' },
+  facebook:  { label: 'Facebook',  icon: '<i class="fab fa-facebook-f"></i>',  bg: '#e7f3ff', clr: '#1877f2' },
+  instagram: { label: 'Instagram', icon: '<i class="fab fa-instagram"></i>',   bg: '#fce4ec', clr: '#c2185b' },
+  tiktok:    { label: 'TikTok',    icon: '<i class="fab fa-tiktok"></i>',      bg: '#e8f5e9', clr: '#000' },
+  twitter:   { label: 'Twitter/X', icon: '<i class="fab fa-twitter"></i>',     bg: '#e3f2fd', clr: '#1da1f2' },
+  gaming:    { label: 'Gaming',    icon: '<i class="fas fa-gamepad"></i>',     bg: '#ede7f6', clr: '#7b1fa2' },
+  crypto:    { label: 'Crypto',    icon: '<i class="fas fa-coins"></i>',       bg: '#fff8e1', clr: '#f59e0b' },
+  social:    { label: 'Social',    icon: '<i class="fas fa-users"></i>',       bg: '#e0f2fe', clr: '#0284c7' },
+  other:     { label: 'Other',     icon: '<i class="fas fa-box"></i>',         bg: '#f3f4f6', clr: '#6b7280' },
 };
 
 function catConfig(cat) {
-  return CATS[cat] || CATS.other;
+  return CATS[String(cat || '').toLowerCase()] || CATS.other;
 }
 
 const State = {
@@ -2268,12 +2349,49 @@ const State = {
   filtered: [],
   activeCategory: 'all',
   currentView: 'grid',
+  searchQuery: '',
   balNGN: 0,
   balUSD: 0,
-  checkout: { product: null, wallet: 'ngn', idempotencyKey: null },
+  checkout: { product: null, wallet: 'ngn' },
   lastOrder: null,
-  history: { page: 1, items: [], hasMore: false, loading: false, loaded: false }
+  history: { page: 1, items: [], hasMore: false, loading: false, loaded: false },
 };
+
+// ═══════════════════════════════════════════════════════════════════
+// Idempotency-key store (sessionStorage, with in-memory fallback)
+// ═══════════════════════════════════════════════════════════════════
+
+const _idemFallback = new Map();
+
+function newIdemKey() {
+  if (window.crypto && typeof crypto.randomUUID === 'function') {
+    return 'MS-' + crypto.randomUUID();
+  }
+  return 'MS-' + Date.now() + '-' + Math.random().toString(36).slice(2, 12);
+}
+
+function idemKeyFor(productId, wallet) {
+  const k = `ms:idem:${productId}:${wallet}`;
+  try {
+    let v = sessionStorage.getItem(k);
+    if (!v) { v = newIdemKey(); sessionStorage.setItem(k, v); }
+    return v;
+  } catch (_) {
+    // sessionStorage unavailable (private mode pre-2019 etc.).
+    if (!_idemFallback.has(k)) _idemFallback.set(k, newIdemKey());
+    return _idemFallback.get(k);
+  }
+}
+
+function clearIdemKey(productId, wallet) {
+  const k = `ms:idem:${productId}:${wallet}`;
+  try { sessionStorage.removeItem(k); } catch (_) {}
+  _idemFallback.delete(k);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Sidebar / profile
+// ═══════════════════════════════════════════════════════════════════
 
 function initSidebar() {
   const sb  = document.getElementById('sb');
@@ -2320,10 +2438,10 @@ function populateUI() {
   const u = getCurrentUser();
   if (!u) return;
 
-  const name = u.username || u.full_name || u.email?.split('@')[0] || 'User';
+  const name = u.username || u.full_name || (u.email || '').split('@')[0] || 'User';
   const initial = name.charAt(0).toUpperCase() || 'U';
 
-  ['sbAv', 'tbAv'].forEach(id => {
+  ['sbAv', 'tbAv'].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.textContent = initial;
   });
@@ -2334,47 +2452,156 @@ function populateUI() {
   if (sbEmail) sbEmail.textContent = u.email || '';
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// Balances (ledger, not profile mirror)
+// ═══════════════════════════════════════════════════════════════════
+
 async function loadBalances() {
-  /* Fast paint from cache */
+  // Fast paint from session cache.
   try {
     const cached = JSON.parse(sessionStorage.getItem('ms:market:balances') || 'null');
-    if (cached && (cached.NGN != null || cached.USD != null)) {
+    if (cached) {
       State.balNGN = cached.NGN || 0;
       State.balUSD = cached.USD || 0;
-      const elNGN = document.getElementById('wcNGNBal');
-      const elUSD = document.getElementById('wcUSDBal');
-      if (elNGN) elNGN.textContent = fNGN(State.balNGN);
-      if (elUSD) elUSD.textContent = fUSD(State.balUSD);
+      paintBalances();
     }
   } catch (_) {}
 
   try {
-    const res = await api('/auth/me');
-    const data = res.data || res;
-
-    State.balNGN = parseFloat(data.wallet_ngn) || 0;
-    State.balUSD = parseFloat(data.wallet_usd) || 0;
-
-    const elNGN = document.getElementById('wcNGNBal');
-    const elUSD = document.getElementById('wcUSDBal');
-    if (elNGN) elNGN.textContent = fNGN(State.balNGN);
-    if (elUSD) elUSD.textContent = fUSD(State.balUSD);
-
+    const res = await api('/market/balances');
+    const b = res.balances || {};
+    State.balNGN = parseFloat(b.NGN) || 0;
+    State.balUSD = parseFloat(b.USD) || 0;
+    paintBalances();
     try {
       sessionStorage.setItem('ms:market:balances', JSON.stringify({
-        NGN: State.balNGN, USD: State.balUSD
+        NGN: State.balNGN, USD: State.balUSD,
       }));
     } catch (_) {}
   } catch (e) {
     console.warn('Balance load:', e.message);
+    // Fallback: if /balances 404s (older deployment), use /auth/me
+    // — transitional only. Remove when Round 3 is everywhere.
+    if (e.status === 404) {
+      try {
+        const r = await api('/auth/me');
+        const d = r.data || r;
+        State.balNGN = parseFloat(d.wallet_ngn) || 0;
+        State.balUSD = parseFloat(d.wallet_usd) || 0;
+        paintBalances();
+      } catch (_) {}
+    }
   }
+}
+
+function paintBalances() {
+  const elNGN = document.getElementById('wcNGNBal');
+  const elUSD = document.getElementById('wcUSDBal');
+  if (elNGN) elNGN.textContent = fNGN(State.balNGN);
+  if (elUSD) elUSD.textContent = fUSD(State.balUSD);
+  updateWalletAffordability();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Categories (dynamic)
+// ═══════════════════════════════════════════════════════════════════
+
+async function loadCategoryTabs() {
+  const wrap = document.getElementById('catTabs');
+  if (!wrap) return;
+
+  try {
+    const res = await api('/market/categories');
+    const list = Array.isArray(res.categories) ? res.categories : [];
+
+    // Register palette entries for each server category.
+    list.forEach((c) => {
+      const id = String(c.id).toLowerCase();
+      if (!CATS[id]) {
+        CATS[id] = {
+          label: c.name || c.id,
+          icon: '<i class="fas fa-box"></i>',
+          bg: '#f3f4f6',
+          clr: '#456475',
+        };
+      }
+    });
+
+    const html = [
+      '<button class="cat-tab active" data-cat="all" role="tab" aria-selected="true"><i class="fas fa-th-large"></i> All</button>',
+      ...list.map((c) => {
+        const id = String(c.id).toLowerCase();
+        const label = esc(c.name || c.id);
+        return `<button class="cat-tab" data-cat="${esc(id)}" role="tab" aria-selected="false">${label}</button>`;
+      }),
+    ].join('');
+
+    wrap.innerHTML = html;
+  } catch (e) {
+    console.warn('Categories load:', e.message);
+    // Leave the "All" tab in place; products still load.
+  }
+}
+
+function setCategory(cat, btn) {
+  State.activeCategory = cat;
+  document.querySelectorAll('.cat-tab').forEach((b) => {
+    const isActive = b === btn;
+    b.classList.toggle('active', isActive);
+    b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  applyFilters();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Products (full paged load)
+// ═══════════════════════════════════════════════════════════════════
+
+async function fetchAllProducts() {
+  const out = [];
+  let page = 1;
+  let more = true;
+  // 20 pages × 100 = 2000 products — well above practical scale.
+  // The server caps each page at 100 (see Round 3 /products).
+  while (more && page <= 20) {
+    const res = await api(`/market/products?page=${page}&limit=100`);
+    const batch = Array.isArray(res.products) ? res.products : [];
+    out.push(...batch);
+    more = !!res.meta?.hasMore && batch.length > 0;
+    page += 1;
+  }
+  return out;
+}
+
+function normalizeProduct(p) {
+  return {
+    id: p.id,
+    name: p.name || 'Unknown',
+    cat: (p.category || 'other').toLowerCase(),
+    catName: p.categoryName || '',
+    desc: p.description || '',
+    longDesc: p.longDescription || '',
+    howToUse: p.howToUse || '',
+    features: p.features || '',
+    country: p.country || 'Global',
+    price: parseFloat(p.priceUsd) || 0,       // final, markup included
+    priceNGN: parseFloat(p.priceNgn) || 0,    // final, markup included
+    qty: parseInt(p.stock, 10) || 0,
+    sold: parseInt(p.sold, 10) || 0,
+    tags: Array.isArray(p.tags) ? p.tags : [],
+    badge: '',
+    deliveryType: p.deliveryType || 'structured',
+    loginFormat: p.loginFormat || '',
+    mailAccess: p.mailAccess || '',
+    loginTutorial: p.loginTutorial || '',
+  };
 }
 
 async function loadProducts() {
   const container = document.getElementById('productsContainer');
   if (!container) return;
 
-  /* Paint cached first */
+  // Paint cache while we fetch.
   let paintedFromCache = false;
   try {
     const cached = JSON.parse(sessionStorage.getItem('ms:market:products') || 'null');
@@ -2406,30 +2633,8 @@ async function loadProducts() {
   }
 
   try {
-    const res = await api('/market/products?page=1&limit=100');
-    const raw = res.products || [];
-
-    State.products = raw.map(p => ({
-      id: p.id,
-      name: p.name || 'Unknown',
-      cat: (p.category || p.cat || 'other').toLowerCase(),
-      catName: p.categoryName || p.catName || '',
-      desc: p.description || p.desc || '',
-      longDesc: p.longDescription || p.long_description || '',
-      howToUse: p.howToUse || p.how_to_use || '',
-      features: p.features || '',
-      country: p.country || 'Global',
-      price: parseFloat(p.priceUsd || p.price) || 0,
-      priceNGN: parseFloat(p.priceNgn || p.priceNGN) || 0,
-      qty: parseInt(p.stock || p.qty || 0) || 0,
-      sold: parseInt(p.sold || 0) || 0,
-      tags: Array.isArray(p.tags) ? p.tags : [],
-      badge: p.badge || '',
-      deliveryType: p.deliveryType || 'structured',
-      loginFormat: p.loginFormat || p.login_format || '',
-      mailAccess: p.mailAccess || p.mail_access || '',
-      loginTutorial: p.loginTutorial || p.login_tutorial || ''
-    }));
+    const raw = await fetchAllProducts();
+    State.products = raw.map(normalizeProduct);
 
     try {
       sessionStorage.setItem('ms:market:products', JSON.stringify({ products: State.products }));
@@ -2445,7 +2650,7 @@ async function loadProducts() {
           <i class="fas fa-exclamation-triangle" style="color:var(--err)"></i>
           <h3>Could not load products</h3>
           <p>${esc(is404 ? 'The marketplace API endpoint is not available yet.' : friendlyError(e))}</p>
-          <button class="btn-buy" onclick="loadProducts()" style="margin-top:12px;padding:8px 20px">
+          <button class="btn-buy" data-action="retry-products" style="margin-top:12px;padding:8px 20px">
             <i class="fas fa-redo"></i> Retry
           </button>
         </div>
@@ -2454,42 +2659,44 @@ async function loadProducts() {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// Filter / sort / render
+// ═══════════════════════════════════════════════════════════════════
+
 let searchDebounce = null;
 
 function applyFilters() {
   clearTimeout(searchDebounce);
   searchDebounce = setTimeout(() => {
     const q = (document.getElementById('searchQ')?.value || '').toLowerCase().trim();
+    State.searchQuery = q;
 
-    State.filtered = State.products.filter(p => {
+    State.filtered = State.products.filter((p) => {
       const matchCat = State.activeCategory === 'all' || p.cat === State.activeCategory;
-      const matchQ = !q ||
+      if (!matchCat) return false;
+      if (!q) return true;
+      // Client-side search over name, description, long description,
+      // and tags. Server-side name-only is still applied on the fetch;
+      // this catch the descriptions on already-loaded rows.
+      return (
         p.name.toLowerCase().includes(q) ||
         (p.desc || '').toLowerCase().includes(q) ||
         (p.longDesc || '').toLowerCase().includes(q) ||
-        (p.tags || []).some(t => String(t).toLowerCase().includes(q));
-      return matchCat && matchQ;
+        (p.tags || []).some((t) => String(t).toLowerCase().includes(q))
+      );
     });
 
     sortProducts();
-  }, 250);
+  }, 200);
 }
 
 function sortProducts() {
   const v = document.getElementById('sortSelect')?.value || 'default';
-
   if (v === 'price-asc')       State.filtered.sort((a, b) => a.price - b.price);
   else if (v === 'price-desc') State.filtered.sort((a, b) => b.price - a.price);
   else if (v === 'qty-desc')   State.filtered.sort((a, b) => b.qty - a.qty);
   else if (v === 'name-asc')   State.filtered.sort((a, b) => a.name.localeCompare(b.name));
-
   renderProducts();
-}
-
-function setCategory(cat, btn) {
-  State.activeCategory = cat;
-  document.querySelectorAll('.cat-tab').forEach(b => b.classList.toggle('active', b === btn));
-  applyFilters();
 }
 
 function setView(v) {
@@ -2520,16 +2727,15 @@ function renderProducts() {
   }
 
   const groups = {};
-  State.filtered.forEach(p => {
+  State.filtered.forEach((p) => {
     if (!groups[p.cat]) groups[p.cat] = [];
     groups[p.cat].push(p);
   });
 
   let html = '';
-  for (const cat in groups) {
+  for (const cat of Object.keys(groups)) {
     const cfg = catConfig(cat);
     const list = groups[cat];
-
     html += `
       <div class="section-mb">
         <div class="section-hd">
@@ -2546,6 +2752,24 @@ function renderProducts() {
   container.innerHTML = html;
 }
 
+function stockBadge(p) {
+  if (p.qty === 0) return '<span class="pc-badge oos">Sold out</span>';
+  if (p.qty < 10)  return '<span class="pc-badge low">Only ' + p.qty + ' left</span>';
+  return '';
+}
+
+function tagRow(p) {
+  const tags = (p.tags || []).slice(0, 2);
+  const country = p.country && p.country !== 'Global' ? p.country : '';
+  if (!tags.length && !country) return '';
+  return `
+    <div class="pc-meta">
+      ${country ? `<span class="pc-country">${esc(country)}</span>` : ''}
+      ${tags.map((t) => `<span class="pc-tag">${esc(t)}</span>`).join('')}
+    </div>
+  `;
+}
+
 function gridCard(p) {
   const cfg = catConfig(p.cat);
   const oos = p.qty === 0;
@@ -2553,28 +2777,24 @@ function gridCard(p) {
   const shortDesc = (p.desc || p.longDesc || '').slice(0, 90);
 
   return `
-    <div class="prod-card" onclick="openProductModal('${esc(p.id)}')" role="button" tabindex="0">
+    <div class="prod-card${oos ? ' sold-out' : ''}" data-product-id="${esc(p.id)}" role="button" tabindex="0" aria-label="${esc(p.name)}">
       <div class="pc-img" style="background:${cfg.bg};color:${cfg.clr}">
         ${cfg.icon}
         <div class="pc-badge-wrap">
-          ${oos ? '<span class="pc-badge oos">Sold Out</span>' : ''}
-          ${p.badge === 'new' ? '<span class="pc-badge new">New</span>' : ''}
-          ${p.badge === 'hot' ? '<span class="pc-badge hot">🔥 Hot</span>' : ''}
+          ${stockBadge(p)}
         </div>
       </div>
       <div class="pc-body">
         <p class="pc-title">${esc(p.name)}</p>
         ${shortDesc ? `<p class="pc-desc-preview">${esc(shortDesc)}${(p.desc || '').length > 90 ? '…' : ''}</p>` : ''}
-        <div class="pc-meta">
-          ${(p.tags || []).slice(0, 2).map(t => `<span class="pc-tag">${esc(t)}</span>`).join('')}
-        </div>
+        ${tagRow(p)}
         <div class="pc-footer">
           <div class="pc-price-box">
             <p class="pc-usd">${fUSD(p.price)}</p>
             ${ngn > 0 ? `<p class="pc-ngn">${fNGN(ngn)}</p>` : ''}
           </div>
-          <p class="pc-qty">${p.qty.toLocaleString()} <span>available</span></p>
-          <button class="btn-buy" onclick="event.stopPropagation();openCheckout('${esc(p.id)}')" ${oos ? 'disabled' : ''}>
+          <p class="pc-qty${oos ? '' : (p.qty < 10 ? ' low' : '')}">${p.qty.toLocaleString()} <span>available</span></p>
+          <button class="btn-buy" data-action="buy" data-product-id="${esc(p.id)}" ${oos ? 'disabled' : ''} type="button">
             ${oos ? 'Sold' : 'Buy'}
           </button>
         </div>
@@ -2589,11 +2809,11 @@ function listItem(p) {
   const ngn = p.priceNGN > 0 ? p.priceNGN : 0;
 
   return `
-    <div class="prod-list-item" onclick="openProductModal('${esc(p.id)}')" role="button" tabindex="0">
+    <div class="prod-list-item${oos ? ' sold-out' : ''}" data-product-id="${esc(p.id)}" role="button" tabindex="0" aria-label="${esc(p.name)}">
       <div class="pli-icon" style="background:${cfg.bg};color:${cfg.clr}">${cfg.icon}</div>
       <div class="pli-info">
         <p class="pli-name">${esc(p.name)}</p>
-        <div class="pli-tags">${(p.tags || []).slice(0, 2).map(t => `<span class="pli-tag">${esc(t)}</span>`).join('')}</div>
+        <div class="pli-tags">${(p.tags || []).slice(0, 2).map((t) => `<span class="pli-tag">${esc(t)}</span>`).join('')}</div>
       </div>
       <div class="pli-qty"><b>${p.qty.toLocaleString()}</b>stock</div>
       <div class="pli-price">
@@ -2601,7 +2821,7 @@ function listItem(p) {
         ${ngn > 0 ? `<p class="pli-ngn">${fNGN(ngn)}</p>` : ''}
       </div>
       <div class="pli-buy">
-        <button class="btn-buy" onclick="event.stopPropagation();openCheckout('${esc(p.id)}')" ${oos ? 'disabled' : ''}>
+        <button class="btn-buy" data-action="buy" data-product-id="${esc(p.id)}" ${oos ? 'disabled' : ''} type="button">
           ${oos ? 'Sold' : 'Buy'}
         </button>
       </div>
@@ -2609,42 +2829,24 @@ function listItem(p) {
   `;
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// Product modal
+// ═══════════════════════════════════════════════════════════════════
+
 async function openProductModal(id) {
-  const listItemRef = State.products.find(x => String(x.id) === String(id));
+  const listItemRef = State.products.find((x) => String(x.id) === String(id));
   if (!listItemRef) return;
 
-  document.getElementById('productModal').classList.add('open');
+  openModal('productModal');
   renderProductModal(listItemRef);
 
   try {
     const res = await api('/market/products/' + encodeURIComponent(id));
     const p = res.product || res.data || res;
     if (!p) return;
-
-    const fresh = {
-      id: p.id,
-      name: p.name || listItemRef.name,
-      cat: (p.category || p.cat || listItemRef.cat).toLowerCase(),
-      catName: p.categoryName || p.catName || '',
-      desc: p.description || p.desc || listItemRef.desc,
-      longDesc: p.longDescription || p.long_description || listItemRef.longDesc || '',
-      howToUse: p.howToUse || p.how_to_use || listItemRef.howToUse || '',
-      features: p.features || listItemRef.features || '',
-      country: p.country || listItemRef.country,
-      price: parseFloat(p.priceUsd || p.price) || listItemRef.price,
-      priceNGN: parseFloat(p.priceNgn || p.priceNGN) || listItemRef.priceNGN,
-      qty: parseInt(p.stock || p.qty) || listItemRef.qty,
-      sold: parseInt(p.sold || 0) || 0,
-      tags: Array.isArray(p.tags) ? p.tags : listItemRef.tags,
-      badge: p.badge || '',
-      deliveryType: p.deliveryType || listItemRef.deliveryType,
-      loginFormat: p.loginFormat || p.login_format || listItemRef.loginFormat || '',
-      mailAccess: p.mailAccess || p.mail_access || listItemRef.mailAccess || '',
-      loginTutorial: p.loginTutorial || p.login_tutorial || listItemRef.loginTutorial || ''
-    };
-
-    const idx = State.products.findIndex(x => String(x.id) === String(id));
-    if (idx !== -1) State.products[idx] = { ...State.products[idx], ...fresh };
+    const fresh = normalizeProduct({ ...listItemRef, ...p });
+    const idx = State.products.findIndex((x) => String(x.id) === String(id));
+    if (idx !== -1) State.products[idx] = fresh;
     renderProductModal(fresh);
   } catch (e) {
     console.warn('Product detail fetch failed (using list data):', e.message);
@@ -2656,15 +2858,15 @@ function renderProductModal(p) {
   const oos = p.qty === 0;
   const ngn = p.priceNGN > 0 ? p.priceNGN : 0;
   const body = document.getElementById('productModalBody');
+  if (!body) return;
 
   const toList = (text) => {
     if (!text) return [];
     return String(text)
       .split('\n')
-      .map(line => line.trim().replace(/^[-•*]\s*/, ''))
+      .map((line) => line.trim().replace(/^[-•*]\s*/, ''))
       .filter(Boolean);
   };
-
   const isPipeLine = (s) => /\|/.test(s) && s.split('|').length >= 2;
 
   const descLines = toList(p.desc);
@@ -2673,9 +2875,6 @@ function renderProductModal(p) {
 
   const guideText = p.longDesc ? renderLongDescription(p.longDesc) : '';
   const featureLines = toList(p.features);
-
-  const mailAccess = p.mailAccess || '';
-  const loginTutorial = p.loginTutorial || '';
 
   body.innerHTML = `
     <div class="pd-icon" style="background:${cfg.bg};color:${cfg.clr}">${cfg.icon}</div>
@@ -2701,10 +2900,9 @@ function renderProductModal(p) {
         <p class="pd-block-title">${esc(descTitle)}</p>
         ${descItems.length ? `
           <ul class="pd-list">
-            ${descItems.map(item => isPipeLine(item)
+            ${descItems.map((item) => isPipeLine(item)
               ? `<li class="pd-login-line" style="list-style:none;padding-left:0">${esc(item)}</li>`
-              : `<li>${esc(item)}</li>`
-            ).join('')}
+              : `<li>${esc(item)}</li>`).join('')}
           </ul>
         ` : ''}
       </div>
@@ -2717,20 +2915,20 @@ function renderProductModal(p) {
       </div>
     ` : ''}
 
-    ${mailAccess ? `
+    ${p.mailAccess ? `
       <div class="pd-mail-box">
-        <div class="pd-mail-icon">📩</div>
+        <div class="pd-mail-icon"><i class="fas fa-envelope" style="color:#8b5cf6"></i></div>
         <div class="pd-mail-text">
           <strong>Mail access link:</strong>
-          ${esc(mailAccess)}
+          ${esc(p.mailAccess)}
         </div>
       </div>
     ` : ''}
 
-    ${loginTutorial ? `
+    ${p.loginTutorial ? `
       <div class="pd-block">
         <p class="pd-block-title">LOGIN TUTORIAL</p>
-        <div class="pd-guide">${renderLongDescription(loginTutorial)}</div>
+        <div class="pd-guide">${renderLongDescription(p.loginTutorial)}</div>
       </div>
     ` : ''}
 
@@ -2745,7 +2943,7 @@ function renderProductModal(p) {
       <div class="pd-block">
         <p class="pd-block-title">FEATURES</p>
         <ul class="pd-list">
-          ${featureLines.map(item => `<li>${esc(item)}</li>`).join('')}
+          ${featureLines.map((item) => `<li>${esc(item)}</li>`).join('')}
         </ul>
       </div>
     ` : ''}
@@ -2757,38 +2955,80 @@ function renderProductModal(p) {
       ${p.deliveryType ? `<div class="pd-row"><span class="lbl">Type</span><span class="val">${esc(p.deliveryType)}</span></div>` : ''}
     </div>
 
-    <button class="btn-confirm" onclick="closeModal('productModal');openCheckout('${esc(p.id)}')" ${oos ? 'disabled' : ''}>
+    <button class="btn-confirm" data-action="checkout-from-modal" data-product-id="${esc(p.id)}" type="button" ${oos ? 'disabled' : ''}>
       <i class="fas fa-shopping-cart"></i> ${oos ? 'Out of Stock' : 'Buy Now'}
     </button>
   `;
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// Checkout
+// ═══════════════════════════════════════════════════════════════════
+
 function openCheckout(id) {
-  const p = State.products.find(x => String(x.id) === String(id));
+  const p = State.products.find((x) => String(x.id) === String(id));
   if (!p || p.qty === 0) return;
 
   State.checkout.product = p;
   State.checkout.wallet = 'ngn';
-  State.checkout.idempotencyKey = newIdemKey();
 
   const cfg = catConfig(p.cat);
   const icon = document.getElementById('moIcon');
-  icon.innerHTML = cfg.icon;
-  icon.style.background = cfg.bg;
-  icon.style.color = cfg.clr;
+  if (icon) {
+    icon.innerHTML = cfg.icon;
+    icon.style.background = cfg.bg;
+    icon.style.color = cfg.clr;
+  }
 
-  document.getElementById('moName').textContent = p.name;
+  const nameEl = document.getElementById('moName');
+  if (nameEl) nameEl.textContent = p.name;
 
   selectWallet('ngn');
-  document.getElementById('checkoutModal').classList.add('open');
+  openModal('checkoutModal');
 }
 
 function selectWallet(type) {
   State.checkout.wallet = type;
-  document.getElementById('wcNGN').classList.toggle('selected', type === 'ngn');
-  document.getElementById('wcUSD').classList.toggle('selected', type === 'usd');
-  document.getElementById('btnConfirm').className = 'btn-confirm' + (type === 'usd' ? ' usd-btn' : '');
+  const ngnEl = document.getElementById('wcNGN');
+  const usdEl = document.getElementById('wcUSD');
+  if (ngnEl) {
+    ngnEl.classList.toggle('selected', type === 'ngn');
+    ngnEl.setAttribute('aria-pressed', type === 'ngn' ? 'true' : 'false');
+  }
+  if (usdEl) {
+    usdEl.classList.toggle('selected', type === 'usd');
+    usdEl.setAttribute('aria-pressed', type === 'usd' ? 'true' : 'false');
+  }
+  const btn = document.getElementById('btnConfirm');
+  if (btn) btn.className = 'btn-confirm' + (type === 'usd' ? ' usd-btn' : '');
   updateCheckoutTotal();
+}
+
+function updateWalletAffordability() {
+  const p = State.checkout.product;
+  if (!p) return;
+
+  const ngnEl = document.getElementById('wcNGN');
+  const usdEl = document.getElementById('wcUSD');
+  if (!ngnEl || !usdEl) return;
+
+  const ngnCost = p.priceNGN > 0 ? p.priceNGN : p.price;
+  const usdCost = p.price;
+
+  const canNGN = State.balNGN >= ngnCost;
+  const canUSD = State.balUSD >= usdCost;
+
+  ngnEl.classList.toggle('disabled', !canNGN);
+  usdEl.classList.toggle('disabled', !canUSD);
+
+  // If the selected wallet can't afford it, auto-switch to one that
+  // can, if any.
+  const sel = State.checkout.wallet;
+  if (sel === 'ngn' && !canNGN) {
+    if (canUSD) selectWallet('usd');
+  } else if (sel === 'usd' && !canUSD) {
+    if (canNGN) selectWallet('ngn');
+  }
 }
 
 function updateCheckoutTotal() {
@@ -2798,19 +3038,24 @@ function updateCheckoutTotal() {
   const isUSD = State.checkout.wallet === 'usd';
   const unit = isUSD ? p.price : (p.priceNGN > 0 ? p.priceNGN : p.price);
 
-  document.getElementById('moPrice').textContent = isUSD
-    ? fUSD(p.price)
-    : (p.priceNGN > 0 ? fNGN(p.priceNGN) : fUSD(p.price));
+  const priceEl = document.getElementById('moPrice');
+  if (priceEl) {
+    priceEl.textContent = isUSD
+      ? fUSD(p.price)
+      : (p.priceNGN > 0 ? fNGN(p.priceNGN) : fUSD(p.price));
+  }
 
-  document.getElementById('moQtyDisplay').textContent = '1 × item';
-  document.getElementById('moTotal').textContent = isUSD
-    ? fUSD(unit)
-    : (p.priceNGN > 0 ? fNGN(p.priceNGN) : fUSD(p.price));
-}
+  const qtyEl = document.getElementById('moQtyDisplay');
+  if (qtyEl) qtyEl.textContent = '1 × item';
 
-function newIdemKey() {
-  if (window.crypto && crypto.randomUUID) return 'MS-' + crypto.randomUUID();
-  return 'MS-' + Date.now() + '-' + Math.random().toString(36).slice(2, 12);
+  const totalEl = document.getElementById('moTotal');
+  if (totalEl) {
+    totalEl.textContent = isUSD
+      ? fUSD(unit)
+      : (p.priceNGN > 0 ? fNGN(p.priceNGN) : fUSD(p.price));
+  }
+
+  updateWalletAffordability();
 }
 
 async function confirmPurchase() {
@@ -2819,18 +3064,36 @@ async function confirmPurchase() {
 
   const btn = document.getElementById('btnConfirm');
   const wallet = State.checkout.wallet.toUpperCase();
-  const idemKey = State.checkout.idempotencyKey;
+  const expected = wallet === 'USD'
+    ? p.price
+    : (p.priceNGN > 0 ? p.priceNGN : p.price);
 
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing…';
+  const bal = wallet === 'USD' ? State.balUSD : State.balNGN;
+  if (bal < expected) {
+    toast(`Insufficient ${wallet} balance. Fund your wallet first.`, 'warn');
+    return;
+  }
 
+  const key = idemKeyFor(p.id, wallet);
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing…';
+  }
+
+  let definitive = false;
   try {
     const res = await api('/market/purchase', {
       method: 'POST',
-      headers: { 'Idempotency-Key': idemKey },
-      body: JSON.stringify({ product_id: p.id, wallet_type: wallet })
+      headers: { 'Idempotency-Key': key },
+      body: JSON.stringify({
+        product_id: p.id,
+        wallet_type: wallet,
+        expected_total: expected,
+      }),
     });
 
+    definitive = true;
     const purchase = res.purchase || {};
     State.lastOrder = purchase;
 
@@ -2843,18 +3106,44 @@ async function confirmPurchase() {
     renderProducts();
     State.history.items = [];
     State.history.loaded = false;
+    try { sessionStorage.removeItem('ms:market:products'); } catch (_) {}
   } catch (e) {
     console.error('Purchase error:', e);
-    toast(friendlyError(e), 'err');
+
+    if (e.code === 'PRICE_CHANGED') {
+      definitive = true;
+      const t = Number(e.raw?.current_total);
+      if (Number.isFinite(t)) {
+        if (wallet === 'USD') p.price = t; else p.priceNGN = t;
+      }
+      updateCheckoutTotal();
+      toast('The price changed. Please review the new total.', 'warn');
+    } else if (e.code === 'PURCHASE_PENDING' || !e.status || e.status >= 500) {
+      // Ambiguous: keep the key, send the user to history.
+      toast('We could not confirm this purchase. Do not pay again. Check your Purchase History.', 'warn');
+      closeModal('checkoutModal');
+      openHistory();
+    } else {
+      definitive = true;
+      toast(friendlyError(e), 'err');
+    }
   } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-lock"></i> Confirm Purchase';
-    State.checkout.idempotencyKey = newIdemKey();
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-lock"></i> Confirm Purchase';
+    }
+    if (definitive) clearIdemKey(p.id, wallet);
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// Success modal
+// ═══════════════════════════════════════════════════════════════════
+
 function showSuccessModal(p, purchase) {
   const body = document.getElementById('successModalBody');
+  if (!body) return;
+
   const orderId = purchase.order_id || purchase.order_ref || '—';
   const ref = purchase.order_ref || '—';
   const amount = purchase.price || 0;
@@ -2873,19 +3162,23 @@ function showSuccessModal(p, purchase) {
       <div class="pd-row"><span class="lbl">Amount</span><span class="val">${amountStr}</span></div>
       ${purchase.transaction_id ? `<div class="pd-row"><span class="lbl">Transaction</span><span class="val" style="font-size:.7rem;font-family:monospace">${esc(purchase.transaction_id)}</span></div>` : ''}
     </div>
-    <button class="download-btn" onclick="closeModal('successModal');viewOrderDelivery('${esc(orderId)}')">
+    <button class="download-btn" data-action="view-receipt" data-order-id="${esc(orderId)}" type="button">
       <i class="fas fa-eye"></i> View Receipt / Delivery
     </button>
-    <button class="btn-ghost" onclick="closeModal('successModal');downloadOrder('${esc(orderId)}')">
+    <button class="btn-ghost" data-action="download-order" data-order-id="${esc(orderId)}" type="button">
       <i class="fas fa-download"></i> Download
     </button>
-    <button class="btn-ghost" onclick="closeModal('successModal')">
+    <button class="btn-ghost" data-close="successModal" type="button">
       <i class="fas fa-xmark"></i> Close
     </button>
   `;
 
-  document.getElementById('successModal').classList.add('open');
+  openModal('successModal');
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Receipt modal
+// ═══════════════════════════════════════════════════════════════════
 
 async function viewOrderDelivery(orderId) {
   if (!orderId || orderId === '—') {
@@ -2894,7 +3187,8 @@ async function viewOrderDelivery(orderId) {
   }
 
   const body = document.getElementById('orderModalBody');
-  document.getElementById('orderModal').classList.add('open');
+  if (!body) return;
+  openModal('orderModal');
   body.innerHTML = `<div class="pd-loading"><i class="fas fa-circle-notch fa-spin"></i><p>Loading receipt…</p></div>`;
 
   try {
@@ -2908,21 +3202,32 @@ async function viewOrderDelivery(orderId) {
         <i class="fas fa-exclamation-triangle"></i>
         <h3>Could not load receipt</h3>
         <p>${esc(friendlyError(e))}</p>
-        <button class="btn-confirm" onclick="viewOrderDelivery('${esc(orderId)}')"><i class="fas fa-redo"></i> Retry</button>
+        <button class="btn-confirm" data-action="retry-receipt" data-order-id="${esc(orderId)}" type="button">
+          <i class="fas fa-redo"></i> Retry
+        </button>
       </div>
     `;
   }
 }
 
+function statusKey(status) {
+  const s = String(status || '').toLowerCase();
+  if (s === 'completed') return 'completed';
+  if (s === 'pending' || s === 'processing' || s === 'manual_review') return 'pending';
+  if (s === 'failed' || s === 'cancelled' || s === 'refunded') return 'failed';
+  return 'pending';
+}
+
 function renderReceiptModal(order) {
   const body = document.getElementById('orderModalBody');
+  if (!body) return;
+
   const status = (order.status || 'pending').toLowerCase();
-  const statusLabel = window.MS && MS.statusLabel ? MS.statusLabel(status) : status;
-  const statusKey = window.MS && MS.statusKey ? MS.statusKey(status) : status;
+  const stKey = statusKey(status);
   const wallet = order.currency || 'NGN';
   const amountUsd = order.amountUsd || 0;
   const amountNgn = order.amountNgn || 0;
-  const delivery = order.delivery || {};
+  const delivery = order.delivery || null;
   const hasDelivery = delivery && (delivery.content || delivery.login_format);
 
   const cat = (order.category || 'other').toLowerCase();
@@ -2937,7 +3242,7 @@ function renderReceiptModal(order) {
     <div class="receipt-hero">
       <div class="rh-icon" style="background:${cfg.bg};color:${cfg.clr}">${cfg.icon}</div>
       <p class="rh-name">${esc(order.productName || 'Order')}</p>
-      <span class="rh-status ${esc(statusKey)}"><i class="fas ${statusIcon}"></i> ${esc(statusLabel)}</span>
+      <span class="rh-status ${esc(stKey)}"><i class="fas ${statusIcon}"></i> ${esc(status)}</span>
     </div>
     <div class="pd-section">
       <h4>Order</h4>
@@ -2964,7 +3269,7 @@ function renderReceiptModal(order) {
       <h4>Product</h4>
       <div class="pd-row"><span class="lbl">Category</span><span class="val">${esc(cfg.label)}</span></div>
       ${order.deliveryType ? `<div class="pd-row"><span class="lbl">Delivery Type</span><span class="val">${esc(order.deliveryType)}</span></div>` : ''}
-      ${delivery.login_format ? `<div class="pd-row"><span class="lbl">Format</span><span class="val">${esc(delivery.login_format)}</span></div>` : ''}
+      ${delivery && delivery.login_format ? `<div class="pd-row"><span class="lbl">Format</span><span class="val">${esc(delivery.login_format)}</span></div>` : ''}
     </div>
     ${hasDelivery ? `
       <div class="pd-section">
@@ -2978,21 +3283,35 @@ function renderReceiptModal(order) {
           </p>
         ` : ''}
       </div>
-    ` : ''}
+    ` : (status === 'refunded' ? `
+      <div class="pd-section">
+        <h4>Delivery Information</h4>
+        <p style="font-size:.78rem;color:var(--t2)">This order has been refunded. Delivery details are no longer available.</p>
+      </div>
+    ` : (status === 'pending' ? `
+      <div class="pd-section">
+        <h4>Delivery Information</h4>
+        <p style="font-size:.78rem;color:var(--t2)">We are confirming this order. Refresh history in a moment.</p>
+      </div>
+    ` : ''))}
     <div class="pd-section">
       <h4>Download Activity</h4>
       <div class="pd-row"><span class="lbl">Downloads</span><span class="val">${order.downloadCount || 0}</span></div>
       ${order.lastDownloadAt ? `<div class="pd-row"><span class="lbl">Last download</span><span class="val">${fmtDateTime(order.lastDownloadAt)}</span></div>` : ''}
     </div>
-    <button class="download-btn" onclick="downloadOrder('${esc(order.id)}')" ${status !== 'completed' ? 'disabled' : ''}>
+    <button class="download-btn" data-action="download-order" data-order-id="${esc(order.id)}" type="button" ${status !== 'completed' ? 'disabled' : ''}>
       <i class="fas fa-download"></i> Download Again
     </button>
-    <button class="btn-ghost" onclick="closeModal('orderModal')"><i class="fas fa-xmark"></i> Close</button>
+    <button class="btn-ghost" data-close="orderModal" type="button"><i class="fas fa-xmark"></i> Close</button>
   `;
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// Download
+// ═══════════════════════════════════════════════════════════════════
+
 async function downloadOrder(orderId) {
-  if (!orderId) {
+  if (!orderId || orderId === '—') {
     toast('Order ID unavailable', 'err');
     return;
   }
@@ -3036,13 +3355,17 @@ async function downloadOrder(orderId) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// History drawer
+// ═══════════════════════════════════════════════════════════════════
+
 function openHistory() {
-  document.getElementById('histDrawer').classList.add('open');
+  document.getElementById('histDrawer')?.classList.add('open');
   if (!State.history.loaded) loadHistory(true);
 }
 
 function closeHistory() {
-  document.getElementById('histDrawer').classList.remove('open');
+  document.getElementById('histDrawer')?.classList.remove('open');
 }
 
 async function loadHistory(reset = false) {
@@ -3054,7 +3377,6 @@ async function loadHistory(reset = false) {
     State.history.items = [];
     State.history.hasMore = false;
 
-    /* Fast paint from session cache */
     try {
       const cached = JSON.parse(sessionStorage.getItem('ms:market:history') || 'null');
       if (cached && Array.isArray(cached.items) && cached.items.length) {
@@ -3099,7 +3421,7 @@ async function loadHistory(reset = false) {
           <i class="fas fa-exclamation-triangle" style="color:var(--err)"></i>
           <h3>Could not load history</h3>
           <p>${esc(friendlyError(e))}</p>
-          <button class="btn-buy" onclick="loadHistory(true)" style="margin-top:12px;padding:8px 20px"><i class="fas fa-redo"></i> Retry</button>
+          <button class="btn-buy" data-action="retry-history" style="margin-top:12px;padding:8px 20px"><i class="fas fa-redo"></i> Retry</button>
         </div>
       `;
     }
@@ -3119,31 +3441,30 @@ function renderHistory() {
 
   let html = State.history.items.map((o, idx) => {
     const status = (o.status || 'pending').toLowerCase();
-    const stLabel = window.MS && MS.statusLabel ? MS.statusLabel(status) : status;
-    const stKey = window.MS && MS.statusKey ? MS.statusKey(status) : status;
+    const stKey = statusKey(status);
     const wallet = o.currency || 'NGN';
     const amount = wallet === 'USD' ? (o.amountUsd || 0) : (o.amountNgn || 0);
     const amountStr = wallet === 'USD' ? fUSD(amount) : fNGN(amount);
 
     return `
-      <div class="hist-item" data-hi="${idx}" onclick="viewOrderDelivery('${esc(o.id)}')" role="button" tabindex="0">
+      <div class="hist-item" data-hi="${idx}" data-order-id="${esc(o.id)}" role="button" tabindex="0">
         <div class="hi-top">
           <div class="hi-icon"><i class="fas fa-box"></i></div>
           <div class="hi-name">${esc(o.productName || 'Order')}</div>
-          <span class="hi-status ${esc(stKey)}">${esc(stLabel)}</span>
+          <span class="hi-status ${esc(stKey)}">${esc(status)}</span>
         </div>
         <div class="hi-meta"><span>${amountStr}</span><span>${fmtDateTime(o.createdAt)}</span></div>
         <div class="hi-ref">${esc(o.orderRef || '')}</div>
         <div class="hi-actions">
-          <button class="hi-view" onclick="event.stopPropagation();viewOrderDelivery('${esc(o.id)}')"><i class="fas fa-eye"></i> View Receipt</button>
-          <button class="hi-download" onclick="event.stopPropagation();downloadOrder('${esc(o.id)}')" ${status !== 'completed' ? 'disabled' : ''}><i class="fas fa-download"></i> Download</button>
+          <button class="hi-view" data-action="view-receipt" data-order-id="${esc(o.id)}" type="button"><i class="fas fa-eye"></i> View Receipt</button>
+          <button class="hi-download" data-action="download-order" data-order-id="${esc(o.id)}" type="button" ${status !== 'completed' ? 'disabled' : ''}><i class="fas fa-download"></i> Download</button>
         </div>
       </div>
     `;
   }).join('');
 
   if (State.history.hasMore) {
-    html += `<button class="btn-ghost hist-load-more" onclick="loadMoreHistory()"><i class="fas fa-plus"></i> Load more</button>`;
+    html += `<button class="btn-ghost hist-load-more" data-action="load-more-history" type="button"><i class="fas fa-plus"></i> Load more</button>`;
   }
 
   body.innerHTML = html;
@@ -3155,47 +3476,166 @@ async function loadMoreHistory() {
   await loadHistory(false);
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// Modals (open / close / focus trap / ESC / backdrop)
+// ═══════════════════════════════════════════════════════════════════
+
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('open');
+  // Focus trap: keep focus inside the modal.
+  const prev = document.activeElement;
+  el._prevFocus = prev;
+  setTimeout(() => {
+    const first = el.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (first) first.focus();
+  }, 30);
+}
+
 function closeModal(id) {
   const el = document.getElementById(id);
-  if (el) el.classList.remove('open');
+  if (!el) return;
+  el.classList.remove('open');
+  if (el._prevFocus && typeof el._prevFocus.focus === 'function') {
+    try { el._prevFocus.focus(); } catch (_) {}
+  }
 }
 
 document.addEventListener('click', (e) => {
-  if (e.target.classList.contains('modal-bg')) e.target.classList.remove('open');
+  // Close modal when the background is clicked.
+  if (e.target.classList && e.target.classList.contains('modal-bg')) {
+    e.target.classList.remove('open');
+  }
+  // Close button (data-close="<modalId>").
+  const closeBtn = e.target.closest('[data-close]');
+  if (closeBtn) {
+    e.preventDefault();
+    closeModal(closeBtn.getAttribute('data-close'));
+  }
 });
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    document.querySelectorAll('.modal-bg.open').forEach(m => m.classList.remove('open'));
+    document.querySelectorAll('.modal-bg.open').forEach((m) => m.classList.remove('open'));
     closeHistory();
   }
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('searchQ')?.addEventListener('input', applyFilters);
-  document.getElementById('searchBtn')?.addEventListener('click', applyFilters);
+// ═══════════════════════════════════════════════════════════════════
+// Delegated event listeners (no inline onclick, no interpolated JS)
+// ═══════════════════════════════════════════════════════════════════
 
-  document.querySelectorAll('.cat-tab').forEach(btn => {
-    btn.addEventListener('click', () => setCategory(btn.dataset.cat, btn));
-  });
-
-  document.getElementById('sortSelect')?.addEventListener('change', sortProducts);
-  document.getElementById('gridViewBtn')?.addEventListener('click', () => setView('grid'));
-  document.getElementById('listViewBtn')?.addEventListener('click', () => setView('list'));
-
-  document.getElementById('historyBtn')?.addEventListener('click', openHistory);
-  document.getElementById('histCloseBtn')?.addEventListener('click', closeHistory);
-
-  document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
-    e.preventDefault();
+// Product container: card click opens detail; buy button opens checkout.
+document.getElementById('productsContainer')?.addEventListener('click', (e) => {
+  const buy = e.target.closest('[data-action="buy"]');
+  if (buy) {
     e.stopPropagation();
-    if (typeof window.doUserLogout === 'function') window.doUserLogout();
-    else redirectToLogin();
-  });
+    openCheckout(buy.getAttribute('data-product-id'));
+    return;
+  }
+  const retry = e.target.closest('[data-action="retry-products"]');
+  if (retry) { loadProducts(); return; }
+  const card = e.target.closest('[data-product-id]');
+  if (card) openProductModal(card.getAttribute('data-product-id'));
 });
 
+document.getElementById('productsContainer')?.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const card = e.target.closest('[data-product-id]');
+  if (!card) return;
+  e.preventDefault();
+  openProductModal(card.getAttribute('data-product-id'));
+});
+
+// Product modal: Buy Now button.
+document.getElementById('productModalBody')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action="checkout-from-modal"]');
+  if (btn) {
+    closeModal('productModal');
+    openCheckout(btn.getAttribute('data-product-id'));
+  }
+});
+
+// Checkout: wallet option toggles and confirm.
+document.getElementById('wcNGN')?.addEventListener('click', () => selectWallet('ngn'));
+document.getElementById('wcNGN')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectWallet('ngn'); }
+});
+document.getElementById('wcUSD')?.addEventListener('click', () => selectWallet('usd'));
+document.getElementById('wcUSD')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectWallet('usd'); }
+});
+document.getElementById('btnConfirm')?.addEventListener('click', confirmPurchase);
+
+// Success modal buttons.
+document.getElementById('successModalBody')?.addEventListener('click', (e) => {
+  const view = e.target.closest('[data-action="view-receipt"]');
+  if (view) { closeModal('successModal'); viewOrderDelivery(view.getAttribute('data-order-id')); return; }
+  const dl = e.target.closest('[data-action="download-order"]');
+  if (dl) { closeModal('successModal'); downloadOrder(dl.getAttribute('data-order-id')); return; }
+});
+
+// Receipt modal buttons.
+document.getElementById('orderModalBody')?.addEventListener('click', (e) => {
+  const dl = e.target.closest('[data-action="download-order"]');
+  if (dl) { downloadOrder(dl.getAttribute('data-order-id')); return; }
+  const retry = e.target.closest('[data-action="retry-receipt"]');
+  if (retry) { viewOrderDelivery(retry.getAttribute('data-order-id')); return; }
+});
+
+// History drawer: card click + inner buttons.
+document.getElementById('histBody')?.addEventListener('click', (e) => {
+  const view = e.target.closest('[data-action="view-receipt"]');
+  if (view) { e.stopPropagation(); viewOrderDelivery(view.getAttribute('data-order-id')); return; }
+  const dl = e.target.closest('[data-action="download-order"]');
+  if (dl) { e.stopPropagation(); downloadOrder(dl.getAttribute('data-order-id')); return; }
+  const more = e.target.closest('[data-action="load-more-history"]');
+  if (more) { loadMoreHistory(); return; }
+  const retry = e.target.closest('[data-action="retry-history"]');
+  if (retry) { loadHistory(true); return; }
+  const item = e.target.closest('[data-order-id]');
+  if (item) viewOrderDelivery(item.getAttribute('data-order-id'));
+});
+
+document.getElementById('histBody')?.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const item = e.target.closest('[data-order-id]');
+  if (!item) return;
+  e.preventDefault();
+  viewOrderDelivery(item.getAttribute('data-order-id'));
+});
+
+// Category tabs (delegated).
+document.getElementById('catTabs')?.addEventListener('click', (e) => {
+  const b = e.target.closest('.cat-tab');
+  if (b) setCategory(b.getAttribute('data-cat'), b);
+});
+
+// Search + sort + view.
+document.getElementById('searchQ')?.addEventListener('input', applyFilters);
+document.getElementById('searchBtn')?.addEventListener('click', applyFilters);
+document.getElementById('sortSelect')?.addEventListener('change', sortProducts);
+document.getElementById('gridViewBtn')?.addEventListener('click', () => setView('grid'));
+document.getElementById('listViewBtn')?.addEventListener('click', () => setView('list'));
+
+// Topbar buttons.
+document.getElementById('historyBtn')?.addEventListener('click', openHistory);
+document.getElementById('histCloseBtn')?.addEventListener('click', closeHistory);
+
+document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (typeof window.doUserLogout === 'function') window.doUserLogout();
+  else redirectToLogin();
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// Init
+// ═══════════════════════════════════════════════════════════════════
+
 document.addEventListener('DOMContentLoaded', async () => {
-  await new Promise(r => setTimeout(r, 0));
+  await new Promise((r) => setTimeout(r, 0));
 
   if (typeof window.getUser === 'function' && !window.getUser()) {
     setTimeout(() => { if (!window.getUser()) redirectToLogin(); }, 1500);
@@ -3204,36 +3644,37 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   populateUI();
   initSidebar();
-  Promise.all([loadProducts(), loadBalances()]).catch(e => console.warn('Init error:', e));
+
+  // Load categories BEFORE products so cards get the right labels
+  // and grouping. loadProducts paints cached products immediately
+  // regardless.
+  await loadCategoryTabs();
+  await loadBalances();
+  loadProducts().catch((e) => console.warn('Init products:', e.message));
 });
 
-window.openProductModal   = openProductModal;
-window.openCheckout       = openCheckout;
-window.selectWallet       = selectWallet;
-window.confirmPurchase    = confirmPurchase;
-window.closeModal         = closeModal;
-window.viewOrderDelivery  = viewOrderDelivery;
-window.downloadOrder      = downloadOrder;
-window.loadHistory        = loadHistory;
-window.loadMoreHistory    = loadMoreHistory;
-window.loadProducts       = loadProducts;
-window.loadBalances       = loadBalances;
+// Expose for the stale-banner script and any legacy caller.
+window.market = {
+  State,
+  openProductModal,
+  openCheckout,
+  selectWallet,
+  confirmPurchase,
+  closeModal,
+  viewOrderDelivery,
+  downloadOrder,
+  loadHistory,
+  loadMoreHistory,
+  loadProducts,
+  loadBalances,
+};
 </script>
 
 <script>
 /* ═══════════════════════════════════════════════════════════════════
-   Stale transaction banner + "Check status" button.
-   Appended per the pasted spec for market.html.
-
-   PAGE ADAPTER
-   ────────────
-   1. ROW_SELECTOR = '#histBody .hist-item[data-hi]'
-   2. RECORD_LOOKUP = el => State.history.items[Number(el.dataset.hi)] || null
-   3. Record fields: id, orderRef, status, createdAt. The /check endpoint
-      resolves market orders from transactions.reference — we pass
-      rec.orderRef (fall back to rec.id) to it.
-   4. Token fetcher: window.userFetch (falls back to fetch with cookies).
-   5. Toast: local toast(msg, type) — 'ok' | 'err' | 'warn' | 'info'.
+   Stale transaction banner — UNCHANGED from the previous file.
+   Appends a "Check status" button under stale pending history items.
+   The adapter reads State.history.items via window.market.State.
    ═══════════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -3242,24 +3683,39 @@ window.loadBalances       = loadBalances;
   const RECORD_LOOKUP = (el) => {
     const idx = el.getAttribute('data-hi');
     if (idx == null) return null;
-    return State.history.items[Number(idx)] || null;
+    const State = window.market && window.market.State;
+    return State ? State.history.items[Number(idx)] : null;
   };
-  const ESCAPE_HTML   = esc;
-  const SHOW_TOAST    = (msg, kind) => toast(msg, kind === 'ok' ? 'ok' : (kind === 'err' ? 'err' : 'info'));
+  const ESCAPE_HTML   = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (m) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[m] || m));
+  const SHOW_TOAST    = (msg, kind) => {
+    const fn = window.market && window.market.toast ? window.market.toast
+      : (window.market && window.market.toast === undefined ? null : null);
+    // The page-level `toast()` isn't attached to window.market; use
+    // the DOM toast stack directly.
+    const container = document.getElementById('toastWrap');
+    if (!container) return;
+    const el = document.createElement('div');
+    el.className = 'toast ' + (kind === 'ok' ? 'ok' : kind === 'err' ? 'err' : 'warn');
+    el.innerHTML = '<i class="fas fa-info-circle"></i><span>' + ESCAPE_HTML(msg) + '</span>';
+    container.appendChild(el);
+    setTimeout(() => { el.style.cssText = 'opacity:0;transition:.25s'; setTimeout(() => el.remove(), 280); }, 3500);
+  };
 
-  const API_BASE = '/api/transactions';
-  const STALE_MS = 10 * 60 * 1000;
-  const STALEABLE = new Set(['pending','processing','under_review','provider_unknown','manual_review']);
-  const TERMINAL  = new Set(['completed','failed','refunded','cancelled','reversed']);
+  const API_BASE  = '/api/transactions';
+  const STALE_MS  = 10 * 60 * 1000;
+  const STALEABLE = new Set(['pending', 'processing', 'under_review', 'provider_unknown', 'manual_review']);
+  const TERMINAL  = new Set(['completed', 'failed', 'refunded', 'cancelled', 'reversed']);
 
   function userLabel(s) {
     s = String(s || '').toLowerCase();
-    if (['completed','success','finished','delivered'].includes(s)) return 'completed';
-    if (['failed','declined','expired'].includes(s)) return 'failed';
-    if (['cancelled','canceled'].includes(s)) return 'cancelled';
-    if (['refunded','reversed'].includes(s)) return 'refunded';
-    if (['under_review','manual_review','partially_paid'].includes(s)) return 'under_review';
-    if (['processing','provider_unknown','confirming'].includes(s)) return 'processing';
+    if (['completed', 'success', 'finished', 'delivered'].includes(s)) return 'completed';
+    if (['failed', 'declined', 'expired'].includes(s)) return 'failed';
+    if (['cancelled', 'canceled'].includes(s)) return 'cancelled';
+    if (['refunded', 'reversed'].includes(s)) return 'refunded';
+    if (['under_review', 'manual_review', 'partially_paid'].includes(s)) return 'under_review';
+    if (['processing', 'provider_unknown', 'confirming'].includes(s)) return 'processing';
     return 'pending';
   }
 
@@ -3336,9 +3792,9 @@ window.loadBalances       = loadBalances;
           SHOW_TOAST('Status updated.', 'ok');
           setTimeout(() => {
             try {
-              State.history.items = [];
-              State.history.loaded = false;
-              loadHistory(true);
+              const State = window.market && window.market.State;
+              if (State) { State.history.items = []; State.history.loaded = false; }
+              if (window.market && window.market.loadHistory) window.market.loadHistory(true);
             } catch (_) {}
           }, 400);
         } else {
@@ -3362,13 +3818,15 @@ window.loadBalances       = loadBalances;
     if (isScanning) return;
     isScanning = true;
     try {
-      document.querySelectorAll(ROW_SELECTOR).forEach(el => {
+      document.querySelectorAll(ROW_SELECTOR).forEach((el) => {
         if (el.getClientRects().length === 0) return;
         const rec = RECORD_LOOKUP(el);
         if (!isStale(rec)) return;
         inject(el, rec);
       });
-    } finally { isScanning = false; }
+    } finally {
+      isScanning = false;
+    }
   }
 
   if (document.readyState === 'loading') {

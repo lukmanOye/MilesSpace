@@ -3,28 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="description" content="MilesSpace brings your wallet and everyday digital services together. Fund your wallet, buy airtime and data, pay bills, get gift cards, use eSIM and more." />
+  <meta name="description" content="Buy travel eSIM data plans from MilesSpace. Stay connected the moment you land in 100+ countries." />
   <meta name="robots" content="index, follow" />
   <meta name="theme-color" content="#fbfaf7" />
-  <link rel="canonical" href="https://www.milesspaceedigital.com/" />
+  <link rel="canonical" href="https://www.milesspaceedigital.com/esim.html" />
   <link rel="icon" href="/images/miles.png" type="image/png" />
   <link rel="apple-touch-icon" href="/images/miles.png" />
 
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="MilesSpace" />
-  <meta property="og:title" content="MilesSpace — Digital Wallet & Digital Services" />
-  <meta property="og:description" content="Fund your wallet, buy airtime and data, pay bills, get gift cards, use eSIM and more." />
-  <meta property="og:url" content="https://www.milesspaceedigital.com/" />
+  <meta property="og:title" content="Buy eSIM · MilesSpace" />
+  <meta property="og:description" content="Skip the airport SIM kiosk. Pick a country, region, or global plan." />
   <meta property="og:image" content="https://www.milesspaceedigital.com/images/social-preview.png" />
-  <meta property="og:image:secure_url" content="https://www.milesspaceedigital.com/images/social-preview.png" />
-  <meta property="og:image:alt" content="MilesSpace digital wallet and services dashboard" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="MilesSpace — Digital Wallet & Digital Services" />
-  <meta name="twitter:description" content="Fund your wallet, buy airtime and data, pay bills, get gift cards, use eSIM and more." />
-  <meta name="twitter:image" content="https://www.milesspaceedigital.com/images/social-preview.png" />
 
   <title>Buy eSIM · MilesSpace</title>
 
@@ -36,13 +26,10 @@
   <script src="/js/session.js"></script>
   <script src="/js/presence.js" defer></script>
   <script src="/js/miles-widget.js" defer></script>
-  <link rel="stylesheet" href="/css/ms-shell.css?v=1">
-  <script src="/js/ms-shell.js?v=1" defer></script>
+  <link rel="stylesheet" href="/css/ms-shell.css?v=2">
+  <script src="/js/ms-shell.js?v=2" defer></script>
 
   <style>
-    /* ═══════════════════════════════════════════════════════════
-       DESIGN TOKENS
-       ═══════════════════════════════════════════════════════════ */
     :root {
       --fd: 'Inter', system-ui, sans-serif;
       --fb: 'Inter', system-ui, sans-serif;
@@ -60,7 +47,6 @@
       --p:     #32407A;
       --pm:    #28335f;
       --pl:    #EBEEFC;
-      --pxl:   #f2fafb;
 
       --acc:   #F5A623;
       --acd:   #d98c12;
@@ -72,18 +58,11 @@
       --err:   #D34848;
       --erl:   #FBEAEA;
 
-      --warn:  #f59e0b;
-      --warnl: #fef3c7;
-
-      --ok:    #10b981;
-      --okl:   #d1fae5;
-
       --r:     12px;
       --rl:    16px;
       --rxl:   20px;
       --rp:    999px;
       --tr:    .2s cubic-bezier(.4, 0, .2, 1);
-      --sw:    250px;
 
       --safe-b: env(safe-area-inset-bottom, 0px);
       --safe-t: env(safe-area-inset-top, 0px);
@@ -98,13 +77,13 @@
       font-size: 15px;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
-      max-width: 100vw;
+      max-width: 100%;
+      width: 100%;
       overflow-x: hidden;
     }
     body.sb-open { overflow: hidden; }
 
     a { color: inherit; text-decoration: none; }
-
     button {
       font-family: inherit;
       cursor: pointer;
@@ -113,23 +92,26 @@
       color: inherit;
       font-size: inherit;
     }
-
     input, select, textarea {
       font-family: inherit;
       font-size: 16px;
       color: inherit;
     }
     ::selection { background: var(--pl); }
-
-    button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible {
+    button:focus-visible,
+    select:focus-visible,
+    input:focus-visible,
+    a:focus-visible {
       outline: 2px solid var(--p);
       outline-offset: 2px;
     }
     @media (prefers-reduced-motion: reduce) {
-      * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+      *, *::before, *::after {
+        animation-duration: .001ms !important;
+        transition-duration: .001ms !important;
+      }
     }
 
-    /* OVERLAY */
     .ov {
       display: none;
       position: fixed;
@@ -142,13 +124,8 @@
       pointer-events: none;
       transition: opacity .25s var(--tr);
     }
-    .ov.on {
-      display: block;
-      opacity: 1;
-      pointer-events: auto;
-    }
+    .ov.on { display: block; opacity: 1; pointer-events: auto; }
 
-    /* SIDEBAR */
     .sidebar {
       position: fixed;
       top: 0;
@@ -168,18 +145,10 @@
       transition: transform .3s var(--tr), visibility .3s;
       box-shadow: 0 0 40px rgba(18, 22, 41, .18);
       -webkit-overflow-scrolling: touch;
-      scrollbar-width: thin;
-      scrollbar-color: var(--bdr) transparent;
+      overscroll-behavior: contain;
       padding-bottom: calc(16px + var(--safe-b));
     }
-    .sidebar.open {
-      transform: none;
-      visibility: visible;
-    }
-    .sidebar::-webkit-scrollbar { width: 6px; }
-    .sidebar::-webkit-scrollbar-track { background: transparent; }
-    .sidebar::-webkit-scrollbar-thumb { background: var(--bdr); border-radius: 6px; }
-    .sidebar::-webkit-scrollbar-thumb:hover { background: var(--t3); }
+    .sidebar.open { transform: none; visibility: visible; }
 
     .sb-brand {
       padding: 20px 18px 14px;
@@ -205,10 +174,7 @@
       overflow: hidden;
     }
     .sb-lic img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      border-radius: 8px;
+      width: 100%; height: 100%; object-fit: cover; border-radius: 8px;
     }
     .sb-sec {
       padding: 16px 18px 6px;
@@ -233,10 +199,12 @@
       text-decoration: none;
       transition: background .15s, color .15s;
       cursor: pointer;
+      touch-action: manipulation;
     }
     .sb-lnk i { width: 18px; text-align: center; font-size: .9rem; flex-shrink: 0; }
     .sb-lnk:hover { background: var(--bg); color: var(--t1); }
     .sb-lnk.active { background: var(--pl); color: var(--p); }
+
     .sb-foot {
       margin-top: auto;
       padding: 12px 10px;
@@ -245,40 +213,29 @@
       flex-shrink: 0;
     }
     .sb-prof { display: flex; align-items: center; gap: 10px; padding: 8px; }
-    .sb-prof-link { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; text-decoration: none; cursor: pointer; }
+    .sb-prof-link {
+      display: flex; align-items: center; gap: 10px; flex: 1;
+      min-width: 0; text-decoration: none; cursor: pointer;
+    }
     .sb-av {
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      background: var(--p);
-      color: #fff;
-      display: grid;
-      place-items: center;
-      font-weight: 700;
-      font-size: .85rem;
-      flex-shrink: 0;
-      overflow: hidden;
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--p); color: #fff;
+      display: grid; place-items: center;
+      font-weight: 700; font-size: .85rem;
+      flex-shrink: 0; overflow: hidden;
     }
     .sb-ui { flex: 1; min-width: 0; }
     .sb-un { font-size: .82rem; font-weight: 700; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sb-ue { font-size: .7rem; color: var(--t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sb-out {
-      width: 36px;
-      height: 36px;
-      border-radius: 8px;
-      display: grid;
-      place-items: center;
-      color: var(--t3);
-      font-size: .85rem;
-      transition: all .18s;
-      cursor: pointer;
-      border: none;
-      background: none;
-      flex-shrink: 0;
+      width: 36px; height: 36px; border-radius: 8px;
+      display: grid; place-items: center;
+      color: var(--t3); font-size: .85rem;
+      transition: all .18s; cursor: pointer;
+      border: none; background: none; flex-shrink: 0;
     }
     .sb-out:hover { background: var(--erl); color: var(--err); }
 
-    /* TOPBAR */
     .main { flex: 1; min-height: 100vh; min-width: 0; width: 100%; }
     .topbar {
       position: sticky;
@@ -294,47 +251,45 @@
       border-bottom: 1px solid var(--bdr);
     }
     .tb-hbg {
-      width: 40px;
-      height: 40px;
+      width: 40px; height: 40px;
       border-radius: 9px;
       border: 1px solid var(--bdr);
       background: var(--srf);
-      display: grid;
-      place-items: center;
-      color: var(--t2);
-      flex-shrink: 0;
+      display: grid; place-items: center;
+      color: var(--t2); flex-shrink: 0;
+      cursor: pointer;
+      touch-action: manipulation;
     }
     .tb-hbg:hover { background: var(--pl); color: var(--p); border-color: var(--p); }
+    .tb-logo {
+      width: 26px; height: 26px;
+      border-radius: 6px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
     .tb-brand { font-family: var(--fd); font-weight: 700; font-size: .95rem; }
     .tb-spacer { flex: 1; }
     .tb-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
     .tb-icon-btn {
-      width: 40px;
-      height: 40px;
+      width: 40px; height: 40px;
       border-radius: 50%;
       background: var(--srf);
       border: 1px solid var(--bdr);
-      display: grid;
-      place-items: center;
-      color: var(--t2);
-      font-size: .9rem;
-      position: relative;
-      transition: var(--tr);
-      text-decoration: none;
+      display: grid; place-items: center;
+      color: var(--t2); font-size: .9rem;
+      position: relative; transition: var(--tr);
+      text-decoration: none; cursor: pointer;
+      touch-action: manipulation;
     }
     .tb-icon-btn:hover { background: var(--pl); color: var(--p); border-color: var(--p); }
     .tb-av {
-      width: 40px;
-      height: 40px;
+      width: 40px; height: 40px;
       border-radius: 50%;
       background: #0c3d4a;
       color: #fff;
-      display: grid;
-      place-items: center;
-      font-weight: 700;
-      font-size: .82rem;
-      cursor: pointer;
-      flex-shrink: 0;
+      display: grid; place-items: center;
+      font-weight: 700; font-size: .82rem;
+      cursor: pointer; flex-shrink: 0;
       transition: var(--tr);
       border: 2px solid var(--acc);
       text-decoration: none;
@@ -347,23 +302,22 @@
       padding: 28px 28px calc(100px + var(--safe-b));
     }
 
-    /* STEPS BAR */
     .steps { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; padding: 0 4px; }
     .step-dot { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .step-dot .dot {
-      width: 28px;
-      height: 28px;
+      width: 28px; height: 28px;
       border-radius: 50%;
       background: var(--srf);
       border: 2px solid var(--bdr);
       color: var(--t3);
-      display: grid;
-      place-items: center;
-      font-size: .72rem;
-      font-weight: 700;
+      display: grid; place-items: center;
+      font-size: .72rem; font-weight: 700;
       transition: var(--tr);
     }
-    .step-dot.active .dot { background: var(--p); border-color: var(--acc); color: #fff; box-shadow: 0 0 0 3px rgba(245, 166, 35, .18); }
+    .step-dot.active .dot {
+      background: var(--p); border-color: var(--acc); color: #fff;
+      box-shadow: 0 0 0 3px rgba(245, 166, 35, .18);
+    }
     .step-dot.done .dot { background: var(--succ); border-color: var(--succ); color: #fff; }
     .step-dot .lbl { font-size: .72rem; font-weight: 600; color: var(--t3); white-space: nowrap; }
     .step-dot.active .lbl { color: var(--p); }
@@ -372,7 +326,6 @@
     .step-line.done { background: var(--succ); }
     @media (max-width: 640px) { .step-dot .lbl { display: none; } }
 
-    /* HERO & FEATURES */
     .hero {
       background: var(--srf);
       border: 1px solid var(--bdr);
@@ -386,10 +339,8 @@
     .hero::before {
       content: '';
       position: absolute;
-      top: -60px;
-      right: -60px;
-      width: 220px;
-      height: 220px;
+      top: -60px; right: -60px;
+      width: 220px; height: 220px;
       background: radial-gradient(circle, rgba(245, 166, 35, .14), transparent 70%);
       border-radius: 50%;
       pointer-events: none;
@@ -430,20 +381,88 @@
       font-size: .95rem;
       transition: var(--tr);
       min-height: 48px;
+      touch-action: manipulation;
     }
     .hero-cta:hover { background: var(--pm); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(245, 166, 35, .32); }
+    .hero-cta:active { transform: translateY(0); }
 
-    .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+    .hero-graphic {
+      margin: 28px auto;
+      width: 100%;
+      max-width: 280px;
+      height: 180px;
+      position: relative;
+    }
+    .hero-graphic-inner {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+    }
+    .hero-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1.5px dashed var(--bdr);
+    }
+    .hero-ring.r1 { width: 60%; height: 60%; animation: spin 20s linear infinite; }
+    .hero-ring.r2 { width: 85%; height: 85%; border-color: #DCE1F5; animation: spin 30s linear infinite reverse; }
+    .hero-ring.r3 { width: 100%; height: 100%; border-color: #E6E9F7; }
+    .hero-center {
+      width: 56px; height: 56px; border-radius: 16px;
+      background: var(--p); color: #fff;
+      display: grid; place-items: center;
+      font-size: 1.5rem; position: relative; z-index: 2;
+      box-shadow: 0 10px 24px rgba(50, 64, 122, .2);
+      border: 2px solid var(--acc);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* CARDS & FORMS */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .feature-card {
+      background: var(--srf);
+      border: 1px solid var(--bdr);
+      border-radius: 16px;
+      padding: 20px;
+    }
+    .feature-ic {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: var(--accl); color: var(--acd);
+      display: grid; place-items: center;
+      font-size: .95rem; margin-bottom: 12px;
+    }
+    .feature-card h3 {
+      font-size: .9rem; font-weight: 600;
+      margin-bottom: 6px; color: var(--t1);
+    }
+    .feature-card p {
+      font-size: .8rem; color: var(--t3); line-height: 1.5;
+    }
+
     .card {
       background: var(--srf);
       border: 1px solid var(--bdr);
       border-radius: 16px;
       padding: 26px;
     }
-    .card h2 { font-family: var(--fd); font-size: 1.15rem; font-weight: 600; margin-bottom: 6px; }
+    .card h2 {
+      font-family: var(--fd);
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
     .card .hint { font-size: .83rem; color: var(--t3); margin-bottom: 22px; }
+    .field-label {
+      display: block;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--t2);
+      margin-bottom: 8px;
+    }
 
     .search-wrap { position: relative; }
     .search-input {
@@ -457,6 +476,7 @@
       transition: var(--tr);
       min-height: 44px;
       scroll-margin-block: 16px;
+      touch-action: manipulation;
     }
     .search-input:focus {
       border-color: var(--p);
@@ -466,18 +486,15 @@
     }
     .search-wrap .search-icon {
       position: absolute;
-      left: 14px;
-      top: 50%;
+      left: 14px; top: 50%;
       transform: translateY(-50%);
-      color: var(--t3);
-      font-size: .85rem;
+      color: var(--t3); font-size: .85rem;
       pointer-events: none;
     }
     .search-dropdown {
       position: absolute;
       top: calc(100% + 6px);
-      left: 0;
-      right: 0;
+      left: 0; right: 0;
       background: var(--srf);
       border: 1px solid var(--bdr);
       border-radius: 12px;
@@ -498,13 +515,43 @@
       transition: var(--tr);
       font-size: .86rem;
       min-height: 52px;
+      touch-action: manipulation;
     }
-    .search-item:hover, .search-item.highlighted { background: var(--pl); }
-    .search-item .flag { width: 28px; height: 20px; border-radius: 4px; overflow: hidden; flex-shrink: 0; background: var(--bg); display: grid; place-items: center; }
+    .search-item:hover,
+    .search-item.highlighted { background: var(--pl); }
+    .search-item .flag {
+      width: 28px; height: 20px;
+      border-radius: 4px; overflow: hidden;
+      flex-shrink: 0; background: var(--bg);
+      display: grid; place-items: center;
+    }
     .search-item .flag img { width: 100%; height: 100%; object-fit: cover; }
     .search-item .name { flex: 1; font-weight: 500; }
     .search-item .code { font-size: .72rem; color: var(--t3); font-weight: 600; letter-spacing: .04em; }
     .search-empty { padding: 18px 14px; text-align: center; font-size: .82rem; color: var(--t3); }
+
+    .selected-dest {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--accl);
+      border: 1px solid var(--acc);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+    }
+    .selected-dest[hidden] { display: none !important; }
+    .selected-dest .flag-chip {
+      width: 40px; height: 40px; border-radius: 10px;
+      overflow: hidden; flex-shrink: 0;
+      background: var(--bg); display: grid; place-items: center;
+    }
+    .selected-dest .flag-chip img { width: 100%; height: 100%; object-fit: cover; }
+    .selected-dest .clear-btn {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: var(--srf); color: var(--t3);
+      display: grid; place-items: center;
+      font-size: .82rem;
+      touch-action: manipulation;
+    }
 
     .plan-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
     .plan-tile {
@@ -518,26 +565,38 @@
       cursor: pointer;
       transition: var(--tr);
       min-height: 76px;
+      touch-action: manipulation;
     }
     .plan-tile:hover { border-color: var(--p); background: var(--srf2); }
-    .plan-tile.selected { border-color: var(--acc); background: var(--accl); box-shadow: 0 0 0 3px rgba(245, 166, 35, .18); }
-    .plan-tile .pt-radio {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      border: 2px solid var(--bdr);
-      flex-shrink: 0;
-      display: grid;
-      place-items: center;
-      transition: var(--tr);
+    .plan-tile.selected {
+      border-color: var(--acc);
+      background: var(--accl);
+      box-shadow: 0 0 0 3px rgba(245, 166, 35, .18);
     }
-    .plan-tile.selected .pt-radio { border-color: var(--acc); background: var(--acc); }
-    .plan-tile.selected .pt-radio::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #fff; }
+    .plan-tile .pt-logo {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      background: var(--pl); color: var(--p);
+      display: grid; place-items: center;
+      font-weight: 700; font-size: .9rem;
+      flex-shrink: 0; overflow: hidden;
+    }
+    .plan-tile .pt-logo img { width: 100%; height: 100%; object-fit: contain; background: #fff; padding: 4px; }
     .plan-tile .pt-body { flex: 1; min-width: 0; }
-    .plan-tile .pt-title { font-weight: 600; font-size: .92rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .plan-tile .pt-title {
+      font-weight: 600; font-size: .92rem;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
     .plan-tile .pt-sub { font-size: .75rem; color: var(--t3); margin-top: 2px; }
-    .plan-tile .pt-price { font-weight: 700; font-size: .95rem; color: var(--p); white-space: nowrap; }
-    .plan-tile .pt-price small { display: block; font-size: .72rem; color: var(--t3); font-weight: 500; margin-top: 2px; }
+    .plan-tile .pt-price {
+      font-weight: 700; font-size: .95rem;
+      color: var(--p); white-space: nowrap;
+      text-align: right; flex-shrink: 0;
+    }
+    .plan-tile .pt-price small {
+      display: block; font-size: .72rem;
+      color: var(--t3); font-weight: 500; margin-top: 2px;
+    }
     .plan-badge {
       font-size: .6rem;
       font-weight: 700;
@@ -548,10 +607,36 @@
     }
     .plan-badge.global { background: var(--accl); color: var(--acd); border: 1px solid rgba(245, 166, 35, .35); }
     .plan-badge.regional { background: #DBEAFE; color: #1E40AF; }
-    .plan-error { padding: 18px; background: var(--erl); border: 1px solid #fecaca; border-radius: 12px; text-align: center; font-size: .82rem; color: #991b1b; }
-    .plan-error button { margin-top: 10px; padding: 10px 16px; border-radius: 8px; background: var(--err); color: #fff; font-weight: 600; font-size: .78rem; min-height: 40px; }
+    .plan-badge.featured {
+      background: rgba(245, 166, 35, .2);
+      color: var(--acd);
+      display: inline-flex; align-items: center; gap: 3px;
+    }
+    .plan-error {
+      padding: 18px;
+      background: var(--erl);
+      border: 1px solid #fecaca;
+      border-radius: 12px;
+      text-align: center;
+      font-size: .82rem;
+      color: #991b1b;
+    }
+    .plan-error button {
+      margin-top: 10px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      background: var(--err);
+      color: #fff; font-weight: 600; font-size: .78rem;
+      min-height: 40px;
+      touch-action: manipulation;
+    }
 
-    .currency-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+    .currency-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
     .currency-opt {
       padding: 16px;
       border: 1.5px solid var(--bdr);
@@ -562,28 +647,44 @@
       text-align: left;
       position: relative;
       min-height: 110px;
+      touch-action: manipulation;
     }
     .currency-opt:hover { border-color: var(--p); }
-    .currency-opt.active { border-color: var(--acc); background: var(--accl); box-shadow: 0 0 0 3px rgba(245, 166, 35, .18); }
+    .currency-opt.active {
+      border-color: var(--acc);
+      background: var(--accl);
+      box-shadow: 0 0 0 3px rgba(245, 166, 35, .18);
+    }
     .currency-opt.disabled { opacity: .5; cursor: not-allowed; }
     .currency-opt.disabled:hover { border-color: var(--bdr); }
-    .currency-opt .co-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-    .currency-opt .co-flag { font-size: 1.2rem; }
+    .currency-opt .co-top {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .currency-opt .co-flag {
+      font-size: .72rem; font-weight: 800; color: var(--p);
+      letter-spacing: .05em;
+    }
     .currency-opt .co-radio {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
+      width: 18px; height: 18px; border-radius: 50%;
       border: 2px solid var(--bdr);
-      display: grid;
-      place-items: center;
+      display: grid; place-items: center;
       transition: var(--tr);
     }
     .currency-opt.active .co-radio { border-color: var(--acc); background: var(--acc); }
-    .currency-opt.active .co-radio::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #fff; }
+    .currency-opt.active .co-radio::after {
+      content: ''; width: 6px; height: 6px;
+      border-radius: 50%; background: #fff;
+    }
     .currency-opt .co-label { font-size: .82rem; font-weight: 600; color: var(--t2); }
-    .currency-opt .co-price { font-family: var(--fd); font-size: 1.1rem; font-weight: 700; color: var(--t1); margin-top: 4px; }
-    .currency-opt .co-sub { font-size: .72rem; color: var(--t3); margin-top: 2px; }
-    .currency-opt .co-avail { font-size: .72rem; color: var(--t2); margin-top: 4px; font-weight: 600; }
+    .currency-opt .co-price {
+      font-family: var(--fd); font-size: 1.1rem;
+      font-weight: 700; color: var(--t1); margin-top: 4px;
+      word-break: break-word;
+    }
+    .currency-opt .co-avail {
+      font-size: .72rem; color: var(--t2); margin-top: 4px; font-weight: 600;
+    }
     .currency-opt.insufficient .co-avail { color: var(--err); }
 
     .price-box {
@@ -593,8 +694,15 @@
       padding: 18px 20px;
       margin: 20px 0;
     }
-    .price-row { display: flex; justify-content: space-between; font-size: .86rem; color: var(--t2); padding: 6px 0; }
-    .price-row.total { border-top: 1px dashed var(--bdr); margin-top: 8px; padding-top: 14px; font-weight: 700; color: var(--t1); font-size: 1rem; }
+    .price-row {
+      display: flex; justify-content: space-between;
+      font-size: .86rem; color: var(--t2); padding: 6px 0;
+    }
+    .price-row.total {
+      border-top: 1px dashed var(--bdr);
+      margin-top: 8px; padding-top: 14px;
+      font-weight: 700; color: var(--t1); font-size: 1rem;
+    }
     .price-row .v { font-weight: 600; color: var(--t1); }
 
     .btn-primary {
@@ -606,13 +714,17 @@
       font-weight: 600;
       font-size: .92rem;
       transition: var(--tr);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       gap: 9px;
       min-height: 48px;
+      touch-action: manipulation;
     }
-    .btn-primary:hover:not(:disabled) { background: var(--pm); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(245, 166, 35, .28); }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--pm);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(245, 166, 35, .28);
+    }
+    .btn-primary:active:not(:disabled) { transform: translateY(0); }
     .btn-primary:disabled { background: var(--t3); cursor: not-allowed; opacity: .7; }
     .btn-ghost {
       width: 100%;
@@ -626,16 +738,16 @@
       margin-top: 10px;
       transition: var(--tr);
       min-height: 48px;
+      touch-action: manipulation;
     }
     .btn-ghost:hover { background: var(--accl); border-color: var(--acc); color: var(--acd); }
+    .btn-ghost:active { background: var(--accl); }
 
     .status-panel { text-align: center; padding: 32px 20px; }
     .status-icon {
-      width: 64px;
-      height: 64px;
+      width: 64px; height: 64px;
       border-radius: 50%;
-      display: grid;
-      place-items: center;
+      display: grid; place-items: center;
       margin: 0 auto 18px;
       font-size: 1.4rem;
     }
@@ -643,19 +755,27 @@
     .status-icon.completed { background: var(--sul); color: var(--succ); }
     .status-icon.failed { background: var(--erl); color: var(--err); }
     .spin { animation: spin 1s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .status-panel h3 { font-family: var(--fd); font-size: 1.15rem; font-weight: 600; margin-bottom: 8px; }
-    .status-panel p { color: var(--t2); font-size: .88rem; max-width: 40ch; margin: 0 auto 20px; line-height: 1.5; }
+    .status-panel h3 {
+      font-family: var(--fd);
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .status-panel p {
+      color: var(--t2);
+      font-size: .88rem;
+      max-width: 40ch;
+      margin: 0 auto 20px;
+      line-height: 1.5;
+    }
     .qr-box {
-      width: 190px;
-      height: 190px;
+      width: 190px; height: 190px;
       border: 1px solid var(--bdr);
       border-radius: 14px;
       margin: 0 auto 20px;
       overflow: hidden;
       background: #fff;
-      display: grid;
-      place-items: center;
+      display: grid; place-items: center;
       padding: 10px;
       box-shadow: 0 6px 20px rgba(50, 64, 122, .08);
     }
@@ -669,8 +789,16 @@
       text-align: left;
       font-size: .82rem;
     }
-    .ref-summary .row { display: flex; justify-content: space-between; padding: 4px 0; color: var(--t2); }
-    .ref-summary .row strong { color: var(--t1); font-weight: 600; }
+    .ref-summary .row {
+      display: flex; justify-content: space-between;
+      padding: 4px 0; color: var(--t2);
+      gap: 10px;
+    }
+    .ref-summary .row strong {
+      color: var(--t1); font-weight: 600;
+      word-break: break-word; overflow-wrap: anywhere;
+      text-align: right;
+    }
 
     .detail-card {
       text-align: left;
@@ -692,7 +820,10 @@
     }
     .detail-row { margin-bottom: 12px; }
     .detail-row:last-child { margin-bottom: 0; }
-    .detail-row .k { font-size: .78rem; color: var(--t2); display: block; margin-bottom: 4px; font-weight: 600; }
+    .detail-row .k {
+      font-size: .78rem; color: var(--t2);
+      display: block; margin-bottom: 4px; font-weight: 600;
+    }
     .detail-row .v-wrap { display: flex; gap: 8px; align-items: center; }
     .detail-row code {
       flex: 1;
@@ -715,12 +846,16 @@
       transition: var(--tr);
       flex-shrink: 0;
       min-height: 40px;
+      touch-action: manipulation;
     }
     .copy-btn:hover { background: var(--p); color: #fff; }
 
     .step-view { display: none; animation: fadeUp .3s var(--tr); }
     .step-view.active { display: block; }
-    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
     .skeleton {
       background: linear-gradient(90deg, var(--bdr) 25%, #EEF1F7 37%, var(--bdr) 63%);
@@ -728,13 +863,50 @@
       animation: skel 1.4s ease infinite;
       border-radius: 8px;
     }
-    @keyframes skel { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+    @keyframes skel {
+      0% { background-position: 100% 50%; }
+      100% { background-position: 0 50%; }
+    }
+
+    .email-display {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--bg); border: 1px solid var(--bdr);
+      border-radius: 10px; padding: 14px 16px;
+      font-size: .85rem; color: var(--t2);
+      overflow-wrap: anywhere;
+    }
+    .email-input-wrap {
+      position: relative; display: flex; flex-direction: column; gap: 6px;
+    }
+    .email-input {
+      width: 100%; padding: 14px 16px; border: 1.5px solid var(--bdr);
+      border-radius: 10px; background: var(--bg); font-size: 16px;
+      min-height: 48px; color: var(--t1); transition: var(--tr);
+    }
+    .email-input:focus { border-color: var(--p); outline: none; background: var(--srf); }
+    .email-input.error { border-color: var(--err); background: var(--erl); }
+    .email-status { font-size: .75rem; min-height: 16px; margin-top: 2px; }
+    .email-status.error { color: var(--err); }
+    .email-status.success { color: var(--succ); }
+    .use-account-email { font-size: .75rem; color: var(--p); background: none; border: none; cursor: pointer; padding: 0; text-decoration: underline; align-self: flex-start; }
+
+    .info-banner {
+      display: flex; gap: 10px;
+      background: var(--accl);
+      border-radius: 10px;
+      padding: 13px 15px;
+      font-size: .79rem;
+      color: #7A3517;
+      margin-bottom: 20px;
+      line-height: 1.5;
+      border-left: 3px solid var(--acc);
+    }
+    .info-banner i { margin-top: 2px; flex-shrink: 0; color: var(--acd); }
 
     .toast {
       position: fixed;
       bottom: calc(22px + var(--safe-b));
-      right: 14px;
-      left: 14px;
+      right: 14px; left: 14px;
       background: var(--t1);
       color: #fff;
       padding: 13px 20px;
@@ -753,7 +925,6 @@
     @media (min-width: 641px) { .toast { left: auto; right: 22px; max-width: 340px; } }
     .toast.show { transform: translateY(0); opacity: 1; }
 
-    /* PIN MODAL */
     .pin-modal {
       position: fixed;
       inset: 0;
@@ -767,7 +938,6 @@
       padding: 20px;
     }
     .pin-modal.show { display: flex; }
-
     .pm-box {
       position: relative;
       width: 100%;
@@ -787,36 +957,22 @@
       from { opacity: 0; transform: translateY(12px) scale(.98); }
       to   { opacity: 1; transform: none; }
     }
-
     .pm-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      display: flex; justify-content: space-between; align-items: center;
       margin-bottom: 8px;
     }
     .pm-title {
-      font-family: var(--fd);
-      font-size: 1rem;
-      font-weight: 800;
-      color: var(--t1);
+      font-family: var(--fd); font-size: 1rem;
+      font-weight: 800; color: var(--t1);
     }
     .pm-close {
-      width: 36px;
-      height: 36px;
-      border-radius: 9px;
-      background: var(--srf2);
-      color: var(--t2);
-      display: grid;
-      place-items: center;
+      width: 36px; height: 36px; border-radius: 9px;
+      background: var(--srf2); color: var(--t2);
+      display: grid; place-items: center;
+      touch-action: manipulation;
     }
     .pm-close:hover { background: var(--erl); color: var(--err); }
-
-    .pm-sub {
-      font-size: .76rem;
-      color: var(--t3);
-      margin-bottom: 18px;
-    }
-
+    .pm-sub { font-size: .76rem; color: var(--t3); margin-bottom: 18px; }
     .pm-summary {
       background: var(--srf2);
       border: 1px solid var(--bdr);
@@ -825,26 +981,22 @@
       margin-bottom: 18px;
     }
     .pm-summary-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 4px 0;
-      font-size: .78rem;
-      gap: 10px;
+      display: flex; justify-content: space-between;
+      padding: 4px 0; font-size: .78rem; gap: 10px;
     }
     .pm-summary-row .pm-k { color: var(--t2); flex-shrink: 0; }
-    .pm-summary-row .pm-v { color: var(--t1); font-weight: 600; text-align: right; word-break: break-word; }
+    .pm-summary-row .pm-v {
+      color: var(--t1); font-weight: 600;
+      text-align: right; word-break: break-word; overflow-wrap: anywhere;
+    }
     .pm-summary-row.total {
       border-top: 1px dashed var(--bdr);
-      margin-top: 6px;
-      padding-top: 8px;
+      margin-top: 6px; padding-top: 8px;
     }
     .pm-summary-row.total .pm-k { color: var(--t1); font-weight: 700; }
     .pm-summary-row.total .pm-v {
-      font-family: var(--fd);
-      font-weight: 800;
-      color: var(--p);
+      font-family: var(--fd); font-weight: 800; color: var(--p);
     }
-
     .pm-pin-input {
       width: 100%;
       padding: 16px 14px 16px 26px;
@@ -862,6 +1014,7 @@
       min-height: 64px;
       margin-bottom: 10px;
       scroll-margin-block: 16px;
+      touch-action: manipulation;
     }
     .pm-pin-input:focus {
       border-color: var(--p);
@@ -878,93 +1031,50 @@
       25%      { transform: translateX(-6px); }
       75%      { transform: translateX(6px); }
     }
-
     .pm-error {
-      font-size: .74rem;
-      color: var(--err);
-      min-height: 18px;
-      text-align: center;
+      font-size: .74rem; color: var(--err);
+      min-height: 18px; text-align: center;
       margin-bottom: 12px;
-      opacity: 0;
-      transition: opacity .15s;
-      font-weight: 500;
+      opacity: 0; transition: opacity .15s; font-weight: 500;
     }
     .pm-error.show { opacity: 1; }
-
     .pm-insufficient {
-      display: none;
-      align-items: flex-start;
-      gap: 8px;
-      background: var(--erl);
-      border: 1px solid #fecaca;
-      border-radius: 10px;
-      padding: 10px 12px;
-      margin-bottom: 12px;
-      font-size: .78rem;
-      color: #991b1b;
-      line-height: 1.5;
+      display: none; align-items: flex-start; gap: 8px;
+      background: var(--erl); border: 1px solid #fecaca;
+      border-radius: 10px; padding: 10px 12px;
+      margin-bottom: 12px; font-size: .78rem;
+      color: #991b1b; line-height: 1.5;
     }
     .pm-insufficient.show { display: flex; }
-    .pm-insufficient i {
-      flex-shrink: 0;
-      margin-top: 2px;
-      color: var(--err);
-    }
+    .pm-insufficient i { flex-shrink: 0; margin-top: 2px; color: var(--err); }
     .pm-insufficient a {
-      color: var(--err);
-      font-weight: 700;
-      text-decoration: underline;
-      cursor: pointer;
+      color: var(--err); font-weight: 700;
+      text-decoration: underline; cursor: pointer;
     }
-
     .pm-confirm {
-      width: 100%;
-      padding: 13px;
-      background: var(--p);
-      color: #fff;
+      width: 100%; padding: 13px;
+      background: var(--p); color: #fff;
       border-radius: var(--rp);
-      font-weight: 700;
-      font-size: .86rem;
-      border: none;
-      cursor: pointer;
-      transition: var(--tr);
-      min-height: 48px;
+      font-weight: 700; font-size: .86rem;
+      border: none; cursor: pointer;
+      transition: var(--tr); min-height: 48px;
+      touch-action: manipulation;
     }
     .pm-confirm:hover:not(:disabled) { background: var(--pm); }
-    .pm-confirm:disabled {
-      opacity: .45;
-      cursor: not-allowed;
-    }
-
+    .pm-confirm:disabled { opacity: .45; cursor: not-allowed; }
     .pm-cancel {
-      width: 100%;
-      padding: 11px;
-      background: none;
-      color: var(--t3);
-      border: none;
-      font-size: .76rem;
-      cursor: pointer;
-      margin-top: 6px;
-      min-height: 40px;
+      width: 100%; padding: 11px;
+      background: none; color: var(--t3);
+      border: none; font-size: .76rem;
+      cursor: pointer; margin-top: 6px; min-height: 40px;
+      touch-action: manipulation;
     }
     .pm-cancel:hover { color: var(--t1); }
 
-    @media (max-width: 480px) {
-      .pm-pin-input {
-        font-size: 22px;
-        letter-spacing: .45em;
-        padding: 14px 10px 14px 22px;
-        min-height: 58px;
-      }
-    }
-
-    /* HISTORY DRAWER */
     .hist-drawer {
       position: fixed;
-      top: 0;
-      right: 0;
-      height: 100vh;
-      height: 100dvh;
+      top: 0; right: 0;
+      height: 100vh; height: 100dvh;
       width: min(440px, 100%);
       background: var(--srf);
       box-shadow: -12px 0 40px rgba(18, 22, 41, .18);
@@ -975,18 +1085,43 @@
       padding: 22px;
       padding-bottom: calc(22px + var(--safe-b));
       -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
     }
     .hist-drawer.open { transform: translateX(0); }
-    .hist-drawer h3 { font-family: var(--fd); font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+    .hist-drawer h3 {
+      font-family: var(--fd); font-size: 1.1rem;
+      font-weight: 700; margin-bottom: 4px;
+    }
     .hist-drawer .sub { font-size: .78rem; color: var(--t3); margin-bottom: 18px; }
-    .hist-close { position: absolute; top: 16px; right: 16px; width: 40px; height: 40px; border-radius: 50%; background: var(--bg); color: var(--t2); display: grid; place-items: center; cursor: pointer; transition: var(--tr); }
+    .hist-close {
+      position: absolute; top: 16px; right: 16px;
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--bg); color: var(--t2);
+      display: grid; place-items: center;
+      cursor: pointer; transition: var(--tr);
+      touch-action: manipulation;
+    }
     .hist-close:hover { background: var(--erl); color: var(--err); }
-    .hist-item { background: var(--srf2); border: 1px solid var(--bdr); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
-    .hist-item .row1 { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-    .hist-item .flag { width: 32px; height: 24px; border-radius: 4px; overflow: hidden; background: var(--bg); }
+    .hist-item {
+      background: var(--srf2); border: 1px solid var(--bdr);
+      border-radius: 12px; padding: 14px; margin-bottom: 10px;
+    }
+    .hist-item .row1 {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+    }
+    .hist-item .flag {
+      width: 32px; height: 24px; border-radius: 4px;
+      overflow: hidden; background: var(--bg); flex-shrink: 0;
+    }
     .hist-item .flag img { width: 100%; height: 100%; object-fit: cover; }
-    .hist-item .title { font-weight: 600; font-size: .88rem; flex: 1; }
-    .hist-item .pill { font-size: .62rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; text-transform: uppercase; }
+    .hist-item .title {
+      font-weight: 600; font-size: .88rem; flex: 1; min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    .hist-item .pill {
+      font-size: .62rem; font-weight: 700;
+      padding: 2px 8px; border-radius: 99px; text-transform: uppercase;
+    }
     .hist-item .pill.completed { background: var(--sul); color: var(--succ); }
     .hist-item .pill.delivery_pending,
     .hist-item .pill.processing,
@@ -998,19 +1133,18 @@
     .hist-item .pill.manual_review { background: var(--erl); color: var(--err); }
     .hist-item .meta { font-size: .74rem; color: var(--t3); }
     .hist-item .viewqr {
-      margin-top: 10px;
-      padding: 10px;
-      background: var(--p);
-      color: #fff;
-      border-radius: 8px;
-      font-size: .74rem;
-      font-weight: 600;
-      width: 100%;
-      transition: var(--tr);
-      min-height: 40px;
+      margin-top: 10px; padding: 10px;
+      background: var(--p); color: #fff;
+      border-radius: 8px; font-size: .74rem;
+      font-weight: 600; width: 100%;
+      transition: var(--tr); min-height: 40px;
+      touch-action: manipulation;
     }
     .hist-item .viewqr:hover { background: var(--pm); }
-    .hist-empty { padding: 40px 20px; text-align: center; color: var(--t3); font-size: .82rem; }
+    .hist-empty {
+      padding: 40px 20px; text-align: center;
+      color: var(--t3); font-size: .82rem;
+    }
 
     @media (max-width: 640px) {
       .feature-grid { grid-template-columns: 1fr; }
@@ -1019,21 +1153,20 @@
       .hero h2 { font-size: 1.55rem; }
       .wrap { padding: 20px 14px calc(80px + var(--safe-b)); }
       .card { padding: 20px; }
-      .topbar { padding: calc(12px + var(--safe-t)) 16px 12px; }
+      .topbar {
+        padding: calc(12px + var(--safe-t)) 16px 12px;
+        padding-left: max(16px, env(safe-area-inset-left));
+        padding-right: max(16px, env(safe-area-inset-right));
+      }
     }
 
     html { width: 100%; min-height: 100%; -webkit-text-size-adjust: 100%; }
-
     body {
-      width: 100%;
-      min-width: 0;
-      min-height: 100vh;
-      min-height: 100dvh;
+      width: 100%; min-width: 0;
+      min-height: 100vh; min-height: 100dvh;
       overflow-wrap: anywhere;
     }
-
     .main { width: 100%; min-width: 0; }
-
     .search-input, .pm-pin-input {
       font-size: 16px;
       -webkit-appearance: none;
@@ -1041,43 +1174,42 @@
       scroll-margin-block: 16px;
     }
     .pm-pin-input { font-size: 24px; }
-
     .wrap { overflow: visible; }
-
     .search-dropdown, .hist-drawer, .plan-grid {
       -webkit-overflow-scrolling: touch;
     }
-
     @media (max-height: 600px) {
       .search-dropdown { max-height: 220px; }
       .hero { padding: 30px 20px; }
     }
+    @media (max-width: 480px) {
+      .pm-pin-input {
+        font-size: 22px;
+        letter-spacing: .45em;
+        padding: 14px 10px 14px 22px;
+        min-height: 58px;
+      }
+    }
+    @media (max-width: 380px) {
+      .plan-tile .pt-price { font-size: .85rem; }
+      .currency-opt .co-price { font-size: 1rem; }
+    }
 
-    /* Stale banner */
     .tx-stale-banner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 10px 14px;
-      margin: 8px 0;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 10px 14px; margin: 8px 0;
       border-radius: 10px;
-      background: rgba(245, 166, 35, 0.12);
-      border: 1px solid rgba(245, 166, 35, 0.35);
-      font-size: 12.5px;
-      color: var(--t2);
+      background: rgba(245, 166, 35, .12);
+      border: 1px solid rgba(245, 166, 35, .35);
+      font-size: 12.5px; color: var(--t2);
     }
     .tx-stale-banner strong { color: var(--t1); font-weight: 600; }
     .tx-stale-banner button {
-      padding: 6px 12px;
-      border-radius: 8px;
-      border: none;
-      background: #0f4c5c;
-      color: #fff;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      flex-shrink: 0;
+      padding: 6px 12px; border-radius: 8px;
+      border: none; background: #0f4c5c; color: #fff;
+      font-size: 12px; font-weight: 600;
+      cursor: pointer; flex-shrink: 0;
+      touch-action: manipulation;
     }
     .tx-stale-banner button:disabled { opacity: .55; cursor: not-allowed; }
     @media (max-width: 420px) {
@@ -1104,7 +1236,7 @@
     <a href="virtual.html"    class="sb-lnk"><i class="fas fa-phone-alt"></i> Virtual Numbers</a>
     <a href="market.html"     class="sb-lnk"><i class="fas fa-store"></i> Marketplace</a>
     <a href="airtime.html"    class="sb-lnk"><i class="fas fa-globe"></i> Global Airtime</a>
-    <a href="bills.html"      class="sb-lnk"><i class="fas fa-file-invoice-dollar"></i> Airtime, Data & Bills</a>
+    <a href="bills.html"      class="sb-lnk"><i class="fas fa-file-invoice-dollar"></i> Airtime, Data &amp; Bills</a>
     <a href="esim.html"       class="sb-lnk active"><i class="fas fa-sim-card"></i> Buy eSIM</a>
     <a href="giftcards.html"  class="sb-lnk"><i class="fas fa-gift"></i> Gift Cards</a>
     <a href="history.html"    class="sb-lnk"><i class="fas fa-history"></i> History</a>
@@ -1134,6 +1266,7 @@
 <div class="main">
   <header class="topbar">
     <button class="tb-hbg" id="hbgBtn" aria-label="Open menu"><i class="fas fa-bars"></i></button>
+    <img src="/images/miles.png" alt="" class="tb-logo" onerror="this.style.display='none'">
     <span class="tb-brand">MilesSpace</span>
     <div class="tb-spacer"></div>
     <div class="tb-right">
@@ -1162,12 +1295,12 @@
           <h2>Stay connected the moment you land.</h2>
           <p>Skip the airport SIM kiosk. Pick a country, region, or global plan, and your eSIM is ready to scan before you land.</p>
 
-          <div style="margin:28px auto;width:100%;max-width:280px;height:180px;position:relative;">
-            <div style="position:absolute;inset:0;display:grid;place-items:center;">
-              <div style="position:absolute;width:60%;height:60%;border-radius:50%;border:1.5px dashed var(--bdr);animation:spin 20s linear infinite;"></div>
-              <div style="position:absolute;width:85%;height:85%;border-radius:50%;border:1.5px dashed #DCE1F5;animation:spin 30s linear infinite reverse;"></div>
-              <div style="position:absolute;width:100%;height:100%;border-radius:50%;border:1.5px dashed #E6E9F7;"></div>
-              <div style="width:56px;height:56px;border-radius:16px;background:var(--p);display:grid;place-items:center;color:#fff;font-size:1.5rem;position:relative;z-index:2;box-shadow:0 10px 24px rgba(50,64,122,.2);border:2px solid var(--acc);">
+          <div class="hero-graphic">
+            <div class="hero-graphic-inner">
+              <div class="hero-ring r1"></div>
+              <div class="hero-ring r2"></div>
+              <div class="hero-ring r3"></div>
+              <div class="hero-center">
                 <i class="fas fa-sim-card"></i>
               </div>
             </div>
@@ -1178,20 +1311,20 @@
       </div>
 
       <div class="feature-grid">
-        <div class="card" style="padding:20px;">
-          <div style="width:38px;height:38px;border-radius:10px;background:var(--accl);color:var(--acd);display:grid;place-items:center;font-size:.95rem;margin-bottom:12px;"><i class="fas fa-globe"></i></div>
-          <h3 style="font-size:.9rem;font-weight:600;margin-bottom:6px;">Global coverage</h3>
-          <p style="font-size:.8rem;color:var(--t3);line-height:1.5;">One eSIM for 126+ countries. Perfect for multi-destination trips.</p>
+        <div class="feature-card">
+          <div class="feature-ic"><i class="fas fa-globe"></i></div>
+          <h3>Global coverage</h3>
+          <p>One eSIM for 100+ countries. Perfect for multi-destination trips.</p>
         </div>
-        <div class="card" style="padding:20px;">
-          <div style="width:38px;height:38px;border-radius:10px;background:var(--accl);color:var(--acd);display:grid;place-items:center;font-size:.95rem;margin-bottom:12px;"><i class="fas fa-sliders-h"></i></div>
-          <h3 style="font-size:.9rem;font-weight:600;margin-bottom:6px;">Pay how you like</h3>
-          <p style="font-size:.8rem;color:var(--t3);line-height:1.5;">Cover the cost from your MilesSpace wallet in USD or NGN.</p>
+        <div class="feature-card">
+          <div class="feature-ic"><i class="fas fa-sliders-h"></i></div>
+          <h3>Pay how you like</h3>
+          <p>Cover the cost from your MilesSpace wallet in USD or NGN.</p>
         </div>
-        <div class="card" style="padding:20px;">
-          <div style="width:38px;height:38px;border-radius:10px;background:var(--accl);color:var(--acd);display:grid;place-items:center;font-size:.95rem;margin-bottom:12px;"><i class="fas fa-life-ring"></i></div>
-          <h3 style="font-size:.9rem;font-weight:600;margin-bottom:6px;">We track it for you</h3>
-          <p style="font-size:.8rem;color:var(--t3);line-height:1.5;">If a provider hiccup delays delivery, we retry automatically.</p>
+        <div class="feature-card">
+          <div class="feature-ic"><i class="fas fa-life-ring"></i></div>
+          <h3>We track it for you</h3>
+          <p>If a delivery hiccup delays delivery, we retry automatically.</p>
         </div>
       </div>
     </section>
@@ -1201,8 +1334,8 @@
         <h2>Where are you travelling?</h2>
         <p class="hint">Search for a country, or pick a regional/global plan for multi-country trips.</p>
 
-        <div class="field" style="margin-bottom:18px;">
-          <label style="display:block;font-size:.78rem;font-weight:600;color:var(--t2);margin-bottom:8px;">Destination</label>
+        <div style="margin-bottom:18px;">
+          <label class="field-label" for="countrySearch">Destination</label>
           <div class="search-wrap">
             <i class="fas fa-search search-icon"></i>
             <input type="text" class="search-input" id="countrySearch" name="esim_country_search" placeholder="Type a country name…" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Search destination" aria-autocomplete="list" />
@@ -1216,18 +1349,18 @@
             <div style="font-weight:600;font-size:.9rem;" id="selName">—</div>
             <div style="font-size:.72rem;color:var(--t2);" id="selType"></div>
           </div>
-          <button type="button" id="clearDestBtn" aria-label="Clear destination" style="width:36px;height:36px;border-radius:8px;background:var(--srf);color:var(--t3);display:grid;place-items:center;font-size:.82rem;"><i class="fas fa-times"></i></button>
+          <button type="button" id="clearDestBtn" class="clear-btn" aria-label="Clear destination"><i class="fas fa-times"></i></button>
         </div>
 
-        <div class="field" style="margin-bottom:18px;">
-          <label style="display:block;font-size:.78rem;font-weight:600;color:var(--t2);margin-bottom:8px;">Available Plans</label>
+        <div style="margin-bottom:18px;">
+          <label class="field-label">Available Plans</label>
           <div class="plan-grid" id="planGrid">
             <div style="font-size:.82rem;color:var(--t3);padding:10px 0;">Search for a destination to see available plans</div>
           </div>
         </div>
 
-        <div style="display:flex;gap:10px;background:var(--accl);border-radius:10px;padding:13px 15px;font-size:.79rem;color:#7A3517;margin-bottom:20px;line-height:1.5;border-left:3px solid var(--acc);">
-          <i class="fas fa-circle-info" style="margin-top:2px;flex-shrink:0;color:var(--acd);"></i>
+        <div class="info-banner">
+          <i class="fas fa-circle-info"></i>
           <span>Your eSIM only works on devices that support eSIM. Check your phone's settings before buying.</span>
         </div>
 
@@ -1243,31 +1376,31 @@
 
         <div style="background:var(--bg);border:1px solid var(--bdr);border-radius:12px;padding:16px 18px;margin-bottom:22px;">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-            <div class="flag-chip" id="sumFlag" style="width:40px;height:40px;border-radius:10px;overflow:hidden;flex-shrink:0;background:var(--bg);display:grid;place-items:center;"><i class="fas fa-globe" style="color:var(--t3)"></i></div>
-            <div style="flex:1;">
+            <div id="sumFlag" style="width:40px;height:40px;border-radius:10px;overflow:hidden;flex-shrink:0;background:var(--bg);display:grid;place-items:center;"><i class="fas fa-globe" style="color:var(--t3)"></i></div>
+            <div style="flex:1;min-width:0;">
               <div style="font-weight:600;font-size:.95rem;" id="sumCountry">—</div>
               <div style="font-size:.78rem;color:var(--t3);" id="sumPlan">—</div>
             </div>
             <span class="plan-badge" id="sumBadge" hidden></span>
           </div>
           <div style="font-size:.82rem;color:var(--t2);padding-top:10px;border-top:1px dashed var(--bdr);">
-            <div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Data</span><span style="font-weight:600;color:var(--t1);" id="sumData">—</span></div>
-            <div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Validity</span><span style="font-weight:600;color:var(--t1);" id="sumValidity">—</span></div>
-            <div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Coverage</span><span style="font-weight:600;color:var(--t1);" id="sumCoverage">—</span></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;gap:10px;"><span>Data</span><span style="font-weight:600;color:var(--t1);" id="sumData">—</span></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;gap:10px;"><span>Validity</span><span style="font-weight:600;color:var(--t1);" id="sumValidity">—</span></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;gap:10px;"><span>Coverage</span><span style="font-weight:600;color:var(--t1);" id="sumCoverage">—</span></div>
           </div>
         </div>
 
-        <div class="field" style="margin-bottom:18px;">
-          <label style="display:block;font-size:.78rem;font-weight:600;color:var(--t2);margin-bottom:8px;">Pay with</label>
+        <div style="margin-bottom:18px;">
+          <label class="field-label">Pay with</label>
           <div class="currency-toggle" id="currencyToggle">
-            <div class="currency-opt active" data-currency="USD" role="button" tabindex="0">
-              <div class="co-top"><span class="co-flag">💵</span><div class="co-radio"></div></div>
+            <div class="currency-opt active" data-currency="USD" role="button" tabindex="0" aria-label="Pay in USD">
+              <div class="co-top"><span class="co-flag">USD</span><div class="co-radio"></div></div>
               <div class="co-label">Pay in USD</div>
               <div class="co-price" id="priceUsd">—</div>
               <div class="co-avail" id="availUsd">Available: —</div>
             </div>
-            <div class="currency-opt" data-currency="NGN" role="button" tabindex="0">
-              <div class="co-top"><span class="co-flag">🇳🇬</span><div class="co-radio"></div></div>
+            <div class="currency-opt" data-currency="NGN" role="button" tabindex="0" aria-label="Pay in NGN">
+              <div class="co-top"><span class="co-flag">NGN</span><div class="co-radio"></div></div>
               <div class="co-label">Pay in NGN</div>
               <div class="co-price" id="priceNgn">—</div>
               <div class="co-avail" id="availNgn">Available: —</div>
@@ -1281,15 +1414,18 @@
           <div class="price-row total"><span>Total to pay</span><span id="bTotal">—</span></div>
         </div>
 
-        <div class="field" style="margin-bottom:18px;">
-          <label style="display:block;font-size:.78rem;font-weight:600;color:var(--t2);margin-bottom:8px;">Delivered to</label>
-          <div class="email-display" id="emailDisplay">
-            <i class="fas fa-envelope"></i>
-            <span>QR code &amp; instructions will be sent to <strong id="userEmail">Loading email…</strong></span>
+        <div style="margin-bottom:18px;">
+          <label class="field-label" for="deliveryEmail">Delivered to</label>
+          <div class="email-input-wrap">
+            <input type="email" id="deliveryEmail" class="email-input" placeholder="you@example.com" autocomplete="email" inputmode="email" />
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div class="email-status" id="emailStatus"></div>
+              <button type="button" class="use-account-email" id="useAccountEmailBtn">Use my account email</button>
+            </div>
           </div>
         </div>
 
-        <button class="btn-primary" id="confirmBuyBtn"><i class="fas fa-sim-card"></i> Confirm &amp; Buy</button>
+        <button class="btn-primary" id="confirmBuyBtn" disabled><i class="fas fa-sim-card"></i> Confirm &amp; Buy</button>
         <button class="btn-ghost" id="backToPlanBtn">Back</button>
       </div>
     </section>
@@ -1343,9 +1479,7 @@
 
     <div class="pm-insufficient" id="pmInsufficient" role="alert">
       <i class="fas fa-circle-exclamation"></i>
-      <span>
-        Insufficient balance? <a id="pmTopUpLink" href="fund.html">Top up your account</a>
-      </span>
+      <span>Insufficient balance? <a id="pmTopUpLink" href="fund.html">Top up your account</a></span>
     </div>
 
     <button type="button" class="pm-confirm" id="pmConfirm" disabled>Confirm Purchase</button>
@@ -1362,43 +1496,6 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<style>
-  /* Additional styles kept inline to avoid conflicts with the base tokens */
-  .selected-dest {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--accl);
-    border: 1px solid var(--acc);
-    border-radius: 12px;
-    padding: 12px 14px;
-    margin-bottom: 18px;
-  }
-  .selected-dest[hidden] { display: none !important; }
-  .selected-dest .flag-chip {
-    width: 40px; height: 40px; border-radius: 10px; overflow: hidden;
-    flex-shrink: 0; background: var(--bg); display: grid; place-items: center;
-  }
-  .selected-dest .flag-chip img { width: 100%; height: 100%; object-fit: cover; }
-
-  .email-display {
-    display: flex; align-items: center; gap: 12px;
-    background: var(--bg); border: 1px solid var(--bdr);
-    border-radius: 10px; padding: 14px 16px;
-    font-size: .85rem; color: var(--t2);
-  }
-  .email-display i { color: var(--acd); font-size: .95rem; }
-  .email-display strong { color: var(--t1); font-weight: 600; }
-  .email-display.empty strong { color: var(--err); }
-
-  .search-item.special .name .badge-special {
-    font-size: .6rem; font-weight: 700; padding: 2px 6px;
-    border-radius: 4px; background: var(--accl); color: var(--acd);
-    text-transform: uppercase; margin-left: 6px;
-    border: 1px solid rgba(245,166,35,.35);
-  }
-</style>
-
 <script>
 'use strict';
 
@@ -1409,17 +1506,17 @@ const CONFIG = {
     countries:  '/api/esim/countries',
     plans:      (params) => { const q = new URLSearchParams(params).toString(); return `/api/esim/plans?${q}`; },
     rates:      '/api/esim/rates',
+    validate:   '/api/esim/validate-email',
     purchase:   '/api/esim/purchase',
     status:     (id) => `/api/esim/status/${encodeURIComponent(id)}`
   },
   loginPage: 'login.html',
   fundPage: 'fund.html',
-  serviceFeePct: 0.02,
   pollIntervalMs: 3000,
   pollMaxAttempts: 40
 };
 
-const $ = (sel) => document.querySelector(sel);
+const $  = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
 function getCurrentUser() {
@@ -1501,11 +1598,7 @@ function flagUrl(iso2) {
 function escapeHtml(s) {
   if (s == null) return '';
   return String(s).replace(/[&<>"']/g, (c) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
 }
 
@@ -1566,17 +1659,81 @@ function initSidebar() {
 }
 
 function setDeliveryEmail(email) {
-  const el = $('#userEmail');
-  const display = $('#emailDisplay');
-  if (!el) return false;
+  const input = $('#deliveryEmail');
+  if (!input) return false;
   if (email && email.includes('@')) {
-    el.textContent = email;
-    display?.classList.remove('empty');
+    if (!input.value) input.value = email;
     return true;
   }
-  el.textContent = 'No delivery email on file';
-  display?.classList.add('empty');
   return false;
+}
+
+let _emailTimeout = null;
+let _isEmailValidating = false;
+
+function initEmailInput() {
+  const input = $('#deliveryEmail');
+  const btn = $('#useAccountEmailBtn');
+  const status = $('#emailStatus');
+  const buyBtn = $('#confirmBuyBtn');
+  if (!input || !btn || !status) return;
+
+  const setStatus = (state, msg) => {
+    status.className = 'email-status ' + state;
+    status.textContent = msg;
+    input.classList.toggle('error', state === 'error');
+    updateBuyBtnState();
+  };
+
+  const updateBuyBtnState = () => {
+    const isInvalid = status.classList.contains('error');
+    const isEmpty = !input.value.trim();
+    buyBtn.disabled = isInvalid || isEmpty || _isEmailValidating;
+  };
+
+  const validateEmail = async () => {
+    const email = input.value.trim().toLowerCase();
+    if (!email) { setStatus('', ''); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setStatus('error', 'Enter a valid email address.');
+      return;
+    }
+    
+    _isEmailValidating = true;
+    updateBuyBtnState();
+    setStatus('', 'Checking...');
+    
+    try {
+      const res = await apiPost(CONFIG.api.validate, { email });
+      if (res.success) {
+        setStatus('success', 'Valid email');
+      }
+    } catch (e) {
+      if (e.code === 'EMAIL_NOT_FOUND') setStatus('error', 'Email not found');
+      else if (e.code === 'EMAIL_INVALID') setStatus('error', 'Enter a valid email address.');
+      else setStatus('error', e.message || 'Could not verify email.');
+    } finally {
+      _isEmailValidating = false;
+      updateBuyBtnState();
+    }
+  };
+
+  input.addEventListener('input', () => {
+    clearTimeout(_emailTimeout);
+    setStatus('', '');
+    updateBuyBtnState();
+  });
+
+  input.addEventListener('blur', () => {
+    clearTimeout(_emailTimeout);
+    _emailTimeout = setTimeout(validateEmail, 500);
+  });
+
+  btn.addEventListener('click', () => {
+    input.value = getCurrentUser()?.email || '';
+    input.dispatchEvent(new Event('input'));
+    validateEmail();
+  });
 }
 
 function renderUserFromSession() {
@@ -1613,20 +1770,15 @@ async function loadUser() {
 }
 
 async function loadRates() {
-  /* Cache-first rates */
   try {
     const cached = JSON.parse(sessionStorage.getItem('ms:esim:rates') || 'null');
-    if (cached && cached.usdToNgn) {
-      State.usdToNgn = Number(cached.usdToNgn) || 1600;
-    }
+    if (cached && cached.usdToNgn) State.usdToNgn = Number(cached.usdToNgn) || 1600;
   } catch (_) {}
 
   try {
     const { data } = await apiGet(CONFIG.api.rates);
     State.usdToNgn = parseFloat(data?.usdToNgn) || 1600;
-    try {
-      sessionStorage.setItem('ms:esim:rates', JSON.stringify({ usdToNgn: State.usdToNgn }));
-    } catch (_) {}
+    try { sessionStorage.setItem('ms:esim:rates', JSON.stringify({ usdToNgn: State.usdToNgn })); } catch (_) {}
   } catch {
     State.usdToNgn = 1600;
   }
@@ -1654,11 +1806,7 @@ function updateStepsBar() {
   });
 }
 
-/* ═══════════════════════════════════════════════════════════
-   COUNTRIES — cache-first for FAST load
-   ═══════════════════════════════════════════════════════════ */
 async function loadCountries() {
-  /* Paint from sessionStorage immediately */
   try {
     const cached = JSON.parse(sessionStorage.getItem('ms:esim:countries') || 'null');
     if (cached && Array.isArray(cached) && cached.length) {
@@ -1671,9 +1819,7 @@ async function loadCountries() {
     const list = Array.isArray(data) ? data : [];
     if (list.length) {
       State.allCountries = list;
-      try {
-        sessionStorage.setItem('ms:esim:countries', JSON.stringify(list));
-      } catch (_) {}
+      try { sessionStorage.setItem('ms:esim:countries', JSON.stringify(list)); } catch (_) {}
     } else if (!State.allCountries.length) {
       State.allCountries = FALLBACK_COUNTRIES;
     }
@@ -1707,7 +1853,7 @@ const FALLBACK_COUNTRIES = [
 
 function filterDestinations(query) {
   const q = (query || '').trim().toLowerCase();
-  const special = [{ type: 'global', iso3: 'GLOBAL', iso2: '', name: 'Global Plan', desc: '126+ countries including USA, UK, Europe, Asia & more' }];
+  const special = [{ type: 'global', iso3: 'GLOBAL', iso2: '', name: 'Global Plan', desc: '100+ countries including USA, UK, Europe, Asia & more' }];
   if (!q) return [...special, ...State.allCountries].slice(0, 60);
   const matches = [];
   for (const s of special) if (s.name.toLowerCase().includes(q)) matches.push(s);
@@ -1730,14 +1876,14 @@ function renderDropdown(items) {
   dd.innerHTML = items.map((item, idx) => {
     const isSpecial = item.type === 'global';
     const flagHtml = item.iso2
-      ? `<img src="${flagUrl(item.iso2)}" alt="">`
+      ? `<img src="${flagUrl(item.iso2)}" alt="" loading="lazy">`
       : `<i class="fas fa-earth-americas" style="color:var(--acd);font-size:.85rem"></i>`;
     return `
       <div class="search-item ${isSpecial ? 'special' : ''}" data-index="${idx}">
         <div class="flag">${flagHtml}</div>
         <div class="name">
           ${escapeHtml(item.name)}
-          ${isSpecial ? `<span style="font-size:.6rem;font-weight:700;padding:2px 6px;border-radius:4px;background:var(--accl);color:var(--acd);text-transform:uppercase;margin-left:6px;border:1px solid rgba(245,166,35,.35);">Global</span>` : ''}
+          ${isSpecial ? `<span class="plan-badge global" style="margin-left:6px">Global</span>` : ''}
           ${item.desc ? `<div style="font-size:.7rem;color:var(--t3);font-weight:400;margin-top:2px;">${escapeHtml(item.desc)}</div>` : ''}
         </div>
         ${!isSpecial ? `<div class="code">${escapeHtml(item.iso3)}</div>` : ''}
@@ -1763,7 +1909,7 @@ function selectDestination(item) {
     ? `<img src="${flagUrl(item.iso2)}" alt="">`
     : `<i class="fas fa-earth-americas" style="color:var(--acd);font-size:.95rem"></i>`;
   $('#selName').textContent = item.name;
-  $('#selType').textContent = item.type === 'country' ? 'Country-specific plans' : 'Global coverage — 126+ countries';
+  $('#selType').textContent = item.type === 'country' ? 'Country-specific plans' : 'Global coverage';
   $('#selectedDestination').hidden = false;
   loadPlansForDestination(item);
 }
@@ -1774,7 +1920,6 @@ async function loadPlansForDestination(item) {
   const signal = State.plansAbort.signal;
   const planGrid = $('#planGrid');
 
-  /* Cache-first plan paint */
   const cacheKey = `ms:esim:plans:${item.iso3}`;
   try {
     const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
@@ -1801,9 +1946,7 @@ async function loadPlansForDestination(item) {
       planGrid.innerHTML = '<div style="font-size:.82rem;color:var(--t3);padding:10px 0;">No plans available for this destination</div>';
       return;
     }
-    try {
-      sessionStorage.setItem(cacheKey, JSON.stringify(plans));
-    } catch (_) {}
+    try { sessionStorage.setItem(cacheKey, JSON.stringify(plans)); } catch (_) {}
     renderPlanGrid(plans);
   } catch (e) {
     if (e.name === 'AbortError') return;
@@ -1819,23 +1962,37 @@ function renderPlanGrid(plans) {
   planGrid.innerHTML = plans.map(p => {
     const badge = p.isGlobal
       ? '<span class="plan-badge global">Global</span>'
-      : (p.isRegional ? `<span class="plan-badge regional">${escapeHtml(p.coverageLabel)}</span>` : '');
+      : (p.isRegional ? `<span class="plan-badge regional">${escapeHtml(p.coverageLabel || 'Regional')}</span>` : '');
+    const featuredBadge = p.featured
+      ? '<span class="plan-badge featured"><i class="fas fa-fire"></i> Featured</span>' : '';
+
+    const logoHtml = p.logoUrl
+      ? `<img src="${escapeHtml(p.logoUrl)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.hidden=false;"><span hidden>${escapeHtml((p.displayName || 'eS').slice(0,2))}</span>`
+      : `<span>${escapeHtml((p.displayName || 'eS').slice(0,2).toUpperCase())}</span>`;
+
     return `
       <div class="plan-tile" data-product-id="${escapeHtml(p.productId)}"
-           data-price="${p.priceUsd}" data-price-ngn="${p.priceNgn || 0}"
+           data-price-usd="${escapeHtml(String(p.priceUsd || 0))}"
+           data-price-ngn="${escapeHtml(String(p.priceNgn || 0))}"
+           data-total-usd="${escapeHtml(String(p.totalUsd || p.priceUsd || 0))}"
+           data-total-ngn="${escapeHtml(String(p.totalNgn || p.priceNgn || 0))}"
+           data-fee-usd="${escapeHtml(String(p.feeUsd || 0))}"
            data-data="${escapeHtml(p.dataAmount || '')}"
-           data-validity="${p.validityDays || 30}" data-name="${escapeHtml(p.planName || '')}"
+           data-validity="${p.validityDays || 30}"
+           data-name="${escapeHtml(p.displayName || p.planName || '')}"
            data-coverage="${escapeHtml(p.coverageLabel || 'Country-specific')}"
+           data-featured="${p.featured ? 'true' : 'false'}"
            role="button" tabindex="0">
-        <div class="pt-radio"></div>
+        <div class="pt-logo">${logoHtml}</div>
         <div class="pt-body">
-          <div class="pt-title">${escapeHtml(p.dataAmount || 'Data')} · ${p.validityDays || 30} days ${badge}</div>
-          <div class="pt-sub">${escapeHtml(p.planName || '')}</div>
+          <div class="pt-title">${escapeHtml(p.dataAmount || 'Data')} · ${p.validityDays || 30} days ${badge} ${featuredBadge}</div>
+          <div class="pt-sub">${escapeHtml(p.displayName || p.planName || '')}</div>
         </div>
-        <div class="pt-price">${moneyUSD(p.priceUsd)}<small>${moneyNGN(p.priceNgn || p.priceUsd * State.usdToNgn)}</small></div>
+        <div class="pt-price">${moneyUSD(p.priceUsd)}<small>${moneyNGN(p.priceNgn)}</small></div>
       </div>
     `;
   }).join('');
+
   planGrid.querySelectorAll('.plan-tile').forEach(tile => {
     tile.addEventListener('click', () => onPlanSelect(tile));
     tile.addEventListener('keydown', (e) => {
@@ -1854,10 +2011,14 @@ function onPlanSelect(tile) {
     productId: tile.dataset.productId,
     planName: tile.dataset.name,
     dataAmount: tile.dataset.data,
-    validityDays: parseInt(tile.dataset.validity) || 30,
-    priceUsd: parseFloat(tile.dataset.price) || 0,
-    priceNgn: parseFloat(tile.dataset.priceNgn) || 0,
-    coverage: tile.dataset.coverage
+    validityDays: parseInt(tile.dataset.validity, 10) || 30,
+    priceUsd:   tile.dataset.priceUsd,
+    priceNgn:   tile.dataset.priceNgn,
+    totalUsd:   tile.dataset.totalUsd,
+    totalNgn:   tile.dataset.totalNgn,
+    feeUsd:     tile.dataset.feeUsd,
+    coverage:   tile.dataset.coverage,
+    featured:   tile.dataset.featured === 'true'
   };
   updateContinueBtn();
 }
@@ -1886,14 +2047,12 @@ function initCountrySearch() {
     const items = filterDestinations(input.value);
     renderDropdown(items);
   });
-
   input.addEventListener('focus', openDropdown);
   input.addEventListener('click', openDropdown);
 
   input.addEventListener('keydown', (e) => {
     const items = dd.querySelectorAll('.search-item');
     if (!items.length) return;
-
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       State.highlightedIndex = Math.min(State.highlightedIndex + 1, items.length - 1);
@@ -1954,8 +2113,8 @@ function refreshCurrencyAvailability() {
   const ngnCard = document.querySelector('#currencyToggle .currency-opt[data-currency="NGN"]');
   if (!usdEl || !ngnEl || !usdCard || !ngnCard) return;
 
-  const requiredUsd = plan ? (plan.priceUsd * (1 + CONFIG.serviceFeePct)) : 0;
-  const requiredNgn = plan ? (requiredUsd * State.usdToNgn) : 0;
+  const requiredUsd = plan ? Number(plan.totalUsd || plan.priceUsd || 0) : 0;
+  const requiredNgn = plan ? Number(plan.totalNgn || plan.priceNgn || 0) : 0;
   const usdOk = requiredUsd === 0 || usd >= requiredUsd;
   const ngnOk = requiredNgn === 0 || ngn >= requiredNgn;
 
@@ -1964,12 +2123,10 @@ function refreshCurrencyAvailability() {
   usdCard.classList.toggle('insufficient', !usdOk);
   ngnCard.classList.toggle('insufficient', !ngnOk);
 
-  if (!usdOk && usdCard.classList.contains('active')) {
-    if (ngnOk) {
-      usdCard.classList.remove('active');
-      ngnCard.classList.add('active');
-      State.activeCurrency = 'NGN';
-    }
+  if (!usdOk && usdCard.classList.contains('active') && ngnOk) {
+    usdCard.classList.remove('active');
+    ngnCard.classList.add('active');
+    State.activeCurrency = 'NGN';
   }
 }
 
@@ -1978,7 +2135,9 @@ function refreshSummary() {
   const d = State.selectedDestination;
   const p = State.selectedPlan;
 
-  $('#sumFlag').innerHTML = d.iso2 ? `<img src="${flagUrl(d.iso2)}" alt="" style="width:100%;height:100%;object-fit:cover;">` : `<i class="fas fa-earth-americas" style="color:var(--t3)"></i>`;
+  $('#sumFlag').innerHTML = d.iso2
+    ? `<img src="${flagUrl(d.iso2)}" alt="" style="width:100%;height:100%;object-fit:cover;">`
+    : `<i class="fas fa-earth-americas" style="color:var(--t3)"></i>`;
   $('#sumCountry').textContent = d.name;
   $('#sumPlan').textContent = p.planName || `${p.dataAmount} plan`;
   $('#sumData').textContent = p.dataAmount || '—';
@@ -1994,13 +2153,8 @@ function refreshSummary() {
     badge.hidden = true;
   }
 
-  const usd = p.priceUsd;
-  const fee = usd * CONFIG.serviceFeePct;
-  const totalUsd = usd + fee;
-  const totalNgn = totalUsd * State.usdToNgn;
-
-  $('#priceUsd').textContent = moneyUSD(totalUsd);
-  $('#priceNgn').textContent = moneyNGN(totalNgn);
+  $('#priceUsd').textContent = moneyUSD(p.totalUsd || p.priceUsd);
+  $('#priceNgn').textContent = moneyNGN(p.totalNgn || p.priceNgn);
 
   refreshCurrencyAvailability();
   refreshBreakdown();
@@ -2009,18 +2163,29 @@ function refreshSummary() {
 function refreshBreakdown() {
   if (!State.selectedPlan) return;
   const p = State.selectedPlan;
-  const usd = p.priceUsd;
-  const fee = usd * CONFIG.serviceFeePct;
-  const totalUsd = usd + fee;
 
   if (State.activeCurrency === 'USD') {
-    $('#bUnit').textContent = moneyUSD(usd);
-    $('#bFee').textContent = moneyUSD(fee);
+    const priceUsd = String(p.priceUsd || '0');
+    const totalUsd = String(p.totalUsd || p.priceUsd || '0');
+    const feeUsd = String(
+      p.feeUsd != null
+        ? p.feeUsd
+        : Math.max(0, Number(totalUsd) - Number(priceUsd)).toFixed(2)
+    );
+    $('#bUnit').textContent = moneyUSD(priceUsd);
+    $('#bFee').textContent = moneyUSD(feeUsd);
     $('#bTotal').textContent = moneyUSD(totalUsd);
   } else {
-    $('#bUnit').textContent = moneyNGN(usd * State.usdToNgn);
-    $('#bFee').textContent = moneyNGN(fee * State.usdToNgn);
-    $('#bTotal').textContent = moneyNGN(totalUsd * State.usdToNgn);
+    const priceNgn = String(p.priceNgn || '0');
+    const totalNgn = String(p.totalNgn || p.priceNgn || '0');
+    const feeNgn = String(
+      p.feeNgn != null
+        ? p.feeNgn
+        : Math.max(0, Number(totalNgn) - Number(priceNgn)).toFixed(2)
+    );
+    $('#bUnit').textContent = moneyNGN(priceNgn);
+    $('#bFee').textContent = moneyNGN(feeNgn);
+    $('#bTotal').textContent = moneyNGN(totalNgn);
   }
 }
 
@@ -2080,14 +2245,8 @@ function _bindPinOnce() {
   });
 
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      submit();
-    }
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      closeWith(null);
-    }
+    if (e.key === 'Enter') { e.preventDefault(); submit(); }
+    if (e.key === 'Escape') { e.preventDefault(); closeWith(null); }
   });
 
   insuffLink.addEventListener('click', (e) => {
@@ -2152,26 +2311,28 @@ function getPurchaseIdemKey() {
 async function submitPurchase() {
   const btn = $('#confirmBuyBtn');
   const originalHtml = btn.innerHTML;
-  const deliveryEmail = State.user?.email || getCurrentUser()?.email;
+  const deliveryEmail = $('#deliveryEmail').value.trim().toLowerCase();
 
   if (!deliveryEmail) {
-    toast('No delivery email on your account. Update your profile first.', true);
+    toast('Enter a delivery email address.', true);
     return;
   }
 
-  const requiredUsd = State.selectedPlan.priceUsd * (1 + CONFIG.serviceFeePct);
   const required = State.activeCurrency === 'USD'
-    ? requiredUsd
-    : requiredUsd * State.usdToNgn;
+    ? State.selectedPlan.totalUsd
+    : State.selectedPlan.totalNgn;
 
   const pin = await requestPin({
     rows: [
       ['Destination', State.selectedDestination?.name || '—'],
       ['Plan', `${State.selectedPlan.dataAmount} · ${State.selectedPlan.validityDays} days`],
       ['Coverage', State.selectedPlan.coverage || 'Country-specific'],
-      ['Total', State.activeCurrency === 'USD' ? moneyUSD(required) : moneyNGN(required)]
+      ['Total', State.activeCurrency === 'USD'
+        ? moneyUSD(required)
+        : moneyNGN(required)],
+      ['Delivered to', deliveryEmail]
     ],
-    requiredAmount: required,
+    requiredAmount: Number(required),
     currency: State.activeCurrency
   });
   if (!pin) return;
@@ -2216,15 +2377,15 @@ async function submitPurchase() {
       if (e.code === 'PIN_NOT_SET') msg = 'You have not set a transaction PIN yet. Set one in Settings.';
       if (e.attempts_remaining != null) msg += ` (${e.attempts_remaining} attempts left)`;
       toast(msg, true);
-
       _openPinModal({
         rows: [
           ['Destination', State.selectedDestination?.name || '—'],
           ['Plan', `${State.selectedPlan.dataAmount} · ${State.selectedPlan.validityDays} days`],
           ['Coverage', State.selectedPlan.coverage || 'Country-specific'],
-          ['Total', State.activeCurrency === 'USD' ? moneyUSD(required) : moneyNGN(required)]
+          ['Total', State.activeCurrency === 'USD' ? moneyUSD(required) : moneyNGN(required)],
+          ['Delivered to', deliveryEmail]
         ],
-        requiredAmount: required,
+        requiredAmount: Number(required),
         currency: State.activeCurrency,
         errorMessage: msg
       });
@@ -2236,13 +2397,20 @@ async function submitPurchase() {
           ['Destination', State.selectedDestination?.name || '—'],
           ['Plan', `${State.selectedPlan.dataAmount} · ${State.selectedPlan.validityDays} days`],
           ['Coverage', State.selectedPlan.coverage || 'Country-specific'],
-          ['Total', State.activeCurrency === 'USD' ? moneyUSD(required) : moneyNGN(required)]
+          ['Total', State.activeCurrency === 'USD' ? moneyUSD(required) : moneyNGN(required)],
+          ['Delivered to', deliveryEmail]
         ],
-        requiredAmount: required,
+        requiredAmount: Number(required),
         currency: State.activeCurrency,
         errorMessage: e.message || 'Insufficient balance for this purchase.'
       });
       $('#pmInsufficient')?.classList.add('show');
+    } else if (e.code === 'EMAIL_NOT_FOUND' || e.code === 'EMAIL_INVALID') {
+      toast(e.message, true);
+      $('#emailStatus').className = 'email-status error';
+      $('#emailStatus').textContent = e.message;
+      $('#deliveryEmail').classList.add('error');
+      $('#confirmBuyBtn').disabled = true;
     } else {
       toast(e.message || 'Could not start your order.', true);
     }
@@ -2341,11 +2509,10 @@ async function pollStatus() {
       if (data.qrCodeUrl) {
         $('#qrImg').src = data.qrCodeUrl;
         $('#qrBox').hidden = false;
-        $('#manualDetails').innerHTML = renderManualDelivery(data);
       } else {
         $('#qrBox').hidden = true;
-        $('#manualDetails').innerHTML = renderManualDelivery(data);
       }
+      $('#manualDetails').innerHTML = renderManualDelivery(data);
 
       $('#statusPrimaryBtn').hidden = false;
       $('#statusPrimaryBtn').textContent = 'Done';
@@ -2385,15 +2552,11 @@ async function pollStatus() {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   HISTORY — cache-first + fast paint
-   ═══════════════════════════════════════════════════════════ */
 async function openHistory() {
   const drawer = $('#histDrawer');
   const list = $('#histList');
   drawer.classList.add('open');
 
-  /* Cache-first paint */
   try {
     const cached = JSON.parse(sessionStorage.getItem('ms:esim:history') || 'null');
     if (cached && Array.isArray(cached) && cached.length) {
@@ -2430,14 +2593,18 @@ async function openHistory() {
 }
 
 function renderHistoryItem(t) {
-  const flag = t.countryFlag ? `<img src="${t.countryFlag}" alt="">` : '';
+  const flag = t.countryFlag ? `<img src="${t.countryFlag}" alt="" loading="lazy">` : '';
   let pillStatus = t.status || 'processing';
   if (t.status === 'completed' && t.deliveryStatus !== 'ready') pillStatus = 'delivery_pending';
   const stLabel = window.MS && MS.statusLabel ? MS.statusLabel(pillStatus) : pillStatus.replace('_', ' ');
   const stKey = window.MS && MS.statusKey ? MS.statusKey(pillStatus) : pillStatus;
 
   return `<div class="hist-item" data-hi="${escapeHtml(t.id || t.transactionId || '')}">
-    <div class="row1"><div class="flag">${flag}</div><div class="title">${escapeHtml(t.countryName || 'eSIM')}</div><span class="pill ${escapeHtml(stKey)}">${escapeHtml(stLabel)}</span></div>
+    <div class="row1">
+      <div class="flag">${flag}</div>
+      <div class="title">${escapeHtml(t.countryName || 'eSIM')}</div>
+      <span class="pill ${escapeHtml(stKey)}">${escapeHtml(stLabel)}</span>
+    </div>
     <div class="meta">${escapeHtml(t.planName || '')} ${t.dataAmount ? '· ' + escapeHtml(t.dataAmount) : ''} ${t.validityDays ? '· ' + t.validityDays + ' days' : ''}</div>
     <div class="meta" style="margin-top:2px;">${moneyUSD(t.totalUsd)} · ${new Date(t.createdAt).toLocaleDateString()}</div>
     ${t.qrCodeUrl ? `<button class="viewqr" data-qr-url="${escapeHtml(t.qrCodeUrl)}"><i class="fas fa-qrcode"></i> View QR</button>` : ''}
@@ -2473,9 +2640,6 @@ function closeHistory() {
   $('#histDrawer').classList.remove('open');
 }
 
-/* ═══════════════════════════════════════════════════════════
-   INIT
-   ═══════════════════════════════════════════════════════════ */
 function init() {
   if (!getCurrentUser()) {
     setTimeout(() => { if (!getCurrentUser()) redirectToLogin(); }, 1500);
@@ -2485,6 +2649,7 @@ function init() {
   initSidebar();
   initCurrencyToggle();
   initCountrySearch();
+  initEmailInput();
   renderUserFromSession();
   loadUser();
   loadRates();
@@ -2522,26 +2687,6 @@ document.addEventListener('DOMContentLoaded', init);
 </script>
 
 <script>
-/* ═══════════════════════════════════════════════════════════════════
-   Stale transaction banner + "Check status" button — esim.html.
-
-   PAGE ADAPTER
-   ────────────
-   1. ROW_SELECTOR = '#histList .hist-item[data-hi]'
-   2. RECORD_LOOKUP — the drawer renders each item with data-hi = item id.
-      We look it up from the DOM: since esim.html re-renders the whole
-      list on open, we read the record fields back off the row's children
-      (title, meta, pill) plus the id. Simpler: capture the last history
-      array in a module-level variable when openHistory paints.
-   3. Fields: id / reference, status, createdAt (see below).
-   4. Token fetcher: window.userFetch.
-   5. Toast: local toast(msg, isError) — takes a boolean.
-
-   To make the record lookup reliable, we hook into the existing
-   openHistory() by intercepting its sessionStorage cache — the cache
-   has the full record shape (id, reference, status, createdAt). We
-   read the cache and match by id.
-   ═══════════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
 
@@ -2585,7 +2730,6 @@ document.addEventListener('DOMContentLoaded', init);
     if (!created) return false;
     const status = String(rec.status || '').toLowerCase();
     if (status === 'completed' && rec.deliveryStatus !== 'ready') {
-      // delivery_pending is treated as processing
     } else if (!STALEABLE.has(status)) {
       return false;
     }
@@ -2595,8 +2739,8 @@ document.addEventListener('DOMContentLoaded', init);
   function bannerMessage(rec) {
     const label = userLabel(rec.status);
     if (label === 'under_review') return { main: 'A specialist is checking this for you.', tail: '' };
-    if (label === 'processing')  return { main: 'Confirming with the provider.',          tail: ' Most complete within a few more minutes.' };
-    return                              { main: 'Taking longer than expected.',            tail: ' Most complete within a few more minutes.' };
+    if (label === 'processing') return { main: 'Confirming with the provider.', tail: ' Most complete within a few more minutes.' };
+    return { main: 'Taking longer than expected.', tail: ' Most complete within a few more minutes.' };
   }
 
   async function callCheck(reference) {
@@ -2636,7 +2780,6 @@ document.addEventListener('DOMContentLoaded', init);
       if (btn.disabled) return;
       btn.disabled = true;
       btn.textContent = 'Checking\u2026';
-
       const r = await callCheck(reference);
       if (r.ok && r.body && r.body.data) {
         const s = r.body.data;
@@ -2646,9 +2789,7 @@ document.addEventListener('DOMContentLoaded', init);
         if (TERMINAL.has(label)) {
           btn.remove();
           SHOW_TOAST('Status updated.', 'ok');
-          setTimeout(() => {
-            try { openHistory(); } catch (_) {}
-          }, 400);
+          setTimeout(() => { try { openHistory(); } catch (_) {} }, 400);
         } else {
           btn.disabled = false;
           btn.textContent = 'Check status';

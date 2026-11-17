@@ -25,7 +25,7 @@
 const crypto = require('crypto');
 const { supabaseAdmin } = require('../db/supabase');
 const { PERMISSIONS } = require('../middleware/adminAuth');
-
+const _pricingEngine = require('./pricingEngine');
 // ─── Allowed currencies ───────────────────────────────────────────
 const ALLOWED_CURRENCIES = Object.freeze([
     'NGN','USD','GHS','KES','ZAR','XOF','XAF','TZS','EGP'
@@ -296,7 +296,7 @@ const KEY_REGISTRY = Object.freeze({
         min: '0', max: '1000000000', decimals: 2,
         requiredPermission: P.SETTINGS_MANAGE
     },
-    boost_min_ngn: {
+        boost_min_ngn: {
         shape: 'decimal', section: 'limits', default: '1000',
         min: '0', max: '1000000000', decimals: 2,
         requiredPermission: P.SETTINGS_MANAGE
@@ -306,7 +306,15 @@ const KEY_REGISTRY = Object.freeze({
         min: '0', max: '1000000000', decimals: 2,
         requiredPermission: P.SETTINGS_MANAGE
     },
-
+    // ── NEW: per-currency payment gates ──────────────────────
+    boost_allow_ngn: {
+        shape: 'boolean', section: 'services', default: 'true',
+        requiredPermission: P.SETTINGS_MANAGE
+    },
+    boost_allow_usd: {
+        shape: 'boolean', section: 'services', default: 'true',
+        requiredPermission: P.SETTINGS_MANAGE
+    },
     // ─── Service flags — withdrawals intentionally ABSENT ────
     service_giftcards_enabled: {
         shape: 'boolean', section: 'services', default: 'true',
@@ -1311,6 +1319,43 @@ function moneyMulPercentOnly(money, pctDecimal) {
     return fromScaledBigInt(scaled, CCY_SCALE);
 }
 
+// ─── Pricing engine delegation ──────────────────────────────────
+// The canonical price calculator lives in services/pricingEngine.js
+// so gift cards and eSIM share one implementation. Anything that
+// already calls adminSettings.calculatePrice (including the user
+// gift card and eSIM purchase routes) now gets the same math.
+
+async function calculatePriceV2({ service, currency = 'NGN', wholesaleAmount, mode, value, pricingOverride = null }) {
+    // When a per-product override is passed, use it directly.
+    if (pricingOverride && pricingOverride.mode) {
+        const markupUsd = await getMarkup(service, 'USD');
+        const markupNgn = await getMarkup(service, 'NGN');
+        const usdToNgn = await getRate('USD', 'NGN');
+        return _pricingEngine.calculatePrice({
+            wholesaleAmount: String(wholesaleAmount),
+            wholesaleCurrency: String(currency).toUpperCase(),
+            usdToNgn: String(usdToNgn),
+            mode: pricingOverride.mode,
+            value: pricingOverride.value,
+            globalMarkupUsd: String(markupUsd),
+            globalMarkupNgn: String(markupNgn)
+        });
+    }
+    // No override — global mode.
+    const markupUsd = await getMarkup(service, 'USD');
+    const markupNgn = await getMarkup(service, 'NGN');
+    const usdToNgn = await getRate('USD', 'NGN');
+    return _pricingEngine.calculatePrice({
+        wholesaleAmount: String(wholesaleAmount),
+        wholesaleCurrency: String(currency).toUpperCase(),
+        usdToNgn: String(usdToNgn),
+        mode: 'global',
+        value: null,
+        globalMarkupUsd: String(markupUsd),
+        globalMarkupNgn: String(markupNgn)
+    });
+}
+
 // ─── Markup / rate / price ────────────────────────────────────────
 async function getMarkup(service, currency) {
     const svc = String(service || '').toLowerCase();
@@ -1890,6 +1935,7 @@ module.exports = {
     getFee,
     getLimit,
     preview,
+    
 
     // Service gates
     isServiceEnabled,
@@ -1914,5 +1960,8 @@ module.exports = {
 
     // Health / timezone
     getHealth,
+        // Pricing engine
+    calculatePriceV2,
+    pricingEngine: _pricingEngine,
     getTimezone
 };

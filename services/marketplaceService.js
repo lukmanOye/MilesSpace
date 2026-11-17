@@ -1,50 +1,196 @@
 // services/marketplaceService.js
-// MilesSpace Marketplace — pricing, sanitizers, IDs, delivery payload.
+// ─────────────────────────────────────────────────────────────────
+// MilesSpace Marketplace — pricing, sanitizers, deterministic IDs,
+// delivery payload builder.
+//
+// CONTRACT:
+//   • priceWith() is PURE and SYNCHRONOUS. The storefront and the
+//     purchase route call it with the SAME (product, ctx, wallet) and
+//     get the SAME result. This is what guarantees "price shown =
+//     price charged". Any code path that needs pricing must call
+//     priceWith/computePrice — nothing else computes money.
+//   • pricingContext() caches (usdToNgn, markupPct) for 30s per
+//     process. Markup changes are picked up within 30s. Cache is NOT
+//     shared across processes; each instance refreshes independently.
+//   • Money is returned as numbers rounded to 2 decimal places using
+//     the `r2` helper — NOT raw floats. Callers that need strings use
+//     `.toFixed(2)`.
+//   • seedUuid(userId, idempotencyKey) → deterministic UUIDv4-shaped
+//     string. Same input, same output, forever. Used as the
+//     marketplace_orders.id primary key so a replay 23505s and is
+//     treated as "already processing" rather than creating a second
+//     order.
+//   • refFromSeed(userId, idempotencyKey) → deterministic order_ref.
+//     Also stable. The ledger reference is the order_ref, so a
+//     retried debit is caught by the transaction reference index.
+//   • sanitizeProduct(p, ctx) NEVER returns `inventory_raw` or any
+//     other credential column. It returns final (marked-up) prices,
+//     category name, and every marketing field the storefront shows.
+//   • buildDeliveryPayload / generateDownloadToken unchanged from
+//     the shipped version — delivery formatting is orthogonal to
+//     pricing.
+// ─────────────────────────────────────────────────────────────────
+
 'use strict';
 
 const crypto = require('crypto');
 const { AdminConfigService } = require('./ledgerService');
 
-// ─── PRICING (server-authoritative) ────────────────────────────────
-async function computePrice(product, walletType) {
-    const usdToNgn = await AdminConfigService.getExchangeRate();
-    const markupPct = await AdminConfigService.getMarkup('marketplace');
+const CTX_TTL_MS = 30_000;
+let _ctx = { at: 0, v: null };
 
-    const baseUsd = parseFloat(product.price_usd) || 0;
-    const markupMultiplier = 1 + (markupPct / 100);
+/**
+ * Cached pricing context. Refreshed every 30 seconds per process.
+ * Fails loudly if either setting is missing — never silently falls
+ * back to a hardcoded rate.
+ */
+async function pricingContext() {
+    if (_ctx.v && Date.now() - _ctx.at < CTX_TTL_MS) return _ctx.v;
 
-    const finalUsd = +(baseUsd * markupMultiplier).toFixed(2);
+    const [usdToNgn, markupPct] = await Promise.all([
+        AdminConfigService.getExchangeRate(),
+        AdminConfigService.getMarkup('marketplace'),
+    ]);
 
-    let finalNgn;
-    if (product.price_ngn && parseFloat(product.price_ngn) > 0) {
-        finalNgn = +(parseFloat(product.price_ngn) * markupMultiplier).toFixed(2);
-    } else {
-        finalNgn = +(finalUsd * usdToNgn).toFixed(2);
+    if (!Number.isFinite(usdToNgn) || usdToNgn <= 0) {
+        throw new Error('marketplaceService: usd_to_ngn is not configured');
+    }
+    if (!Number.isFinite(markupPct) || markupPct < 0) {
+        throw new Error('marketplaceService: marketplace_markup is not configured');
     }
 
+    _ctx = { at: Date.now(), v: { usdToNgn, markupPct } };
+    return _ctx.v;
+}
+
+/** Round to 2 dp with float correction. */
+function r2(n) {
+    return Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+}
+
+/**
+ * Pure and synchronous. Same function used by the storefront and
+ * the purchase route.
+ *
+ * Inputs:
+ *   product  — row with price_usd (required) and price_ngn (optional)
+ *   ctx      — { usdToNgn, markupPct }
+ *   wallet   — 'NGN' | 'USD' (defaults to 'NGN')
+ *
+ * Returns:
+ *   usd      — final markup-inclusive USD price
+ *   ngn      — final markup-inclusive NGN price (from price_ngn if
+ *              present, else derived from usd * usdToNgn)
+ *   charge   — amount debited for the chosen wallet
+ *   cost     — base cost in the same currency (used for profit)
+ *   markup   — charge - cost
+ *   wallet   — normalized 'NGN' | 'USD'
+ *   usdToNgn — snapshot of the FX rate used
+ *   markupPct — snapshot of the markup used
+ */
+function priceWith(product, ctx, walletType = 'NGN') {
+    const m = 1 + ctx.markupPct / 100;
+
+    const baseUsd = Number(product.price_usd) || 0;
+    const baseNgnRaw = Number(product.price_ngn);
+    const hasNgn = Number.isFinite(baseNgnRaw) && baseNgnRaw > 0;
+
+    const usd = r2(baseUsd * m);
+    const ngn = hasNgn ? r2(baseNgnRaw * m) : r2(usd * ctx.usdToNgn);
+
+    const wallet = String(walletType || 'NGN').toUpperCase() === 'USD' ? 'USD' : 'NGN';
+    const charge = wallet === 'USD' ? usd : ngn;
+    const cost   = wallet === 'USD'
+        ? r2(baseUsd)
+        : r2(hasNgn ? baseNgnRaw : baseUsd * ctx.usdToNgn);
+
     return {
-        usd: finalUsd,
-        ngn: finalNgn,
-        usdToNgn,
-        markupPct,
-        chargeUsd: walletType === 'USD' ? finalUsd : null,
-        chargeNgn: walletType === 'NGN' ? finalNgn : null,
-        charge: walletType === 'USD' ? finalUsd : finalNgn,
+        usd,
+        ngn,
+        charge,
+        cost,
+        markup: r2(charge - cost),
+        wallet,
+        usdToNgn: ctx.usdToNgn,
+        markupPct: ctx.markupPct,
     };
 }
 
-// ─── SANITIZERS ────────────────────────────────────────────────────
-// Products: EVERYTHING the frontend needs — INCLUDING all detail fields.
-function sanitizeProduct(p) {
+/**
+ * Async wrapper for callers that have not already loaded the ctx.
+ * Uses the cached context.
+ */
+async function computePrice(product, walletType) {
+    return priceWith(product, await pricingContext(), walletType);
+}
+
+// ─── Deterministic identity ─────────────────────────────────────
+// Both helpers hash (userId + ':' + idempotencyKey). The same
+// (user, key) pair always maps to the same UUID / ref, so a retry
+// with the same key cannot create a second order or a second ledger
+// transaction. A different key is a different purchase.
+
+function seedUuid(seed) {
+    const h = crypto.createHash('sha256').update(String(seed)).digest();
+    // Force UUIDv4 shape (version nibble = 4, variant bits = 10xx).
+    h[6] = (h[6] & 0x0f) | 0x40;
+    h[8] = (h[8] & 0x3f) | 0x80;
+    const x = h.subarray(0, 16).toString('hex');
+    return `${x.slice(0, 8)}-${x.slice(8, 12)}-${x.slice(12, 16)}-${x.slice(16, 20)}-${x.slice(20, 32)}`;
+}
+
+function refFromSeed(seed) {
+    return 'ORD-' + crypto
+        .createHash('sha256')
+        .update('ref:' + String(seed))
+        .digest('hex')
+        .slice(0, 14)
+        .toUpperCase();
+}
+
+// ─── Storefront view of a purchase ──────────────────────────────
+// Same shape the storefront already consumes. `new_balance` is
+// null here — the route fills it from the ledger response when it
+// has one. This keeps the client code identical across "fresh
+// purchase", "replay", and "recovered after timeout".
+
+function purchaseView(order) {
+    return {
+        order_ref: order.order_ref,
+        order_id: order.id,
+        product_name: order.product_name,
+        price: Number(order.total),
+        currency: order.currency,
+        new_balance: null,
+        download_token: order.download_token,
+        transaction_id: order.unified_transaction_id,
+        unified_transaction_id: order.unified_transaction_id,
+    };
+}
+
+// ─── Sanitizers ─────────────────────────────────────────────────
+// `ctx` is required when you want final (marked-up) prices. If ctx
+// is null, price fields are null and the caller must not display
+// them. sanitizeProduct NEVER reads inventory_raw, metadata, or any
+// credential column.
+
+function sanitizeProduct(p, ctx) {
     if (!p) return null;
+
+    const q = ctx ? priceWith(p, ctx) : null;
+    const cat = p.marketplace_categories || {};
+
     return {
         id: p.id,
         name: p.name || 'Unknown',
-        category: p.category_id || 'other',
-        categoryName: p.category_name || p.category_id || 'Other',
-        description: p.description || '',
 
-        // ─── Detail fields rendered in the modal ───
+        // Category: id for filtering, name/icon for display.
+        category: p.category_id || 'other',
+        categoryName: cat.name || p.category_id || 'Other',
+        categoryIcon: cat.icon || null,
+
+        // Marketing copy.
+        description: p.description || '',
         longDescription: p.long_description || '',
         howToUse: p.how_to_use || '',
         features: p.features || '',
@@ -52,14 +198,19 @@ function sanitizeProduct(p) {
         loginTutorial: p.login_tutorial || '',
         loginFormat: p.login_format || '',
 
-        // ─── Everything else ───
         country: p.country || 'Global',
-        price: parseFloat(p.price_usd) || 0,
-        priceUsd: parseFloat(p.price_usd) || 0,
-        priceNgn: parseFloat(p.price_ngn) || 0,
-        stock: parseInt(p.stock) || 0,
-        qty: parseInt(p.stock) || 0,
-        sold: parseInt(p.sold) || 0,
+
+        // Prices are FINAL — the client displays these.
+        // price* are null when ctx is missing; the storefront always
+        // passes ctx, so this only affects internal callers.
+        price: q ? q.usd : null,
+        priceUsd: q ? q.usd : null,
+        priceNgn: q ? q.ngn : null,
+
+        stock: parseInt(p.stock, 10) || 0,
+        qty: parseInt(p.stock, 10) || 0,
+        sold: parseInt(p.sold, 10) || 0,
+
         deliveryType: p.delivery_type || 'structured',
         status: p.status,
         badge: '',
@@ -90,9 +241,12 @@ function sanitizeOrderRow(o) {
     };
 }
 
-// ─── IDS / TOKENS ──────────────────────────────────────────────────
+// ─── Legacy ID helpers ─────────────────────────────────────────
+// Kept because older modules reference them. The new purchase route
+// uses seedUuid/refFromSeed exclusively; these are only for any
+// remaining legacy call sites.
+
 function generateOrderId() {
-    // UUID — required because ledger's source_id column is UUID
     return crypto.randomUUID();
 }
 
@@ -106,7 +260,13 @@ function generateDownloadToken() {
     return crypto.randomBytes(32).toString('hex');
 }
 
-// ─── DELIVERY FORMATTER ────────────────────────────────────────────
+// ─── Delivery payload ──────────────────────────────────────────
+// Formats the inventory content for the buyer's receipt. `content`
+// may be a JSON string (structured payload) or plain text.
+//
+// IMPORTANT: this function is called AFTER the buyer has paid. It is
+// never called from a list endpoint or a pre-purchase view.
+
 function buildDeliveryPayload(inventoryRow, order, product) {
     let parsedContent = inventoryRow.content;
     let loginFormat = inventoryRow.login_format || 'N/A';
@@ -119,8 +279,8 @@ function buildDeliveryPayload(inventoryRow, order, product) {
             loginFormat = j.format || j.login_format || loginFormat;
             loginInstructions = j.instructions || j.login_instructions || '';
         }
-    } catch {
-        // Plain text; keep as-is
+    } catch (_) {
+        // Plain text — keep as-is.
     }
 
     return {
@@ -135,11 +295,21 @@ function buildDeliveryPayload(inventoryRow, order, product) {
 }
 
 module.exports = {
+    pricingContext,
+    priceWith,
     computePrice,
+    r2,
+
+    seedUuid,
+    refFromSeed,
+
+    purchaseView,
     sanitizeProduct,
     sanitizeOrderRow,
+
     generateOrderId,
     generateOrderRef,
     generateDownloadToken,
+
     buildDeliveryPayload,
 };

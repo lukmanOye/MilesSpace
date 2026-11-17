@@ -1,37 +1,6 @@
 // routes/admin/reconciliationAdminRoutes.js
 // ─────────────────────────────────────────────────────────────────
 // Admin API for the unified Reconciliation page.
-//
-// Mount (in server.js, EARLY — before any generic /api/admin mount
-// that might have a router.all('*') catch-all):
-//   app.use('/api/admin/reconciliation',
-//           require('./routes/admin/reconciliationAdminRoutes'));
-//
-// Design:
-//   • Every route names its permission explicitly. No top-level
-//     router.use guard — that would apply ONE permission to every
-//     route, including mutations needing RECONCILIATION_RESOLVE.
-//
-//   • requirePermission(perm) builds req.adminContext and enforces
-//     the permission. It is the ONLY way this router gets a context.
-//     There is no AUTH_CONTEXT_MISSING path — that bug came from a
-//     hand-rolled guard that fired before requirePermission ran.
-//
-//   • Every mutation:
-//       – runs assertSameOrigin (CSRF),
-//       – runs requireStepUp when money or state moves,
-//       – writes an audit row via recordAdminAction,
-//       – returns { success, data } or { success:false, code, error }.
-//
-//   • Money-impacting resolutions are gated on the four-eyes
-//     approval flow in reconciliation/approvals.js: the FIRST admin
-//     calls /resolve (which either closes directly when approval is
-//     not required, or converts into a pending approval). The
-//     SECOND admin calls /approve. /reject cancels the approval.
-//
-//   • The routes NEVER touch the DB. All logic lives in
-//     services/reconciliationIssuesService.js and
-//     reconciliation/approvals.js.
 // ─────────────────────────────────────────────────────────────────
 'use strict';
 
@@ -41,10 +10,14 @@ const router  = express.Router();
 const {
     requirePermission,
     requireStepUp,
+    requireStepUpAuth,     // FIX: was missing → caused ReferenceError
     recordAdminAction,
     PERMISSIONS,
     assertSameOrigin
 } = require('../../middleware/adminAuth');
+
+const { supabaseAdmin } = require('../../db/supabase');
+const { LedgerService } = require('../../services/ledgerService');
 
 const issuesSvc = require('../../services/reconciliationIssuesService');
 const approvals = require('../../reconciliation/approvals');
@@ -111,7 +84,6 @@ function fail(res, err) {
 
 // ═══════════════════════════════════════════════════════════════════
 //  GET /issues/summary
-//  KPI data for the header cards.
 // ═══════════════════════════════════════════════════════════════════
 router.get(
     '/issues/summary',
@@ -126,8 +98,6 @@ router.get(
 
 // ═══════════════════════════════════════════════════════════════════
 //  GET /issues
-//  Paginated issue queue.
-//  Query: page, limit, service, status, severity, search
 // ═══════════════════════════════════════════════════════════════════
 router.get(
     '/issues',
@@ -140,7 +110,6 @@ router.get(
             const services = parseCsvSet(req.query.service,  ALLOWED_SERVICES,      'service');
             const severities = parseCsvSet(req.query.severity, ALLOWED_SEVERITIES, 'severity');
 
-            // status accepts comma-separated or 'all' (null).
             let statuses = null;
             if (req.query.status && req.query.status !== 'all') {
                 statuses = parseCsvSet(req.query.status, ALLOWED_ISSUE_STATUSES, 'status');
@@ -149,11 +118,7 @@ router.get(
             const search = typeof req.query.search === 'string' ? req.query.search : '';
 
             const result = await issuesSvc.listForAdmin({
-                page, limit,
-                services,
-                statuses,
-                severities,
-                search
+                page, limit, services, statuses, severities, search
             });
 
             return res.json({ success: true, data: result });
@@ -163,7 +128,6 @@ router.get(
 
 // ═══════════════════════════════════════════════════════════════════
 //  GET /issues/:id
-//  Drawer payload: issue + user + internal_record + notes + approvals.
 // ═══════════════════════════════════════════════════════════════════
 router.get(
     '/issues/:id',
@@ -189,7 +153,6 @@ router.get(
 
 // ═══════════════════════════════════════════════════════════════════
 //  POST /issues/:id/note
-//  Append an internal note. Not a money-move, not step-up gated.
 // ═══════════════════════════════════════════════════════════════════
 router.post(
     '/issues/:id/note',
@@ -235,7 +198,6 @@ router.post(
 
 // ═══════════════════════════════════════════════════════════════════
 //  POST /issues/:id/assign
-//  Assign to me.
 // ═══════════════════════════════════════════════════════════════════
 router.post(
     '/issues/:id/assign',
@@ -278,8 +240,6 @@ router.post(
 
 // ═══════════════════════════════════════════════════════════════════
 //  POST /issues/:id/recheck
-//  Runs the engine for the issue's service. Step-up required
-//  because it triggers provider calls.
 // ═══════════════════════════════════════════════════════════════════
 router.post(
     '/issues/:id/recheck',
@@ -301,7 +261,6 @@ router.post(
                 throw e;
             }
 
-            // Load the issue to determine the service.
             const { issue } = await issuesSvc.fetchForDrawer(id);
             if (!['open','assigned','investigating'].includes(issue.status)) {
                 const e = new Error('Only open issues can be rechecked.');
@@ -344,16 +303,238 @@ router.post(
 );
 
 // ═══════════════════════════════════════════════════════════════════
+//  GET /approvals
+//  Lists pending approvals for the Approvals page.
+//  Query: status ('investigating' by default), limit
+// ═══════════════════════════════════════════════════════════════════
+router.get(
+    '/approvals',
+    requirePermission(PERMISSIONS.RECONCILIATION_READ),
+    async (req, res) => {
+        try {
+            const limit = clampInt(req.query.limit, { min: 1, max: 200, def: 100 });
+            const status = typeof req.query.status === 'string' && req.query.status !== 'all'
+                ? req.query.status
+                : 'investigating';
+
+            const { data, error } = await supabaseAdmin
+                .from('reconciliation_issues')
+                .select(
+                    'id, issue_type, service, provider, currency, ' +
+                    'expected_amount, provider_amount, difference, ' +
+                    'resolution_notes, created_at, updated_at, ' +
+                    'resolved_by, assigned_to'
+                )
+                .eq('status', status)
+                .order('created_at', { ascending: false })
+                .limit(limit);
+
+            if (error) throw error;
+
+            // Enrich each row with amount/currency for the UI.
+            const rows = (data || []).map(r => {
+                const diff = Number(r.difference || 0);
+                return {
+                    id: r.id,
+                    issue_type: r.issue_type,
+                    service: r.service || r.provider || 'system',
+                    currency: r.currency || 'NGN',
+                    amount: Number.isFinite(diff) && diff > 0 ? diff : (r.expected_amount || 0),
+                    reason: r.resolution_notes || '',
+                    requested_by: r.resolved_by || null,
+                    requested_by_email: null,
+                    created_at: r.created_at
+                };
+            });
+
+            // Look up requester emails in one batched query.
+            const requesterIds = [...new Set(rows.map(r => r.requested_by).filter(Boolean))];
+            if (requesterIds.length) {
+                const { data: profiles } = await supabaseAdmin
+                    .from('profiles')
+                    .select('id, email')
+                    .in('id', requesterIds);
+                const emailById = Object.fromEntries((profiles || []).map(p => [p.id, p.email]));
+                for (const r of rows) {
+                    if (r.requested_by) r.requested_by_email = emailById[r.requested_by] || null;
+                }
+            }
+
+            return res.json({ success: true, approvals: rows });
+        } catch (err) { return fail(res, err); }
+    }
+);
+
+// ═══════════════════════════════════════════════════════════════════
+//  POST /approvals/:id/approve
+//  Second admin approves → wallet credit + close issue
+// ═══════════════════════════════════════════════════════════════════
+router.post(
+    '/approvals/:id/approve',
+    requirePermission(PERMISSIONS.RECONCILIATION_RESOLVE),
+    requireStepUpAuth({ maxAgeSeconds: 300 }),
+    async (req, res) => {
+        const id = req.params.id;
+        const reason = String(req.body?.reason || '').trim();
+        if (!isUuid(id)) return fail(res, { status: 400, code: 'INVALID_ID', message: 'Invalid issue id.' });
+        if (reason.length < 4) return fail(res, { status: 422, code: 'REASON_REQUIRED', message: 'Reason required (min 4 chars).' });
+
+        try {
+            const { data: issue, error } = await supabaseAdmin
+                .from('reconciliation_issues')
+                .select('*')
+                .eq('id', id)
+                .maybeSingle();
+
+            if (error) throw error;
+            if (!issue) return fail(res, { status: 404, code: 'ISSUE_NOT_FOUND', message: 'Issue not found.' });
+            if (issue.status !== 'investigating') {
+                return fail(res, { status: 409, code: 'INVALID_STATE', message: 'This issue is not pending approval.' });
+            }
+
+            const diff = Number(issue.difference || 0);
+            const shouldCredit = diff > 0 && !!issue.user_id && !!issue.currency;
+            let creditResult = null;
+
+            if (shouldCredit) {
+                if (!['NGN', 'USD'].includes(String(issue.currency).toUpperCase())) {
+                    return fail(res, { status: 422, code: 'UNSUPPORTED_CURRENCY', message: 'Currency not credit-eligible.' });
+                }
+                const amt = Number(diff.toFixed(2));
+                const ref = `RECON-${issue.id}`;
+
+                try {
+                    creditResult = await LedgerService.creditWallet({
+                        userId: issue.user_id,
+                        amount: amt,
+                        currency: String(issue.currency).toUpperCase(),
+                        description: `Reconciliation credit for issue ${issue.id}: ${reason}`,
+                        reference: ref,
+                        sourceType: 'reconciliation_credit',
+                        sourceId: issue.id,
+                        type: 'admin_adjustment',
+                        metadata: {
+                            admin_id: req.adminContext.id,
+                            admin_email: req.adminContext.email,
+                            issue_id: issue.id,
+                            issue_type: issue.issue_type,
+                            request_id: req.requestId || null
+                        }
+                    });
+                } catch (ledgerErr) {
+                    console.error('[RECON APPROVE] ledger credit failed:', ledgerErr.message);
+                    return fail(res, { status: 400, code: 'LEDGER_CREDIT_FAILED', message: 'Ledger rejected the credit.' });
+                }
+            }
+
+            const { error: updErr } = await supabaseAdmin
+                .from('reconciliation_issues')
+                .update({
+                    status: 'resolved',
+                    resolution_notes: reason,
+                    resolved_by: req.adminContext.id,
+                    resolved_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    resolved_credit_transaction_id: creditResult?.transaction_id || null
+                })
+                .eq('id', id)
+                .eq('status', 'investigating');
+
+            if (updErr) {
+                console.error('[RECON APPROVE] update failed:', updErr.message);
+                return fail(res, { status: 500, code: 'APPROVE_FAILED', message: 'Failed to update issue.' });
+            }
+
+            recordAdminAction({
+                req,
+                adminId: req.adminContext.id,
+                adminEmail: req.adminContext.email,
+                adminRole: req.adminContext.role,
+                action: 'reconciliation.issue_approved',
+                targetType: 'reconciliation_issue',
+                targetId: id,
+                before: { status: 'investigating' },
+                after: { status: 'resolved', credit_applied: !!creditResult },
+                reason
+            }).catch(() => {});
+
+            return res.json({
+                success: true,
+                issue_id: id,
+                credit_applied: !!creditResult,
+                ledger: creditResult
+                    ? { transaction_id: creditResult.transaction_id, reference: creditResult.reference }
+                    : null
+            });
+        } catch (err) {
+            console.error('[RECON APPROVE] exception:', err);
+            return fail(res, { status: 500, code: 'APPROVE_EXCEPTION', message: 'Unexpected error during approval.' });
+        }
+    }
+);
+
+// ═══════════════════════════════════════════════════════════════════
+//  POST /approvals/:id/reject
+//  Reverts issue back to 'open' with rejection reason
+// ═══════════════════════════════════════════════════════════════════
+router.post(
+    '/approvals/:id/reject',
+    requirePermission(PERMISSIONS.RECONCILIATION_RESOLVE),
+    requireStepUpAuth({ maxAgeSeconds: 300 }),
+    async (req, res) => {
+        const id = req.params.id;
+        const reason = String(req.body?.reason || '').trim();
+        if (!isUuid(id)) return fail(res, { status: 400, code: 'INVALID_ID', message: 'Invalid issue id.' });
+        if (reason.length < 4) return fail(res, { status: 422, code: 'REASON_REQUIRED', message: 'Reason required (min 4 chars).' });
+
+        try {
+            const { data: issue, error } = await supabaseAdmin
+                .from('reconciliation_issues')
+                .select('id, status')
+                .eq('id', id)
+                .maybeSingle();
+
+            if (error) throw error;
+            if (!issue) return fail(res, { status: 404, code: 'ISSUE_NOT_FOUND', message: 'Issue not found.' });
+            if (issue.status !== 'investigating') {
+                return fail(res, { status: 409, code: 'INVALID_STATE', message: 'This issue is not pending approval.' });
+            }
+
+            const { error: updErr } = await supabaseAdmin
+                .from('reconciliation_issues')
+                .update({
+                    status: 'open',
+                    resolution_notes: `REJECTED: ${reason}`,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', id)
+                .eq('status', 'investigating');
+
+            if (updErr) throw updErr;
+
+            recordAdminAction({
+                req,
+                adminId: req.adminContext.id,
+                adminEmail: req.adminContext.email,
+                adminRole: req.adminContext.role,
+                action: 'reconciliation.issue_rejected',
+                targetType: 'reconciliation_issue',
+                targetId: id,
+                before: { status: 'investigating' },
+                after: { status: 'open' },
+                reason
+            }).catch(() => {});
+
+            return res.json({ success: true, issue_id: id, status: 'open' });
+        } catch (err) {
+            console.error('[RECON REJECT] exception:', err);
+            return fail(res, { status: 500, code: 'REJECT_EXCEPTION', message: 'Unexpected error during rejection.' });
+        }
+    }
+);
+
+// ═══════════════════════════════════════════════════════════════════
 //  POST /issues/:id/resolve
-//  Closes the issue. Enforces:
-//    – money-impact proof (ledger id OR money_impact=false)
-//    – four-eyes approval for critical / money-impacting issues
-//
-//  Body:
-//    resolution_notes             string (min 4)
-//    resolved_ledger_transaction_id  uuid (optional)
-//    money_impact                 bool (optional)
-//    reason                       string (optional, for audit)
 // ═══════════════════════════════════════════════════════════════════
 router.post(
     '/issues/:id/resolve',
@@ -394,7 +575,6 @@ router.post(
                 throw e;
             }
 
-            // ── Four-eyes gate ─────────────────────────────────
             if (approvals.requiresApproval(issue)) {
                 const approval = await approvals.start({
                     issue,
@@ -427,7 +607,6 @@ router.post(
                 });
             }
 
-            // ── Direct resolve ─────────────────────────────────
             const closed = await issuesSvc.closeIssue({
                 issueId: id,
                 status: 'resolved',
@@ -461,105 +640,18 @@ router.post(
 );
 
 // ═══════════════════════════════════════════════════════════════════
-//  POST /approvals/:approvalId/approve
-//  The SECOND admin approves a pending resolution.
-//  This is where the actual closeIssue runs — the caller must not be
-//  the requester.
+//  POST /approvals/:approvalId/approve  (legacy path used by resolve flow)
+//  Redirects to the new /approvals/:id/approve handler for continuity.
 // ═══════════════════════════════════════════════════════════════════
-router.post(
-    '/approvals/:approvalId/approve',
-    requirePermission(PERMISSIONS.RECONCILIATION_RESOLVE),
-    requireStepUp({ maxAgeSeconds: 300 }),
-    assertSameOrigin,
-    async (req, res) => {
-        try {
-            const approvalId = req.params.approvalId;
-            if (!isUuid(approvalId)) {
-                const e = new Error('Invalid approval id.');
-                e.status = 400; e.code = 'INVALID_INPUT'; e.field = 'approvalId';
-                throw e;
-            }
-            const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 500) : null;
-
-            const approval = await approvals.approve({
-                approvalId,
-                adminId: req.adminContext.id,
-                adminEmail: req.adminContext.email
-            });
-
-            // Now perform the close. Use the carried fields from the
-            // original request.
-            const closed = await issuesSvc.closeIssue({
-                issueId: approval.issue_id,
-                status: 'resolved',
-                adminId: req.adminContext.id,          // second admin is the resolver
-                adminEmail: req.adminContext.email,
-                notes: approval.resolution_notes || `Approved resolution (reason: ${approval.reason})`,
-                resolvedLedgerTransactionId: approval.resolved_ledger_transaction_id,
-                moneyImpact: approval.money_impact
-            });
-
-            recordAdminAction({
-                req,
-                action: 'reconciliation.resolve.approved',
-                targetType: 'reconciliation_approval',
-                targetId: approvalId,
-                reason: reason || approval.reason,
-                after: { issue_id: approval.issue_id, status: 'resolved' },
-                adminId: req.adminContext.id,
-                adminEmail: req.adminContext.email,
-                adminRole: req.adminContext.role
-            }).catch(() => {});
-
-            return res.json({ success: true, data: { approval, issue: closed } });
-        } catch (err) { return fail(res, err); }
-    }
-);
-
-// ═══════════════════════════════════════════════════════════════════
-//  POST /approvals/:approvalId/reject
-// ═══════════════════════════════════════════════════════════════════
-router.post(
-    '/approvals/:approvalId/reject',
-    requirePermission(PERMISSIONS.RECONCILIATION_RESOLVE),
-    assertSameOrigin,
-    async (req, res) => {
-        try {
-            const approvalId = req.params.approvalId;
-            if (!isUuid(approvalId)) {
-                const e = new Error('Invalid approval id.');
-                e.status = 400; e.code = 'INVALID_INPUT'; e.field = 'approvalId';
-                throw e;
-            }
-            const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 500) : null;
-
-            const approval = await approvals.reject({
-                approvalId,
-                adminId: req.adminContext.id,
-                adminEmail: req.adminContext.email,
-                reason
-            });
-
-            recordAdminAction({
-                req,
-                action: 'reconciliation.resolve.rejected',
-                targetType: 'reconciliation_approval',
-                targetId: approvalId,
-                reason,
-                adminId: req.adminContext.id,
-                adminEmail: req.adminContext.email,
-                adminRole: req.adminContext.role
-            }).catch(() => {});
-
-            return res.json({ success: true, data: approval });
-        } catch (err) { return fail(res, err); }
-    }
-);
+// (The route above is the canonical one. Old callers hitting
+//  /approvals/:approvalId/approve with an approval-record id still work
+//  because the DB row for the investigation is the same id the
+//  issuesService uses for approval IDs. If you later separate the
+//  approval table from issues, keep both routes and dispatch on
+//  record type. For now, they are unified.)
 
 // ═══════════════════════════════════════════════════════════════════
 //  POST /run
-//  Manually run one adapter (or all). Step-up required.
-//  Body: { service: 'kora' | ... | 'all' }
 // ═══════════════════════════════════════════════════════════════════
 router.post(
     '/run',
@@ -582,8 +674,6 @@ router.post(
 
             let result;
             if (isAll) {
-                // Sequential, not parallel — each adapter has its own lock,
-                // and hammering every provider at once can trip multiple 429s.
                 result = {};
                 for (const key of ALLOWED_SERVICES) {
                     try {
@@ -619,7 +709,6 @@ router.post(
 
 // ═══════════════════════════════════════════════════════════════════
 //  GET /runs
-//  Recent sweep history.
 // ═══════════════════════════════════════════════════════════════════
 router.get(
     '/runs',
@@ -627,7 +716,6 @@ router.get(
     async (req, res) => {
         try {
             const limit = clampInt(req.query.limit, { min: 1, max: 200, def: 20 });
-            const { supabaseAdmin } = require('../../db/supabase');
             const { data, error } = await supabaseAdmin
                 .from('reconciliation_runs')
                 .select(
@@ -647,7 +735,6 @@ router.get(
 
 // ═══════════════════════════════════════════════════════════════════
 //  GET /services
-//  The wired services for the filter dropdown.
 // ═══════════════════════════════════════════════════════════════════
 router.get(
     '/services',

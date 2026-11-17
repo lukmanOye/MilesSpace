@@ -1,6 +1,32 @@
 // routes/marketRoutes.js
-// MilesSpace Marketplace — Production router
-// Handles: products, purchase (atomic), orders history, order detail, redownload.
+// ─────────────────────────────────────────────────────────────────
+// MilesSpace Marketplace — customer-facing router.
+//
+// CONTRACT:
+//   • Every route requires authMiddleware. No anonymous access.
+//   • Every 5xx response carries { success:false, code, error,
+//     request_id }. `error` is a GENERIC message — real error is
+//     logged server-side with the same request_id.
+//   • Purchase is idempotent by construction:
+//       — order id = seedUuid(userId + ':' + Idempotency-Key)
+//       — order_ref = refFromSeed(same)
+//       — the ledger reference is order_ref, so a replayed debit
+//         23505s at the transactions.reference unique index and is
+//         treated as "already debited" (not as a second charge).
+//       — INSERT on marketplace_orders.id 23505s on a replay, which
+//         becomes either "resume to completed" or 409 PURCHASE_PENDING.
+//       — Once the ledger has been touched, the route NEVER deletes
+//         the order or releases inventory — the sweeper resolves
+//         ambiguity.
+//   • Delivery (`delivery` field, and the /download endpoint) is only
+//     returned for orders with status='completed'. A refunded order
+//     has no delivery, even though the row exists.
+//   • /products and /products/:id return FINAL prices (markup
+//     included). Same function as the purchase route, so the price
+//     shown == the price charged.
+//   • /orders/:id and /orders/:id/download scope to req.user.id.
+//     IDOR is impossible: the WHERE clause is (id = ? AND user_id = ?).
+// ─────────────────────────────────────────────────────────────────
 
 'use strict';
 
@@ -8,237 +34,359 @@ const express = require('express');
 const crypto = require('crypto');
 const { supabaseAdmin } = require('../db/supabase');
 const { authMiddleware } = require('../middleware/auth');
-const { LedgerService, AdminConfigService } = require('../services/ledgerService');
-const IdempotencyService = require('../services/idempotencyService');
+const { LedgerService } = require('../services/ledgerService');
 const marketplace = require('../services/marketplaceService');
+const fulfillment = require('../services/billsFulfillment');
+const recordOrder = (data) => fulfillment.recordOrder(data);
 
 const router = express.Router();
 
-// ═══════════════════════════════════════════════════════════════════
-//  GET /api/market/products
-//  Auth: required
-//  Query: page, limit, category, search, sort
-// ═══════════════════════════════════════════════════════════════════
+// ─── Helpers ────────────────────────────────────────────────────
+const PENDING_MSG = 'We could not confirm this payment yet. Do not pay again. Check your Purchase History in a minute.';
+const DEFINITIVE_LEDGER_ERR = /insufficient|not enough|invalid|unsupported|must be|restricted|suspended/i;
+
+function newRequestId() {
+    return crypto.randomBytes(4).toString('hex');
+}
+
+function fail(res, status, code, error, extra = {}) {
+    if (res.headersSent) return;
+    const rid = newRequestId();
+    if (status >= 500) {
+        console.error('[MARKET]', rid, code, error, extra);
+    }
+    res.status(status).json({ success: false, code, error, request_id: rid, ...extra });
+}
+
+function safeFail(res, status, code, publicMsg) {
+    // Generic outward-facing message for 5xx. Real error was logged
+    // at the call site.
+    return fail(res, status, code, publicMsg);
+}
+
+// In-process rate limiter for /purchase. Per-process — see Known
+// Limitations. For a distributed setup, use Redis or an upstream LB.
+const _hits = new Map();
+function purchaseLimiter(req, res, next) {
+    const k = req.user?.id || req.ip;
+    const now = Date.now();
+    const arr = (_hits.get(k) || []).filter(t => now - t < 60_000);
+    if (arr.length >= 10) {
+        res.setHeader('Retry-After', '30');
+        return fail(res, 429, 'RATE_LIMITED', 'Too many purchase attempts. Please wait a moment.');
+    }
+    arr.push(now);
+    _hits.set(k, arr);
+    next();
+}
+setInterval(() => {
+    const c = Date.now() - 60_000;
+    for (const [k, a] of _hits) if (!a.some(t => t > c)) _hits.delete(k);
+}, 60_000).unref?.();
+
+// ─── Read-side (products) ──────────────────────────────────────
+
 router.get('/products', authMiddleware, async (req, res) => {
     try {
-        const page = Math.max(1, parseInt(req.query.page) || 1);
-        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 30));
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 30));
         const offset = (page - 1) * limit;
-        const category = (req.query.category || '').trim();
-        const search = (req.query.search || '').trim();
-        const sort = (req.query.sort || 'default').trim();
+        const category = String(req.query.category || '').trim();
+        const search = String(req.query.search || '').trim();
+        const sort = String(req.query.sort || 'default').trim();
 
-        // Explicit column selection — includes ALL detail fields
         let query = supabaseAdmin
             .from('marketplace_products')
-            .select(`
-                id,
-                name,
-                category_id,
-                description,
-                long_description,
-                how_to_use,
-                features,
-                mail_access,
-                login_tutorial,
-                login_format,
-                country,
-                price_usd,
-                price_ngn,
-                stock,
-                sold,
-                delivery_type,
-                status,
-                created_at
-            `, { count: 'exact' })
+            .select(
+                'id, name, category_id, description, long_description, how_to_use, features, ' +
+                'mail_access, login_tutorial, login_format, country, price_usd, price_ngn, ' +
+                'stock, sold, delivery_type, status, created_at, ' +
+                'marketplace_categories!marketplace_products_category_id_fkey(name, icon)',
+                { count: 'exact' }
+            )
             .eq('status', 'Active');
 
-        if (category && category !== 'all') {
-            query = query.eq('category_id', category);
-        }
+        if (category && category !== 'all') query = query.eq('category_id', category);
         if (search) {
-            const safe = search.replace(/[%_]/g, (m) => '\\' + m);
+            const safe = search.replace(/[%_\\]/g, m => '\\' + m);
             query = query.ilike('name', `%${safe}%`);
         }
 
-        if (sort === 'price-asc') query = query.order('price_usd', { ascending: true });
+        if (sort === 'price-asc')       query = query.order('price_usd', { ascending: true });
         else if (sort === 'price-desc') query = query.order('price_usd', { ascending: false });
-        else if (sort === 'qty-desc') query = query.order('stock', { ascending: false });
-        else if (sort === 'name-asc') query = query.order('name', { ascending: true });
-        else query = query.order('created_at', { ascending: false });
+        else if (sort === 'qty-desc')   query = query.order('stock', { ascending: false });
+        else if (sort === 'name-asc')   query = query.order('name', { ascending: true });
+        else                            query = query.order('created_at', { ascending: false });
 
         query = query.range(offset, offset + limit - 1);
 
-        const { data, error, count } = await query;
+        // Fetch the pricing context ONCE per request. Both list and
+        // detail use it, so the markup rate is stable within a request.
+        const [qRes, ctx] = await Promise.all([query, marketplace.pricingContext()]);
+        if (qRes.error) {
+            console.error('[MARKET] products query failed:', qRes.error.message);
+            return safeFail(res, 500, 'PRODUCTS_FETCH_FAILED', 'Could not load products.');
+        }
 
-        if (error) throw error;
-
-        const products = (data || []).map(marketplace.sanitizeProduct);
-
+        const products = (qRes.data || []).map(p => marketplace.sanitizeProduct(p, ctx));
         res.json({
             success: true,
             products,
             meta: {
                 page,
                 limit,
-                total: count || 0,
-                hasMore: offset + products.length < (count || 0),
-            }
+                total: qRes.count || 0,
+                hasMore: offset + products.length < (qRes.count || 0),
+            },
         });
     } catch (err) {
         console.error('[MARKET] /products error:', err.message);
-        res.status(500).json({
-            success: false,
-            error: 'Could not load marketplace products',
-            code: 'PRODUCTS_FETCH_FAILED'
-        });
+        return safeFail(res, 500, 'PRODUCTS_FETCH_FAILED', 'Could not load products.');
     }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-//  GET /api/market/products/:id
-// ═══════════════════════════════════════════════════════════════════
 router.get('/products/:id', authMiddleware, async (req, res) => {
     try {
         const { data, error } = await supabaseAdmin
             .from('marketplace_products')
-            .select(`
-                id,
-                name,
-                category_id,
-                description,
-                long_description,
-                how_to_use,
-                features,
-                mail_access,
-                login_tutorial,
-                login_format,
-                country,
-                price_usd,
-                price_ngn,
-                stock,
-                sold,
-                delivery_type,
-                status,
-                created_at
-            `)
+            .select(
+                'id, name, category_id, description, long_description, how_to_use, features, ' +
+                'mail_access, login_tutorial, login_format, country, price_usd, price_ngn, ' +
+                'stock, sold, delivery_type, status, created_at, ' +
+                'marketplace_categories!marketplace_products_category_id_fkey(name, icon)'
+            )
             .eq('id', req.params.id)
             .eq('status', 'Active')
             .maybeSingle();
 
-        if (error) throw error;
-        if (!data) {
-            return res.status(404).json({ success: false, error: 'Product not found', code: 'NOT_FOUND' });
+        if (error) {
+            console.error('[MARKET] product get failed:', error.message);
+            return safeFail(res, 500, 'PRODUCT_FETCH_FAILED', 'Could not load product.');
         }
+        if (!data) return fail(res, 404, 'NOT_FOUND', 'Product not found');
 
-        res.json({ success: true, product: marketplace.sanitizeProduct(data) });
+        const ctx = await marketplace.pricingContext();
+        res.json({ success: true, product: marketplace.sanitizeProduct(data, ctx) });
     } catch (err) {
         console.error('[MARKET] /products/:id error:', err.message);
-        res.status(500).json({ success: false, error: 'Could not load product', code: 'PRODUCT_FETCH_FAILED' });
+        return safeFail(res, 500, 'PRODUCT_FETCH_FAILED', 'Could not load product.');
     }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-//  POST /api/market/purchase
-// ═══════════════════════════════════════════════════════════════════
-router.post('/purchase', authMiddleware, async (req, res) => {
-    const userId = req.user?.id;
-    const idempotencyKey = req.headers['idempotency-key'] || req.body?.idempotency_key;
-    let createdOrderId = null;
-    let ledgerTransactionId = null;
-    let inventoryId = null;
-    let unifiedTxId = null;
+router.get('/categories', authMiddleware, async (_req, res) => {
+    try {
+        const { data, error } = await supabaseAdmin
+            .from('marketplace_categories')
+            .select('id, name, icon')
+            .eq('status', 'Active')
+            .order('name');
+        if (error) return safeFail(res, 500, 'CATEGORIES_FAILED', 'Could not load categories');
+        res.json({ success: true, categories: data || [] });
+    } catch (err) {
+        console.error('[MARKET] /categories error:', err.message);
+        return safeFail(res, 500, 'CATEGORIES_FAILED', 'Could not load categories');
+    }
+});
+
+router.get('/balances', authMiddleware, async (req, res) => {
+    try {
+        const [ngn, usd] = await Promise.all([
+            LedgerService.getBalance(req.user.id, 'NGN'),
+            LedgerService.getBalance(req.user.id, 'USD'),
+        ]);
+        res.json({ success: true, balances: { NGN: ngn, USD: usd } });
+    } catch (err) {
+        console.error('[MARKET] /balances error:', err.message);
+        return safeFail(res, 500, 'BALANCES_FAILED', 'Could not load wallet balances');
+    }
+});
+
+// ─── Purchase ──────────────────────────────────────────────────
+
+async function releaseInventory(inventoryId, orderId) {
+    if (!inventoryId || !orderId) return;
+    const { error } = await supabaseAdmin.rpc('release_marketplace_inventory', {
+        p_inventory_id: inventoryId,
+        p_order_id: orderId,
+    });
+    if (error) {
+        console.error('[MARKET] release inventory FAILED, fix manually', { inventoryId, orderId, error: error.message });
+    }
+}
+
+async function completeOrder({ order, product, pricing, inv, txId }) {
+    const now = new Date().toISOString();
+    const delivery = marketplace.buildDeliveryPayload(inv, { product_title: product.name }, product);
+
+    const { error } = await supabaseAdmin
+        .from('marketplace_orders')
+        .update({
+            status: 'completed',
+            completed_at: now,
+            updated_at: now,
+            delivered_data: delivery,
+            unified_transaction_id: txId,
+        })
+        .eq('id', order.id);
+    if (error) throw new Error('order finalize failed: ' + error.message);
 
     try {
-        const { product_id, wallet_type } = req.body || {};
-        const wallet = String(wallet_type || '').toUpperCase();
+        // Mirror with the REAL cost — profit is not 100%.
+        await recordOrder({
+            billTransactionId: order.id,
+            reference: order.order_ref,
+            userId: order.user_id,
+            productType: 'marketplace',
+            serviceId: String(product.id),
+            provider: 'marketplace',
+            currency: order.currency,
+            amount: pricing.cost,
+            serviceFee: pricing.markup,
+            totalAmount: Number(order.total),
+            providerCost: pricing.cost,
+            status: 'completed',
+            recipient: null,
+            metadata: {
+                product_name: product.name,
+                product_category: product.category_id || null,
+                inventory_id: inv.id,
+                ledger_transaction_id: txId,
+            },
+        });
+    } catch (e) {
+        console.error('[MARKET][MIRROR] recordOrder failed', order.order_ref, e.message);
+    }
+}
 
-        if (!product_id) {
-            return res.status(400).json({ success: false, error: 'product_id is required', code: 'MISSING_PRODUCT' });
+router.post('/purchase', authMiddleware, purchaseLimiter, async (req, res) => {
+    const userId = req.user?.id;
+    let orderId = null;
+    let inventoryId = null;
+    let ledgerTouched = false;
+
+    try {
+        const key = String(req.headers['idempotency-key'] || req.body?.idempotency_key || '').trim();
+        if (key.length < 8 || key.length > 120) {
+            return fail(res, 400, 'IDEMPOTENCY_KEY_REQUIRED', 'Idempotency-Key header is required.');
+        }
+
+        const { product_id, wallet_type, expected_total } = req.body || {};
+        const wallet = String(wallet_type || '').toUpperCase();
+        if (!product_id || typeof product_id !== 'string') {
+            return fail(res, 400, 'MISSING_PRODUCT', 'product_id is required');
         }
         if (wallet !== 'NGN' && wallet !== 'USD') {
-            return res.status(400).json({ success: false, error: 'wallet_type must be NGN or USD', code: 'INVALID_WALLET' });
+            return fail(res, 400, 'INVALID_WALLET', 'wallet_type must be NGN or USD');
         }
 
-        // ─── 1. Idempotency ───
-        const endpoint = '/api/market/purchase';
-        if (idempotencyKey) {
-            const existing = await IdempotencyService.check(userId, idempotencyKey, endpoint);
-            if (existing) {
-                return res.json({ success: true, already_processed: true, purchase: existing });
-            }
-        }
+        // Deterministic IDs — the same key always resolves to the same
+        // primary key and the same reference. This is the entire
+        // idempotency guarantee.
+        const seed = `${userId}:${key}`;
+        const newOrderId = marketplace.seedUuid(seed);
+        const orderRef = marketplace.refFromSeed(seed);
 
-        // ─── 2. Fetch product ───
-        const { data: product, error: prodErr } = await supabaseAdmin
-            .from('marketplace_products')
-            .select('id, name, category_id, price_usd, price_ngn, stock, status, delivery_type')
-            .eq('id', product_id)
-            .eq('status', 'Active')
+        // ── 1. Replay of an earlier attempt ─────────────────────
+        const { data: prior, error: priorErr } = await supabaseAdmin
+            .from('marketplace_orders')
+            .select('id, order_ref, user_id, status, total, currency, product_id, product_name, inventory_id, download_token, unified_transaction_id')
+            .eq('id', newOrderId)
             .maybeSingle();
+        if (priorErr) throw priorErr;
 
-        if (prodErr) throw prodErr;
-        if (!product) {
-            return res.status(404).json({ success: false, error: 'Product not found', code: 'NOT_FOUND' });
-        }
+        if (prior) {
+            if (prior.status === 'completed') {
+                return res.json({
+                    success: true,
+                    already_processed: true,
+                    purchase: marketplace.purchaseView(prior),
+                });
+            }
+            // Order exists but is not completed. Find out whether the
+            // ledger committed — if so, resume. If not, keep order
+            // and let the sweeper resolve; do NOT roll back.
+            const tx = await LedgerService.findTransactionByReference(prior.order_ref);
+            if (!tx) return fail(res, 409, 'PURCHASE_PENDING', PENDING_MSG);
 
-        // ─── 3. Price ───
-        const pricing = await marketplace.computePrice(product, wallet);
-        const requiredAmount = pricing.charge;
+            const [{ data: product }, { data: inv }] = await Promise.all([
+                supabaseAdmin
+                    .from('marketplace_products')
+                    .select('id, name, category_id, price_usd, price_ngn')
+                    .eq('id', prior.product_id)
+                    .maybeSingle(),
+                supabaseAdmin
+                    .from('marketplace_inventory')
+                    .select('*')
+                    .eq('id', prior.inventory_id)
+                    .maybeSingle(),
+            ]);
+            if (!product || !inv) return fail(res, 409, 'PURCHASE_PENDING', PENDING_MSG);
 
-        if (!Number.isFinite(requiredAmount) || requiredAmount <= 0) {
-            return res.status(400).json({ success: false, error: 'Invalid product price', code: 'INVALID_PRICE' });
-        }
+            const pricing = await marketplace.computePrice(product, prior.currency);
+            await completeOrder({ order: prior, product, pricing, inv, txId: tx.id });
 
-        // ─── 4. Balance ───
-        const balance = await LedgerService.getBalance(userId, wallet);
-        if (balance < requiredAmount) {
-            return res.status(400).json({
-                success: false,
-                error: `Insufficient ${wallet} balance. Need ${wallet === 'USD' ? '$' : '₦'}${requiredAmount.toFixed(2)}`,
-                code: 'INSUFFICIENT_BALANCE'
+            return res.json({
+                success: true,
+                recovered: true,
+                purchase: marketplace.purchaseView({ ...prior, unified_transaction_id: tx.id }),
             });
         }
 
-        // ─── 5. IDs ───
-        const orderId = marketplace.generateOrderId();       // UUID
-        const orderRef = marketplace.generateOrderRef();
-        const downloadToken = marketplace.generateDownloadToken();
+        // ── 2. Product and exact price ──────────────────────────
+        const { data: product, error: pErr } = await supabaseAdmin
+            .from('marketplace_products')
+            .select('id, name, category_id, price_usd, price_ngn, status')
+            .eq('id', product_id)
+            .eq('status', 'Active')
+            .maybeSingle();
+        if (pErr) throw pErr;
+        if (!product) return fail(res, 404, 'NOT_FOUND', 'Product not found');
 
-        // ─── 6. Allocate inventory ───
-        const { data: allocRows, error: allocError } = await supabaseAdmin.rpc(
-            'allocate_marketplace_inventory',
-            {
-                p_product_id: product.id,
-                p_user_id: userId,
-                p_order_id: orderId,
-            }
-        );
-
-        if (allocError) throw allocError;
-        if (!allocRows || allocRows.length === 0) {
-            return res.status(400).json({ success: false, error: 'Out of stock', code: 'OUT_OF_STOCK' });
+        const pricing = await marketplace.computePrice(product, wallet);
+        if (!(pricing.charge > 0)) {
+            return fail(res, 400, 'INVALID_PRICE', 'Invalid product price');
+        }
+        if (expected_total != null && Math.abs(Number(expected_total) - pricing.charge) > 0.009) {
+            return fail(res, 409, 'PRICE_CHANGED', 'The price changed. Please review the new total.', {
+                current_total: pricing.charge,
+                currency: wallet,
+            });
         }
 
-        const inventoryRow = allocRows[0];
-        inventoryId = inventoryRow.id;
+        // ── 3. Balance pre-check (the ledger is still the authority) ─
+        const balance = await LedgerService.getBalance(userId, wallet);
+        if (balance < pricing.charge) {
+            return fail(res, 400, 'INSUFFICIENT_BALANCE', `Insufficient ${wallet} balance.`, {
+                required: pricing.charge,
+                balance,
+            });
+        }
 
-        // ─── 7. Create order ───
-        const deliveryPayload = marketplace.buildDeliveryPayload(inventoryRow, {
-            product_title: product.name
-        }, product);
+        // ── 4. Reserve one inventory item ───────────────────────
+        const { data: alloc, error: allocErr } = await supabaseAdmin.rpc('allocate_marketplace_inventory', {
+            p_product_id: product.id,
+            p_user_id: userId,
+            p_order_id: newOrderId,
+        });
+        if (allocErr) throw allocErr;
+        if (!alloc || !alloc.length) {
+            return fail(res, 400, 'OUT_OF_STOCK', 'Out of stock');
+        }
+        const inv = alloc[0];
+        inventoryId = inv.id;
 
-        const { data: order, error: orderError } = await supabaseAdmin
+        // ── 5. Pending order row. No credentials yet. ───────────
+        const { data: order, error: oErr } = await supabaseAdmin
             .from('marketplace_orders')
             .insert({
-                id: orderId,                    // UUID
+                id: newOrderId,
                 order_ref: orderRef,
                 user_id: userId,
                 product_id: product.id,
                 product_name: product.name,
                 product_title: product.name,
                 quantity: 1,
-                total: requiredAmount,
+                total: pricing.charge,
                 currency: wallet,
                 wallet: wallet,
                 wallet_used: wallet,
@@ -246,36 +394,39 @@ router.post('/purchase', authMiddleware, async (req, res) => {
                 price_ngn: pricing.ngn,
                 status: 'pending',
                 inventory_id: inventoryId,
-                download_token: downloadToken,
+                download_token: marketplace.generateDownloadToken(),
                 download_count: 0,
-                delivered_data: deliveryPayload,
-                idempotency_key: idempotencyKey || null,
+                delivered_data: null,
+                idempotency_key: key,
                 created_at: new Date().toISOString(),
             })
             .select()
             .single();
 
-        if (orderError) {
-            await supabaseAdmin
-                .from('marketplace_inventory')
-                .update({ status: 'available', sold_to_user_id: null, sold_order_id: null, sold_at: null })
-                .eq('id', inventoryId);
-            throw orderError;
+        if (oErr) {
+            await releaseInventory(inventoryId, newOrderId);
+            inventoryId = null;
+            if (oErr.code === '23505') {
+                return fail(res, 409, 'PURCHASE_PENDING', PENDING_MSG);
+            }
+            throw oErr;
         }
-        createdOrderId = order.id;
+        orderId = newOrderId;
 
-        // ─── 8. Debit wallet ───
-        let txResult;
+        // ── 6. Debit. Deterministic reference prevents double charge. ─
+        let txId;
+        let balanceAfter = null;
+        ledgerTouched = true;
         try {
-            txResult = await LedgerService.createTransaction({
+            const tx = await LedgerService.createTransaction({
                 userId,
                 type: 'marketplace_purchase',
-                amount: -requiredAmount,
+                amount: -pricing.charge,
                 currency: wallet,
                 description: `Purchased: ${product.name}`,
                 reference: orderRef,
                 sourceType: 'order',
-                sourceId: order.id,             // ← valid UUID
+                sourceId: orderId,
                 provider: 'marketplace',
                 metadata: {
                     product_id: product.id,
@@ -283,171 +434,113 @@ router.post('/purchase', authMiddleware, async (req, res) => {
                     order_ref: orderRef,
                     inventory_id: inventoryId,
                 },
-                idempotencyKey: idempotencyKey || IdempotencyService.generateKey('MP'),
+                idempotencyKey: `mp:${orderId}`,
             });
-        } catch (txErr) {
-            await supabaseAdmin.from('marketplace_orders').delete().eq('id', order.id);
-            await supabaseAdmin
-                .from('marketplace_inventory')
-                .update({ status: 'available', sold_to_user_id: null, sold_order_id: null, sold_at: null })
-                .eq('id', inventoryId);
-            throw txErr;
-        }
-
-        if (!txResult?.success) {
-            await supabaseAdmin.from('marketplace_orders').delete().eq('id', order.id);
-            await supabaseAdmin
-                .from('marketplace_inventory')
-                .update({ status: 'available', sold_to_user_id: null, sold_order_id: null, sold_at: null })
-                .eq('id', inventoryId);
-            throw new Error(txResult?.error || 'Ledger debit failed');
-        }
-        ledgerTransactionId = txResult.transaction_id;
-
-        // ─── 9. Mark order completed ───
-        await supabaseAdmin
-            .from('marketplace_orders')
-            .update({
-                status: 'completed',
-                completed_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-            })
-            .eq('id', order.id);
-
-        // ─── 9b. Insert into UNIFIED transactions table ───
-        try {
-            const walletLabel = wallet === 'USD' ? 'USD' : 'NGN';
-            const unifiedRow = {
-                user_id: userId,
-                reference: orderRef,
-                type: 'marketplace_purchase',
-                status: 'completed',
-                currency: walletLabel,
-                amount: requiredAmount,
-                fee: 0,
-                description: `Marketplace: ${product.name}`,
-                source_type: 'marketplace',
-                source_id: order.id,           // ← UUID
-                provider: 'marketplace',
-                provider_reference: null,
-                metadata: {
-                    product_id: product.id,
-                    product_name: product.name,
-                    order_ref: orderRef,
-                    inventory_id: inventoryId,
-                    ledger_transaction_id: ledgerTransactionId,
-                },
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                completed_at: new Date().toISOString(),
-            };
-
-            const { data: unifiedTx, error: unifiedErr } = await supabaseAdmin
-                .from('transactions')
-                .insert(unifiedRow)
-                .select('id')
-                .single();
-
-            if (!unifiedErr && unifiedTx) {
-                unifiedTxId = unifiedTx.id;
+            txId = tx.transaction_id;
+            balanceAfter = tx.balance_after ?? null;
+        } catch (ledgerErr) {
+            // Ambiguous vs definitive? Only "definitive" errors are
+            // safe to roll back. If we cannot tell, assume the debit
+            // committed (or will) and leave the order pending.
+            const found = await LedgerService.findTransactionByReference(orderRef);
+            if (found) {
+                txId = found.id;
+            } else if (DEFINITIVE_LEDGER_ERR.test(String(ledgerErr.message))) {
+                ledgerTouched = false;
+                await releaseInventory(inventoryId, orderId);
                 await supabaseAdmin
                     .from('marketplace_orders')
-                    .update({ unified_transaction_id: unifiedTxId })
-                    .eq('id', order.id);
-            } else if (unifiedErr) {
-                console.warn('[MARKET] Unified tx insert failed (non-fatal):', unifiedErr.message);
+                    .delete()
+                    .eq('id', orderId)
+                    .eq('status', 'pending');
+                inventoryId = null;
+                orderId = null;
+                const nsf = /insufficient|not enough/i.test(String(ledgerErr.message));
+                return fail(
+                    res,
+                    400,
+                    nsf ? 'INSUFFICIENT_BALANCE' : 'PAYMENT_DECLINED',
+                    nsf ? `Insufficient ${wallet} balance.` : 'Payment could not be processed.'
+                );
+            } else {
+                console.error('[MARKET] ambiguous ledger error', orderRef, ledgerErr.message);
+                return fail(res, 409, 'PURCHASE_PENDING', PENDING_MSG);
             }
-        } catch (e) {
-            console.warn('[MARKET] Unified tx error (non-fatal):', e.message);
         }
 
-        // ─── 10. Increment sold (best-effort) ───
+        // ── 7. Deliver + link + mirror ──────────────────────────
         try {
-            await supabaseAdmin.rpc('increment_marketplace_sold', { p_product_id: product.id });
-        } catch {}
-
-        // ─── 11. Save idempotency ───
-        const purchaseResponse = {
-            order_ref: orderRef,
-            order_id: order.id,
-            product_name: product.name,
-            price: requiredAmount,
-            currency: wallet,
-            new_balance: txResult.balance_after,
-            download_token: downloadToken,
-            transaction_id: txResult.transaction_id,
-            unified_transaction_id: unifiedTxId,
-        };
-
-        if (idempotencyKey) {
-            await IdempotencyService.save(userId, idempotencyKey, endpoint, purchaseResponse);
+            await completeOrder({ order, product, pricing, inv, txId });
+        } catch (e) {
+            console.error('[MARKET] finalize failed after debit', orderRef, e.message);
+            return fail(res, 409, 'PURCHASE_PENDING', PENDING_MSG);
         }
 
         if (global.invalidateDashboardCache) global.invalidateDashboardCache();
 
-        res.json({ success: true, purchase: purchaseResponse });
-    } catch (error) {
-        console.error('[MARKET] Purchase error:', error);
-        try {
-            if (createdOrderId && !ledgerTransactionId) {
-                await supabaseAdmin.from('marketplace_orders').delete().eq('id', createdOrderId);
-            }
-            if (inventoryId && !ledgerTransactionId) {
-                await supabaseAdmin
-                    .from('marketplace_inventory')
-                    .update({ status: 'available', sold_to_user_id: null, sold_order_id: null, sold_at: null })
-                    .eq('id', inventoryId);
-            }
-        } catch (cleanupErr) {
-            console.error('[MARKET] Cleanup error:', cleanupErr.message);
-        }
-        res.status(500).json({
-            success: false,
-            error: error.message || 'Purchase failed',
-            code: 'PURCHASE_FAILED'
+        return res.json({
+            success: true,
+            purchase: {
+                order_ref: orderRef,
+                order_id: orderId,
+                product_name: product.name,
+                price: pricing.charge,
+                currency: wallet,
+                new_balance: balanceAfter,
+                download_token: order.download_token,
+                transaction_id: txId,
+                unified_transaction_id: txId,
+            },
         });
+    } catch (err) {
+        console.error('[MARKET] purchase error:', err.message);
+        // Only roll back if we are certain the ledger was never touched.
+        if (!ledgerTouched) {
+            try {
+                if (inventoryId && orderId) await releaseInventory(inventoryId, orderId);
+                if (orderId) {
+                    await supabaseAdmin
+                        .from('marketplace_orders')
+                        .delete()
+                        .eq('id', orderId)
+                        .eq('status', 'pending');
+                }
+            } catch (cleanupErr) {
+                console.error('[MARKET] cleanup failed:', cleanupErr.message);
+            }
+            return safeFail(res, 500, 'PURCHASE_FAILED', 'Purchase could not be completed. You have not been charged.');
+        }
+        return fail(res, 409, 'PURCHASE_PENDING', PENDING_MSG);
     }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-//  GET /api/market/orders
-// ═══════════════════════════════════════════════════════════════════
+// ─── Read-side (orders) ────────────────────────────────────────
+
 router.get('/orders', authMiddleware, async (req, res) => {
     try {
-        const userId = req.user?.id;
-        const page = Math.max(1, parseInt(req.query.page) || 1);
-        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
+        const userId = req.user.id;
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 20));
         const offset = (page - 1) * limit;
 
         const { data, error, count } = await supabaseAdmin
             .from('marketplace_orders')
-            .select(`
-                id,
-                order_ref,
-                product_id,
-                product_name,
-                product_title,
-                quantity,
-                total,
-                currency,
-                wallet,
-                wallet_used,
-                price_usd,
-                price_ngn,
-                status,
-                download_count,
-                last_download_at,
-                created_at,
-                completed_at
-            `, { count: 'exact' })
+            .select(
+                'id, order_ref, product_id, product_name, product_title, quantity, total, ' +
+                'currency, wallet, wallet_used, price_usd, price_ngn, status, ' +
+                'download_count, last_download_at, created_at, completed_at',
+                { count: 'exact' }
+            )
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
             .range(offset, offset + limit - 1);
 
-        if (error) throw error;
+        if (error) {
+            console.error('[MARKET] /orders query failed:', error.message);
+            return safeFail(res, 500, 'ORDERS_FETCH_FAILED', 'Could not load orders.');
+        }
 
         const orders = (data || []).map(marketplace.sanitizeOrderRow);
-
         res.json({
             success: true,
             data: orders,
@@ -456,99 +549,73 @@ router.get('/orders', authMiddleware, async (req, res) => {
                 limit,
                 total: count || 0,
                 hasMore: offset + orders.length < (count || 0),
-            }
+            },
         });
     } catch (err) {
         console.error('[MARKET] /orders error:', err.message);
-        res.status(500).json({ success: false, error: 'Could not load orders', code: 'ORDERS_FETCH_FAILED' });
+        return safeFail(res, 500, 'ORDERS_FETCH_FAILED', 'Could not load orders.');
     }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-//  GET /api/market/orders/:id
-// ═══════════════════════════════════════════════════════════════════
 router.get('/orders/:id', authMiddleware, async (req, res) => {
     try {
-        const userId = req.user?.id;
-
+        const userId = req.user.id;
         const { data, error } = await supabaseAdmin
             .from('marketplace_orders')
-            .select(`
-                id,
-                order_ref,
-                user_id,
-                product_id,
-                product_name,
-                product_title,
-                quantity,
-                total,
-                currency,
-                wallet,
-                wallet_used,
-                price_usd,
-                price_ngn,
-                status,
-                download_count,
-                last_download_at,
-                created_at,
-                completed_at,
-                delivered_data
-            `)
-            .eq('id', req.params.id)
-            .eq('user_id', userId)  // ← ownership check
-            .maybeSingle();
-
-        if (error) throw error;
-        if (!data) {
-            return res.status(404).json({ success: false, error: 'Order not found', code: 'NOT_FOUND' });
-        }
-
-        const order = marketplace.sanitizeOrderRow(data);
-        order.delivery = data.delivered_data || null;
-
-        res.json({ success: true, order });
-    } catch (err) {
-        console.error('[MARKET] /orders/:id error:', err.message);
-        res.status(500).json({ success: false, error: 'Could not load order', code: 'ORDER_FETCH_FAILED' });
-    }
-});
-
-// ═══════════════════════════════════════════════════════════════════
-//  GET /api/market/orders/:id/download
-// ═══════════════════════════════════════════════════════════════════
-router.get('/orders/:id/download', authMiddleware, async (req, res) => {
-    try {
-        const userId = req.user?.id;
-
-        const { data: order, error } = await supabaseAdmin
-            .from('marketplace_orders')
-            .select(`
-                id,
-                order_ref,
-                user_id,
-                product_name,
-                product_title,
-                wallet,
-                wallet_used,
-                price_usd,
-                price_ngn,
-                status,
-                download_count,
-                delivered_data,
-                created_at
-            `)
+            .select(
+                'id, order_ref, user_id, product_id, product_name, product_title, quantity, ' +
+                'total, currency, wallet, wallet_used, price_usd, price_ngn, status, ' +
+                'download_count, last_download_at, created_at, completed_at, ' +
+                'delivered_data, unified_transaction_id'
+            )
             .eq('id', req.params.id)
             .eq('user_id', userId)
             .maybeSingle();
 
-        if (error) throw error;
-        if (!order) {
-            return res.status(404).json({ success: false, error: 'Order not found', code: 'NOT_FOUND' });
+        if (error) {
+            console.error('[MARKET] /orders/:id query failed:', error.message);
+            return safeFail(res, 500, 'ORDER_FETCH_FAILED', 'Could not load order.');
         }
-        if (order.status !== 'completed') {
-            return res.status(400).json({ success: false, error: 'Order is not completed', code: 'ORDER_NOT_COMPLETED' });
+        if (!data) return fail(res, 404, 'NOT_FOUND', 'Order not found');
+
+        const order = marketplace.sanitizeOrderRow(data);
+        // Delivery is only exposed for completed orders. A refunded
+        // order keeps the row but loses the delivery.
+        if (data.status === 'completed' && data.delivered_data) {
+            order.delivery = data.delivered_data;
+        } else {
+            order.delivery = null;
+        }
+        res.json({ success: true, order });
+    } catch (err) {
+        console.error('[MARKET] /orders/:id error:', err.message);
+        return safeFail(res, 500, 'ORDER_FETCH_FAILED', 'Could not load order.');
+    }
+});
+
+router.get('/orders/:id/download', authMiddleware, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { data: order, error } = await supabaseAdmin
+            .from('marketplace_orders')
+            .select(
+                'id, order_ref, user_id, product_name, product_title, wallet, wallet_used, ' +
+                'price_usd, price_ngn, total, status, download_count, delivered_data, created_at'
+            )
+            .eq('id', req.params.id)
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        if (error) {
+            console.error('[MARKET] /download query failed:', error.message);
+            return safeFail(res, 500, 'DOWNLOAD_FAILED', 'Download failed.');
+        }
+        if (!order) return fail(res, 404, 'NOT_FOUND', 'Order not found');
+        if (order.status !== 'completed' || !order.delivered_data) {
+            return fail(res, 400, 'ORDER_NOT_COMPLETED', 'Order is not completed');
         }
 
+        // Increment the download counter — best effort.
         let downloadCount = (order.download_count || 0) + 1;
         try {
             const { data: newCount, error: incErr } = await supabaseAdmin.rpc(
@@ -557,7 +624,7 @@ router.get('/orders/:id/download', authMiddleware, async (req, res) => {
             );
             if (!incErr && Number.isFinite(newCount)) downloadCount = newCount;
         } catch (incErr) {
-            console.warn('[MARKET] Download counter RPC failed (non-fatal):', incErr.message);
+            console.warn('[MARKET] download counter RPC failed (non-fatal):', incErr.message);
         }
 
         const delivery = order.delivered_data || {};
@@ -568,7 +635,7 @@ router.get('/orders/:id/download', authMiddleware, async (req, res) => {
 
         const lines = [
             '═══════════════════════════════════════════════',
-            '  📦 MILESPACE ORDER DETAILS',
+            '  MILESPACE ORDER DETAILS',
             '═══════════════════════════════════════════════',
             '',
             `Order ID:    ${order.order_ref}`,
@@ -601,33 +668,29 @@ router.get('/orders/:id/download', authMiddleware, async (req, res) => {
         res.send(lines.join('\n'));
     } catch (err) {
         console.error('[MARKET] /orders/:id/download error:', err.message);
-        res.status(500).json({ success: false, error: 'Download failed', code: 'DOWNLOAD_FAILED' });
+        return safeFail(res, 500, 'DOWNLOAD_FAILED', 'Download failed.');
     }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-//  LEGACY: GET /api/market/download/:token
-// ═══════════════════════════════════════════════════════════════════
+// ─── Legacy token-based download ────────────────────────────────
 router.get('/download/:token', authMiddleware, async (req, res) => {
     try {
-        const userId = req.user?.id;
-
+        const userId = req.user.id;
         const { data: order, error } = await supabaseAdmin
             .from('marketplace_orders')
             .select('id')
             .eq('download_token', req.params.token)
             .eq('user_id', userId)
             .maybeSingle();
-
-        if (error) throw error;
-        if (!order) {
-            return res.status(404).json({ success: false, error: 'Order not found', code: 'NOT_FOUND' });
+        if (error) {
+            console.error('[MARKET] legacy download query failed:', error.message);
+            return safeFail(res, 500, 'DOWNLOAD_FAILED', 'Download failed.');
         }
-
+        if (!order) return fail(res, 404, 'NOT_FOUND', 'Order not found');
         return res.redirect(`/api/market/orders/${order.id}/download`);
     } catch (err) {
         console.error('[MARKET] legacy /download error:', err.message);
-        res.status(500).json({ success: false, error: 'Download failed', code: 'DOWNLOAD_FAILED' });
+        return safeFail(res, 500, 'DOWNLOAD_FAILED', 'Download failed.');
     }
 });
 

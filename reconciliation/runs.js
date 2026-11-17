@@ -50,25 +50,44 @@ async function createRun({ provider, service, type = 'sweep', ctx = {}, from = n
 
 async function finishRun(runId, { status = 'completed', counts = {}, error = null, lockSkipped = false } = {}) {
     const c = { ...emptyCounts(), ...(counts || {}) };
+    const VALID_STATUSES = new Set(['running', 'completed', 'failed', 'rate_limited', 'skipped']);
+    const safeStatus = VALID_STATUSES.has(status) ? status : 'completed';
+
+    const patch = {
+        status: safeStatus,
+        scanned:       c.scanned       || 0,
+        settled:       c.settled       || 0,
+        failed:        c.failed        || 0,
+        manual_review: c.manual_review || 0,
+        rate_limited:  c.rate_limited  || 0,
+        skipped:       c.skipped       || 0,
+        lock_skipped:  Boolean(lockSkipped),
+        error:         error || null,
+        finished_at:   new Date().toISOString()
+    };
+
     const { error: upErr } = await supabaseAdmin
         .from('reconciliation_runs')
-        .update({
-            status,
-            scanned:       c.scanned       || 0,
-            settled:       c.settled       || 0,
-            failed:        c.failed        || 0,
-            manual_review: c.manual_review || 0,
-            rate_limited:  c.rate_limited  || 0,
-            skipped:       c.skipped       || 0,
-            lock_skipped:  Boolean(lockSkipped),
-            error:         error || null,
-            finished_at:   new Date().toISOString()
-        })
+        .update(patch)
         .eq('id', runId);
-    if (upErr) {
-        // A failed run-close must not mask the sweep's actual outcome.
-        console.error('[RUNS] finishRun failed:', upErr.message);
+
+    if (!upErr) return;
+
+    // If the status value itself was rejected (stale CHECK constraint
+    // on a fresh deploy), try once more with 'failed' — which every
+    // version of the constraint allows — so the row is never left
+    // permanently in 'running'.
+    if (upErr.code === '23514' || /check constraint/i.test(upErr.message || '')) {
+        console.warn('[RUNS] status constraint rejected "' + safeStatus + '"; retrying as "failed"');
+        const { error: retryErr } = await supabaseAdmin
+            .from('reconciliation_runs')
+            .update({ ...patch, status: 'failed', error: (error || '') + ' (invalid status "' + status + '")' })
+            .eq('id', runId);
+        if (retryErr) console.error('[RUNS] retry as failed also failed:', retryErr.message);
+        return;
     }
+
+    console.error('[RUNS] finishRun failed:', upErr.message);
 }
 
 module.exports = { createRun, finishRun, emptyCounts };

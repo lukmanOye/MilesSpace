@@ -278,6 +278,31 @@ function safeMount(app, prefix, route) {
   return false;
 }
 
+// ─── Release dead leases from a previous process ─────────────
+// nodemon restart (or any crash) leaves recon_locks rows held.
+// They can't be released from the grave; release them here.
+// Filter by heartbeat so we don't steal a lease from a live
+// process on a different instance.
+(async () => {
+  try {
+    const { supabaseAdmin } = require('./db/supabase');
+    const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const { data, error } = await supabaseAdmin
+      .from('recon_locks')
+      .update({ released_at: new Date().toISOString(), locked_until: new Date().toISOString() })
+      .is('released_at', null)
+      .lt('heartbeat_at', cutoff)
+      .select('name');
+    if (error) {
+      console.warn('[RECON LOCKS] startup release failed:', error.message);
+    } else if (data && data.length) {
+      console.log('[RECON LOCKS] released', data.length, 'stale lease(s) on startup');
+    }
+  } catch (e) {
+    console.warn('[RECON LOCKS] startup release threw:', e.message);
+  }
+})();
+
 // ═══════════════════════════════════════════════════════════════════
 //  USER ROUTES
 // ═══════════════════════════════════════════════════════════════════
@@ -327,6 +352,7 @@ try {
 } catch (e) {
   console.warn("  ⚠️ /api/transactions (status) → skipped:", e.message);
 }
+app.use('/api/transactions', require('./routes/transactionFeedbackRoute'));
 
 safeMount(app, "/api/transactions", transactionRoutes);
 safeMount(app, "/api/transactions", transactionRoutes);
@@ -343,6 +369,8 @@ safeMount(app, "/api/wallet", walletRoutes);
 safeMount(app, "/api/wallet/nowpayments", nowPaymentsRoutes);
 safeMount(app, "/api/user", userSettingsRoutes);
 safeMount(app, "/api/ticker", tickerRoutes);
+app.use("/api/admin/ticker", tickerRoutes.admin);
+console.log("  ✅ /api/admin/ticker (admin) → loaded");
 // NOTE: koraDepositsRoutes was already mounted ABOVE the global
 // express.json() so it gets the raw body. Do NOT mount it here.
 
@@ -360,6 +388,12 @@ console.log("  ✅ /api/airtime → loaded");
 
 app.use("/api/bills", billsRoutes);
 console.log("  ✅ /api/bills → loaded");
+
+// somewhere after your other requires, near the end of server.js
+if (String(process.env.BOOST_WORKER || '').toLowerCase() === 'true') {
+    require('./worker/boostWorker').init();
+    console.log('  ✅ Boost worker started (BOOST_WORKER=true)');
+}
 
 // ═══════════════════════════════════════════════════════════════════
 //  ADMIN API ROUTES — GENERIC /api/admin MOUNTS
@@ -397,6 +431,9 @@ const adminUserRoutes = safeRequire("./routes/admin/userRoutes");
 app.use("/api/admin", require("./routes/admin/supportRoutes"));
 app.use("/api/admin", require("./routes/admin/boostAdminRoutes"));
 const orderAdminRoutes = require("./routes/admin/orderRoutes");
+// ─── Infrastructure admin routes (mounted BEFORE the 404 handler) ───
+app.use("/api/admin", require("./routes/admin/infrastructureAdminRoutes"));
+console.log("  ✅ /api/admin (infrastructure) → loaded");
 
 app.use("/api/admin", orderAdminRoutes);
 app.use("/api/webhooks", require("./routes/webhooks"));
@@ -432,7 +469,10 @@ if (giftcardAdminRoutes) app.use("/api/admin", giftcardAdminRoutes);
 if (adminUserRoutes) app.use("/api/admin", adminUserRoutes);
 if (auditLogRoutes) app.use("/api/admin", auditLogRoutes);
 if (messageRoutes) app.use("/api/messages", messageRoutes);
-
+app.use('/api/admin', require('./routes/admin/moneyOverviewRoutes'));
+const announcementRoutes = require('./routes/announcementRoutes');
+app.use('/api/announcements', announcementRoutes);
+app.use('/api/admin/announcements', announcementRoutes.admin);
 console.log("\n✅ All API routes mounted");
 
 // ═══════════════════════════════════════════════════════════════════
@@ -557,6 +597,9 @@ app.get("/admin/transactions", (req, res) =>
 app.get("/admin/transactions.html", (req, res) =>
   res.sendFile(path.join(__dirname, "public", "admin", "transactions.html")),
 );
+app.get("/admin/money-overview.html", (req, res) =>
+  res.sendFile(path.join(__dirname, "public", "admin", "money-overview.html")),
+);
 app.get("/admin/deposits", (req, res) =>
   res.sendFile(path.join(__dirname, "public", "admin", "deposits.html")),
 );
@@ -603,6 +646,13 @@ app.get("/admin/messages", (req, res) =>
 
 app.get("/admin/sellgift", (req, res) =>
   res.sendFile(path.join(__dirname, "public", "admin", "sellgift.html")),
+);
+// Plural — the real file is approvals.html
+app.get("/admin/approvals", (req, res) =>
+  res.sendFile(path.join(__dirname, "public", "admin", "approvals.html")),
+);
+app.get("/admin/approvals.html", (req, res) =>
+  res.sendFile(path.join(__dirname, "public", "admin", "approvals.html")),
 );
 app.get("/admin/airtime-data", (req, res) =>
   res.sendFile(path.join(__dirname, "public", "admin", "airtime-data.html")),
@@ -709,6 +759,14 @@ app.use((err, req, res, next) => {
   });
 });
 
+
+if (String(process.env.MARKET_SWEEPER || '').toLowerCase() === 'true') {
+    try {
+        require('./services/marketplaceSweeper').start();
+    } catch (e) {
+        console.error('[MARKET SWEEPER] failed to start:', e.message);
+    }
+}
 // ═══════════════════════════════════════════════════════════════════
 //  SOCKET.IO SERVER WITH PRESENCE
 // ═══════════════════════════════════════════════════════════════════

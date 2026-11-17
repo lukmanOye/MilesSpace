@@ -9,576 +9,137 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha384-/o6I2CkkWC//PSjvWC/eYN7l3xM3tJm8ZzVkCOfp//W05QcE3mlGskpoHB6XqI+B" crossorigin="anonymous" referrerpolicy="no-referrer">
-<script src="/js/admin-session.js?v=2026-tx-v1"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+<link rel="stylesheet" href="/css/admin-shell.css">
+<script src="/js/admin-session.js?v=2026-tx-v4"></script>
+<script src="/js/admin-shell.js?v=2026-tx-v4"></script>
+<script src="/js/admin-sidebar.js?v=2026-tx-v4" defer></script>
 
 <style>
-/* ═══════════════════════════════════════════════════════════════════
-   DESIGN TOKENS (Matched to users.html)
-   ═══════════════════════════════════════════════════════════════════ */
-:root{
-  --navy:#0f4c5c; --navy-deep:#0a3542; --navy-light:#14607a; --navy-ink:#082530;
-  --gold:#f5a623; --gold-deep:#d97e06; --gold-soft:#fef3d9; --gold-soft-2:#fde3ad;
-  --white:#ffffff; --bg:#f4f7fb; --bg-alt:#eef2f6; --bg-card:rgba(255,255,255,.86);
-  --border:rgba(15,76,92,.10); --border-strong:rgba(15,76,92,.18);
-  --text:#0c1f26; --text-dim:#5b7480; --text-faint:#93a7ae;
-  --success:#15803d; --success-bg:#e7f6ec; --success-bd:#b7e5c4;
-  --danger:#c81e1e; --danger-bg:#fdecec; --danger-bd:#f5c2c2;
-  --warn:#b45309; --warn-bg:#fef3c7; --warn-bd:#fde68a;
-  --info:#1d4ed8; --info-bg:#e6edfd; --info-bd:#c3d3fa;
-  --purple:#6d28d9; --purple-bg:#ede9fe; --purple-bd:#c9bdfb;
-  --usd:#0e7490; --usd-bg:#e0f5fa; --usd-bd:#b7e6ef;
-  --r-xs:6px; --r-sm:9px; --r-md:12px; --r-lg:16px; --r-xl:20px;
-  --sh-xs:0 1px 2px rgba(8,42,51,.05);
-  --sh-sm:0 1px 3px rgba(8,42,51,.06), 0 1px 2px rgba(8,42,51,.04);
-  --sh-md:0 6px 18px -6px rgba(8,42,51,.14), 0 2px 6px rgba(8,42,51,.05);
-  --sh-lg:0 20px 44px -18px rgba(8,42,51,.28), 0 8px 20px -10px rgba(8,42,51,.14);
-  --sidebar-w:264px; --sidebar-w-min:80px; --topbar-h:64px;
-  --ease:cubic-bezier(.4,0,.2,1);
-  --safe-top:env(safe-area-inset-top, 0px);
-  --safe-bottom:env(safe-area-inset-bottom, 0px);
-  --safe-left:env(safe-area-inset-left, 0px);
-  --safe-right:env(safe-area-inset-right, 0px);
+/* 
+   Minimal page-specific layout overrides. 
+   All base UI, colors, sidebar, and table styles are handled by admin-shell.css.
+   Do not duplicate the shell's CSS here or it breaks the sidebar.
+*/
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
 }
-html.dark{
-  --bg:#071318; --bg-alt:#0c1f26; --bg-card:rgba(18,36,44,.85);
-  --border:rgba(255,255,255,.08); --border-strong:rgba(255,255,255,.14);
-  --text:#eaf3f5; --text-dim:#9db4bb; --text-faint:#6b8a93;
-  --success-bg:rgba(21,128,61,.18); --success-bd:rgba(21,128,61,.35);
-  --danger-bg:rgba(200,30,30,.18); --danger-bd:rgba(200,30,30,.35);
-  --warn-bg:rgba(180,83,9,.18); --warn-bd:rgba(180,83,9,.35);
-  --info-bg:rgba(29,78,216,.20); --info-bd:rgba(29,78,216,.38);
-  --purple-bg:rgba(109,40,217,.20); --purple-bd:rgba(109,40,217,.40);
-  --usd-bg:rgba(14,116,144,.18); --usd-bd:rgba(14,116,144,.35);
+@media(max-width: 1100px) { .stats-row { grid-template-columns: repeat(3, 1fr); } }
+@media(max-width: 768px) { .stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; } }
+@media(max-width: 600px) { .stats-row { grid-template-columns: 1fr; } }
+
+.stat {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 14px 15px;
+  min-width: 0;
+  position: relative;
 }
-
-/* ═══════════════════════════════════════════════════════════════════
-   RESET
-   ═══════════════════════════════════════════════════════════════════ */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
-html,body{height:100%;overflow-x:hidden}
-body{
-  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  background:var(--bg); color:var(--text); line-height:1.5;
-  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
-  min-height:100vh; min-height:100dvh;
+.stat .lbl {
+  font-size: 10.5px; font-weight: 700; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px;
 }
-img,svg{max-width:100%;display:block}
-button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit;-webkit-appearance:none;appearance:none}
-.mono{font-family:'JetBrains Mono',ui-monospace,'SF Mono',monospace;font-variant-numeric:tabular-nums}
-::-webkit-scrollbar{width:10px;height:10px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:rgba(15,76,92,.20);border-radius:99px;border:2px solid transparent;background-clip:padding-box}
-html.dark ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);background-clip:padding-box}
-:focus-visible{outline:2.5px solid var(--gold);outline-offset:2px;border-radius:6px}
-.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-
-/* ═══════════════════════════════════════════════════════════════════
-   APP SHELL
-   ═══════════════════════════════════════════════════════════════════ */
-.app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh;min-height:100dvh;transition:grid-template-columns 200ms var(--ease)}
-.app.sb-collapsed{grid-template-columns:var(--sidebar-w-min) 1fr}
-.scrim{position:fixed;inset:0;background:rgba(8,42,51,.55);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity 200ms var(--ease);z-index:55}
-.scrim.show{opacity:1;pointer-events:auto}
-
-/* ═══════════════════════════════════════════════════════════════════
-   SIDEBAR
-   ═══════════════════════════════════════════════════════════════════ */
-.sidebar{
-  background:linear-gradient(180deg,var(--navy-deep) 0%,var(--navy) 60%,var(--navy-ink) 100%);
-  color:#eaf6f8; display:flex; flex-direction:column;
-  position:sticky; top:0; height:100vh; height:100dvh; z-index:60;
-  overflow:hidden; width:var(--sidebar-w);
-  transition:width 200ms var(--ease);
-  padding-top:var(--safe-top); padding-bottom:var(--safe-bottom);
+.stat .val {
+  font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums;
+  line-height: 1.2; overflow-wrap: anywhere;
 }
-.app.sb-collapsed .sidebar{width:var(--sidebar-w-min)}
-.app.sb-collapsed .brand-text,
-.app.sb-collapsed .nav-label,
-.app.sb-collapsed .nav-item .txt,
-.app.sb-collapsed .who,
-.app.sb-collapsed .sb-collapse-btn span{display:none}
-.app.sb-collapsed .nav-item{justify-content:center;padding-left:0;padding-right:0}
-.app.sb-collapsed .sidebar-foot{justify-content:center}
-.app.sb-collapsed .sb-collapse-btn i{transform:rotate(180deg)}
-.brand{display:flex;align-items:center;gap:11px;padding:18px 16px 16px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.06);min-height:66px}
-.brand img{width:34px;height:34px;border-radius:9px;flex-shrink:0;background:rgba(255,255,255,.06);object-fit:cover}
-.brand-text{min-width:0;flex:1}
-.brand-text strong{font-size:15px;font-weight:800;letter-spacing:-.01em;display:block;color:#fff}
-.brand-text span{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#9fd4de;font-weight:700}
-.sb-collapse-btn{width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#cfe7ea;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;transition:background 150ms}
-.sb-collapse-btn:hover{background:rgba(255,255,255,.14)}
-.sb-collapse-btn i{transition:transform 200ms var(--ease)}
-.nav-scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 10px 12px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.14) transparent}
-.nav-scroll::-webkit-scrollbar{width:6px}
-.nav-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:99px}
-.nav-label{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#6fa2ad;font-weight:700;padding:14px 10px 6px}
-.nav-item{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:9px;color:#cfe7ea;font-size:13px;font-weight:500;text-decoration:none;cursor:pointer;border:1px solid transparent;white-space:nowrap;min-height:42px;transition:background 150ms,color 150ms,border-color 150ms}
-.nav-item .ic{width:18px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-size:13.5px;opacity:.9}
-.nav-item .txt{min-width:0;overflow:hidden;text-overflow:ellipsis}
-.nav-item:hover,.nav-item:focus-visible{background:rgba(255,255,255,.06);color:#fff}
-.nav-item.active{background:rgba(245,166,35,.16);color:#ffd899;border-color:rgba(245,166,35,.32);font-weight:600}
-.sidebar-foot{border-top:1px solid rgba(255,255,255,.08);padding:12px 12px calc(12px + var(--safe-bottom));display:flex;align-items:center;gap:10px;flex-shrink:0;background:rgba(0,0,0,.1)}
-.sidebar-foot .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-deep));color:var(--navy-deep);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0;border:2px solid rgba(255,255,255,.18)}
-.sidebar-foot .who{min-width:0;overflow:hidden;flex:1}
-.sidebar-foot .who strong{display:block;font-size:12.5px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sidebar-foot .who span{display:block;font-size:10.5px;color:#8fbac2;text-transform:capitalize}
+.stat .val.is-unavail { font-size: 14px; font-weight: 600; color: var(--text-faint); }
 
-/* ═══════════════════════════════════════════════════════════════════
-   TOPBAR
-   ═══════════════════════════════════════════════════════════════════ */
-.main{min-width:0;display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
-.topbar{
-  position:sticky;top:0;z-index:40;
-  height:calc(var(--topbar-h) + var(--safe-top));
-  padding-top:var(--safe-top);
-  padding-left:clamp(12px,2.5vw,26px);
-  padding-right:clamp(12px,2.5vw,26px);
-  display:flex;align-items:center;gap:12px;
-  background:var(--bg-card);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  border-bottom:1px solid var(--border);
-}
-.hamburger{display:none;width:40px;height:40px;border-radius:9px;background:var(--white);border:1px solid var(--border);color:var(--navy);font-size:16px;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
-html.dark .hamburger{background:rgba(255,255,255,.05);color:#dff0f2}
-.sb-toggle-desktop{width:36px;height:36px;border-radius:9px;background:var(--white);border:1px solid var(--border);color:var(--navy);font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
-html.dark .sb-toggle-desktop{background:rgba(255,255,255,.05);color:#dff0f2}
-@media(max-width:900px){.sb-toggle-desktop{display:none}}
-.topbar-left{flex:1;min-width:0;display:flex;align-items:center;gap:12px}
-.page-title{min-width:0}
-.page-title h1{font-size:19px;font-weight:800;letter-spacing:-.015em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.crumb{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-wrap:wrap}
-.crumb .live-dot{width:6px;height:6px;border-radius:50%;background:var(--success);flex-shrink:0;animation:pulse-dot 2s infinite}
-@keyframes pulse-dot{0%,100%{box-shadow:0 0 0 0 rgba(21,128,61,.5)}50%{box-shadow:0 0 0 6px rgba(21,128,61,0)}}
-.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.icon-btn{width:40px;height:40px;border-radius:10px;background:var(--white);border:1px solid var(--border);color:var(--navy);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background 150ms}
-html.dark .icon-btn{background:rgba(255,255,255,.05);color:#dff0f2}
-.icon-btn:hover{background:var(--gold-soft);color:var(--navy-deep);border-color:var(--gold)}
-.admin-chip{display:flex;align-items:center;gap:9px;padding:4px 10px 4px 4px;border-radius:99px;background:var(--white);border:1px solid var(--border);cursor:pointer;flex-shrink:0;transition:border-color 150ms}
-html.dark .admin-chip{background:rgba(255,255,255,.05)}
-.admin-chip:hover{border-color:var(--gold)}
-.admin-chip .av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-deep));color:var(--navy-deep);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11.5px;flex-shrink:0}
-.admin-chip .info{min-width:0;overflow:hidden}
-.admin-chip .info strong{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
-.admin-chip .info span{display:block;font-size:10.5px;color:var(--text-dim);text-transform:capitalize;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
-@media(max-width:600px){.admin-chip .info{display:none}.admin-chip{padding:4px}}
+/* Table tweaks */
+.table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+tbody td[data-cell="ref"] { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-dim); word-break: break-all; }
+tbody td[data-cell="amount"] { text-align: right; font-weight: 800; font-size: 13px; font-variant-numeric: tabular-nums; }
+tbody td[data-cell="fee"] { text-align: right; font-size: 11px; color: var(--text-faint); }
+tbody td[data-cell="date"] { font-size: 11px; color: var(--text-faint); white-space: nowrap; }
+tbody td[data-cell="status"], tbody td[data-cell="provider"] { text-align: center; }
+tbody th { text-align: left; padding: 11px 14px; font-size: 10.5px; font-weight: 700; color: var(--text-faint); text-transform: uppercase; letter-spacing: .05em; background: var(--bg-alt); border-bottom: 1px solid var(--border); }
 
-/* ═══════════════════════════════════════════════════════════════════
-   CONTENT & HEADER
-   ═══════════════════════════════════════════════════════════════════ */
-.content{flex:1;padding:clamp(14px,2vw,24px) clamp(12px,2.5vw,26px) calc(40px + var(--safe-bottom));width:100%;max-width:1640px;margin:0 auto;min-width:0}
-.page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
-.page-header h2{font-size:clamp(18px,2.6vw,23px);font-weight:800;letter-spacing:-.01em}
-.page-header .sub{font-size:13px;color:var(--text-dim);margin-top:3px;max-width:600px}
-.header-actions{display:flex;gap:8px;flex-wrap:wrap}
-
-/* ═══════════════════════════════════════════════════════════════════
-   BUTTONS (Matched to users.html)
-   ═══════════════════════════════════════════════════════════════════ */
-.btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  padding:9px 14px;border-radius:9px;font-size:12.5px;font-weight:700;
-  border:1px solid transparent;cursor:pointer;white-space:nowrap;text-decoration:none;
-  transition:transform 100ms,background 150ms,box-shadow 150ms;min-height:38px;font-family:inherit;
-}
-.btn:active:not(:disabled){transform:scale(.97)}
-.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
-.btn-primary{background:var(--navy);color:#fff;}
-.btn-primary:hover:not(:disabled){background:var(--navy-deep);}
-.btn-ghost{background:var(--white);border-color:var(--border);color:var(--text)}
-html.dark .btn-ghost{background:rgba(255,255,255,.05)}
-.btn-ghost:hover:not(:disabled){background:var(--bg);border-color:var(--border-strong)}
-.btn-danger{background:var(--danger);color:#fff}
-
-/* ═══════════════════════════════════════════════════════════════════
-   STATS ROW
-   ═══════════════════════════════════════════════════════════════════ */
-.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
-@media(max-width:1100px){.stats-row{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:768px){.stats-row{grid-template-columns:repeat(2,1fr);gap:8px}}
-.stat{
-  background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);
-  padding:14px 15px;min-width:0;position:relative;
-}
-.stat .lbl{font-size:10.5px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
-.stat .val{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2;overflow-wrap:anywhere}
-.stat .val.is-unavail{font-size:14px;font-weight:600;color:var(--text-faint)}
-.stat.currency .ccy-line{display:flex;justify-content:space-between;font-size:12.5px;margin-top:4px}
-.stat.currency .ccy-line .ccy{color:var(--text-dim);font-weight:600}
-.stat.currency .ccy-line .amt{font-weight:700;font-family:'JetBrains Mono',monospace}
-
-/* ═══════════════════════════════════════════════════════════════════
-   FILTERS CARD
-   ═══════════════════════════════════════════════════════════════════ */
-.filters-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-xs);margin-bottom:14px}
-.filters-bar{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,rgba(255,255,255,.4),transparent)}
-html.dark .filters-bar{background:transparent}
-.search-input{flex:1 1 220px;min-width:0;padding:9px 12px 9px 34px;border:1px solid var(--border);border-radius:9px;font-size:13px;background:var(--white);color:var(--text);transition:border-color 150ms,box-shadow 150ms}
-html.dark .search-input{background:rgba(255,255,255,.05)}
-.search-input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,166,35,.16)}
-.search-input-wrap{position:relative;flex:1 1 220px;min-width:0}
-.search-input-wrap .fa-search{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-faint);font-size:12px;pointer-events:none}
-.select-input{
-  padding:9px 30px 9px 12px;border:1px solid var(--border);border-radius:9px;font-size:13px;
-  background-color:var(--white);color:var(--text);cursor:pointer;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='none' stroke='%235b7480' stroke-width='1.5' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 11px center;
-  transition:border-color 150ms;min-width:0;
-}
-html.dark .select-input{background-color:rgba(255,255,255,.05);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='none' stroke='%239db4bb' stroke-width='1.5' d='M1 1l4 4 4-4'/%3E%3C/svg%3E")}
-.select-input:focus{outline:none;border-color:var(--gold)}
-.date-input{padding:9px 12px;border:1px solid var(--border);border-radius:9px;font-size:13px;background:var(--white);color:var(--text);min-height:38px}
-html.dark .date-input{background:rgba(255,255,255,.05)}
-
-@media(max-width:768px){
-  .filters-bar{padding:10px 12px;gap:6px;flex-direction:column;align-items:stretch}
-  .search-input-wrap,.select-input,.date-input{flex:1 1 auto;width:100%}
-  .filters-bar .btn{width:100%}
+/* Mobile tweaks for table */
+@media(max-width: 768px) {
+  table { min-width: 0; display: block; }
+  thead { display: none; }
+  tbody { display: block; }
+  tbody tr { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 12px 10px; border-bottom: 1px solid var(--border); min-height: 64px; }
+  tbody td { display: block; padding: 0; border: 0; font-size: 12.5px; text-align: left !important; }
+  tbody td[data-cell="ref"] { grid-column: 1; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-dim); word-break: break-all; }
+  tbody td[data-cell="amount"] { grid-column: 2; text-align: right !important; font-weight: 800; font-size: 14px; font-variant-numeric: tabular-nums; }
+  tbody td[data-cell="fee"] { grid-column: 2; text-align: right !important; font-size: 11px; color: var(--text-faint); }
+  tbody td[data-cell="user"] { grid-column: 1; font-weight: 700; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  tbody td[data-cell="type"] { grid-column: 1; font-size: 11.5px; color: var(--text-dim); }
+  tbody td[data-cell="status"] { grid-column: 2; text-align: right !important; }
+  tbody td[data-cell="date"] { grid-column: 2; text-align: right !important; font-size: 11px; color: var(--text-faint); }
+  tbody td[data-cell="provider"] { display: none; }
 }
 
-/* Applied filter chips */
-.applied-filters{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;background:var(--bg-alt)}
-html.dark .applied-filters{background:transparent}
-.applied-filters:empty{display:none}
-.applied-filters .chip{
-  display:inline-flex;align-items:center;gap:4px;
-  background:var(--info-bg);color:var(--info);
-  border-radius:99px;padding:3px 10px;font-weight:600
-}
-.applied-filters .chip button{
-  background:none;border:none;color:inherit;cursor:pointer;
-  padding:0 2px;font-size:10px
-}
+/* Badge styling for the statuses */
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 99px; font-size: 10.5px; font-weight: 700; white-space: nowrap; border: 1px solid transparent; line-height: 1.4; }
+.badge.success { background: var(--success-bg); color: var(--success); border-color: var(--success-bd); }
+.badge.danger { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-bd); }
+.badge.warn { background: var(--warn-bg); color: var(--warn); border-color: var(--warn-bd); }
+.badge.info { background: var(--info-bg); color: var(--info); border-color: var(--info-bd); }
+.badge.purple { background: var(--purple-bg); color: var(--purple); border-color: var(--purple-bd); }
+.badge.neutral { background: var(--bg); color: var(--text-dim); border-color: var(--border); }
 
-/* ═══════════════════════════════════════════════════════════════════
-   TABLE (Matched to users.html)
-   ═══════════════════════════════════════════════════════════════════ */
-.table-container{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
-table{width:100%;border-collapse:collapse;font-size:13px;min-width:900px}
-thead th{
-  text-align:left;padding:11px 14px;font-size:10.5px;font-weight:700;color:var(--text-faint);
-  text-transform:uppercase;letter-spacing:.05em;background:var(--bg-alt);
-  border-bottom:1px solid var(--border);white-space:nowrap;
-  position:sticky;top:0;z-index:1;
-}
-thead th button{
-  background:none;border:none;color:inherit;font:inherit;text-transform:inherit;
-  cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:0
-}
-thead th[aria-sort="ascending"] button::after{content:"\f0d8";font-family:"Font Awesome 6 Free";font-weight:900;font-size:9px}
-thead th[aria-sort="descending"] button::after{content:"\f0d7";font-family:"Font Awesome 6 Free";font-weight:900;font-size:9px}
-tbody td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
-tbody tr{transition:background 120ms;cursor:pointer}
-tbody tr:hover{background:rgba(245,166,35,.04)}
-tbody tr:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
-tbody tr:last-child td{border-bottom:none}
+.amt-credit { color: var(--success); font-weight: 700; }
+.amt-debit { color: var(--danger); font-weight: 700; }
 
-/* Mobile Card Table */
-@media(max-width:768px){
-  table{min-width:0;display:block}
-  thead{display:none}
-  tbody{display:block}
-  tbody tr{
-    display:grid;grid-template-columns:1fr auto;gap:4px 12px;
-    padding:12px 10px;border-bottom:1px solid var(--border);
-    min-height:64px
-  }
-  tbody td{display:block;padding:0;border:0;font-size:12.5px}
-  tbody td[data-cell="ref"]{grid-column:1;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text-dim);word-break:break-all}
-  tbody td[data-cell="amount"]{grid-column:2;text-align:right;font-weight:800;font-size:14px;font-variant-numeric:tabular-nums}
-  tbody td[data-cell="user"]{grid-column:1;font-weight:700;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  tbody td[data-cell="type"]{grid-column:1;font-size:11.5px;color:var(--text-dim)}
-  tbody td[data-cell="status"]{grid-column:2;text-align:right}
-  tbody td[data-cell="date"]{grid-column:2;text-align:right;font-size:11px;color:var(--text-faint)}
-  tbody td[data-cell="provider"]{display:none}
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   BADGES & STATE
-   ═══════════════════════════════════════════════════════════════════ */
-.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:99px;font-size:10.5px;font-weight:700;white-space:nowrap;border:1px solid transparent;line-height:1.4}
-.badge.success{background:var(--success-bg);color:var(--success);border-color:var(--success-bd)}
-.badge.danger{background:var(--danger-bg);color:var(--danger);border-color:var(--danger-bd)}
-.badge.warn{background:var(--warn-bg);color:var(--warn);border-color:var(--warn-bd)}
-.badge.info{background:var(--info-bg);color:var(--info);border-color:var(--info-bd)}
-.badge.purple{background:var(--purple-bg);color:var(--purple);border-color:var(--purple-bd)}
-.badge.neutral{background:var(--bg);color:var(--text-dim);border-color:var(--border)}
-
-.amt-credit{color:var(--success);font-weight:700}
-.amt-debit{color:var(--danger);font-weight:700}
-
-.empty-state{text-align:center;padding:52px 20px;color:var(--text-faint)}
-.empty-state i{font-size:32px;margin-bottom:10px;display:block;opacity:.5}
-.empty-state .title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px}
-.empty-state .sub{font-size:12.5px;line-height:1.5;margin-bottom:14px}
-.unavailable-box{
-  text-align:center;padding:24px 14px;color:var(--text-faint);
-  border:1px dashed var(--border);border-radius:10px
-}
-.unavailable-box i{font-size:20px;margin-bottom:6px;display:block;color:var(--danger)}
-.unavailable-box .retry{margin-top:10px}
-.skel{
-  background:linear-gradient(90deg,var(--bg-alt) 25%,rgba(255,255,255,.6) 50%,var(--bg-alt) 75%);
-  background-size:200% 100%;animation:shimmer 1.5s infinite;
-  border-radius:6px;height:12px;display:block
-}
-html.dark .skel{background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.10) 50%,rgba(255,255,255,.04) 75%);background-size:200% 100%}
-@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-
-/* ═══════════════════════════════════════════════════════════════════
-   PAGINATION
-   ═══════════════════════════════════════════════════════════════════ */
-.table-foot{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;flex-wrap:wrap;gap:10px;border-top:1px solid var(--border);font-size:12px;color:var(--text-dim)}
-.pagination{display:flex;gap:3px;flex-wrap:wrap}
-.pg-btn{min-width:32px;height:32px;padding:0 8px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--text-dim);font-size:12px;font-weight:600;cursor:pointer;transition:all 120ms;font-family:inherit}
-.pg-btn:hover:not(:disabled):not(.active){background:var(--bg);color:var(--navy);border-color:var(--border-strong)}
-.pg-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
-.pg-btn:disabled{opacity:.4;cursor:not-allowed}
-
-/* ═══════════════════════════════════════════════════════════════════
-   DRAWER
-   ═══════════════════════════════════════════════════════════════════ */
-.drawer-scrim{position:fixed;inset:0;background:rgba(8,42,51,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity 200ms var(--ease);z-index:80}
-.drawer-scrim.open{opacity:1;pointer-events:auto}
-.detail-drawer{
-  position:fixed;top:0;right:0;
-  height:100vh;height:100dvh;
-  width:min(760px,100vw);
-  background:var(--bg);border-left:1px solid var(--border);box-shadow:var(--sh-lg);
-  transform:translateX(100%);transition:transform 240ms var(--ease);
-  z-index:90;display:flex;flex-direction:column;overflow:hidden;
-}
-.detail-drawer.open{transform:translateX(0)}
-.dd-head{
-  padding:18px 22px calc(18px + var(--safe-top));
-  padding-top:calc(18px + var(--safe-top));
-  background:linear-gradient(135deg,var(--navy-deep),var(--navy));
-  color:#eaf6f8;flex-shrink:0;position:relative;
-  display:flex;align-items:center;gap:14px;
-}
-.dd-head .dd-ic{
-  width:40px;height:40px;border-radius:11px;
-  background:rgba(255,255,255,.12);
-  display:flex;align-items:center;justify-content:center;
-  font-size:18px;flex-shrink:0
-}
-.dd-head .dd-titles{flex:1;min-width:0}
-.dd-head h2{font-size:16.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
-.dd-head .dd-sub{font-size:12px;color:#b8dbe2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dd-close{
-  width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;
-  display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;flex-shrink:0;transition:background 150ms;
-}
-.dd-close:hover{background:rgba(255,255,255,.24)}
-.dd-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 22px calc(40px + var(--safe-bottom));min-height:0}
-
-.dd-hero{
-  padding:16px 18px;border-radius:var(--r-md);background:var(--bg-card);
-  border:1px solid var(--border);margin-bottom:16px;
-  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap
-}
-.dd-hero .amount{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
-.dd-hero .amount.credit{color:var(--success)}
-.dd-hero .amount.debit{color:var(--danger)}
-.dd-hero .meta{font-size:11px;color:var(--text-faint)}
-
-.dd-actions{
-  display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding:12px;
-  border-radius:var(--r-md);background:var(--bg-card);border:1px solid var(--border)
-}
-
-.dd-tabs{
-  display:flex;gap:4px;margin-bottom:14px;
-  border-bottom:1px solid var(--border);flex-wrap:wrap;
-  overflow-x:auto;scrollbar-width:none
-}
-.dd-tabs::-webkit-scrollbar{display:none}
-.dd-tab{
-  padding:8px 14px;font-size:12.5px;font-weight:600;color:var(--text-dim);
-  cursor:pointer;border-bottom:2px solid transparent;background:none;
-  border-left:none;border-right:none;border-top:none;font-family:inherit;
-  min-height:36px;white-space:nowrap
-}
-.dd-tab.active{color:var(--navy);border-bottom-color:var(--gold)}
-html.dark .dd-tab.active{color:#dff0f2}
-
-.dd-tab-content{display:none}
-.dd-tab-content.active{display:block}
-
-.dd-section{margin-bottom:20px}
-.dd-section-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
-.dd-field{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px dashed var(--border);font-size:12.5px}
-.dd-field .k{color:var(--text-dim);font-weight:600;flex-shrink:0;min-width:130px}
-.dd-field .v{font-weight:700;text-align:right;word-break:break-word;overflow-wrap:anywhere}
-.dd-field .v.copyable{display:flex;align-items:center;gap:6px;justify-content:flex-end;flex-wrap:wrap}
-.copy-btn{border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;font-size:10px;padding:4px 8px;border-radius:4px;min-height:28px;font-family:inherit}
-.copy-btn:hover{background:var(--bg);color:var(--text)}
-
-.dd-tx-list{display:flex;flex-direction:column;gap:8px}
-.dd-tx-item{padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);font-size:12px}
-.dd-tx-item .row1{display:flex;justify-content:space-between;margin-bottom:6px;gap:10px;align-items:center;flex-wrap:wrap}
-.dd-tx-item .row2{font-size:11px;color:var(--text-faint);margin-top:4px}
-.dd-empty{text-align:center;color:var(--text-faint);padding:24px 10px;font-size:12.5px}
-
-.integrity-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px}
-.integrity-badge.ok{background:var(--success-bg);color:var(--success)}
-.integrity-badge.warn{background:var(--warn-bg);color:var(--warn)}
-.integrity-badge.unavail{background:var(--bg);color:var(--text-faint);border:1px solid var(--border)}
-
-@media(max-width:900px){
-  .detail-drawer{width:100vw;border-left:none}
-  .dd-head{padding:16px 16px calc(16px + var(--safe-top));padding-top:calc(16px + var(--safe-top))}
-  .dd-body{padding:16px 16px calc(40px + var(--safe-bottom))}
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   MODAL
-   ═══════════════════════════════════════════════════════════════════ */
-.modal-scrim{position:fixed;inset:0;background:rgba(8,42,51,.6);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:150;display:none;align-items:center;justify-content:center;padding:16px;padding-top:calc(16px + var(--safe-top));padding-bottom:calc(16px + var(--safe-bottom))}
-.modal-scrim.open{display:flex}
-.modal{background:var(--bg);border-radius:var(--r-lg);box-shadow:var(--sh-lg);width:min(520px,100%);max-height:90vh;max-height:90dvh;display:flex;flex-direction:column;overflow:hidden}
-.modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0}
-.modal-head h3{font-size:15px;font-weight:800;letter-spacing:-.01em}
-.modal-head .x{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-dim);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;flex-shrink:0;transition:background 150ms}
-.modal-head .x:hover{background:var(--bg-alt);color:var(--text)}
-.modal-body{padding:18px 20px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0}
-.modal-foot{padding:13px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;flex-shrink:0}
-@media(max-width:480px){.modal-foot{flex-direction:column-reverse}.modal-foot .btn{width:100%}}
-
-.modal-body label{display:block;font-size:12px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;margin-top:14px}
-.modal-body label:first-child{margin-top:0}
-.modal-body select,.modal-body input,.modal-body textarea{width:100%;border:1px solid var(--border);border-radius:9px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--white);color:var(--text);outline:none;resize:vertical;min-height:40px}
-html.dark .modal-body select,html.dark .modal-body input,html.dark .modal-body textarea{background:rgba(255,255,255,.05);color:var(--text)}
-.modal-body select:focus,.modal-body input:focus,.modal-body textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,166,35,.15)}
-.modal .notice{padding:12px;border-radius:9px;font-size:12.5px;margin-bottom:14px;line-height:1.5}
-.modal .notice.warn{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-bd)}
-.modal .notice.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info-bd)}
-.modal .notice.danger{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-bd)}
-.modal .summary{background:var(--bg-alt);border-radius:9px;padding:12px 14px;margin-bottom:14px;font-size:12.5px;border:1px solid var(--border)}
-.modal .summary .row{display:flex;justify-content:space-between;gap:10px;padding:4px 0}
-.modal .summary .row .k{color:var(--text-dim)}
-.modal .summary .row:last-child{margin-bottom:0;font-weight:700;padding-top:8px;border-top:1px dashed var(--border)}
-
-/* Toasts */
-.toast-stack{position:fixed;bottom:calc(20px + var(--safe-bottom));right:20px;z-index:300;display:flex;flex-direction:column;gap:8px;max-width:calc(100vw - 32px);pointer-events:none}
-.toast{display:flex;align-items:center;gap:9px;padding:11px 15px;border-radius:11px;font-size:12.5px;font-weight:600;box-shadow:var(--sh-lg);pointer-events:auto;animation:toastIn 200ms var(--ease);max-width:100%;word-break:break-word;border:1px solid transparent}
-.toast.success{background:var(--success);color:#fff;border-color:rgba(0,0,0,.06)}
-.toast.error{background:var(--danger);color:#fff;border-color:rgba(0,0,0,.06)}
-.toast.warn{background:#b45309;color:#fff;border-color:rgba(0,0,0,.06)}
-.toast.info{background:var(--navy-deep);color:#fff;border-color:rgba(0,0,0,.06)}
-.toast i{flex-shrink:0;font-size:14px}
-@keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-@media(max-width:600px){.toast-stack{bottom:calc(80px + var(--safe-bottom));right:16px;left:16px}}
-
-/* Responsive Sidebar */
-@media(max-width:900px){
-  .app,.app.sb-collapsed{grid-template-columns:1fr}
-  .sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);width:min(300px,86vw)!important;box-shadow:var(--sh-lg);transition:transform 240ms var(--ease)}
-  .sidebar.open{transform:translateX(0)}
-  .app.sb-collapsed .sidebar{width:min(300px,86vw)!important}
-  .app.sb-collapsed .brand-text,
-  .app.sb-collapsed .nav-label,
-  .app.sb-collapsed .nav-item .txt,
-  .app.sb-collapsed .who{display:block}
-  .app.sb-collapsed .nav-item{justify-content:flex-start;padding-left:11px;padding-right:11px}
-  .app.sb-collapsed .sb-collapse-btn i{transform:none}
-  .sb-collapse-btn{display:none}
-  .hamburger{display:flex}
-  body.sb-open{overflow:hidden}
-  .topbar{padding-left:12px;padding-right:12px;gap:8px}
-  .page-title h1{font-size:16px}
-  .crumb{font-size:11px}
-  .icon-btn{width:36px;height:36px;font-size:14px}
-}
-@media(max-width:520px){
-  .content{padding:12px 10px calc(40px + var(--safe-bottom))}
-  .page-title h1{font-size:15px}
-  .topbar-right{gap:6px}
-  .admin-chip{padding:3px}
-  .admin-chip .av{width:28px;height:28px;font-size:11px}
-}
-input,select,textarea{font-size:16px!important}
+/* Drawer detail styles */
+.detail-drawer { z-index: 90; }
+.dd-tabs { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; overflow-x: auto; scrollbar-width: none; }
+.dd-tabs::-webkit-scrollbar { display: none; }
+.dd-tab { padding: 8px 14px; font-size: 12.5px; font-weight: 600; color: var(--text-dim); cursor: pointer; border-bottom: 2px solid transparent; background: none; border-left: none; border-right: none; border-top: none; font-family: inherit; min-height: 36px; white-space: nowrap; }
+.dd-tab.active { color: var(--navy); border-bottom-color: var(--gold); }
+html.dark .dd-tab.active { color: #dff0f2; }
+.dd-tab-content { display: none; }
+.dd-tab-content.active { display: block; }
+.dd-section { margin-bottom: 20px; }
+.dd-section-title { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.dd-field { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--border); font-size: 12.5px; }
+.dd-field .k { color: var(--text-dim); font-weight: 600; flex-shrink: 0; min-width: 130px; }
+.dd-field .v { font-weight: 700; text-align: right; word-break: break-word; overflow-wrap: anywhere; }
+.dd-field .v.copyable { display: flex; align-items: center; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+.copy-btn { border: 1px solid var(--border); background: transparent; color: var(--text-dim); cursor: pointer; font-size: 10px; padding: 4px 8px; border-radius: 4px; min-height: 28px; font-family: inherit; }
+.copy-btn:hover { background: var(--bg); color: var(--text); }
+.dd-tx-list { display: flex; flex-direction: column; gap: 8px; }
+.dd-tx-item { padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); font-size: 12px; }
+.dd-tx-item .row1 { display: flex; justify-content: space-between; margin-bottom: 6px; gap: 10px; align-items: center; flex-wrap: wrap; }
+.dd-tx-item .row2 { font-size: 11px; color: var(--text-faint); margin-top: 4px; }
+.dd-empty { text-align: center; color: var(--text-faint); padding: 24px 10px; font-size: 12.5px; }
+.integrity-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px; }
+.integrity-badge.ok { background: var(--success-bg); color: var(--success); }
+.integrity-badge.warn { background: var(--warn-bg); color: var(--warn); }
+.integrity-badge.unavail { background: var(--bg); color: var(--text-faint); border: 1px solid var(--border); }
+.dd-hero { padding: 16px 18px; border-radius: var(--r-md); background: var(--bg-card); border: 1px solid var(--border); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.dd-hero .amount { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.dd-hero .amount.credit { color: var(--success); }
+.dd-hero .amount.debit { color: var(--danger); }
+.dd-hero .meta { font-size: 11px; color: var(--text-faint); }
+.dd-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; padding: 12px; border-radius: var(--r-md); background: var(--bg-card); border: 1px solid var(--border); }
 </style>
 </head>
 <body>
 
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem('ms-theme');
+    if (t === 'dark') { document.documentElement.classList.add('dark'); document.documentElement.style.colorScheme = 'dark'; }
+    else { document.documentElement.classList.add('light'); document.documentElement.style.colorScheme = 'light'; }
+  } catch (_) {}
+})();
+</script>
+
 <div class="app" id="appRoot">
 
-<!-- SIDEBAR -->
-<aside class="sidebar" id="sidebar" aria-label="Admin navigation">
-  <div class="brand">
-    <img src="/images/miles.png" alt="" onerror="this.style.display='none'">
-    <div class="brand-text">
-      <strong>MilesSpace</strong>
-      <span>Admin Console</span>
-    </div>
-    <button class="sb-collapse-btn" id="sbCollapseBtn" aria-label="Collapse sidebar" title="Collapse sidebar">
-      <i class="fas fa-angles-left" aria-hidden="true"></i>
-    </button>
-  </div>
-
-  <nav class="nav-scroll" role="navigation">
-    <span class="nav-label">Overview</span>
-    <a href="/admin/dashboard.html" class="nav-item">
-      <span class="ic" aria-hidden="true"><i class="fas fa-gauge-high"></i></span>
-      <span class="txt">Dashboard</span>
-    </a>
-
-    <span class="nav-label">Customers</span>
-    <a href="/admin/users.html" class="nav-item">
-      <span class="ic" aria-hidden="true"><i class="fas fa-users"></i></span>
-      <span class="txt">Users</span>
-    </a>
-    <a href="/admin/support.html" class="nav-item">
-      <span class="ic" aria-hidden="true"><i class="fas fa-headset"></i></span>
-      <span class="txt">Support</span>
-    </a>
-
-    <span class="nav-label">Money</span>
-    <a href="/admin/transactions.html" class="nav-item active" aria-current="page">
-      <span class="ic" aria-hidden="true"><i class="fas fa-arrow-right-arrow-left"></i></span>
-      <span class="txt">Transactions</span>
-    </a>
-    <a href="/admin/deposits.html" class="nav-item">
-      <span class="ic" aria-hidden="true"><i class="fas fa-circle-down"></i></span>
-      <span class="txt">Deposits</span>
-    </a>
-    <a href="/admin/ledger.html" class="nav-item">
-      <span class="ic" aria-hidden="true"><i class="fas fa-book"></i></span>
-      <span class="txt">Ledger</span>
-    </a>
-    <a href="/admin/reconciliation.html" class="nav-item">
-      <span class="ic" aria-hidden="true"><i class="fas fa-rotate"></i></span>
-      <span class="txt">Reconciliation</span>
-    </a>
-    <a href="/admin/approvals.html" class="nav-item">
-      <span class="ic" aria-hidden="true"><i class="fas fa-clipboard-check"></i></span>
-      <span class="txt">Approvals</span>
-    </a>
-
-    <span class="nav-label">System</span>
-    <a href="/admin/audit.html" class="nav-item">
-      <span class="ic" aria-hidden="true"><i class="fas fa-scroll"></i></span>
-      <span class="txt">Audit Logs</span>
-    </a>
-    <a href="/admin/settings.html" class="nav-item">
-      <span class="ic" aria-hidden="true"><i class="fas fa-gear"></i></span>
-      <span class="txt">Settings</span>
-    </a>
-  </nav>
-
-  <div class="sidebar-foot">
-    <div class="av" id="adminAvatar">AD</div>
-    <div class="who">
-      <strong id="adminName">Admin</strong>
-      <span id="adminRole">admin</span>
-    </div>
-  </div>
-</aside>
+<!-- Shared sidebar mount point -->
+<aside class="sidebar" id="sidebar" aria-label="Admin navigation"></aside>
 
 <div class="scrim" id="scrim" aria-hidden="true"></div>
 
-<!-- MAIN -->
 <div class="main">
   <header class="topbar">
     <button class="hamburger" id="hamburger" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false">
@@ -616,7 +177,7 @@ input,select,textarea{font-size:16px!important}
     <div class="page-header">
       <div>
         <h2>Transactions</h2>
-        <div class="sub">Every financial event on MilesSpace. Click a row to view the transaction, related order, ledger entries, provider record, webhooks, refunds, and audit trail.</div>
+        <div class="sub">Every financial event on MilesSpace. Click a row to open the ledger record, the customer-facing service record, and the refund controls.</div>
       </div>
       <div class="header-actions">
         <button class="btn btn-ghost" id="refreshBtn" type="button" title="Refresh">
@@ -634,19 +195,19 @@ input,select,textarea{font-size:16px!important}
       <div class="filters-bar">
         <div class="search-input-wrap">
           <i class="fas fa-search" aria-hidden="true"></i>
-          <input type="search" id="fSearch" class="search-input" placeholder="Search reference, provider ref, description, email…" aria-label="Search transactions" autocomplete="off">
+          <input type="search" id="fSearch" class="search-input" placeholder="Reference (customer or ledger), email, provider ref…" aria-label="Search transactions" autocomplete="off">
         </div>
-        
+
         <select id="fType" class="select-input" aria-label="Filter by type">
           <option value="">All Types</option>
         </select>
-        
+
         <select id="fStatus" class="select-input" aria-label="Filter by status">
           <option value="all">All Statuses</option>
           <optgroup label="Groups">
-            <option value="completed">Completed (incl. success)</option>
-            <option value="pending">Pending (all pending states)</option>
-            <option value="failed">Failed (all failed states)</option>
+            <option value="group:completed">Completed (incl. success)</option>
+            <option value="group:pending">Pending (all pending states)</option>
+            <option value="group:failed">Failed (all failed states)</option>
           </optgroup>
           <optgroup label="Exact">
             <option value="pending">pending</option>
@@ -672,18 +233,28 @@ input,select,textarea{font-size:16px!important}
           <option value="USD">USD</option>
         </select>
 
+        <select id="fFeedback" class="select-input" aria-label="Filter by feedback">
+          <option value="all">All Feedback</option>
+          <option value="has">Has Feedback</option>
+          <option value="1">1 Star</option>
+          <option value="2">2 Stars</option>
+          <option value="3">3 Stars</option>
+          <option value="4">4 Stars</option>
+          <option value="5">5 Stars</option>
+        </select>
+
         <input type="text" id="fProvider" class="date-input" placeholder="Provider" aria-label="Provider" maxlength="60" style="max-width:130px">
         <input type="text" id="fUserId" class="date-input" placeholder="User ID (UUID)" aria-label="User ID" maxlength="64" style="max-width:180px;font-family:'JetBrains Mono',monospace">
-        
+
         <input type="date" id="fFrom" class="date-input" aria-label="From date (WAT)">
         <input type="date" id="fTo" class="date-input" aria-label="To date (WAT)">
-        
+
         <select id="fLimit" class="select-input" aria-label="Page size" style="min-width:100px">
           <option value="25">25 / page</option>
           <option value="50">50 / page</option>
           <option value="100">100 / page</option>
         </select>
-        
+
         <button class="btn btn-primary" id="applyBtn" type="button" style="min-height:38px"><i class="fas fa-filter" aria-hidden="true"></i> Apply</button>
         <button class="btn btn-ghost" id="clearBtn" type="button" style="min-height:38px">Clear</button>
       </div>
@@ -698,6 +269,7 @@ input,select,textarea{font-size:16px!important}
               <th scope="col">User</th>
               <th scope="col"><button type="button" data-sort="type">Type</button></th>
               <th scope="col" aria-sort="none"><button type="button" data-sort="amount">Amount</button></th>
+              <th scope="col">Fee</th>
               <th scope="col">Status</th>
               <th scope="col">Provider</th>
               <th scope="col">Date</th>
@@ -718,7 +290,6 @@ input,select,textarea{font-size:16px!important}
 </div>
 </div>
 
-<!-- DRAWER -->
 <div class="drawer-scrim" id="drawerScrim"></div>
 <aside class="detail-drawer" id="detailDrawer" role="dialog" aria-modal="true" aria-labelledby="ddTitle" aria-hidden="true">
   <div class="dd-head">
@@ -734,7 +305,6 @@ input,select,textarea{font-size:16px!important}
   <div class="dd-body" id="ddBody"></div>
 </aside>
 
-<!-- MODAL -->
 <div class="modal-scrim" id="modalScrim" aria-hidden="true">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-head">
@@ -785,14 +355,12 @@ const State = {
   listAbortController: null,
   statsAbortController: null,
   typesLoaded: false,
-  typeRegistry: null,
-  sidebarOpen: false
+  typeRegistry: null
 };
 
 const $  = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
-// ─── Utilities ──────────────────────────────────────────────────
 function esc(s) {
   if (s === null || s === undefined) return '';
   return String(s).replace(/[&<>"']/g, m => ({
@@ -874,7 +442,6 @@ function initials(name) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-// ─── Fetch wrapper ──────────────────────────────────────────────
 async function apiFetch(url, opts = {}) {
   if (!window.AdminSession || typeof window.AdminSession.fetch !== 'function') {
     return { ok: false, status: 0, code: 'NO_SESSION_LAYER', error: 'Authentication layer not loaded.' };
@@ -908,14 +475,14 @@ async function apiFetch(url, opts = {}) {
   }
 }
 
-// ─── Sidebar Logic ──────────────────────────────────────────────
-function initSidebar() {
+function initSidebarToggle() {
   const sidebar = $('#sidebar');
   const scrim = $('#scrim');
   const hbg = $('#hamburger');
   const collapse = $('#sbCollapseBtn');
   const toggleDesktop = $('#sbToggleDesktop');
   const app = $('#appRoot');
+  if (!sidebar) return;
 
   const openSidebar = () => {
     sidebar.classList.add('open');
@@ -933,10 +500,9 @@ function initSidebar() {
   hbg?.addEventListener('click', openSidebar);
   scrim?.addEventListener('click', closeSidebar);
 
-  sidebar.querySelectorAll('.nav-item').forEach(link => {
-    link.addEventListener('click', () => {
-      if (window.matchMedia('(max-width:900px)').matches) closeSidebar();
-    });
+  sidebar.addEventListener('click', (e) => {
+    const link = e.target.closest('.nav-item');
+    if (link && window.matchMedia('(max-width:900px)').matches) closeSidebar();
   });
 
   document.addEventListener('keydown', (e) => {
@@ -958,15 +524,17 @@ function initTheme() {
   const btn = $('#themeToggle');
   const apply = (dark) => {
     document.documentElement.classList.toggle('dark', dark);
+    document.documentElement.classList.toggle('light', !dark);
+    document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
     if (btn) btn.innerHTML = `<i class="fas ${dark ? 'fa-sun' : 'fa-moon'}" aria-hidden="true"></i>`;
+    try { localStorage.setItem('ms-theme', dark ? 'dark' : 'light'); } catch {}
   };
   let saved = 'light';
-  try { saved = localStorage.getItem('ms_theme') || 'light'; } catch {}
+  try { saved = localStorage.getItem('ms-theme') || 'light'; } catch {}
   apply(saved === 'dark');
   btn?.addEventListener('click', () => {
     const dark = !document.documentElement.classList.contains('dark');
     apply(dark);
-    try { localStorage.setItem('ms_theme', dark ? 'dark' : 'light'); } catch {}
   });
 }
 
@@ -976,18 +544,18 @@ function initAdminIdentity() {
     if (!u) return;
     const name = u.name || u.username || u.email || 'Admin';
     const role = u.role || 'admin';
-    $('#adminName').textContent = name;
-    $('#adminRole').textContent = role;
-    $('#adminAvatar').textContent = initials(name);
-    $('#chipName').textContent = name;
-    $('#chipRole').textContent = role;
-    $('#chipAvatar').textContent = initials(name);
+    $('#adminName') && ($('#adminName').textContent = name);
+    $('#adminRole') && ($('#adminRole').textContent = role);
+    $('#adminAvatar') && ($('#adminAvatar').textContent = initials(name));
+    $('#chipName') && ($('#chipName').textContent = name);
+    $('#chipRole') && ($('#chipRole').textContent = role);
+    $('#chipAvatar') && ($('#chipAvatar').textContent = initials(name));
   } catch {}
 }
 
-// ─── Stats ──────────────────────────────────────────────────────
 function renderStats(s) {
   const el = $('#statsRow');
+  if (!el) return;
   if (!s) {
     el.innerHTML = ['Total','Completed','Pending','Failed'].map(l => `
       <div class="stat"><div class="lbl">${l}</div><div class="val is-unavail">Unavailable</div></div>
@@ -1031,20 +599,23 @@ async function loadStats() {
   renderStats(r.ok ? (r.data?.data?.summary || r.data?.summary || null) : null);
 }
 
-// ─── Types ──────────────────────────────────────────────────────
 async function loadTypes() {
   if (State.typesLoaded) return;
   const r = await apiFetch(API.types);
-  if (!r.ok || !r.data?.data?.registry) return;
-  State.typeRegistry = r.data.data.registry;
+  if (!r.ok) return;
+  const registry = r.data?.registry || r.data?.data?.registry;
+  if (!registry) return;
+  State.typeRegistry = registry;
+
   const sel = $('#fType');
+  if (!sel) return;
   const opts = ['<option value="">All Types</option>'];
   const byGroup = new Map();
-  for (const t of State.typeRegistry.types || []) {
+  for (const t of registry.types || []) {
     if (!byGroup.has(t.group)) byGroup.set(t.group, []);
     byGroup.get(t.group).push(t);
   }
-  for (const g of State.typeRegistry.groups || []) {
+  for (const g of registry.groups || []) {
     const list = byGroup.get(g.key) || [];
     if (!list.length) continue;
     opts.push(`<optgroup label="${esc(g.label)}">`);
@@ -1055,7 +626,6 @@ async function loadTypes() {
   State.typesLoaded = true;
 }
 
-// ─── URL state ──────────────────────────────────────────────────
 function filtersFromUrl() {
   const p = new URLSearchParams(window.location.search);
   return {
@@ -1063,6 +633,7 @@ function filtersFromUrl() {
     type:     p.get('type') || '',
     status:   p.get('status') || 'all',
     currency: p.get('currency') || 'all',
+    feedback: p.get('feedback') || 'all',
     provider: p.get('provider') || '',
     user_id:  p.get('user_id') || '',
     from:     p.get('from') || '',
@@ -1079,6 +650,7 @@ function applyFiltersToForm(f) {
   $('#fType').value = f.type;
   $('#fStatus').value = f.status;
   $('#fCurrency').value = f.currency;
+  $('#fFeedback').value = f.feedback || 'all';
   $('#fProvider').value = f.provider;
   $('#fUserId').value = f.user_id;
   $('#fFrom').value = f.from;
@@ -1093,6 +665,7 @@ function syncUrlFromState({ replace = false } = {}) {
   if (f.type) p.set('type', f.type);
   if (f.status && f.status !== 'all') p.set('status', f.status);
   if (f.currency && f.currency !== 'all') p.set('currency', f.currency);
+  if (f.feedback && f.feedback !== 'all') p.set('feedback', f.feedback);
   if (f.provider) p.set('provider', f.provider);
   if (f.user_id) p.set('user_id', f.user_id);
   if (f.from) p.set('from', f.from);
@@ -1118,7 +691,6 @@ function transactionIdFromHash() {
   return m ? m[1] : null;
 }
 
-// ─── Applied filter chips ───────────────────────────────────────
 function renderAppliedFilters() {
   const wrap = $('#appliedFilters');
   const f = State.filters;
@@ -1128,13 +700,15 @@ function renderAppliedFilters() {
   };
   if (f.search) push('Search: ' + f.search, 'search');
   if (f.type) push('Type: ' + f.type, 'type');
-  if (f.status && f.status !== 'all') push('Status: ' + f.status, 'status');
+  if (f.status && f.status !== 'all') push('Status: ' + f.status.replace(/^group:/, ''), 'status');
   if (f.currency && f.currency !== 'all') push('Currency: ' + f.currency, 'currency');
+  if (f.feedback && f.feedback !== 'all') push('Feedback: ' + f.feedback, 'feedback');
   if (f.provider) push('Provider: ' + f.provider, 'provider');
   if (f.user_id) push('User: ' + f.user_id.slice(0, 8) + '…', 'user_id');
   if (f.from) push('From: ' + f.from, 'from');
   if (f.to) push('To: ' + f.to, 'to');
 
+  if (!wrap) return;
   wrap.innerHTML = chips.join('');
 
   wrap.querySelectorAll('[data-clear]').forEach(btn => {
@@ -1144,6 +718,7 @@ function renderAppliedFilters() {
       else if (key === 'type') $('#fType').value = '';
       else if (key === 'status') $('#fStatus').value = 'all';
       else if (key === 'currency') $('#fCurrency').value = 'all';
+      else if (key === 'feedback') $('#fFeedback').value = 'all';
       else if (key === 'provider') $('#fProvider').value = '';
       else if (key === 'user_id') $('#fUserId').value = '';
       else if (key === 'from') $('#fFrom').value = '';
@@ -1157,19 +732,19 @@ function renderAppliedFilters() {
   });
 }
 
-// ─── Table ──────────────────────────────────────────────────────
 function renderSkeleton() {
   const tb = $('#tableBody');
+  if (!tb) return;
   let h = '';
   for (let i = 0; i < 8; i++) {
-    h += `<tr><td colspan="7"><span class="skel" style="width:${50 + Math.random() * 40}%;display:inline-block"></span></td></tr>`;
+    h += `<tr><td colspan="8"><span class="skel" style="width:${50 + Math.random() * 40}%;display:inline-block"></span></td></tr>`;
   }
   tb.innerHTML = h;
 }
 
 function renderEmpty() {
   $('#tableBody').innerHTML = `
-    <tr><td colspan="7">
+    <tr><td colspan="8">
       <div class="empty-state">
         <i class="fas fa-inbox" aria-hidden="true"></i>
         <div class="title">No transactions</div>
@@ -1180,7 +755,7 @@ function renderEmpty() {
 
 function renderError(msg) {
   $('#tableBody').innerHTML = `
-    <tr><td colspan="7">
+    <tr><td colspan="8">
       <div class="unavailable-box">
         <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
         <div>${esc(msg || 'Unable to load transactions')}</div>
@@ -1192,20 +767,45 @@ function renderError(msg) {
 
 function renderRows(rows) {
   const tb = $('#tableBody');
+  if (!tb) return;
   if (!rows || !rows.length) { renderEmpty(); return; }
   tb.innerHTML = rows.map(t => {
     const who = t.user || { username: 'Unknown', email: '' };
     const amountStr = fmtMoney(t.absolute_amount, t.currency) || '—';
+    const feeStr = t.fee != null && Number(t.fee) > 0 ? fmtMoney(t.fee, t.currency) : '—';
     const dirClass = t.direction === 'credit' ? 'amt-credit' : 'amt-debit';
     const dirSign  = t.direction === 'credit' ? '+ ' : '− ';
-    return `<tr tabindex="0" role="button" data-id="${esc(t.id)}" aria-label="Transaction ${esc(t.reference || t.id)}">
-      <td data-cell="ref"><span class="mono" style="font-size:11px">${esc(t.reference || t.id.slice(0, 12) + '…')}</span></td>
+
+    const customerRef = t.customer_reference || null;
+    const ledgerRef = t.reference || null;
+    const primaryRef = customerRef || ledgerRef || t.id.slice(0, 12) + '…';
+    const secondaryRef = customerRef && ledgerRef && customerRef !== ledgerRef
+      ? `<div class="mono text-xs text-faint" style="font-size:10px;margin-top:2px">${esc(ledgerRef)}</div>`
+      : '';
+
+    const feedbackBadge = t.feedback
+      ? `<span class="badge warn" style="margin-left:6px;padding:2px 6px;font-size:9px" title="${esc(t.feedback.label || '')}">
+           <i class="fas fa-star" aria-hidden="true"></i> ${t.feedback.rating}
+         </span>`
+      : '';
+
+    const feeSourceNote = t.fee_source === 'service_record'
+      ? '<i class="fas fa-info-circle" style="font-size:9px;color:var(--text-faint);margin-left:4px" title="Derived from the service record" aria-hidden="true"></i>'
+      : '';
+
+    return `<tr tabindex="0" role="button" data-id="${esc(t.id)}" aria-label="Transaction ${esc(primaryRef)}">
+      <td data-cell="ref">
+        <span class="mono" style="font-size:11px">${esc(primaryRef)}</span>
+        ${feedbackBadge}
+        ${secondaryRef}
+      </td>
       <td data-cell="user">
         <strong>${esc(who.username)}</strong>
         <span style="font-size:10.5px;color:var(--text-dim);display:block">${esc(who.email || '')}</span>
       </td>
       <td data-cell="type">${esc(t.type_label || t.type || '—')}</td>
       <td data-cell="amount"><span class="${dirClass}">${esc(dirSign + amountStr)}</span></td>
+      <td data-cell="fee"><span style="font-size:11px">${esc(feeStr)}</span>${feeSourceNote}</td>
       <td data-cell="status"><span class="badge ${statusBadge(t.status)}">${esc((t.status || '').replace(/_/g, ' '))}</span></td>
       <td data-cell="provider">${esc(t.provider || '—')}</td>
       <td data-cell="date" title="${esc(fmtDateTimeWAT(t.created_at))}">
@@ -1232,8 +832,12 @@ function buildQuery() {
   const f = State.filters;
   if (f.search) q.set('search', f.search);
   if (f.type) q.set('type', f.type);
-  if (f.status && f.status !== 'all') q.set('status', f.status);
+  if (f.status && f.status !== 'all') {
+    const s = String(f.status).replace(/^group:/, '');
+    q.set('status', s);
+  }
   if (f.currency && f.currency !== 'all') q.set('currency', f.currency);
+  if (f.feedback && f.feedback !== 'all') q.set('feedback', f.feedback);
   if (f.provider) q.set('provider', f.provider);
   if (f.user_id) q.set('user_id', f.user_id);
   if (f.from) q.set('from', f.from);
@@ -1277,6 +881,7 @@ async function loadList() {
 
 function renderPager() {
   const c = $('#pagerControls');
+  if (!c) return;
   c.innerHTML = '';
   if (State.totalPages <= 1) return;
   const mk = (label, page, disabled, active) => {
@@ -1311,7 +916,6 @@ function renderPager() {
   c.appendChild(mk('›', State.page + 1, State.page >= State.totalPages, false));
 }
 
-// ─── Drawer ─────────────────────────────────────────────────────
 let _drawerReturnFocus = null;
 
 function openDrawer() {
@@ -1322,7 +926,28 @@ function openDrawer() {
   drawer.setAttribute('aria-hidden', 'false');
   scrim.classList.add('open');
   document.body.style.overflow = 'hidden';
-  setTimeout(() => $('#ddClose')?.focus(), 100);
+  setTimeout(() => {
+    const focusable = drawer.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (focusable) focusable.focus();
+    else $('#ddClose')?.focus();
+  }, 100);
+  if (!drawer._trapBound) {
+    drawer._trapBound = true;
+    drawer.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab') return;
+      const focusables = drawer.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
+  }
 }
 
 function closeDrawer() {
@@ -1342,7 +967,6 @@ function closeDrawer() {
 
 async function openDetail(id) {
   const token = ++State.requestToken;
-
   $('#ddIcon').innerHTML = '<i class="fas fa-credit-card" aria-hidden="true"></i>';
   $('#ddTitle').textContent = 'Loading…';
   $('#ddSub').textContent = '';
@@ -1365,28 +989,31 @@ async function openDetail(id) {
 function renderDetail(p) {
   const t = p.transaction;
   const u = p.user;
+  const service = p.service_record;
+  const serviceKind = p.service_kind;
   const led = p.ledger_entries || [];
   const ledAvail = p.ledger_available !== false;
-  const wh = p.webhooks || [];
-  const whAvail = p.webhooks_available !== false;
   const audit = p.audit || [];
   const auditAvail = p.audit_available !== false;
-  const orders = p.related_orders || [];
-  const ordersAvail = p.related_orders_available !== false;
   const refunds = p.refunds || [];
   const refundsAvail = p.refunds_available !== false;
-  const cap = p.refund_capability;
+  const refundPolicy = p.refund_policy;
   const allowedTransitions = Array.isArray(p.allowed_transitions) ? p.allowed_transitions : [];
   const canResolve = p.can_resolve === true;
   const canRefund = p.can_refund === true;
   const integrity = p.ledger_integrity;
-  const dep = p.provider_record;
+  const feedback = p.feedback || null;
+  const primaryRef = t.customer_reference || t.reference || t.id;
 
   $('#ddIcon').innerHTML = `<i class="${esc(t.icon || 'fa-solid fa-credit-card')}" aria-hidden="true"></i>`;
-  $('#ddTitle').textContent = t.reference || 'Transaction';
+  $('#ddTitle').textContent = primaryRef;
   $('#ddSub').textContent = `${t.type_label || t.type || ''} · ${u?.username || u?.email || ''}`;
 
   const amt = fmtMoney(t.absolute_amount, t.currency) || '—';
+  const feeStr = t.fee != null && Number(t.fee) > 0 ? fmtMoney(t.fee, t.currency) : '—';
+  const feeSourceTag = t.fee_source === 'service_record'
+    ? '<span class="badge info" style="margin-left:6px;font-size:9px">derived</span>'
+    : '';
   const dirCls = t.direction === 'credit' ? 'credit' : 'debit';
   const dirSign = t.direction === 'credit' ? '+' : '−';
 
@@ -1409,19 +1036,48 @@ function renderDetail(p) {
     </div>
   </div>`;
 
-  const actions = buildActions(t, cap, allowedTransitions, canResolve, canRefund);
+  const actions = buildActions(t, allowedTransitions, canResolve, canRefund, refundPolicy);
+
+  const customerCard = `
+    <div class="dd-section">
+      <div class="dd-section-title">Customer-facing record</div>
+      <div class="dd-field">
+        <span class="k">Customer reference</span>
+        <span class="v copyable mono" style="font-size:11px">
+          ${t.customer_reference ? esc(t.customer_reference) : '<span class="text-faint">not linked</span>'}
+          ${t.customer_reference ? `<button class="copy-btn" type="button" data-copy="${esc(t.customer_reference)}" aria-label="Copy customer reference">copy</button>` : ''}
+        </span>
+      </div>
+      <div class="dd-field">
+        <span class="k">Ledger reference</span>
+        <span class="v copyable mono" style="font-size:11px">
+          ${esc(t.reference || '—')}
+          ${t.reference ? `<button class="copy-btn" type="button" data-copy="${esc(t.reference)}" aria-label="Copy ledger reference">copy</button>` : ''}
+        </span>
+      </div>
+      ${service ? `
+        <div class="dd-field"><span class="k">Service</span><span class="v">${esc(serviceKind || 'service')}</span></div>
+        <div class="dd-field"><span class="k">Service status</span><span class="v"><span class="badge ${statusBadge(service.status)}">${esc(service.status || '—')}</span></span></div>
+        ${service.provider_status ? `<div class="dd-field"><span class="k">Provider status</span><span class="v">${esc(service.provider_status)}</span></div>` : ''}
+        ${service.operator_name ? `<div class="dd-field"><span class="k">Operator</span><span class="v">${esc(service.operator_name)}</span></div>` : ''}
+        ${service.country_code ? `<div class="dd-field"><span class="k">Country</span><span class="v">${esc(service.country_code)}</span></div>` : ''}
+        ${service.failure_message ? `<div class="dd-field"><span class="k">Failure</span><span class="v" style="color:var(--danger)">${esc(service.failure_message)}</span></div>` : ''}
+      ` : `
+        <div class="dd-field"><span class="k">Service</span><span class="v text-faint">no linked service record</span></div>
+      `}
+    </div>
+  `;
 
   const overview = `
     <div class="dd-section">
       <div class="dd-section-title">Transaction Details</div>
       <div class="dd-field"><span class="k">ID</span><span class="v copyable mono" style="font-size:11px">${esc(t.id)}<button class="copy-btn" type="button" data-copy="${esc(t.id)}" aria-label="Copy ID">copy</button></span></div>
-      <div class="dd-field"><span class="k">Reference</span><span class="v copyable mono" style="font-size:11px">${esc(t.reference || '—')}<button class="copy-btn" type="button" data-copy="${esc(t.reference || '')}" aria-label="Copy reference">copy</button></span></div>
       <div class="dd-field"><span class="k">Type</span><span class="v">${esc(t.type_label || t.type || '—')}</span></div>
       <div class="dd-field"><span class="k">Direction</span><span class="v">${esc(t.direction || '—')}</span></div>
       <div class="dd-field"><span class="k">Status</span><span class="v"><span class="badge ${statusBadge(t.status)}">${esc((t.status || '').replace(/_/g, ' '))}</span></span></div>
       <div class="dd-field"><span class="k">Currency</span><span class="v">${esc(t.currency)}</span></div>
       <div class="dd-field"><span class="k">Amount</span><span class="v">${esc(amt)}</span></div>
-      <div class="dd-field"><span class="k">Fee</span><span class="v">${esc(fmtMoney(t.fee, t.currency) || '—')}</span></div>
+      <div class="dd-field"><span class="k">Fee</span><span class="v">${esc(feeStr)}${feeSourceTag}</span></div>
       ${t.balance_before !== null ? `<div class="dd-field"><span class="k">Balance before</span><span class="v">${esc(fmtMoney(t.balance_before, t.currency) || '—')}</span></div>` : ''}
       ${t.balance_after !== null ? `<div class="dd-field"><span class="k">Balance after</span><span class="v">${esc(fmtMoney(t.balance_after, t.currency) || '—')}</span></div>` : ''}
       <div class="dd-field"><span class="k">Description</span><span class="v">${esc(t.description || '—')}</span></div>
@@ -1429,73 +1085,75 @@ function renderDetail(p) {
       <div class="dd-field"><span class="k">Created</span><span class="v">${esc(fmtDateTimeWAT(t.created_at))}</span></div>
       <div class="dd-field"><span class="k">Completed</span><span class="v">${esc(fmtDateTimeWAT(t.completed_at))}</span></div>
     </div>
+
     <div class="dd-section">
       <div class="dd-section-title">Customer</div>
       <div class="dd-field"><span class="k">Username</span><span class="v">${esc(u?.username || '—')}</span></div>
       <div class="dd-field"><span class="k">Email</span><span class="v">${esc(u?.email || '—')}</span></div>
-      ${u?.id ? `<div class="dd-field"><span class="k">Profile</span><span class="v"><a href="/admin/users.html?id=${encodeURIComponent(u.id)}" style="color:var(--text-link)">Open in Users →</a></span></div>` : ''}
+      ${u?.id ? `<div class="dd-field"><span class="k">Profile</span><span class="v"><a href="/admin/users.html?id=${encodeURIComponent(u.id)}" style="color:var(--navy)">Open in Users →</a></span></div>` : ''}
     </div>
+
+    ${customerCard}
+
+    ${feedback ? `
+    <div class="dd-section">
+      <div class="dd-section-title">Customer Feedback</div>
+      <div class="dd-field">
+        <span class="k">Rating</span>
+        <span class="v">
+          ${Array.from({ length: 5 }).map((_, i) =>
+            `<i class="fa${i < feedback.rating ? 's' : 'r'} fa-star" style="color:var(--gold);font-size:13px;margin-right:1px" aria-hidden="true"></i>`
+          ).join('')}
+          <span style="margin-left:6px;font-weight:700">${esc(feedback.label || '')}</span>
+        </span>
+      </div>
+      <div class="dd-field"><span class="k">Review</span><span class="v">${esc((feedback.review_status || 'new').replace(/_/g, ' '))}</span></div>
+      ${feedback.comment ? `
+        <div class="dd-field" style="display:block">
+          <div class="k" style="margin-bottom:4px">Comment</div>
+          <div class="v" style="text-align:left;font-weight:500;white-space:pre-wrap;word-break:break-word">${esc(feedback.comment)}</div>
+        </div>
+      ` : ''}
+      <div class="dd-field"><span class="k">Submitted</span><span class="v">${esc(fmtDateTimeWAT(feedback.created_at))}</span></div>
+    </div>` : ''}
+
     <div class="dd-section">
       <div class="dd-section-title">Provider</div>
       <div class="dd-field"><span class="k">Provider</span><span class="v">${esc(t.provider || '—')}</span></div>
-      <div class="dd-field"><span class="k">Provider Ref</span><span class="v copyable mono" style="font-size:11px">${esc(t.provider_reference || '—')}<button class="copy-btn" type="button" data-copy="${esc(t.provider_reference || '')}" aria-label="Copy provider reference">copy</button></span></div>
+      <div class="dd-field"><span class="k">Provider Ref</span><span class="v copyable mono" style="font-size:11px">${esc(t.provider_reference || '—')}${t.provider_reference ? `<button class="copy-btn" type="button" data-copy="${esc(t.provider_reference)}" aria-label="Copy provider reference">copy</button>` : ''}</span></div>
       <div class="dd-field"><span class="k">Source Type</span><span class="v">${esc(t.source_type || '—')}</span></div>
       <div class="dd-field"><span class="k">Source ID</span><span class="v mono" style="font-size:11px">${esc(t.source_id || '—')}</span></div>
     </div>
-    ${dep ? renderProviderRecord(dep) : ''}
   `;
-
-  const ordersTab = !ordersAvail
-    ? `<div class="unavailable-box"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Related orders could not be read.</div>`
-    : orders.length
-      ? `<div class="dd-tx-list">${orders.map(o => `
-        <div class="dd-tx-item">
-          <div class="row1"><span class="mono" style="font-size:11px">${esc(o.order_ref || o.id || '—')}</span><span class="badge ${statusBadge(o.status)}">${esc(o.status || '—')}</span></div>
-          <div class="row1" style="font-weight:700">${esc(o.product_name || o.product_type || '—')}</div>
-          <div class="row2">Amount: ${esc(fmtMoney(o.total_amount, o.currency) || '—')} · Payment: ${esc(o.payment_status || '—')} · Provider: ${esc(o.provider || '—')}</div>
-          <div class="row2">${esc(fmtDateTimeWAT(o.created_at))}</div>
-        </div>`).join('')}</div>`
-      : `<div class="dd-empty">No related order found for this transaction.</div>`;
-
-  const ledgerTab = !ledAvail
-    ? `<div class="unavailable-box"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Ledger entries could not be read.</div>`
-    : led.length
-      ? `<div class="dd-tx-list">${led.map(e => {
-        const amountDisplay = e.amount_minor !== null && e.amount_minor !== undefined
-          ? fmtMoney(Number(e.amount_minor) / 100, e.currency)
-          : null;
-        return `
-        <div class="dd-tx-item">
-          <div class="row1"><span class="mono" style="font-size:10.5px">${esc((e.id || '').slice(0, 8))}…</span><span class="badge ${e.entry_type === 'CREDIT' ? 'success' : 'danger'}">${esc(e.entry_type || '')}</span></div>
-          <div class="row1" style="font-weight:700;font-size:13px">${esc(amountDisplay || '—')}</div>
-          <div class="row2">${esc(e.description || '')} · ${esc(timeAgo(e.created_at))}</div>
-        </div>`;
-      }).join('')}</div>`
-      : `<div class="dd-empty">No ledger entries for this transaction.</div>`;
-
-  const webhooksTab = !whAvail
-    ? `<div class="unavailable-box"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Webhook history could not be read.</div>`
-    : wh.length
-      ? `<div class="dd-tx-list">${wh.map(w => `
-        <div class="dd-tx-item">
-          <div class="row1"><span>${esc(w.provider || 'kora')} · ${esc(w.event_type || '—')}</span><span class="badge ${w.signature_valid ? 'success' : 'danger'}">${w.signature_valid ? 'verified' : 'unverified'}</span></div>
-          <div class="row2">${esc(w.processing_status || '')} · ${esc(timeAgo(w.received_at))}</div>
-          ${w.processing_error ? `<div class="row2" style="color:var(--danger)">${esc(w.processing_error)}</div>` : ''}
-        </div>`).join('')}</div>`
-      : `<div class="dd-empty">No webhook events recorded.</div>`;
 
   const refundsTab = !refundsAvail
     ? `<div class="unavailable-box"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Refund history could not be read.</div>`
     : refunds.length
       ? `<div class="dd-tx-list">${refunds.map(r => `
         <div class="dd-tx-item">
-          <div class="row1"><span class="badge info">${esc(r.refund_type || '')}</span><span class="badge ${statusBadge(r.status)}">${esc(r.status || '')}</span></div>
+          <div class="row1"><span class="badge info">${esc(r.refund_type || '')}</span><span class="badge ${statusBadge(r.status)}">${esc(String(r.status || '').toUpperCase())}</span></div>
           <div class="row1" style="font-weight:700">${esc(fmtMoney(r.amount, r.currency) || '—')}</div>
           <div class="row2">${esc(r.reason || '')}</div>
           <div class="row2">${esc(fmtDateTimeWAT(r.created_at))}${r.provider_refund_ref ? ' · ' + esc(r.provider_refund_ref) : ''}</div>
           ${r.failure_reason ? `<div class="row2" style="color:var(--danger)">${esc(r.failure_reason)}</div>` : ''}
         </div>`).join('')}</div>`
       : `<div class="dd-empty">No refunds recorded.</div>`;
+
+  const ledgerTab = !ledAvail
+    ? `<div class="unavailable-box"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Ledger entries could not be read.</div>`
+    : led.length
+      ? `<div class="dd-tx-list">${led.map(e => {
+        const amountDisplay = e.amount_minor != null
+          ? fmtMoney(Number(e.amount_minor) / 100, e.currency)
+          : null;
+        return `
+          <div class="dd-tx-item">
+            <div class="row1"><span class="mono" style="font-size:10.5px">${esc((e.id || '').slice(0, 8))}…</span><span class="badge ${e.entry_type === 'CREDIT' ? 'success' : 'danger'}">${esc(e.entry_type || '')}</span></div>
+            <div class="row1" style="font-weight:700;font-size:13px">${esc(amountDisplay || '—')}</div>
+            <div class="row2">${esc(e.description || '')} · ${esc(timeAgo(e.created_at))}</div>
+          </div>`;
+      }).join('')}</div>`
+      : `<div class="dd-empty">No ledger entries for this transaction.</div>`;
 
   const auditTab = !auditAvail
     ? `<div class="unavailable-box"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Audit trail could not be read.</div>`
@@ -1514,21 +1172,16 @@ function renderDetail(p) {
     ${actions}
     <div class="dd-tabs" role="tablist">
       <button class="dd-tab active" data-tab="overview" role="tab" aria-selected="true" aria-controls="panel-overview">Overview</button>
-      <button class="dd-tab" data-tab="order" role="tab" aria-selected="false" aria-controls="panel-order">Order (${orders.length})</button>
       <button class="dd-tab" data-tab="ledger" role="tab" aria-selected="false" aria-controls="panel-ledger">Ledger (${led.length})</button>
-      <button class="dd-tab" data-tab="webhooks" role="tab" aria-selected="false" aria-controls="panel-webhooks">Webhooks (${wh.length})</button>
       <button class="dd-tab" data-tab="refunds" role="tab" aria-selected="false" aria-controls="panel-refunds">Refunds (${refunds.length})</button>
       <button class="dd-tab" data-tab="audit" role="tab" aria-selected="false" aria-controls="panel-audit">Audit (${audit.length})</button>
     </div>
     <div class="dd-tab-content active" id="panel-overview" role="tabpanel" data-tab-content="overview">${overview}</div>
-    <div class="dd-tab-content" id="panel-order" role="tabpanel" data-tab-content="order">${ordersTab}</div>
     <div class="dd-tab-content" id="panel-ledger" role="tabpanel" data-tab-content="ledger">${ledgerTab}</div>
-    <div class="dd-tab-content" id="panel-webhooks" role="tabpanel" data-tab-content="webhooks">${webhooksTab}</div>
     <div class="dd-tab-content" id="panel-refunds" role="tabpanel" data-tab-content="refunds">${refundsTab}</div>
     <div class="dd-tab-content" id="panel-audit" role="tabpanel" data-tab-content="audit">${auditTab}</div>
   `;
 
-  // Tabs
   $$('.dd-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       $$('.dd-tab').forEach(x => { x.classList.remove('active'); x.setAttribute('aria-selected', 'false'); });
@@ -1548,7 +1201,6 @@ function renderDetail(p) {
     });
   });
 
-  // Copy buttons
   $$('.copy-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const text = btn.dataset.copy || '';
@@ -1562,41 +1214,22 @@ function renderDetail(p) {
     });
   });
 
-  // Actions
   $('#btnChangeStatus')?.addEventListener('click', () => openStatusModal(t, allowedTransitions));
-  $('#btnRefund')?.addEventListener('click', () => openRefundModal(t, cap));
+  $('#btnRefund')?.addEventListener('click', () => openRefundModal(t, refundPolicy));
   $('#btnNote')?.addEventListener('click', () => openNoteModal(t));
 }
 
-function renderProviderRecord(dep) {
-  const rows = [];
-  const push = (k, v) => { if (v !== null && v !== undefined && v !== '') rows.push([k, v]); };
-  push('Internal Reference', dep.internal_reference);
-  push('Provider Reference', dep.provider_reference);
-  push('Payment Currency', dep.payment_currency);
-  if (dep.payment_amount != null) push('Payment Amount', fmtMoney(dep.payment_amount, dep.payment_currency));
-  push('Wallet Currency', dep.wallet_currency);
-  if (dep.wallet_amount != null) push('Wallet Amount', fmtMoney(dep.wallet_amount, dep.wallet_currency));
-  if (dep.customer_rate != null) push('Customer Rate', String(dep.customer_rate));
-  if (dep.fee_amount != null) push('Fee', fmtMoney(dep.fee_amount, dep.fee_currency || dep.wallet_currency));
-  push('Provider Status', dep.status || dep.payment_status);
-  if (!rows.length) return '';
-  return `<div class="dd-section"><div class="dd-section-title">Provider Record</div>
-    ${rows.map(([k, v]) => `<div class="dd-field"><span class="k">${esc(k)}</span><span class="v">${esc(String(v))}</span></div>`).join('')}
-  </div>`;
-}
-
-function buildActions(t, cap, allowedTransitions, canResolve, canRefund) {
+function buildActions(t, allowedTransitions, canResolve, canRefund, refundPolicy) {
   const buttons = [];
   if (canResolve && Array.isArray(allowedTransitions) && allowedTransitions.length) {
     buttons.push(`<button class="btn btn-ghost" id="btnChangeStatus" type="button"><i class="fas fa-exchange-alt" aria-hidden="true"></i> Change status</button>`);
   }
-  if (canRefund && cap && cap.eligible) {
-    const label = cap.methods.includes('reversal') ? 'Reverse'
-                : cap.methods.includes('provider') ? 'Refund via provider'
-                : 'Refund to wallet';
-    const icon = cap.methods.includes('reversal') ? 'fa-rotate-left' : 'fa-undo';
-    buttons.push(`<button class="btn btn-danger" id="btnRefund" type="button"><i class="fas ${icon}" aria-hidden="true"></i> ${label}</button>`);
+  // F: Refund button follows the server-computed refund_policy, not the
+  // ledger's own status.
+  if (canRefund && refundPolicy && refundPolicy.eligible) {
+    const override = refundPolicy.override === true;
+    const label = override ? 'Refund (override)' : 'Refund to wallet';
+    buttons.push(`<button class="btn btn-danger" id="btnRefund" type="button"><i class="fas fa-undo" aria-hidden="true"></i> ${label}</button>`);
   }
   if (canResolve) {
     buttons.push(`<button class="btn btn-ghost" id="btnNote" type="button"><i class="fas fa-sticky-note" aria-hidden="true"></i> Add note</button>`);
@@ -1607,7 +1240,6 @@ function buildActions(t, cap, allowedTransitions, canResolve, canRefund) {
   return `<div class="dd-actions">${buttons.join('')}</div>`;
 }
 
-// ─── Modal ──────────────────────────────────────────────────────
 let _modalReturnFocus = null;
 let _modalStack = [];
 
@@ -1673,7 +1305,6 @@ $('#modalScrim').addEventListener('click', (e) => {
   }
 });
 
-// ─── Status modal ──────────────────────────────────────────────
 function openStatusModal(t, allowed) {
   if (!Array.isArray(allowed) || !allowed.length) {
     toast('No operational transitions available.', 'info');
@@ -1718,45 +1349,30 @@ function openStatusModal(t, allowed) {
   });
 }
 
-// ─── Refund modal ──────────────────────────────────────────────
-function openRefundModal(t, cap) {
-  if (!cap || !cap.eligible) {
-    toast(cap?.reason_label ? cap.reason_label : 'Refund not available.', 'info');
+function openRefundModal(t, policy) {
+  if (!policy || !policy.eligible) {
+    toast(policy?.reason_label ? policy.reason_label : 'Refund not available.', 'info');
     return;
   }
-  const method = cap.methods[0];
-  const isReversal = method === 'reversal';
-  const isProvider = method === 'provider';
-  const remaining = Number(cap.remaining_amount) || 0;
-  const currency = String(cap.currency || t.currency || '').toUpperCase();
+  const isOverride = policy.override === true;
+  const currency = String(t.currency || '').toUpperCase();
+  const totalAmount = Number(t.absolute_amount) || 0;
   const threshold = currency === 'USD' ? APPROVAL_THRESHOLD_USD : APPROVAL_THRESHOLD_NGN;
-  const requiresApproval = !!cap.requires_approval;
+  const remaining = totalAmount; // No prior refunds reduce it in this view.
   const userEmail = (State.currentDetail?.user?.email) || t.user?.email || '';
-
-  const methodNote = isReversal
-    ? `<div class="notice warn">This will <strong>debit</strong> the customer's wallet to reverse the original deposit. This is not a credit.</div>`
-    : isProvider
-      ? `<div class="notice warn">This initiates a refund through the payment provider. It settles once the provider confirms — the wallet is credited after that.</div>`
-      : `<div class="notice info">This credits the customer's wallet for the amount below and records the refund.</div>`;
-
-  const approvalNote = requiresApproval
-    ? `<div class="notice warn"><strong>Approval required.</strong> Refunds at or above ${esc(fmtMoney(threshold, currency))} must be approved by a second admin. This will be created as <strong>PENDING_APPROVAL</strong>.</div>`
-    : '';
-
   const idempotencyKey = (window.crypto && crypto.randomUUID)
     ? crypto.randomUUID()
     : 'refund-' + t.id + '-' + Date.now();
 
   openModal({
-    title: isReversal ? 'Reverse transaction' : (isProvider ? 'Refund via provider' : 'Refund to wallet'),
-    confirmLabel: isReversal ? 'Reverse' : 'Refund',
-    confirmClass: isReversal ? 'btn-danger' : 'btn-primary',
+    title: isOverride ? 'Refund (override)' : 'Refund to wallet',
+    confirmLabel: 'Refund',
+    confirmClass: isOverride ? 'btn-danger' : 'btn-primary',
     bodyHtml: `
-      ${methodNote}
-      ${approvalNote}
+      ${isOverride ? `<div class="notice warn"><strong>Override active.</strong> The linked service is not in a refundable state, but you hold the override permission. The reason will be audited.</div>` : ''}
+      <div class="notice info">This credits the customer's wallet for the amount below and records the refund via refundService.</div>
       <div class="summary">
-        <div class="row"><span class="k">Original</span><span>${esc(fmtMoney(cap.original_amount, currency) || '—')}</span></div>
-        <div class="row"><span class="k">Already refunded</span><span>${esc(fmtMoney(cap.already_refunded_amount, currency) || '0.00')}</span></div>
+        <div class="row"><span class="k">Original</span><span>${esc(fmtMoney(totalAmount, currency) || '—')}</span></div>
         <div class="row"><span class="k">Remaining</span><span>${esc(fmtMoney(remaining, currency) || '0.00')}</span></div>
       </div>
       <label for="refundAmount">Amount (${esc(currency)})</label>
@@ -1764,17 +1380,7 @@ function openRefundModal(t, cap) {
         <input type="text" inputmode="decimal" id="refundAmount" placeholder="0.00" autocomplete="off">
         <button class="btn btn-ghost" type="button" id="fullAmountBtn" style="flex-shrink:0;min-height:40px">Full amount</button>
       </div>
-      <label for="refundReasonSelect">Reason</label>
-      <select id="refundReasonSelect">
-        <option value="">Choose a reason…</option>
-        <option value="Customer request">Customer request</option>
-        <option value="Provider failed">Provider failed</option>
-        <option value="Duplicate charge">Duplicate charge</option>
-        <option value="Service not delivered">Service not delivered</option>
-        <option value="Fraud prevention">Fraud prevention</option>
-        <option value="Other">Other (enter below)</option>
-      </select>
-      <label for="refundReason">Additional details (required, min 4 chars)</label>
+      <label for="refundReason">Reason (required, min 4 chars)</label>
       <textarea id="refundReason" rows="3" placeholder="Why is this being refunded?"></textarea>
       <div class="notice danger" id="refundConfirm" style="display:none;margin-top:10px">
         <strong>Confirm:</strong> <span id="refundConfirmText"></span>
@@ -1784,46 +1390,27 @@ function openRefundModal(t, cap) {
     `,
     onConfirm: async () => {
       const amountStr = $('#refundAmount').value.trim();
-      const reasonSel = $('#refundReasonSelect').value;
-      const reasonDetail = $('#refundReason').value.trim();
-      const combinedReason = (reasonSel && reasonDetail)
-        ? `${reasonSel}: ${reasonDetail}`
-        : (reasonSel || reasonDetail);
+      const reason = $('#refundReason').value.trim();
 
       if (!/^\d+(\.\d{1,2})?$/.test(amountStr)) {
-        toast('Amount must be a number with at most 2 decimal places.', 'error');
-        return false;
+        toast('Amount must be a number with at most 2 decimal places.', 'error'); return false;
       }
       const amountNum = Number(amountStr);
-      if (!Number.isFinite(amountNum) || amountNum <= 0) {
-        toast('Enter a valid amount.', 'error'); return false;
-      }
-      if (amountNum > MAX_REFUND_AMOUNT) {
-        toast(`Amount cannot exceed ${fmtMoney(MAX_REFUND_AMOUNT, currency)}.`, 'error');
-        return false;
-      }
-      if (amountNum > remaining) {
-        toast('Amount exceeds the remaining refundable balance.', 'error');
-        return false;
-      }
-      if (combinedReason.length < 4) {
-        toast('Reason required (min 4 characters).', 'error'); return false;
-      }
+      if (!Number.isFinite(amountNum) || amountNum <= 0) { toast('Enter a valid amount.', 'error'); return false; }
+      if (amountNum > MAX_REFUND_AMOUNT) { toast(`Amount cannot exceed ${fmtMoney(MAX_REFUND_AMOUNT, currency)}.`, 'error'); return false; }
+      if (amountNum > remaining + 1e-9) { toast('Amount exceeds the remaining refundable balance.', 'error'); return false; }
+      if (reason.length < 4) { toast('Reason required (min 4 characters).', 'error'); return false; }
+
       const needsTyped = amountNum >= threshold;
       if (needsTyped) {
         const typed = $('#refundTyped')?.value.trim() || '';
-        if (typed !== 'REFUND') {
-          toast('Type REFUND to confirm.', 'error'); return false;
-        }
+        if (typed !== 'REFUND') { toast('Type REFUND to confirm.', 'error'); return false; }
       }
 
-      const body = JSON.stringify({ amount: amountStr, reason: combinedReason });
+      const body = JSON.stringify({ amount: amountStr, reason });
       const opts = {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': idempotencyKey
-        },
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
         body
       };
 
@@ -1834,16 +1421,8 @@ function openRefundModal(t, cap) {
         try {
           if (window.AdminSession && typeof window.AdminSession.verify === 'function') {
             await window.AdminSession.verify();
-          } else if (window.AdminSession && typeof window.AdminSession.fetch === 'function') {
-            await window.AdminSession.fetch('/api/admin/auth/step-up', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({})
-            });
-          } else {
-            throw new Error('AdminSession.verify not available');
           }
-        } catch (e) {
+        } catch (_) {
           toast('Verification failed. Please try again.', 'error');
           return false;
         }
@@ -1851,26 +1430,17 @@ function openRefundModal(t, cap) {
       }
 
       if (!r.ok) {
-        if (r.code === 'REFUND_ALREADY_IN_FLIGHT') {
-          toast('A refund for this transaction is already in progress.', 'warn');
-        } else if (r.code === 'REFUND_PREVIOUSLY_FAILED') {
-          toast('A previous attempt failed. Close and reopen the refund form to retry.', 'error');
-        } else if (r.code === 'REFUND_EXCEEDS_REMAINING' || r.code === 'TX_NOT_REFUNDABLE') {
-          toast(r.error || 'Refund not available.', 'warn');
-        } else {
-          toast(r.error || 'Refund failed.', 'error');
-        }
+        if (r.code === 'REFUND_ALREADY_IN_FLIGHT') toast('A refund for this transaction is already in progress.', 'warn');
+        else if (r.code === 'REFUND_PREVIOUSLY_FAILED') toast('A previous attempt failed. Close and reopen the refund form to retry.', 'error');
+        else if (r.code === 'REFUND_EXCEEDS_REMAINING' || r.code === 'TX_NOT_REFUNDABLE') toast(r.error || 'Refund not available.', 'warn');
+        else toast(r.error || 'Refund failed.', 'error');
         return false;
       }
 
       const refund = r.data?.refund || r.data?.data?.refund || {};
-      if (refund.status === 'PENDING_APPROVAL') {
-        toast('Refund created — pending approval by a second admin.', 'success');
-      } else if (refund.status === 'PROCESSING') {
-        toast('Provider refund initiated. It will settle once confirmed by the provider.', 'success');
-      } else {
-        toast(isReversal ? 'Reversal applied.' : 'Refund applied.', 'success');
-      }
+      if (refund.status === 'PENDING_APPROVAL') toast('Refund created — pending approval by a second admin.', 'success');
+      else if (refund.status === 'PROCESSING') toast('Refund initiated.', 'success');
+      else toast('Refund applied.', 'success');
 
       await loadList();
       await loadStats();
@@ -1891,8 +1461,7 @@ function openRefundModal(t, cap) {
       if (Number.isFinite(n) && n >= threshold) {
         $('#refundConfirm').style.display = 'block';
         $('#refundConfirmText').textContent =
-          (isReversal ? 'Debit' : 'Credit') + ' ' +
-          (fmtMoney(n, currency) || n) + ' to ' + (userEmail || 'customer') +
+          'Credit ' + (fmtMoney(n, currency) || n) + ' to ' + (userEmail || 'customer') +
           ' — this will go to approval.';
       } else {
         $('#refundConfirm').style.display = 'none';
@@ -1903,7 +1472,6 @@ function openRefundModal(t, cap) {
   }, 60);
 }
 
-// ─── Note modal ────────────────────────────────────────────────
 function openNoteModal(t) {
   openModal({
     title: 'Add internal note',
@@ -1928,13 +1496,13 @@ function openNoteModal(t) {
   });
 }
 
-// ─── Filters + wiring ──────────────────────────────────────────
 function readFilters() {
   State.filters = {
     search:   $('#fSearch').value.trim(),
     type:     $('#fType').value,
     status:   $('#fStatus').value,
     currency: $('#fCurrency').value,
+    feedback: $('#fFeedback').value || 'all',
     provider: $('#fProvider').value.trim(),
     user_id:  $('#fUserId').value.trim(),
     from:     $('#fFrom').value,
@@ -1946,7 +1514,6 @@ function readFilters() {
   State.limit = parseInt(State.filters.limit, 10) || 25;
 }
 
-// ─── Export ─────────────────────────────────────────────────────
 async function exportCsv() {
   const btn = $('#exportBtn');
   const prevHtml = btn.innerHTML;
@@ -1957,7 +1524,7 @@ async function exportCsv() {
     const f = State.filters;
     if (f.from) q.set('from', f.from);
     if (f.to) q.set('to', f.to);
-    if (f.status && f.status !== 'all') q.set('status', f.status);
+    if (f.status && f.status !== 'all') q.set('status', String(f.status).replace(/^group:/, ''));
     if (f.currency && f.currency !== 'all') q.set('currency', f.currency);
     if (f.type) q.set('type', f.type);
     if (f.provider) q.set('provider', f.provider);
@@ -2006,7 +1573,6 @@ async function exportCsv() {
   }
 }
 
-// ─── Boot ──────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   if (window.AdminSession && typeof window.AdminSession.getToken === 'function') {
     if (!window.AdminSession.getToken()) {
@@ -2020,7 +1586,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   initAdminIdentity();
-  initSidebar();
+  initSidebarToggle();
   initTheme();
 
   $('#applyBtn').addEventListener('click', () => {
@@ -2031,10 +1597,11 @@ document.addEventListener('DOMContentLoaded', () => {
     syncUrlFromState();
   });
   $('#clearBtn').addEventListener('click', () => {
-    ['fSearch','fFrom','fTo','fProvider','fUserId'].forEach(id => $('#' + id).value = '');
+    ['fSearch','fFrom','fTo','fProvider','fUserId'].forEach(id => { const el = $('#' + id); if (el) el.value = ''; });
     $('#fType').value = '';
     $('#fStatus').value = 'all';
     $('#fCurrency').value = 'all';
+    $('#fFeedback').value = 'all';
     $('#fLimit').value = '25';
     State.filters.sort = '';
     State.filters.order = '';
@@ -2071,13 +1638,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  $('#refreshBtn').addEventListener('click', () => {
-    loadList();
-    loadStats();
-  });
-
+  $('#refreshBtn').addEventListener('click', () => { loadList(); loadStats(); });
   $('#exportBtn').addEventListener('click', exportCsv);
-
   $('#ddClose').addEventListener('click', closeDrawer);
   $('#drawerScrim').addEventListener('click', closeDrawer);
 
@@ -2106,7 +1668,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadTypes();
   applyFiltersToForm(initialFilters);
-
   loadList();
   loadStats();
 

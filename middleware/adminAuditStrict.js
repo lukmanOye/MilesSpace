@@ -1,310 +1,417 @@
 // middleware/adminAuditStrict.js
 // ─────────────────────────────────────────────────────────────────
-// Strict audit writer. Throws if the audit row cannot be inserted,
-// so money-moving / security-critical operations can abort.
+// Strict audit writer for money-moving and permission-changing
+// admin actions.
 //
-// Delegates all writes to services/auditLogService.record() so the
-// canonical scrubber, canonical action registry, and severity-merge
-// rules are the single authority. This file never writes to
-// admin_audit_logs directly.
-//
-// Also writes a matching `admin_security_events` row for
-// security-relevant actions so the Security dashboard can read them
-// without scanning the entire audit table. The security mirror is
-// best-effort — the canonical record is admin_audit_logs.
+// Contract:
+//   • Every field the audit UI reads is forwarded to
+//     auditLogService.record() — nothing is dropped.
+//   • If the write fails, the promise REJECTS. Callers rely on that
+//     to abort the operation; a money move without a record is
+//     forbidden.
+//   • If the caller passed no `req` (background job, cron, worker),
+//     strict still works — request-only fields are simply null.
+//   • Nothing sensitive is written by accident; the audit service's
+//     scrubber handles before/after/metadata. This file never
+//     bypasses the scrubber.
 //
 // Exports:
-//   recordAdminActionStrict(opts)
-//   CRITICAL_ACTIONS
-//   scrub(value)
+//   recordAdminActionStrict(opts)   — one row
+//   withAudit(fn, auditOpts)        — intent + outcome, one
+//                                     correlation id, both rows
+//                                     pass through strict.
+//   buildCorrelationId()            — helper used by withAudit and
+//                                     callers that need to correlate
+//                                     across calls.
+//
+// Why not a Postgres RPC for wallet moves?
+//   The ledger tables use their own RPCs (process_transaction_v2).
+//   We cannot add an audit insert to that RPC without modifying a
+//   file that belongs to the ledger. The intent + outcome pattern
+//   gives us the same external guarantees (both rows visible, same
+//   correlation id, no orphan audit) with no cross-module edit.
+//   The only residual risk — process dies between intent and
+//   outcome — is visible in the audit list as an unmatched
+//   "intent" row and is caught by reconcileAuditIntents (see
+//   below).
 // ─────────────────────────────────────────────────────────────────
 
 'use strict';
 
-const auditLog   = require('../services/auditLogService');
-const auditActions = require('../services/auditActions');
-const scrubber   = require('../services/auditScrubber');
-const { supabaseAdmin } = require('../db/supabase');
+const crypto = require('crypto');
+const auditLog = require('../services/auditLogService');
 
-// ─── Legacy alias set ───────────────────────────────────────────
-// Old callers used uppercase names like 'WALLET_ADJUSTED'. The
-// canonical registry uses lowercase dotted names like
-// 'wallet.credit'. This map keeps old call sites working without
-// duplicating the classification in two places.
-const LEGACY_TO_CANONICAL = Object.freeze({
-    'WALLET_ADJUSTED':               'wallet.credit',
-    'WALLET_CREDITED':               'wallet.credit',
-    'WALLET_DEBITED':                'wallet.debit',
-    'REFUND_CREATED':                'transaction.refund',
-    'REFUND_FAILED':                 'transaction.refund',
-    'TRANSACTION_REVERSED':          'transaction.status_change',
-    'ADMIN_CREATED':                 'admin.created',
-    'ADMIN_DELETED':                 'admin.deleted',
-    'ADMIN_SUSPENDED':               'admin.disabled',
-    'ROLE_CHANGED':                  'admin.role_changed',
-    'PERMISSION_GRANTED':            'admin.permission_granted',
-    'PERMISSION_REVOKED':            'admin.permission_revoked',
-    'PROVIDER_CREDENTIAL_CHANGED':   'provider.enabled',
-    'PROVIDER_ENABLED':              'provider.enabled',
-    'PROVIDER_DISABLED':             'provider.disabled',
-    'FX_RATE_CHANGED':               'setting_change',
-    'PRICE_CHANGED':                 'setting_change',
-    'SETTINGS_CHANGED':              'setting_change',
-    'SECURITY_SETTINGS_CHANGED':     'setting_change',
-    'EMERGENCY_STOP_ENABLED':        'emergency.toggle',
-    'EMERGENCY_STOP_DISABLED':       'emergency.toggle',
-    'MFA_ENABLED':                   'admin.mfa_enabled',
-    'MFA_DISABLED':                  'admin.mfa_disabled',
-    'RECOVERY_CODES_REGENERATED':    'admin.recovery_codes_regenerated',
-    'ADMIN_SESSION_REVOKED':         'admin.session_revoked',
-    'ADMIN_LOGOUT_ALL':              'admin.session_revoked'
-});
-
-// CRITICAL_ACTIONS is kept exported for backwards compatibility.
-// It is now derived from the canonical registry — do not edit here.
-const CRITICAL_ACTIONS = new Set([
-    ...auditActions.STRICT_ACTIONS,
-    ...Object.keys(LEGACY_TO_CANONICAL)
-]);
-
-// Legacy alias for the scrub function — delegates to the canonical
-// scrubber so callers do not bypass the registry.
-function scrub(value, depth = 0) {
-    return scrubber.scrub(value);
+// Best-effort require of the shared IP helper. If your adminAuth
+// does not export getClientIp, fall back to the raw socket.
+let getClientIp;
+try {
+    ({ getClientIp } = require('./adminAuth'));
+    if (typeof getClientIp !== 'function') getClientIp = null;
+} catch {
+    getClientIp = null;
 }
 
-function safeString(v, max) {
-    if (v == null) return null;
-    return String(v).slice(0, max);
-}
+// ─── Helpers ────────────────────────────────────────────────────
 
-function resolveActionName(action) {
-    const raw = String(action || '').trim();
-    if (!raw) return raw;
-    // Exact canonical match first.
-    if (auditActions.isKnownAction(raw)) return raw;
-    // Legacy uppercase alias.
-    const legacy = LEGACY_TO_CANONICAL[raw.toUpperCase()];
-    if (legacy) return legacy;
-    // Unknown — return as-is. The service will reject it in
-    // production; in dev it is classified by prefix rule.
-    return raw;
-}
-
-function isSecurityAction(action) {
-    const def = auditActions.getAction(action);
-    if (!def) return false;
-    return def.category === 'security'
-        || def.category === 'permissions'
-        || def.category === 'admin_management';
-}
-
-async function mirrorSecurityEvent({
-    action, entryId,
-    adminId, adminEmail,
-    result, reason, severity,
-    ip, requestId, sessionId,
-    targetType, targetId
-}) {
+function _ip(req) {
+    if (!req) return null;
     try {
-        await supabaseAdmin.from('admin_security_events').insert({
-            audit_id:    entryId || null,
-            admin_id:    adminId || null,
-            admin_email: safeString(adminEmail, 255),
-            action:      safeString(action, 120),
-            severity:    severity || null,
-            result:      result || 'success',
-            reason:      safeString(reason, 500),
-            ip_address:  safeString(ip, 64),
-            request_id:  safeString(requestId, 80),
-            session_id:  sessionId || null,
-            target_type: safeString(targetType, 80),
-            target_id:   safeString(targetId, 120),
-            created_at:  new Date().toISOString()
-        });
-    } catch (e) {
-        // Best-effort only. The audit row is already durable.
-        // Suppress "table does not exist" so a fresh deploy that has
-        // not yet run the admin_security_events migration does not
-        // spam the logs.
-        if (!/relation .* does not exist|42P01/.test(String(e.message))) {
-            console.warn('[AUDIT-STRICT] security event write failed:', e.message);
+        if (typeof getClientIp === 'function') {
+            const ip = getClientIp(req);
+            if (ip) return String(ip);
         }
+    } catch (_) { /* fall through */ }
+    return req.ip
+        || (req.headers && req.headers['x-forwarded-for'] ? String(req.headers['x-forwarded-for']).split(',')[0].trim() : null)
+        || (req.socket && req.socket.remoteAddress)
+        || null;
+}
+
+function _ua(req) {
+    if (!req || !req.headers) return null;
+    return req.headers['user-agent'] || null;
+}
+
+function _requestId(req) {
+    if (!req) return null;
+    return req.requestId || (req.headers && req.headers['x-request-id']) || null;
+}
+
+function _sessionId(req) {
+    if (!req) return null;
+    return req.adminContext && req.adminContext.sessionId
+        ? req.adminContext.sessionId
+        : (req.sessionId || null);
+}
+
+function buildCorrelationId() {
+    return 'audit-' + crypto.randomBytes(12).toString('hex');
+}
+
+function _guessTargetType(action) {
+    if (typeof action !== 'string') return null;
+    const prefix = action.split('.')[0];
+    switch (prefix) {
+        case 'wallet':         return 'wallet';
+        case 'transaction':    return 'transaction';
+        case 'order':          return 'order';
+        case 'user':           return 'profile';
+        case 'admin':          return 'admin';
+        case 'setting':        return 'setting';
+        case 'provider':       return 'provider';
+        case 'webhook':        return 'webhook';
+        case 'reconciliation': return 'reconciliation';
+        case 'report':         return 'report';
+        default:               return null;
     }
 }
 
-/**
- * Insert an audit record atomically with the operation.
- * THROWS on failure — the caller must roll back.
- *
- * Accepts the legacy shape (uppercase action, `note` for request id)
- * as well as the new shape (canonical action, explicit correlation
- * id / failure code / duration / provider / operation / metadata).
- */
-async function recordAdminActionStrict(opts) {
-    const options = opts || {};
-    const {
-        adminId,
-        action: rawAction,
-        adminEmail = null,
-        adminRole  = null,
-        actorType  = null,
+// ─── Core: recordAdminActionStrict ──────────────────────────────
 
-        targetType = null,
-        targetId   = null,
-
-        before = null,
-        after  = null,
-
-        reason    = null,
-        adminNote = null,
-
-        result     = 'success',
-        failureCode = null,
-        durationMs  = null,
-
-        correlationId = null,
-        requestId     = null,
-        sessionId     = null,
-
-        provider  = null,
-        operation = null,
-        metadata  = null,
-
-        ip        = null,
-        userAgent = null,
-        location  = null,
-
-        req = null
-    } = options;
-
-    if (!adminId || !rawAction) {
-        const e = new Error('recordAdminActionStrict requires adminId and action');
-        e.status = 500;
-        e.code = 'AUDIT_CONFIG_ERROR';
+async function recordAdminActionStrict(opts = {}) {
+    if (!opts || !opts.action) {
+        const e = new Error('recordAdminActionStrict: action is required');
+        e.code = 'AUDIT_ACTION_REQUIRED';
         throw e;
     }
 
-    const action = resolveActionName(rawAction);
+    // Prefer the authenticated admin from req when not passed
+    // explicitly. This keeps a caller from forgetting the actor.
+    const ctx = opts.req && opts.req.adminContext ? opts.req.adminContext : {};
 
-    // Validate against the canonical registry. In production an
-    // unregistered action is a hard failure so the registry stays
-    // authoritative. Legacy uppercase names are resolved above, so
-    // they pass this check.
-    if (!auditActions.isKnownAction(action)) {
-        const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
-        if (isProd) {
-            const e = new Error(`recordAdminActionStrict: unregistered action "${rawAction}".`);
-            e.status = 500;
-            e.code = 'AUDIT_ACTION_UNREGISTERED';
+    const adminId      = opts.adminId      || ctx.id      || null;
+    const adminEmail   = opts.adminEmail   || ctx.email   || null;
+    const adminRole    = opts.adminRole    || ctx.role    || null;
+
+    if (!adminId) {
+        // A strict write with no actor is a bug in the caller.
+        // We reject rather than write an audit row that says
+        // "someone did this".
+        const e = new Error(
+            'recordAdminActionStrict: adminId is required (no authenticated admin in req, and none passed explicitly)'
+        );
+        e.code = 'AUDIT_ACTOR_REQUIRED';
+        throw e;
+    }
+
+    const targetType = opts.targetType || _guessTargetType(opts.action);
+    const targetId   = opts.targetId != null ? String(opts.targetId) : null;
+
+    const correlationId =
+        opts.correlationId
+        || (ctx.correlationId)
+        || (opts.req && opts.req.correlationId)
+        || null;
+
+    const payload = {
+        adminId,
+        adminEmail,
+        adminRole,
+
+        action:        opts.action,
+        category:      opts.category      || null,
+        severity:      opts.severity      || null,
+        targetType,
+        targetId,
+
+        before:        opts.before        !== undefined ? opts.before : null,
+        after:         opts.after         !== undefined ? opts.after  : null,
+        reason:        opts.reason        !== undefined ? opts.reason : null,
+        adminNote:     opts.adminNote     !== undefined ? opts.adminNote : null,
+
+        result:        opts.result        || 'success',
+        failureCode:   opts.failureCode   || null,
+        durationMs:    opts.durationMs    != null ? Number(opts.durationMs) : null,
+
+        actorType:     opts.actorType     || 'admin',
+        actorUserId:   opts.actorUserId   || null,
+
+        correlationId,
+        provider:      opts.provider      || null,
+        operation:     opts.operation     || null,
+        metadata:      opts.metadata      || null,
+
+        ip:            opts.ip            || _ip(opts.req),
+        userAgent:     opts.userAgent     || _ua(opts.req),
+        location:      opts.location      || null,
+        requestId:     opts.requestId     || _requestId(opts.req),
+        sessionId:     opts.sessionId     || _sessionId(opts.req)
+    };
+
+    return auditLog.record(payload);
+}
+
+// ─── withAudit ─────────────────────────────────────────────────
+//
+// Wraps a money-moving operation in two audit writes with the same
+// correlation id:
+//
+//   1. intent   — result: 'partial', before the operation runs.
+//   2. outcome  — result: 'success' | 'failure', after the
+//                 operation returns or throws.
+//
+// If the intent write fails, the operation never runs. If the
+// operation fails, the outcome row is still written (result
+// 'failure') and the error is re-thrown so the caller's route
+// handles it normally.
+//
+// Usage:
+//   const { result, auditIds } = await withAudit(
+//       () => LedgerService.debitWallet(...),
+//       {
+//           req,
+//           action: 'wallet.debit',
+//           targetType: 'wallet',
+//           targetId: walletId,
+//           reason: 'Admin manual debit',
+//           intentBefore:  { balance_before: 100 },
+//           outcomeBefore: (r) => ({ balance_before: 100, balance_after:  r.balance_after }),
+//           outcomeAfter:  (r) => ({ amount: r.amount, reference: r.reference })
+//       }
+//   );
+//
+// auditOpts fields:
+//   • req                — the Express request (for IP / UA / requestId)
+//   • action             — the audit action name (required)
+//   • targetType, targetId
+//   • reason, adminNote
+//   • provider, operation, metadata
+//   • intentBefore       — value written to `before` on the intent row
+//   • intentAfter        — value written to `after` on the intent row
+//                          (rarely set; usually null)
+//   • outcomeBefore      — value OR function (r) → value
+//   • outcomeAfter       — value OR function (r) → value
+//   • outcomeSuccessMetadata   — function (r) → object (merged with intent metadata)
+//   • outcomeFailureMetadata   — function (e) → object
+//   • onOutcomeWriteFailure    — 'throw' (default) | 'log'
+//                                What to do if the *outcome* row
+//                                fails to write. 'throw' re-throws
+//                                so the caller can decide. 'log'
+//                                only logs. Never silent.
+
+async function withAudit(fn, auditOpts = {}) {
+    if (typeof fn !== 'function') {
+        const e = new Error('withAudit: fn must be a function');
+        e.code = 'AUDIT_INVALID_CALL';
+        throw e;
+    }
+    if (!auditOpts || !auditOpts.action) {
+        const e = new Error('withAudit: auditOpts.action is required');
+        e.code = 'AUDIT_ACTION_REQUIRED';
+        throw e;
+    }
+
+    const correlationId = auditOpts.correlationId || buildCorrelationId();
+    const startedAt = Date.now();
+
+    // ─── 1. Intent row ────────────────────────────────────────────
+    const intentId = await recordAdminActionStrict({
+        req:          auditOpts.req,
+        action:       auditOpts.action,
+        category:     auditOpts.category,
+        severity:     auditOpts.severity,
+        targetType:   auditOpts.targetType,
+        targetId:     auditOpts.targetId,
+        reason:       auditOpts.reason,
+        adminNote:    auditOpts.adminNote,
+        actorType:    auditOpts.actorType,
+        actorUserId:  auditOpts.actorUserId,
+        provider:     auditOpts.provider,
+        operation:    auditOpts.operation,
+        correlationId,
+        metadata:     {
+            phase: 'intent',
+            ...(auditOpts.intentMetadata && typeof auditOpts.intentMetadata === 'object'
+                ? auditOpts.intentMetadata
+                : {})
+        },
+        before:       auditOpts.intentBefore !== undefined ? auditOpts.intentBefore : null,
+        after:        auditOpts.intentAfter  !== undefined ? auditOpts.intentAfter  : null,
+        result:       'partial'
+    });
+
+    // ─── 2. The actual operation ──────────────────────────────────
+    let operationResult = null;
+    let operationError  = null;
+    try {
+        operationResult = await fn();
+    } catch (e) {
+        operationError = e;
+    }
+
+    // ─── 3. Outcome row ───────────────────────────────────────────
+    const durationMs = Date.now() - startedAt;
+    const succeeded  = operationError === null;
+
+    const resolve = (v) => {
+        if (typeof v === 'function') {
+            try { return v(succeeded ? operationResult : operationError); }
+            catch (_) { return null; }
+        }
+        return v !== undefined ? v : null;
+    };
+
+    const outcomeMetadata = succeeded
+        ? resolve(auditOpts.outcomeSuccessMetadata)
+        : resolve(auditOpts.outcomeFailureMetadata);
+
+    let outcomeId = null;
+    try {
+        outcomeId = await recordAdminActionStrict({
+            req:          auditOpts.req,
+            action:       auditOpts.action,
+            category:     auditOpts.category,
+            severity:     auditOpts.severity,
+            targetType:   auditOpts.targetType,
+            targetId:     auditOpts.targetId,
+            reason:       auditOpts.reason,
+            adminNote:    auditOpts.adminNote,
+            actorType:    auditOpts.actorType,
+            actorUserId:  auditOpts.actorUserId,
+            provider:     auditOpts.provider,
+            operation:    auditOpts.operation,
+            correlationId,
+            metadata:     {
+                phase: 'outcome',
+                ...(outcomeMetadata && typeof outcomeMetadata === 'object' ? outcomeMetadata : {})
+            },
+            before:       resolve(auditOpts.outcomeBefore),
+            after:        resolve(auditOpts.outcomeAfter),
+            result:       succeeded ? 'success' : 'failure',
+            failureCode:  succeeded ? null : (operationError.code || 'OPERATION_FAILED'),
+            durationMs
+        });
+    } catch (auditErr) {
+        console.error(
+            '[adminAuditStrict] outcome write failed',
+            { correlationId, intentId, action: auditOpts.action, error: auditErr.message }
+        );
+        if (auditOpts.onOutcomeWriteFailure !== 'log') {
+            // Default: re-throw so a money move does not silently
+            // complete without a matching outcome row.
+            const e = new Error(
+                'Audit outcome write failed; operation result was: ' +
+                (succeeded ? 'success' : 'failure')
+            );
+            e.code = 'AUDIT_OUTCOME_WRITE_FAILED';
+            e.correlationId = correlationId;
+            e.intentId = intentId;
+            e.operationResult = operationResult;
+            e.operationError = operationError;
             throw e;
         }
-        // In dev, allow the prefix classification to continue, but
-        // warn so the developer adds it to the registry.
-        console.warn(`[AUDIT-STRICT] action "${rawAction}" is not in the registry; recording under best-effort classification.`);
     }
 
-    // Resolve request-scoped fields from the Express request when
-    // the caller did not pass them explicitly.
-    const ctx = req?.adminContext || null;
-    const finalIp        = ip        || ctx?.ip        || getReqIp(req) || null;
-    const finalUa        = userAgent || req?.headers?.['user-agent'] || null;
-    const finalRequestId = requestId || req?.requestId || req?.headers?.['x-request-id'] || null;
-    const finalSessionId = sessionId || ctx?.sessionId || null;
-    const finalCorrId    = correlationId || req?.correlationId || null;
-
-    const finalAdminEmail = adminEmail || ctx?.email || null;
-    const finalAdminRole  = adminRole  || ctx?.role  || null;
-    const finalActorType  = actorType  || (ctx ? 'admin' : 'system');
-
-    let entryId;
-    try {
-        entryId = await auditLog.record({
-            adminId,
-            adminEmail: finalAdminEmail,
-            adminRole:  finalAdminRole,
-            actorType:  finalActorType,
-
-            action,
-            targetType,
-            targetId,
-
-            before,
-            after,
-
-            reason,
-            adminNote,
-
-            result,
-            failureCode,
-            durationMs,
-
-            correlationId: finalCorrId,
-            requestId:     finalRequestId,
-            sessionId:     finalSessionId,
-
-            provider,
-            operation,
-            metadata,
-
-            ip: finalIp,
-            userAgent: finalUa,
-            location
-        });
-    } catch (e) {
-        // Translate the service error into the strict contract.
-        if (e.code === 'AUDIT_INSERT_FAILED'
-            || e.code === 'AUDIT_ACTION_UNREGISTERED'
-            || e.code === 'AUDIT_ACTION_REQUIRED') {
-            console.error('[AUDIT-STRICT] insert failed:', e.message);
-            const err = new Error('Audit log could not be written. The action was aborted.');
-            err.status = 503;
-            err.code = 'AUDIT_WRITE_FAILED';
-            err.cause = e.message;
-            throw err;
-        }
-        throw e;
+    // ─── 4. Surface the operation result as before ────────────────
+    if (operationError) {
+        // Preserve the original error shape but attach audit context
+        // so the caller can log it.
+        try {
+            operationError.audit = {
+                correlationId,
+                intentId,
+                outcomeId
+            };
+        } catch (_) { /* error may be frozen */ }
+        throw operationError;
     }
 
-    // Mirror to admin_security_events for security-relevant actions.
-    if (isSecurityAction(action)) {
-        await mirrorSecurityEvent({
-            action,
-            entryId,
-            adminId,
-            adminEmail: finalAdminEmail,
-            result,
-            reason,
-            severity: auditActions.getAction(action)?.severity || null,
-            ip: finalIp,
-            requestId: finalRequestId,
-            sessionId: finalSessionId,
-            targetType,
-            targetId
-        });
-    }
-
-    return entryId;
+    return {
+        result: operationResult,
+        auditIds: { intent: intentId, outcome: outcomeId, correlationId }
+    };
 }
 
-// ─── Request IP helper (local, so this file has no dependency on
-//     adminAuth) ────────────────────────────────────────────────
-function getReqIp(req) {
-    if (!req) return null;
-    const raw = (() => {
-        if (typeof req.ip === 'string' && req.ip) return req.ip;
-        const fwd = req.headers?.['x-forwarded-for'];
-        if (typeof fwd === 'string' && fwd) return fwd.split(',')[0].trim();
-        return req.socket?.remoteAddress || null;
-    })();
-    if (!raw) return null;
-    const normalized = raw.replace(/^::ffff:/, '');
-    if (normalized === '::1' || normalized === '127.0.0.1' || normalized === 'localhost') return null;
-    return raw;
+// ─── reconcileAuditIntents ─────────────────────────────────────
+//
+// Finds intent rows (result='partial', metadata.phase='intent')
+// older than `olderThanMinutes` that have no matching outcome row
+// in the same correlation group. These are cases where the process
+// died between the intent write and the outcome write.
+//
+// It does not guess whether the operation succeeded — it only
+// surfaces the pairs so an admin (or an alert) can investigate.
+// Called from the worker; safe on empty tables.
+
+async function findOrphanAuditIntents({ olderThanMinutes = 15, limit = 100 } = {}) {
+    const { supabaseAdmin } = require('../db/supabase');
+    const cutoff = new Date(Date.now() - Math.max(1, Number(olderThanMinutes)) * 60 * 1000).toISOString();
+
+    const { data, error } = await supabaseAdmin
+        .from('admin_audit_logs')
+        .select('id, action, correlation_id, created_at, admin_email')
+        .eq('result', 'partial')
+        .not('correlation_id', 'is', null)
+        .lt('created_at', cutoff)
+        .order('created_at', { ascending: true })
+        .limit(Math.min(Math.max(Number(limit) || 100, 1), 500));
+
+    if (error) throw error;
+    if (!data || !data.length) return [];
+
+    const correlationIds = [...new Set(data.map(r => r.correlation_id))];
+    const { data: outcomes } = await supabaseAdmin
+        .from('admin_audit_logs')
+        .select('correlation_id')
+        .in('correlation_id', correlationIds)
+        .neq('result', 'partial');
+
+    const hasOutcome = new Set((outcomes || []).map(r => r.correlation_id));
+
+    return data
+        .filter(r => !hasOutcome.has(r.correlation_id))
+        .map(r => ({
+            intent_id:        r.id,
+            action:           r.action,
+            correlation_id:   r.correlation_id,
+            admin_email:      r.admin_email,
+            intent_created_at: r.created_at
+        }));
 }
 
 module.exports = {
     recordAdminActionStrict,
-    CRITICAL_ACTIONS,
-    scrub
+    withAudit,
+    buildCorrelationId,
+    findOrphanAuditIntents
 };

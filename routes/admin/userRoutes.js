@@ -996,13 +996,13 @@ router.get(
  * If you already mount this router after a global adminAuth
  * middleware that populates those fields, this block is a no-op.
  */
-router.use((req, res, next) => {
-    if (!req.adminContext || !req.adminContext.id) {
-        return fail(res, 401, 'AUTH_CONTEXT_MISSING',
-            'Admin authentication context is missing. Ensure the router is mounted after adminAuth middleware.');
-    }
-    next();
-});
+// router.use((req, res, next) => {
+//     if (!req.adminContext || !req.adminContext.id) {
+//         return fail(res, 401, 'AUTH_CONTEXT_MISSING',
+//             'Admin authentication context is missing. Ensure the router is mounted after adminAuth middleware.');
+//     }
+//     next();
+// });
 
 // ═══════════════════════════════════════════════════════════════
 //  MODULE EXPORTS

@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f4c5c">
+<title>Money Overview · MilesSpace Admin</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+<link rel="stylesheet" href="/css/admin-shell.css">
+<script src="/js/admin-session.js?v=2026-mo-v1"></script>
+<script src="/js/admin-shell.js?v=2026-mo-v1"></script>
+
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   Money Overview — standalone page
+   All classes prefixed `mo-` so they cannot collide with the shell.
+   ═══════════════════════════════════════════════════════════════ */
+
+.mo-root {
+  --mo-brand: var(--navy, #0f4c5c);
+  --mo-brand-deep: var(--navy-deep, #0a3542);
+  --mo-bg: var(--bg, #f4f7fb);
+  --mo-surface: var(--bg-card, var(--surface, #ffffff));
+  --mo-border: var(--border, rgba(15,76,92,.10));
+  --mo-text: var(--text, #0c1f26);
+  --mo-text-dim: var(--text-dim, #5b7480);
+  --mo-text-faint: var(--text-faint, #93a7ae);
+  --mo-success: var(--success, #15803d);
+  --mo-success-bg: var(--success-bg, #e7f6ec);
+  --mo-danger: var(--danger, #c81e1e);
+  --mo-danger-bg: var(--danger-bg, #fdecec);
+  --mo-warn: var(--warn, #b45309);
+  --mo-warn-bg: var(--warn-bg, #fef3c7);
+  --mo-info: var(--info, #1d4ed8);
+  --mo-info-bg: var(--info-bg, #e6edfd);
+  --mo-purple: var(--purple, #6d28d9);
+  --mo-purple-bg: var(--purple-bg, #ede9fe);
+  width: 100%;
+  max-width: 1400px;
+  margin-inline: auto;
+  color: var(--mo-text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+.mo-root *, .mo-root *::before, .mo-root *::after { box-sizing: border-box; }
+
+/* Page header */
+.mo-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.mo-header h2 { font-size: clamp(17px, 2.4vw, 21px); font-weight: 800; margin: 0; letter-spacing: -.01em; }
+.mo-header .mo-sub { font-size: 12.5px; color: var(--mo-text-dim); margin: 2px 0 0; }
+.mo-header .mo-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.mo-header .mo-updated { font-size: 11px; color: var(--mo-text-faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.mo-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; min-height: 38px; border: 1px solid var(--mo-border); background: var(--mo-surface); color: var(--mo-text); border-radius: 9px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap; }
+.mo-btn:hover { background: var(--mo-bg); }
+.mo-btn:disabled { opacity: .5; cursor: not-allowed; }
+.mo-btn.mo-btn-primary { background: var(--mo-brand); color: #fff; border-color: var(--mo-brand); }
+.mo-btn.mo-btn-primary:hover { background: var(--mo-brand-deep); }
+
+/* Attention strip */
+.mo-strip { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px; margin-bottom: 14px; scrollbar-width: none; }
+.mo-strip::-webkit-scrollbar { display: none; }
+.mo-chip { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 10px 14px; min-height: 44px; border-radius: 99px; border: 1px solid var(--mo-border); background: var(--mo-surface); color: var(--mo-text); text-decoration: none; font-size: 12.5px; font-weight: 700; transition: background 120ms, transform 120ms; }
+.mo-chip:hover { background: var(--mo-bg); transform: translateY(-1px); }
+.mo-chip .mo-chip-count { min-width: 22px; height: 22px; border-radius: 99px; display: grid; place-items: center; font-size: 11px; font-weight: 800; color: #fff; background: var(--mo-brand); padding: 0 6px; }
+.mo-chip.mo-chip-danger .mo-chip-count { background: var(--mo-danger); }
+.mo-chip.mo-chip-warn .mo-chip-count { background: var(--mo-warn); }
+.mo-chip.mo-chip-ok .mo-chip-count { background: var(--mo-success); }
+.mo-chip.mo-chip-none { opacity: .75; }
+.mo-chip.mo-chip-none .mo-chip-count { background: var(--mo-text-faint); }
+.mo-chip .mo-chip-sub { font-size: 11px; color: var(--mo-text-faint); font-weight: 600; }
+
+/* Grid */
+.mo-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+@media (min-width: 900px) { .mo-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* Card */
+.mo-card { background: var(--mo-surface); border: 1px solid var(--mo-border); border-radius: 14px; padding: 14px 16px; min-width: 0; }
+.mo-card .mo-k { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--mo-text-dim); margin-bottom: 6px; }
+.mo-card .mo-v { font-size: clamp(18px, 2.4vw, 22px); font-weight: 800; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; line-height: 1.15; }
+.mo-card .mo-sub { font-size: 11px; color: var(--mo-text-faint); margin-top: 4px; line-height: 1.5; }
+.mo-card .mo-err { color: var(--mo-danger); font-size: 12px; font-weight: 600; }
+.mo-card .mo-err button { display: inline-flex; margin-top: 6px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--mo-border); background: var(--mo-surface); color: var(--mo-brand); font-size: 11.5px; font-weight: 700; cursor: pointer; min-height: 36px; }
+
+/* Revenue block */
+.mo-revenue-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.mo-revenue-head h3 { margin: 0; font-size: 13px; font-weight: 800; }
+.mo-range { display: flex; gap: 2px; background: var(--mo-bg); border: 1px solid var(--mo-border); border-radius: 99px; padding: 3px; }
+.mo-range button { border: none; background: transparent; padding: 6px 12px; min-height: 32px; font-size: 12px; font-weight: 600; color: var(--mo-text-dim); border-radius: 99px; cursor: pointer; font-family: inherit; }
+.mo-range button[aria-pressed="true"] { background: var(--mo-brand); color: #fff; }
+
+/* Provider card */
+.mo-provider-row { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--mo-border); font-size: 12.5px; }
+.mo-provider-row:last-child { border-bottom: none; }
+.mo-provider-row .k { color: var(--mo-text-dim); font-weight: 600; }
+.mo-provider-row .v { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+/* Table */
+.mo-table-wrap { width: 100%; overflow-x: auto; border-radius: 10px; }
+.mo-table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 780px; }
+.mo-table th { text-align: left; padding: 10px 12px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--mo-text-faint); background: var(--mo-bg); border-bottom: 1px solid var(--mo-border); white-space: nowrap; position: sticky; top: 0; z-index: 1; }
+.mo-table td { padding: 10px 12px; border-bottom: 1px solid var(--mo-border); vertical-align: middle; overflow-wrap: anywhere; }
+.mo-table tr { cursor: pointer; }
+.mo-table tr:hover { background: rgba(245,166,35,.05); }
+.mo-table tr:last-child td { border-bottom: none; }
+.mo-table .mo-mono { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; }
+
+/* Badge */
+.mo-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 10.5px; font-weight: 700; border-radius: 99px; border: 1px solid transparent; white-space: nowrap; line-height: 1.4; }
+.mo-badge.mo-success { background: var(--mo-success-bg); color: var(--mo-success); border-color: var(--mo-success); }
+.mo-badge.mo-danger { background: var(--mo-danger-bg); color: var(--mo-danger); border-color: var(--mo-danger); }
+.mo-badge.mo-warn { background: var(--mo-warn-bg); color: var(--mo-warn); border-color: var(--mo-warn); }
+.mo-badge.mo-info { background: var(--mo-info-bg); color: var(--mo-info); border-color: var(--mo-info); }
+.mo-badge.mo-purple { background: var(--mo-purple-bg); color: var(--mo-purple); border-color: var(--mo-purple); }
+.mo-badge.mo-neutral { background: var(--mo-bg); color: var(--mo-text-dim); border-color: var(--mo-border); }
+
+/* Block spacing */
+.mo-block { margin-bottom: 16px; }
+.mo-block .mo-block-title { font-size: 13px; font-weight: 800; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+
+/* Skeletons */
+.mo-skel { background: linear-gradient(90deg, var(--mo-bg) 25%, var(--mo-surface) 50%, var(--mo-bg) 75%); background-size: 200% 100%; animation: mo-shimmer 1.4s infinite; border-radius: 6px; display: inline-block; min-width: 60%; color: transparent; }
+@keyframes mo-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.mo-skel-v { height: 22px; }
+
+/* Errors */
+.mo-empty { text-align: center; padding: 24px 14px; color: var(--mo-text-faint); font-size: 12.5px; }
+
+/* Mobile */
+@media (max-width: 768px) {
+  .mo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .mo-card { padding: 12px; }
+  .mo-header h2 { font-size: 16px; }
+  .mo-table { min-width: 0; display: block; }
+  .mo-table thead { display: none; }
+  .mo-table tbody { display: block; }
+  .mo-table tr { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 12px; margin-bottom: 8px; background: var(--mo-surface); border: 1px solid var(--mo-border); border-radius: 12px; }
+  .mo-table td { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border: none; font-size: 12.5px; }
+  .mo-table td::before { content: attr(data-label); font-size: 10.5px; font-weight: 700; color: var(--mo-text-dim); text-transform: uppercase; letter-spacing: .05em; }
+  .mo-table td[data-primary] { display: block; padding-bottom: 8px; border-bottom: 1px solid var(--mo-border); margin-bottom: 6px; font-weight: 700; }
+  .mo-table td[data-primary]::before { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="appRoot"></div>
+
+<script>
+'use strict';
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (!window.AdminSession || !AdminSession.getToken()) {
+    (AdminSession && AdminSession.redirectToLogin) ? AdminSession.redirectToLogin() : location.replace('/admin/index.html');
+    return;
+  }
+  if (!window.MS || typeof MS.init !== 'function') {
+    console.error('[MONEY-OVERVIEW] MS.init not found.');
+    return;
+  }
+  MS.init({
+    activeKey: 'money-overview',
+    title: 'Money Overview',
+    breadcrumb: [
+      { label: 'Home', href: '/admin/dashboard.html' },
+      { label: 'Analytics' },
+      { label: 'Money Overview' }
+    ]
+  });
+  mount();
+});
+
+const API = {
+  attention:    '/api/admin/money-overview/attention',
+  wallets:      '/api/admin/money-overview/wallets',
+  deposits:     '/api/admin/money-overview/deposits',
+  transactions: '/api/admin/money-overview/transactions',
+  refunds:      '/api/admin/money-overview/refunds',
+  revenue:      '/api/admin/money-overview/revenue',
+  recent:       '/api/admin/money-overview/recent',
+  provider:     '/api/admin/money-overview/provider'
+};
+
+const CCY = { NGN: '₦', USD: '$', GBP: '£', EUR: '€', GHS: 'GH₵' };
+const State = { revenueRange: 'today', refreshAt: null };
+
+function esc(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
+}
+function fmtMoney(v, ccy) {
+  if (v === null || v === undefined || v === '') return '-';
+  const s = String(v);
+  if (!/^-?\d+(\.\d+)?$/.test(s)) return '-';
+  const n = Number(s);
+  if (!Number.isFinite(n)) return '-';
+  const c = String(ccy || '').toUpperCase();
+  return (CCY[c] || (c ? c + ' ' : '')) + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtInt(v) {
+  if (v === null || v === undefined || v === '') return '-';
+  const n = Number(v);
+  return Number.isFinite(n) ? n.toLocaleString('en-US') : '-';
+}
+function timeAgo(iso) {
+  if (!iso) return '-';
+  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (!Number.isFinite(s) || s < 0) return '-';
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  return Math.floor(s / 86400) + 'd ago';
+}
+function statusCls(s) {
+  const k = String(s || '').toLowerCase();
+  if (['completed','success','successful','delivered'].includes(k)) return 'mo-success';
+  if (['failed','cancelled','reversed','expired','error'].includes(k)) return 'mo-danger';
+  if (['pending','processing','confirming'].includes(k)) return 'mo-warn';
+  if (k === 'manual_review') return 'mo-purple';
+  return 'mo-neutral';
+}
+
+async function api(url) {
+  try {
+    const res = await AdminSession.fetch(url);
+    let json = null;
+    try { json = await res.json(); } catch {}
+    if (!res.ok || !json || json.success === false) {
+      return { ok: false, status: res.status, code: json && json.code, error: (json && json.error) || ('HTTP ' + res.status) };
+    }
+    return { ok: true, data: json.data !== undefined ? json.data : json };
+  } catch (e) {
+    return { ok: false, status: 0, error: e.message || 'Network error' };
+  }
+}
+
+/* ─── Shell ──────────────────────────────────────────────── */
+function mount() {
+  const content = document.getElementById('content');
+  if (!content) return;
+  content.innerHTML = `
+    <div class="mo-root">
+      <div class="mo-header">
+        <div>
+          <h2><i class="fas fa-coins" style="margin-right:6px"></i> Money Overview</h2>
+          <p class="mo-sub">Wallet liabilities, inflows, outflows and provider status in one page.</p>
+        </div>
+        <div class="mo-actions">
+          <span class="mo-updated" id="moUpdated" aria-live="polite"></span>
+          <button type="button" class="mo-btn mo-btn-primary" id="moRefresh"><i class="fas fa-rotate"></i> Refresh</button>
+        </div>
+      </div>
+
+      <div class="mo-strip" id="moAttn" aria-live="polite"></div>
+
+      <div class="mo-grid" id="moGrid"></div>
+
+      <div class="mo-block">
+        <div class="mo-revenue-head">
+          <h3><i class="fas fa-chart-line" style="margin-right:6px"></i> Revenue &amp; Profit</h3>
+          <div class="mo-range" role="group" aria-label="Revenue period">
+            <button type="button" data-mo-range="today" aria-pressed="true">Today</button>
+            <button type="button" data-mo-range="7d" aria-pressed="false">7 Days</button>
+            <button type="button" data-mo-range="month" aria-pressed="false">Month</button>
+          </div>
+        </div>
+        <div class="mo-grid" id="moRevenue" style="margin-bottom:0"></div>
+      </div>
+
+      <div class="mo-block">
+        <div class="mo-block-title"><i class="fas fa-plug" style="margin-right:6px"></i> Provider float</div>
+        <div class="mo-card" id="moProvider"><div class="mo-empty">Loading…</div></div>
+      </div>
+
+      <div class="mo-block">
+        <div class="mo-block-title"><i class="fas fa-arrow-right-arrow-left" style="margin-right:6px"></i> Recent transactions</div>
+        <div class="mo-table-wrap">
+          <table class="mo-table" aria-label="Recent transactions">
+            <thead><tr>
+              <th>Reference</th>
+              <th>Customer</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>When</th>
+            </tr></thead>
+            <tbody id="moRecent"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+
+  bindEvents();
+  loadAll();
+}
+
+function bindEvents() {
+  document.getElementById('moRefresh').addEventListener('click', loadAll);
+  document.querySelectorAll('[data-mo-range]').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-mo-range]').forEach(b => b.setAttribute('aria-pressed', 'false'));
+    btn.setAttribute('aria-pressed', 'true');
+    State.revenueRange = btn.getAttribute('data-mo-range');
+    loadRevenue();
+  }));
+  document.getElementById('moRecent').addEventListener('click', (e) => {
+    const tr = e.target.closest('tr');
+    if (!tr) return;
+    const ref = tr.getAttribute('data-ref');
+    if (ref) window.location.href = '/admin/transactions.html?ref=' + encodeURIComponent(ref);
+  });
+}
+
+function updateLastUpdated() {
+  State.refreshAt = new Date();
+  const el = document.getElementById('moUpdated');
+  if (el) el.textContent = 'Last updated ' + State.refreshAt.toLocaleTimeString();
+}
+
+function errCard(label, error, retry) {
+  const id = 'mo-retry-' + Math.random().toString(36).slice(2, 8);
+  setTimeout(() => document.getElementById(id)?.addEventListener('click', retry), 0);
+  return `<div class="mo-card"><div class="mo-k">${esc(label)}</div><div class="mo-err">${esc(error || 'Could not load.')}<br><button id="${id}" type="button">Retry</button></div></div>`;
+}
+
+/* ─── Attention strip ────────────────────────────────────── */
+async function loadAttention() {
+  const el = document.getElementById('moAttn');
+  el.innerHTML = '<div class="mo-chip mo-chip-none" style="min-width:160px"><span class="mo-chip-sub">Loading…</span></div>';
+  const r = await api(API.attention);
+  if (!r.ok) {
+    el.innerHTML = '';
+    return;
+  }
+  const d = r.data;
+  const chips = [];
+
+  // Recon
+  if (d.recon.available) {
+    const n = Number(d.recon.count || 0);
+    const crit = Number(d.recon.critical || 0);
+    const cls = n > 0 ? (crit > 0 ? 'mo-chip-danger' : 'mo-chip-warn') : 'mo-chip-none';
+    chips.push(`<a class="mo-chip ${cls}" href="${esc(d.recon.link)}"><i class="fas fa-rotate"></i><span>Recon Issues</span><span class="mo-chip-count">${n > 99 ? '99+' : n}</span><span class="mo-chip-sub">${crit > 0 ? crit + ' critical' : (n > 0 ? 'needs review' : '')}</span></a>`);
+  }
+  // Refunds
+  if (d.refunds.available) {
+    const n = Number(d.refunds.count || 0);
+    const sla = Number(d.refunds.over_sla || 0);
+    const cls = n > 0 ? (sla > 0 ? 'mo-chip-danger' : 'mo-chip-warn') : 'mo-chip-none';
+    chips.push(`<a class="mo-chip ${cls}" href="${esc(d.refunds.link)}"><i class="fas fa-rotate-left"></i><span>Refunds</span><span class="mo-chip-count">${n > 99 ? '99+' : n}</span><span class="mo-chip-sub">${sla > 0 ? sla + ' over SLA' : (n > 0 ? 'pending approval' : '')}</span></a>`);
+  }
+  // Crypto
+  if (d.crypto.available) {
+    const n = Number(d.crypto.count || 0);
+    const cls = n > 0 ? 'mo-chip-warn' : 'mo-chip-none';
+    chips.push(`<a class="mo-chip ${cls}" href="${esc(d.crypto.link)}"><i class="fas fa-wallet"></i><span>Crypto review</span><span class="mo-chip-count">${n > 99 ? '99+' : n}</span><span class="mo-chip-sub">${n > 0 ? 'manual review' : ''}</span></a>`);
+  }
+  // eSIM
+  if (d.esim.available) {
+    const n = Number(d.esim.count || 0);
+    const cls = n > 0 ? 'mo-chip-danger' : 'mo-chip-none';
+    chips.push(`<a class="mo-chip ${cls}" href="${esc(d.esim.link)}"><i class="fas fa-circle-xmark"></i><span>eSIM failed</span><span class="mo-chip-count">${n > 99 ? '99+' : n}</span><span class="mo-chip-sub">${n > 0 ? 'orders' : ''}</span></a>`);
+  }
+  el.innerHTML = chips.join('');
+}
+
+/* ─── Money grid ─────────────────────────────────────────── */
+async function loadMoneyGrid() {
+  const el = document.getElementById('moGrid');
+  el.innerHTML = Array.from({ length: 6 }).map(() =>
+    `<div class="mo-card"><div class="mo-k">Loading…</div><div class="mo-v mo-skel mo-skel-v"></div></div>`
+  ).join('');
+
+  const [wal, dep, tx, ref] = await Promise.allSettled([
+    api(API.wallets),
+    api(API.deposits),
+    api(API.transactions),
+    api(API.refunds)
+  ]);
+
+  const cards = [];
+
+  // Wallets
+  if (wal.status === 'fulfilled' && wal.value.ok) {
+    const balances = wal.value.data.balances || {};
+    const currs = Object.keys(balances).sort();
+    if (!currs.length) {
+      cards.push(`<div class="mo-card"><div class="mo-k">Wallet liabilities</div><div class="mo-v">-</div><div class="mo-sub">No wallet accounts</div></div>`);
+    } else {
+      for (const ccy of currs) {
+        const b = balances[ccy] || {};
+        cards.push(`<div class="mo-card">
+          <div class="mo-k">Wallets ${esc(ccy)}</div>
+          <div class="mo-v">${fmtMoney(b.total, ccy)}</div>
+          <div class="mo-sub">Available ${fmtMoney(b.available, ccy)}<br>Held ${fmtMoney(b.held, ccy)}</div>
+        </div>`);
+      }
+    }
+  } else {
+    const err = wal.status === 'fulfilled' ? wal.value.error : 'Network error';
+    cards.push(errCard('Wallet liabilities', err, loadMoneyGrid));
+  }
+
+  // Deposits
+  if (dep.status === 'fulfilled' && dep.value.ok) {
+    const k = dep.value.data.kora || {};
+    const c = dep.value.data.crypto || {};
+    cards.push(`<div class="mo-card">
+      <div class="mo-k">Kora deposits</div>
+      <div class="mo-v">${fmtInt(k.completed)}</div>
+      <div class="mo-sub">${fmtInt(k.pending)} pending · ${fmtInt(k.failed)} failed</div>
+    </div>`);
+    cards.push(`<div class="mo-card">
+      <div class="mo-k">Crypto deposits</div>
+      <div class="mo-v">${fmtInt(c.completed)}</div>
+      <div class="mo-sub">${fmtInt(c.pending)} pending · ${fmtInt(c.manual_review)} review</div>
+    </div>`);
+  } else {
+    const err = dep.status === 'fulfilled' ? dep.value.error : 'Network error';
+    cards.push(errCard('Deposits', err, loadMoneyGrid));
+  }
+
+  // Transactions
+  if (tx.status === 'fulfilled' && tx.value.ok) {
+    const s = tx.value.data;
+    cards.push(`<div class="mo-card">
+      <div class="mo-k">Transactions</div>
+      <div class="mo-v">${fmtInt(s.total)}</div>
+      <div class="mo-sub">${fmtInt(s.completed)} completed · ${fmtInt(s.pending)} pending · ${fmtInt(s.failed)} failed</div>
+    </div>`);
+  } else {
+    const err = tx.status === 'fulfilled' ? tx.value.error : 'Network error';
+    cards.push(errCard('Transactions', err, loadMoneyGrid));
+  }
+
+  // Refunds
+  if (ref.status === 'fulfilled' && ref.value.ok) {
+    const s = ref.value.data;
+    cards.push(`<div class="mo-card">
+      <div class="mo-k">Refunds</div>
+      <div class="mo-v">${fmtInt(s.pending_approval)}</div>
+      <div class="mo-sub">${fmtInt(s.over_sla)} over SLA · ${fmtInt(s.completed)} completed</div>
+    </div>`);
+  } else {
+    const err = ref.status === 'fulfilled' ? ref.value.error : 'Network error';
+    cards.push(errCard('Refunds', err, loadMoneyGrid));
+  }
+
+  el.innerHTML = cards.join('');
+}
+
+/* ─── Revenue ────────────────────────────────────────────── */
+async function loadRevenue() {
+  const el = document.getElementById('moRevenue');
+  el.innerHTML = Array.from({ length: 4 }).map(() =>
+    `<div class="mo-card"><div class="mo-k">Loading…</div><div class="mo-v mo-skel mo-skel-v"></div></div>`
+  ).join('');
+
+  const r = await api(API.revenue);
+  if (!r.ok) {
+    el.innerHTML = errCard('Revenue', r.error, loadRevenue).repeat(4);
+    return;
+  }
+  const periods = r.data.periods || {};
+  const key = State.revenueRange === '7d' ? '7d' : State.revenueRange;
+  const p = periods[key] || { orders: 0, revenue_ngn: '0.00', revenue_usd: '0.00', profit_usd: '0.00', profit_ngn: '0.00' };
+
+  el.innerHTML = `
+    <div class="mo-card"><div class="mo-k">Orders</div><div class="mo-v">${fmtInt(p.orders)}</div><div class="mo-sub">Completed in period</div></div>
+    <div class="mo-card"><div class="mo-k">Revenue NGN</div><div class="mo-v">${p.orders === 0 ? '-' : fmtMoney(p.revenue_ngn, 'NGN')}</div><div class="mo-sub">Debit NGN</div></div>
+    <div class="mo-card"><div class="mo-k">Revenue USD</div><div class="mo-v">${p.orders === 0 ? '-' : fmtMoney(p.revenue_usd, 'USD')}</div><div class="mo-sub">Debit USD</div></div>
+    <div class="mo-card"><div class="mo-k">Profit</div><div class="mo-v">${p.orders === 0 ? '-' : fmtMoney(p.profit_usd, 'USD')}</div><div class="mo-sub">${p.orders === 0 ? '' : 'NGN ' + fmtMoney(p.profit_ngn, 'NGN')}</div></div>`;
+}
+
+/* ─── Provider float ─────────────────────────────────────── */
+async function loadProvider() {
+  const el = document.getElementById('moProvider');
+  el.innerHTML = '<div class="mo-empty">Loading provider float…</div>';
+  const r = await api(API.provider);
+  if (!r.ok) {
+    el.innerHTML = `<div class="mo-err">${esc(r.error || 'Could not load provider.')}<br><button class="mo-btn mo-btn-primary" type="button" onclick="window.__moReloadProvider()">Retry</button></div>`;
+    window.__moReloadProvider = loadProvider;
+    return;
+  }
+  const d = r.data || {};
+  const balances = Array.isArray(d.balances) ? d.balances : [];
+  if (!d.reachable) {
+    el.innerHTML = `<div class="mo-provider-row"><span class="k">Status</span><span class="v" style="color:var(--mo-danger)">Unreachable</span></div>
+      <div class="mo-provider-row"><span class="k">Error</span><span class="v">${esc(d.error || 'Provider unreachable')}</span></div>`;
+    return;
+  }
+  if (!balances.length) {
+    el.innerHTML = `<div class="mo-provider-row"><span class="k">Status</span><span class="v" style="color:var(--mo-success)">Reachable</span></div>
+      <div class="mo-provider-row"><span class="k">Balance</span><span class="v">Provider returned no balances</span></div>`;
+    return;
+  }
+  el.innerHTML = balances.map(b => `
+    <div class="mo-provider-row">
+      <span class="k">${esc(b.currency || 'Balance')}</span>
+      <span class="v">${fmtMoney(b.available, b.currency)}</span>
+    </div>`).join('');
+}
+
+/* ─── Recent transactions ───────────────────────────────── */
+async function loadRecent() {
+  const el = document.getElementById('moRecent');
+  el.innerHTML = Array.from({ length: 4 }).map(() =>
+    `<tr>${Array.from({ length: 6 }).map(() => `<td><span class="mo-skel" style="width:70%;height:10px;display:inline-block"></span></td>`).join('')}</tr>`
+  ).join('');
+  const r = await api(API.recent);
+  if (!r.ok) {
+    el.innerHTML = `<tr><td colspan="6" class="mo-empty">${esc(r.error || 'Could not load recent transactions.')}</td></tr>`;
+    return;
+  }
+  const rows = r.data.transactions || [];
+  if (!rows.length) {
+    el.innerHTML = `<tr><td colspan="6" class="mo-empty">No recent transactions</td></tr>`;
+    return;
+  }
+  el.innerHTML = rows.map(t => `
+    <tr data-ref="${esc(t.reference || '')}">
+      <td data-primary class="mo-mono">${esc(t.reference || '-')}</td>
+      <td data-label="Customer">${esc(t.user?.username || '-')}</td>
+      <td data-label="Type">${esc(t.type || '-')}</td>
+      <td data-label="Amount">${fmtMoney(t.amount, t.currency)}</td>
+      <td data-label="Status"><span class="mo-badge ${statusCls(t.status)}">${esc(t.status || '-')}</span></td>
+      <td data-label="When">${esc(timeAgo(t.created_at))}</td>
+    </tr>`).join('');
+}
+
+/* ─── Orchestrator ──────────────────────────────────────── */
+async function loadAll() {
+  await Promise.allSettled([
+    loadAttention(),
+    loadMoneyGrid(),
+    loadRevenue(),
+    loadProvider(),
+    loadRecent()
+  ]);
+  updateLastUpdated();
+}
+</script>
+</body>
+</html>

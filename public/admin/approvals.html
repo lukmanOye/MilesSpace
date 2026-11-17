@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f4c5c">
+<title>Approvals — MilesSpace Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+<link rel="stylesheet" href="/css/admin-shell.css">
+<script src="/js/admin-session.js?v=2026-approvals-v2"></script>
+<script src="/js/admin-shell.js?v=2026-approvals-v2"></script>
+<style>
+  .tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--border)}
+  .tab{background:none;border:none;padding:10px 16px;font:600 13px Inter,sans-serif;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tab.active{color:var(--text);border-bottom-color:var(--primary,#0f4c5c)}
+  .tab .count{margin-left:6px;font-size:11px;padding:2px 7px;border-radius:20px;background:var(--border)}
+  .tab.active .count{background:var(--primary,#0f4c5c);color:#fff}
+  .ap-row{display:grid;grid-template-columns:1.4fr 1fr auto;gap:16px;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border)}
+  .ap-row:last-child{border-bottom:none}
+  .ap-main strong{display:block;font-size:14px}
+  .ap-main span{font-size:12px;color:var(--text-dim)}
+  .ap-amt{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+  .ap-reason{font-size:12px;color:var(--text-dim);margin-top:4px;font-style:italic}
+  .ap-actions{display:flex;gap:8px}
+  .own{font-size:11.5px;color:var(--text-faint)}
+  @media(max-width:760px){.ap-row{grid-template-columns:1fr}.ap-actions{flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<script>
+(function(){try{var d=localStorage.getItem('ms-theme')==='dark';document.documentElement.classList.add(d?'dark':'light');document.documentElement.style.colorScheme=d?'dark':'light';}catch(_){}})();
+</script>
+
+<div class="app" id="appRoot"></div>
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+<script>
+'use strict';
+
+const API = {
+  refunds:  '/api/admin/refunds?status=PENDING_APPROVAL&limit=100',
+  refundDo: (id, a) => `/api/admin/refunds/${encodeURIComponent(id)}/${a}`,
+  reconList:'/api/admin/reconciliation/approvals?status=investigating',
+  reconDo:  (id, a) => `/api/admin/reconciliation/approvals/${encodeURIComponent(id)}/${a}`
+};
+
+const State = { tab: 'refunds', refunds: [], recon: [], me: null };
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!window.AdminSession?.getToken?.()) {
+    return window.AdminSession?.redirectToLogin?.() || window.location.replace('/admin/index.html');
+  }
+  MS.init({
+    activeKey: 'approvals',
+    title: 'Approvals',
+    breadcrumb: [{ label: 'Home', href: '/admin/dashboard.html' }, { label: 'Money' }, { label: 'Approvals' }]
+  });
+  
+  // FIXED: admin-session.js exposes getUser(), not getAdmin()
+  State.me = window.AdminSession?.getUser?.() || null;
+  
+  renderShell();
+  await loadAll();
+});
+
+const $ = id => document.getElementById(id);
+const myId = () => State.me?.id || State.me?.admin_id || null;
+
+function renderShell() {
+  $('content').innerHTML = `
+    <div class="page-header">
+      <div>
+        <h2>Approvals</h2>
+        <div class="sub">Actions that need a second admin before money moves or an issue closes. You cannot approve what you requested.</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-ghost" id="reloadBtn" type="button"><i class="fas fa-rotate"></i> Refresh</button>
+      </div>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="refunds" role="tab">Refunds <span class="count" id="cRefunds">–</span></button>
+      <button class="tab" data-tab="recon" role="tab">Reconciliation <span class="count" id="cRecon">–</span></button>
+    </div>
+    <div class="card"><div id="list"></div></div>`;
+
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    State.tab = t.dataset.tab;
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === t));
+    renderList();
+  }));
+  $('reloadBtn').addEventListener('click', loadAll);
+}
+
+async function loadAll() {
+  $('list').innerHTML = '<div style="padding:20px"><span class="skel" style="width:60%;display:inline-block"></span></div>';
+  
+  // Fetch both lists in parallel
+  const [rf, rc] = await Promise.all([MS.api(API.refunds), MS.api(API.reconList)]);
+
+  // Refunds
+  State.refunds = rf.ok ? ((rf.data.data || rf.data).refunds || []) : [];
+  State.refundsErr = rf.ok ? null : (rf.error || 'Could not load refunds.');
+  
+  // Recon
+  State.recon = rc.ok ? ((rc.data.data || rc.data).approvals || []) : [];
+  State.reconErr = rc.ok ? null : (rc.error || 'Could not load reconciliation approvals.');
+
+  $('cRefunds').textContent = rf.ok ? State.refunds.length : '!';
+  $('cRecon').textContent = rc.ok ? State.recon.length : '!';
+  renderList();
+}
+
+function renderList() {
+  const el = $('list');
+  const isRefunds = State.tab === 'refunds';
+  const err = isRefunds ? State.refundsErr : State.reconErr;
+  const rows = isRefunds ? State.refunds : State.recon;
+
+  if (err) {
+    el.innerHTML = `<div class="unavailable-box"><i class="fas fa-triangle-exclamation"></i><div>${MS.esc(err)}</div></div>`;
+    return;
+  }
+  if (!rows.length) {
+    el.innerHTML = `<div class="empty-state"><i class="fas fa-check-circle" style="color:var(--success)"></i><div class="title">Nothing waiting</div><div class="sub">No ${isRefunds ? 'refunds' : 'issues'} need your approval.</div></div>`;
+    return;
+  }
+  el.innerHTML = rows.map(isRefunds ? refundRow : reconRow).join('');
+  el.querySelectorAll('[data-do]').forEach(b =>
+    b.addEventListener('click', () => decide(b.dataset.kind, b.dataset.do, b.dataset.id)));
+}
+
+function actionButtons(kind, id, requesterId) {
+  const mine = requesterId && requesterId === myId();
+  if (mine) return `<span class="own"><i class="fas fa-lock"></i> You requested this</span>`;
+  return `
+    <button class="btn btn-primary" data-kind="${kind}" data-do="approve" data-id="${MS.esc(id)}" type="button"><i class="fas fa-check"></i> Approve</button>
+    <button class="btn btn-ghost" data-kind="${kind}" data-do="reject" data-id="${MS.esc(id)}" type="button"><i class="fas fa-xmark"></i> Reject</button>`;
+}
+
+function refundRow(r) {
+  const who = r.user?.username || r.user?.email || r.user_id || 'Unknown customer';
+  const risk = r.risk_flags && Object.keys(r.risk_flags).length;
+  return `
+  <div class="ap-row">
+    <div class="ap-main">
+      <strong>${MS.esc(r.refund_type || 'refund')} refund · ${MS.esc(who)}</strong>
+      <span>Requested by ${MS.esc(r.requester_email || 'admin')} · ${MS.esc(MS.timeAgo(r.created_at))}
+        ${risk ? ' · <span style="color:var(--danger)">risk flagged</span>' : ''}</span>
+      <div class="ap-reason">“${MS.esc(r.reason || 'No reason given')}”</div>
+    </div>
+    <div class="ap-amt">${MS.fmtMoney(r.amount, r.currency) || '—'}</div>
+    <div class="ap-actions">${actionButtons('refund', r.id, r.requested_by)}</div>
+  </div>`;
+}
+
+function reconRow(a) {
+  // Assuming a.requested_by is passed from the backend (or we fall back to system)
+  return `
+  <div class="ap-row">
+    <div class="ap-main">
+      <strong>${MS.esc(a.issue_type || 'Issue resolution')} · ${MS.esc(a.service || a.provider || 'System')}</strong>
+      <span>Requested by ${MS.esc(a.requested_by_email || 'system')} · ${MS.esc(MS.timeAgo(a.created_at))}</span>
+      <div class="ap-reason">“${MS.esc(a.reason || a.resolution_notes || 'No reason given')}”</div>
+    </div>
+    <div class="ap-amt">${a.amount != null ? (MS.fmtMoney(a.amount, a.currency) || '—') : '—'}</div>
+    <div class="ap-actions">${actionButtons('recon', a.id, a.requested_by)}</div>
+  </div>`;
+}
+
+async function decide(kind, action, id) {
+  const approve = action === 'approve';
+  const reason = await MS.reasonModal({
+    title: approve ? 'Approve' : 'Reject',
+    message: approve
+      ? (kind === 'refund' ? 'The refund runs as soon as you approve. This cannot be undone.' : 'The issue closes under your name as approver.')
+      : 'Nothing is executed. The requester sees your reason.',
+    confirmText: approve ? 'Approve' : 'Reject',
+    kind: approve ? 'success' : 'danger',
+    minLength: 4
+  });
+  if (!reason) return;
+
+  const url = kind === 'refund' ? API.refundDo(id, action) : API.reconDo(id, action);
+  const key = (crypto.randomUUID && crypto.randomUUID()) || `${kind}-${id}-${Date.now()}`;
+  const r = await MS.api(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Idempotency-Key': key },
+    body: JSON.stringify({ reason })
+  });
+  
+  if (r.ok) {
+    MS.toast(approve ? 'Approved.' : 'Rejected.', 'success');
+    loadAll();
+  } else {
+    MS.toast(r.error || 'Action failed.', 'error');
+  }
+}
+</script>
+</body>
+</html>

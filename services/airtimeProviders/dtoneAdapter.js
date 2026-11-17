@@ -49,7 +49,7 @@ async function purchase({ order, attempt, callbackUrl }) {
         });
     }
 
-    try {
+        try {
         const result = await dtone.createQuote({
             productId: order.provider_product_id,
             phone: order.phone_number,
@@ -62,7 +62,29 @@ async function purchase({ order, attempt, callbackUrl }) {
             orderReference: externalId
         });
 
-        const normalized = result.normalizedStatus || {};
+        // NEW: confirm the quote (previously omitted → orders stuck pending).
+        let confirmResult = null;
+        try {
+            confirmResult = await dtone.confirmTransaction(result.transactionId);
+        } catch (confirmErr) {
+            if (confirmErr.definitiveRejection) {
+                throw new AirTimeProviderError(
+                    confirmErr.message || 'DT One rejected at confirm',
+                    { code: confirmErr.normalized?.code || 'DT_ONE_REJECTED', definitiveRejection: true, providerData: confirmErr.providerData || null }
+                );
+            }
+            // Ambiguous — return what we have; the reconciler will settle.
+                    return {
+            providerTransactionId: String(result.transactionId || ''),
+            providerReference:     String(result.externalId || externalId),
+            providerStatus:        normalized.code || 'SUBMITTED',
+            statusClassId:         normalized.statusClassId || null,
+            statusId:              normalized.statusId || null,
+            rawResponse:           confirmResult?.raw || result.raw || null
+        };
+        }
+
+        const normalized = dtone.normalizeStatus(confirmResult?.status || result.normalizedStatus || {});
 
         // Immediate definitive rejection surfaces here.
         if (normalized.final && normalized.status === 'failed') {
@@ -292,18 +314,24 @@ async function getProducts({ countryIso3 }) {
 async function healthCheck() {
     const configured = Boolean(process.env.DTONE_API_KEY && process.env.DTONE_API_SECRET);
     if (!configured) {
-        return { configured: false, reachable: false, lastError: 'Missing credentials' };
+        return { configured: false, reachable: false, balance: null, balances: null, lastError: 'Missing credentials' };
     }
-
     try {
         const r = await dtone.getBalances();
+        const balances = {};
+        for (const b of (r.balances || [])) {
+            const ccy = String(b.unit || b.currency || '').toUpperCase();
+            if (ccy) balances[ccy] = Number(b.amount ?? b.balance ?? b.available ?? 0);
+        }
         return {
             configured: true,
             reachable: !!r.success,
+            balance: balances.USD ?? null,
+            balances,
             lastError: r.success ? null : (r.error || 'Unknown error')
         };
     } catch (e) {
-        return { configured: true, reachable: false, lastError: e.message };
+        return { configured: true, reachable: false, balance: null, balances: null, lastError: e.message };
     }
 }
 

@@ -13,16 +13,30 @@
 //   PUT  /api/admin/gift-cards/products/:id/enabled
 //   GET  /api/admin/gift-cards/provider/health
 //
-// No business logic here. No direct DB writes. The service is the
-// only place that touches the order or the wallet.
+// NEW (Batch 2):
+//   GET  /api/admin/gift-cards/catalog
+//   POST /api/admin/gift-cards/products/import
+//   PUT  /api/admin/gift-cards/products/:id/pricing
+//   PUT  /api/admin/gift-cards/products/:id
+//   POST /api/admin/gift-cards/pricing/preview
+//   GET  /api/admin/gift-cards/pricing
+//   PUT  /api/admin/gift-cards/pricing
+//   POST /api/admin/gift-cards/products/refresh-costs
 //
-// Error responses are sanitized — internal error messages never
-// reach the admin client. The full message is logged server-side
-// with the request id so support can correlate.
+// REMOVED in this revision:
+//   router.post('/services/:id', ... boost_services ...) — did not
+//   belong here, used supabaseAdmin without importing it, and
+//   returned raw error.message. Belongs in a boost admin router.
+//   TODO: move to routes/admin/boostAdminRoutes.js when that file
+//   exists.
 //
 // Response shape (single canonical form):
 //   Success:  { success: true, data: {...} }
 //   Error:    { success: false, code, message, request_id }
+//
+// All pricing flows through services/giftCardAdminService which
+// itself flows through services/pricingEngine. The route never
+// touches money math.
 // ─────────────────────────────────────────────────────────────────
 
 'use strict';
@@ -30,14 +44,51 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+
 const { requirePermission, PERMISSIONS } = require('../../middleware/adminAuth');
+const { requireStepUpAuth } = require('../../middleware/adminStepUp');
+
 const giftCards = require('../../services/giftCardService');
+const adminService = require('../../services/giftCardAdminService');
+const dtoneService = require('../../services/dtoneService');
 
 // ─── Identifier validation ───────────────────────────────────────
-// gift_card_orders.id is BIGINT in this deployment. Products are
-// also integer-keyed. If you migrate to UUID later, swap this regex
-// for the UUID pattern in ONE place.
+// gift_card_orders.id and gift_card_products.id are BIGINT in this
+// deployment. If you migrate to UUID later, swap this regex for the
+// UUID pattern in ONE place.
 const ORDER_ID_RE = /^\d{1,19}$/;
+const PRODUCT_ID_RE = /^\d{1,19}$/;
+
+// ─── Rate limiting (in-memory, per admin) ────────────────────────
+// The route module owns its buckets. moneyAdminRoutes has its own.
+const _buckets = new Map();
+function rateLimit({ key, max, windowMs }) {
+    return (req, res, next) => {
+        const k = `${key}:${req.adminContext?.id || req.ip || 'anon'}`;
+        const now = Date.now();
+        let bucket = _buckets.get(k);
+        if (!bucket || now > bucket.resetAt) {
+            bucket = { count: 1, resetAt: now + windowMs };
+            _buckets.set(k, bucket);
+            return next();
+        }
+        bucket.count++;
+        if (bucket.count > max) {
+            const retryAfter = Math.ceil((bucket.resetAt - now) / 1000);
+            res.setHeader('Retry-After', String(retryAfter));
+            const e = new Error(`Too many requests. Retry in ${retryAfter}s.`);
+            e.status = 429; e.code = 'REFRESH_RATE_LIMITED';
+            return sendErr(res, req, e);
+        }
+        next();
+    };
+}
+setInterval(() => {
+    const now = Date.now();
+    for (const [k, b] of _buckets.entries()) {
+        if (now > b.resetAt) _buckets.delete(k);
+    }
+}, 60_000).unref?.();
 
 // ─── Request ID middleware (per request) ─────────────────────────
 router.use((req, res, next) => {
@@ -49,7 +100,6 @@ router.use((req, res, next) => {
 
 // ─── Response helpers ────────────────────────────────────────────
 
-// Every successful response uses the same envelope.
 function sendOk(res, payload) {
     if (res.headersSent) return;
     res.json({ success: true, data: payload });
@@ -58,10 +108,13 @@ function sendOk(res, payload) {
 // Safe messages keyed by stable code. Never send raw err.message.
 const SAFE_MESSAGES = {
     INVALID_ID:                 'Invalid identifier.',
+    INVALID_DATE:               'Invalid date.',
+    INVALID_DATE_RANGE:         'from must be before to.',
     REASON_REQUIRED:            'A reason is required.',
     NOT_FOUND:                  'Resource not found.',
     GCO_NOT_FOUND:              'Gift card order not found.',
     GCP_NOT_FOUND:              'Gift card product not found.',
+    PRODUCT_NOT_FOUND:          'Gift card product not found.',
     NO_DELIVERY:                'No delivery is available for this order.',
     ALREADY_COMPLETED:          'This order is already completed.',
     ALREADY_REFUNDED:           'This order is already refunded.',
@@ -85,7 +138,24 @@ const SAFE_MESSAGES = {
     INVALID_ENABLED:            'The enabled field must be a boolean.',
     IDEMPOTENCY_CONFLICT:       'This request key was already used with different parameters.',
     IDEMPOTENCY_IN_PROGRESS:    'A matching request is already in progress.',
-    UNKNOWN_ERROR:              'An unexpected error occurred.'
+    UNKNOWN_ERROR:              'An unexpected error occurred.',
+    DB_ERROR:                   'A database error occurred.',
+
+    // Batch 2 additions
+    INVALID_COUNTRY:            'Country must be a 3-letter ISO code.',
+    INVALID_DECIMAL:            'Not a valid decimal value.',
+    PRICING_BELOW_COST:         'Price is below provider cost. Pass allow_below_cost:true to override.',
+    PRICING_BELOW_MIN_MARGIN:   'Price yields a margin below the minimum.',
+    PRICING_INVALID_MODE:       'Mode must be one of: global, markup_pct, fixed_ngn, fixed_usd.',
+    PRICING_INVALID_VALUE:      'The pricing value is invalid for this mode.',
+    OPTIMISTIC_LOCK_FAILED:     'Product was modified by another admin. Reload and retry.',
+    IMPORT_EMPTY:               'No provider_product_ids provided.',
+    CATALOG_TRUNCATED:          'The provider catalog was truncated. Narrow your filters.',
+    REFRESH_RATE_LIMITED:       'Rate limited. Try again shortly.',
+    CONFIG_VERSION_REQUIRED:    'expectedVersion is required. Reload settings and retry.',
+    CONFIG_VERSION_CONFLICT:    'Another admin saved this section first. Reload and retry.',
+    VALIDATION_ERROR:           'One or more fields failed validation.',
+    PERMISSION_DENIED:          'You do not have permission to perform this action.'
 };
 
 function sendErr(res, req, err) {
@@ -108,6 +178,12 @@ function sendErr(res, req, err) {
     if (err?.allowed_transitions) body.allowed_transitions = err.allowed_transitions;
     if (err?.current_status) body.current_status = err.current_status;
     if (err?.expected_status) body.expected_status = err.expected_status;
+    if (err?.current_updated_at) body.current_updated_at = err.current_updated_at;
+    if (err?.current_version != null) body.current_version = err.current_version;
+    if (err?.price) body.price = err.price;
+    if (err?.cost) body.cost = err.cost;
+    if (err?.min_margin_pct) body.min_margin_pct = err.min_margin_pct;
+    if (err?.value) body.value = err.value;
 
     res.status(status).json(body);
 }
@@ -123,12 +199,23 @@ function ctxFrom(req) {
     };
 }
 
-// ─── Validation helpers ──────────────────────────────────────────
+// ─── Validation helpers ─────────────────────────────────────────
 
-function validateIdParam(req, res, next) {
+function validateOrderId(req, res, next) {
     const raw = String(req.params.id || '');
     if (!ORDER_ID_RE.test(raw)) {
         const e = new Error('Invalid order identifier.');
+        e.status = 400;
+        e.code = 'INVALID_ID';
+        return sendErr(res, req, e);
+    }
+    next();
+}
+
+function validateProductId(req, res, next) {
+    const raw = String(req.params.id || '');
+    if (!PRODUCT_ID_RE.test(raw)) {
+        const e = new Error('Invalid product identifier.');
         e.status = 400;
         e.code = 'INVALID_ID';
         return sendErr(res, req, e);
@@ -162,17 +249,7 @@ function validateQueryDates(req, res, next) {
     next();
 }
 
-// ─── Idempotency ─────────────────────────────────────────────────
-//
-// Correctness notes:
-//   • The unique index on (admin_id, endpoint, idempotency_key)
-//     is the atomic guard. Two concurrent requests with the same
-//     key: one wins the INSERT, the other sees a conflict.
-//   • The stored response is replayed when the same key arrives
-//     again with the same request hash.
-//   • Same key + different request body → 409 IDEMPOTENCY_CONFLICT.
-//   • We do not swallow DB errors during persist — idempotency
-//     that silently fails is worse than no idempotency at all.
+// ─── Idempotency (unchanged from previous revision) ─────────────
 
 function hashRequest({ adminId, endpoint, body, params, query }) {
     const canonical = JSON.stringify({
@@ -188,7 +265,6 @@ function hashRequest({ adminId, endpoint, body, params, query }) {
 async function withIdempotency({ req, operationName }) {
     const key = req.headers['idempotency-key'];
     if (!key || String(key).length < 8) {
-        // No key provided — operate without idempotency.
         return { fresh: true, enabled: false };
     }
 
@@ -205,7 +281,6 @@ async function withIdempotency({ req, operationName }) {
 
     const { supabaseAdmin } = require('../../db/supabase');
 
-    // 1. Look up an existing record.
     const { data: existing, error: lookupErr } = await supabaseAdmin
         .from('admin_idempotency')
         .select('id, request_hash, status, response, expires_at')
@@ -222,7 +297,6 @@ async function withIdempotency({ req, operationName }) {
     }
 
     if (existing && (!existing.expires_at || new Date(existing.expires_at) > new Date())) {
-        // Same key was used before.
         if (existing.request_hash && existing.request_hash !== requestHash) {
             const e = new Error('Idempotency key reused with different parameters.');
             e.status = 409; e.code = 'IDEMPOTENCY_CONFLICT';
@@ -236,10 +310,8 @@ async function withIdempotency({ req, operationName }) {
             e.status = 409; e.code = 'IDEMPOTENCY_IN_PROGRESS';
             throw e;
         }
-        // status === 'failed' — fall through and allow retry.
     }
 
-    // 2. Atomically claim the key. The unique index protects us.
     const insertRow = {
         admin_id: adminId,
         endpoint,
@@ -258,8 +330,6 @@ async function withIdempotency({ req, operationName }) {
 
     if (insertErr) {
         if (String(insertErr.code) === '23505') {
-            // Lost the race. Another request claimed the key. Re-read
-            // and replay if it is completed.
             const { data: re } = await supabaseAdmin
                 .from('admin_idempotency')
                 .select('status, response, request_hash')
@@ -358,7 +428,7 @@ router.get(
 router.get(
     '/gift-cards/orders/:id',
     requirePermission(PERMISSIONS.ORDERS_READ),
-    validateIdParam,
+    validateOrderId,
     async (req, res) => {
         try {
             const data = await giftCards.getOrder(req.params.id);
@@ -367,33 +437,12 @@ router.get(
     }
 );
 
-// In your admin boost routes
-router.post('/services/:id', requirePermission(PERMISSIONS.BOOST_MANAGE), async (req, res) => {
-  const { description, name, active, visible_to_users, min_quantity, max_quantity, markup_percent } = req.body;
-  
-  const updates = {};
-  if (description !== undefined) {
-    // Enforce a sensible limit
-    updates.description = String(description).slice(0, 2000);
-  }
-  if (name) updates.name = String(name).slice(0, 200);
-  if (active !== undefined) updates.active = Boolean(active);
-  if (visible_to_users !== undefined) updates.visible_to_users = Boolean(visible_to_users);
-  if (min_quantity) updates.min_quantity = parseInt(min_quantity, 10);
-  if (max_quantity) updates.max_quantity = parseInt(max_quantity, 10);
-  if (markup_percent) updates.markup_percent = parseFloat(markup_percent);
-
-  const { error } = await supabaseAdmin.from('boost_services').update(updates).eq('id', req.params.id);
-  
-  if (error) return res.status(500).json({ success: false, error: error.message });
-  res.json({ success: true, message: 'Service updated' });
-});
-
 // ─── Reveal code ─────────────────────────────────────────────────
 router.post(
     '/gift-cards/orders/:id/reveal-code',
     requirePermission(PERMISSIONS.ORDERS_RESOLVE),
-    validateIdParam,
+    requireStepUpAuth({ maxAgeSeconds: 300 }),
+    validateOrderId,
     async (req, res) => {
         let idem = null;
         try {
@@ -418,7 +467,8 @@ router.post(
 router.post(
     '/gift-cards/orders/:id/retry',
     requirePermission(PERMISSIONS.ORDERS_RESOLVE),
-    validateIdParam,
+    requireStepUpAuth({ maxAgeSeconds: 300 }),
+    validateOrderId,
     async (req, res) => {
         let idem = null;
         try {
@@ -451,7 +501,8 @@ router.post(
 router.post(
     '/gift-cards/orders/:id/refund',
     requirePermission(PERMISSIONS.TRANSACTIONS_REFUND),
-    validateIdParam,
+    requireStepUpAuth({ maxAgeSeconds: 300 }),
+    validateOrderId,
     async (req, res) => {
         let idem = null;
         try {
@@ -481,13 +532,12 @@ router.post(
 );
 
 // ─── Sync ────────────────────────────────────────────────────────
-// Sync is a read/reconciliation operation. It is safe to call
-// repeatedly; the service is idempotent. We do not gate it on
-// Idempotency-Key because it does not create side effects.
+// Read/reconciliation operation. Safe to call repeatedly. Not gated
+// on Idempotency-Key because it does not create side effects.
 router.post(
     '/gift-cards/orders/:id/sync',
     requirePermission(PERMISSIONS.ORDERS_RESOLVE),
-    validateIdParam,
+    validateOrderId,
     async (req, res) => {
         try {
             const result = await giftCards.syncOrder({
@@ -500,7 +550,7 @@ router.post(
 );
 
 // ═════════════════════════════════════════════════════════════════
-//  PRODUCTS
+//  PRODUCTS — legacy enabled toggle (unchanged) + paginated list
 // ═════════════════════════════════════════════════════════════════
 
 router.get(
@@ -513,7 +563,8 @@ router.get(
                 limit: parseInt(req.query.limit, 10) || 50,
                 enabled: req.query.enabled || null,
                 country: req.query.country || null,
-                brand: req.query.brand || null
+                brand: req.query.brand || null,
+                search: req.query.search || null
             });
             sendOk(res, result);
         } catch (err) { sendErr(res, req, err); }
@@ -523,7 +574,7 @@ router.get(
 router.put(
     '/gift-cards/products/:id/enabled',
     requirePermission(PERMISSIONS.SERVICES_MANAGE),
-    validateIdParam,
+    validateProductId,
     async (req, res) => {
         let idem = null;
         try {
@@ -559,7 +610,243 @@ router.put(
 );
 
 // ═════════════════════════════════════════════════════════════════
+//  CATALOG — browse provider gift cards (Batch 2)
+// ═════════════════════════════════════════════════════════════════
+
+router.get(
+    '/gift-cards/catalog',
+    requirePermission(PERMISSIONS.SERVICES_READ),
+    async (req, res) => {
+        try {
+            const result = await adminService.getCatalog({
+                country: req.query.country || null,
+                subservice: req.query.subservice || null,
+                search: req.query.search || null,
+                page: parseInt(req.query.page, 10) || 1,
+                limit: parseInt(req.query.limit, 10) || 50
+            });
+            sendOk(res, result);
+        } catch (err) { sendErr(res, req, err); }
+    }
+);
+
+// ═════════════════════════════════════════════════════════════════
+//  IMPORT — pull provider catalog rows into gift_card_products
+// ═════════════════════════════════════════════════════════════════
+
+router.post(
+    '/gift-cards/products/import',
+    requirePermission(PERMISSIONS.SERVICES_MANAGE),
+    rateLimit({ key: 'import', max: 5, windowMs: 60_000 }),
+    async (req, res) => {
+        let idem = null;
+        try {
+            const { provider_product_ids, enable = false, reason } = req.body || {};
+            if (!Array.isArray(provider_product_ids) || !provider_product_ids.length) {
+                const e = new Error('provider_product_ids array is required.');
+                e.status = 422; e.code = 'IMPORT_EMPTY';
+                throw e;
+            }
+            if (provider_product_ids.length > 500) {
+                const e = new Error('Cannot import more than 500 products at once.');
+                e.status = 422; e.code = 'VALIDATION_ERROR';
+                throw e;
+            }
+            if (!reason || String(reason).trim().length < 4) {
+                const e = new Error('A reason is required.');
+                e.status = 422; e.code = 'REASON_REQUIRED';
+                throw e;
+            }
+
+            idem = await withIdempotency({ req, operationName: 'import' });
+            if (!idem.fresh) return res.json(idem.replay);
+
+            const result = await adminService.importProducts({
+                providerProductIds: provider_product_ids.map(String),
+                enable: Boolean(enable),
+                reason: String(reason).slice(0, 500)
+            }, ctxFrom(req));
+            const response = { success: true, data: result };
+            if (idem.enabled) await idem.persist(response, 200);
+            sendOk(res, result);
+        } catch (err) {
+            if (idem?.enabled) await idem.fail?.();
+            sendErr(res, req, err);
+        }
+    }
+);
+
+// ═════════════════════════════════════════════════════════════════
+//  UPDATE PRICING — per-product mode/value
+// ═════════════════════════════════════════════════════════════════
+
+router.put(
+    '/gift-cards/products/:id/pricing',
+    requirePermission(PERMISSIONS.SERVICES_MANAGE),
+    validateProductId,
+    async (req, res) => {
+        let idem = null;
+        try {
+            const { mode, value, reason, expected_updated_at, allow_below_cost } = req.body || {};
+            if (!reason || String(reason).trim().length < 4) {
+                const e = new Error('A reason is required.');
+                e.status = 422; e.code = 'REASON_REQUIRED';
+                throw e;
+            }
+
+            idem = await withIdempotency({ req, operationName: 'pricing-update' });
+            if (!idem.fresh) return res.json(idem.replay);
+
+            const result = await adminService.updateProductPricing({
+                productId: req.params.id,
+                mode,
+                value,
+                reason: String(reason).slice(0, 500),
+                expectedUpdatedAt: expected_updated_at || null,
+                allowBelowCost: Boolean(allow_below_cost)
+            }, ctxFrom(req));
+            const response = { success: true, data: result };
+            if (idem.enabled) await idem.persist(response, 200);
+            sendOk(res, result);
+        } catch (err) {
+            if (idem?.enabled) await idem.fail?.();
+            sendErr(res, req, err);
+        }
+    }
+);
+
+// ═════════════════════════════════════════════════════════════════
+//  UPDATE PRODUCT — display_name, logo_url, featured, sort_order
+// ═════════════════════════════════════════════════════════════════
+
+router.put(
+    '/gift-cards/products/:id',
+    requirePermission(PERMISSIONS.SERVICES_MANAGE),
+    validateProductId,
+    async (req, res) => {
+        let idem = null;
+        try {
+            const { display_name, logo_url, featured, sort_order } = req.body || {};
+
+            idem = await withIdempotency({ req, operationName: 'product-update' });
+            if (!idem.fresh) return res.json(idem.replay);
+
+            const result = await adminService.updateProduct({
+                productId: req.params.id,
+                displayName: display_name,
+                logoUrl:     logo_url,
+                featured:    featured,
+                sortOrder:   sort_order
+            }, ctxFrom(req));
+            const response = { success: true, data: result };
+            if (idem.enabled) await idem.persist(response, 200);
+            sendOk(res, result);
+        } catch (err) {
+            if (idem?.enabled) await idem.fail?.();
+            sendErr(res, req, err);
+        }
+    }
+);
+
+// ═════════════════════════════════════════════════════════════════
+//  PRICING PREVIEW — pure calculator, no DB writes
+// ═════════════════════════════════════════════════════════════════
+
+router.post(
+    '/gift-cards/pricing/preview',
+    requirePermission(PERMISSIONS.SERVICES_READ),
+    async (req, res) => {
+        try {
+            const { wholesale_amount, wholesale_currency, mode, value } = req.body || {};
+            if (wholesale_amount == null) {
+                const e = new Error('wholesale_amount is required.');
+                e.status = 422; e.code = 'VALIDATION_ERROR';
+                throw e;
+            }
+            const result = await adminService.previewPricing({
+                wholesaleAmount: String(wholesale_amount),
+                wholesaleCurrency: String(wholesale_currency || 'USD').toUpperCase(),
+                mode: String(mode || 'global'),
+                value
+            });
+            sendOk(res, result);
+        } catch (err) { sendErr(res, req, err); }
+    }
+);
+
+// ═════════════════════════════════════════════════════════════════
+//  GLOBAL PRICING CONFIG
+// ═════════════════════════════════════════════════════════════════
+
+router.get(
+    '/gift-cards/pricing',
+    requirePermission(PERMISSIONS.SERVICES_READ),
+    async (req, res) => {
+        try {
+            const result = await adminService.getPricingConfig();
+            sendOk(res, result);
+        } catch (err) { sendErr(res, req, err); }
+    }
+);
+
+router.put(
+    '/gift-cards/pricing',
+    requirePermission(PERMISSIONS.SETTINGS_MANAGE),
+    async (req, res) => {
+        let idem = null;
+        try {
+            const { patch, reason, expectedVersion, confirmLargeChange } = req.body || {};
+            idem = await withIdempotency({ req, operationName: 'pricing-config-update' });
+            if (!idem.fresh) return res.json(idem.replay);
+
+            const result = await adminService.updatePricingConfig({
+                patch: patch || {},
+                reason,
+                expectedVersion,
+                confirmLargeChange
+            }, ctxFrom(req));
+            const response = { success: true, data: result };
+            if (idem.enabled) await idem.persist(response, 200);
+            sendOk(res, result);
+        } catch (err) {
+            if (idem?.enabled) await idem.fail?.();
+            sendErr(res, req, err);
+        }
+    }
+);
+
+// ═════════════════════════════════════════════════════════════════
+//  REFRESH COSTS — re-read wholesale, recompute customer price
+// ═════════════════════════════════════════════════════════════════
+
+router.post(
+    '/gift-cards/products/refresh-costs',
+    requirePermission(PERMISSIONS.SERVICES_MANAGE),
+    rateLimit({ key: 'refresh-costs', max: 3, windowMs: 60_000 }),
+    async (req, res) => {
+        let idem = null;
+        try {
+            const { limit } = req.body || {};
+            idem = await withIdempotency({ req, operationName: 'refresh-costs' });
+            if (!idem.fresh) return res.json(idem.replay);
+
+            const result = await adminService.refreshCosts(
+                { limit: limit != null ? parseInt(limit, 10) : 25 },
+                ctxFrom(req)
+            );
+            const response = { success: true, data: result };
+            if (idem.enabled) await idem.persist(response, 200);
+            sendOk(res, result);
+        } catch (err) {
+            if (idem?.enabled) await idem.fail?.();
+            sendErr(res, req, err);
+        }
+    }
+);
+
+// ═════════════════════════════════════════════════════════════════
 //  PROVIDER HEALTH
+//  Response is normalized so no admin HTML ever sees 'DT One'.
 // ═════════════════════════════════════════════════════════════════
 
 router.get(
@@ -567,10 +854,77 @@ router.get(
     requirePermission(PERMISSIONS.PROVIDERS_READ),
     async (req, res) => {
         try {
-            const health = await giftCards.getProviderHealth();
+            const raw = await giftCards.getProviderHealth();
+            // Force the label — never leak the provider name to the UI.
+            const health = {
+                ...raw,
+                label: 'Provider',
+                // Preserve the internal-only name in a field the UI
+                // never reads. Useful for server logs only.
+                _internalProvider: raw?.provider || 'dtone'
+            };
+            delete health.provider;
+
             sendOk(res, { health });
         } catch (err) { sendErr(res, req, err); }
     }
 );
+
+// ═════════════════════════════════════════════════════════════════
+//  MISC
+// ═════════════════════════════════════════════════════════════════
+
+// Legacy stub: provider "test connection" button. Full adapter
+// wiring is out of scope for Batch 2; the UI shows the safe message.
+router.post(
+    '/gift-cards/provider/health-check',
+    requirePermission(PERMISSIONS.PROVIDERS_READ),
+    rateLimit({ key: 'provider-health-check', max: 5, windowMs: 60_000 }),
+    async (req, res) => {
+        try {
+            let reachable = false;
+            let errorMessage = null;
+            try {
+                const balances = await dtoneService.getBalances();
+                reachable = Boolean(balances?.success);
+                errorMessage = reachable ? null : (balances?.error || 'Unknown');
+            } catch (e) {
+                errorMessage = e.message;
+            }
+            sendOk(res, {
+                provider: 'Provider',
+                reachable,
+                errorMessage,
+                checkedAt: new Date().toISOString()
+            });
+        } catch (err) { sendErr(res, req, err); }
+    }
+);
+
+// ═════════════════════════════════════════════════════════════════
+//  STRAY BOOST ROUTE — REMOVED
+// ═════════════════════════════════════════════════════════════════
+//
+// The previous version of this file contained:
+//
+//   router.post('/services/:id', requirePermission(PERMISSIONS.BOOST_MANAGE), ...)
+//
+// That handler:
+//   • Used supabaseAdmin without importing it
+//   • Returned raw error.message to the client
+//   • Operated on `boost_services`, not gift cards
+//   • Sat on the wrong router entirely
+//
+// It has been deleted. The handler belongs in routes/admin/boostAdminRoutes.js
+// (which does not yet exist). When you build that file, port it there
+// with:
+//   • const { supabaseAdmin } = require('../../db/supabase');
+//   • SAFE_MESSAGES error handling (do not send raw error.message)
+//   • requirePermission(PERMISSIONS.SERVICES_MANAGE) if BOOST_MANAGE
+//     does not exist in your PERMISSIONS registry
+//   • Proper payload validation (field length caps, numeric bounds)
+//
+// TODO: implement routes/admin/boostAdminRoutes.js and mount it in
+// server.js under /api/admin/boost.
 
 module.exports = router;

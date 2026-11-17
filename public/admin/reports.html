@@ -2,1078 +2,3380 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<title>Reports · MilesSpace Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fbfaf7">
+<title>MilesSpace — Reports</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<script src="/js/admin-session.js?v=2025-admin-dash-v4"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="/js/admin-session.js?v=2026-reports-4"></script>
+<script src="/js/admin-sidebar.js?v=2026-reports-3" defer></script>
+
 <style>
-:root{
-  --brand-primary:#0f4c5c; --brand-primary-deep:#0a3542; --brand-primary-light:#14607a;
-  --brand-accent:#f5a623; --brand-accent-soft:#fde3ad;
-  --navy:var(--brand-primary); --navy-light:var(--brand-primary-light); --navy-deep:var(--brand-primary-deep);
-  --gold:var(--brand-accent); --gold-soft:var(--brand-accent-soft);
-  --white:#ffffff; --bg:#f4f7fb; --bg-card:rgba(255,255,255,.72);
-  --border:rgba(15,76,92,.09); --text:#0c1f26; --text-dim:#5b7480; --text-faint:#8fa3ab;
-  --success:#16a34a; --success-bg:#e9f9ef;
-  --danger:#dc2626; --danger-bg:#fdecec;
-  --warn:#f59e0b; --warn-bg:#fef3d9;
-  --info:#2563a8; --info-bg:#e8f1fb;
-  --purple:#8b5cf6; --purple-bg:#ede9fe;
-  --radius-sm:8px; --radius-md:14px; --radius-lg:20px;
-  --shadow-sm:0 1px 2px rgba(8,42,51,.06);
-  --shadow-md:0 8px 24px -8px rgba(8,42,51,.16);
-  --shadow-lg:0 16px 48px -12px rgba(8,42,51,.26);
-  --sidebar-w:264px; --sidebar-w-collapsed:78px; --topbar-h:68px;
-  --transition:180ms cubic-bezier(.4,0,.2,1);
+:root {
+  --brand-primary:      #0f4c5c;
+  --brand-primary-deep: #0a3542;
+  --brand-primary-light:#14607a;
+  --brand-accent:       #f5a623;
+  --brand-accent-soft:  #fde3ad;
+  --navy:      var(--brand-primary);
+  --navy-light:var(--brand-primary-light);
+  --navy-deep: var(--brand-primary-deep);
+  --gold:      var(--brand-accent);
+  --gold-soft: var(--brand-accent-soft);
+  --white:     #ffffff;
+  --bg:        #f4f7fb;
+  --bg-card:   rgba(255,255,255,.72);
+  --border:    rgba(15,76,92,.09);
+  --text:      #0c1f26;
+  --text-dim:  #5b7480;
+  --text-faint:#8fa3ab;
+  --success:   #16a34a;
+  --success-bg:#e9f9ef;
+  --danger:    #dc2626;
+  --danger-bg: #fdecec;
+  --warn:      #f59e0b;
+  --warn-bg:   #fef3d9;
+  --info:      #2563a8;
+  --info-bg:   #e8f1fb;
+  --purple:    #8b5cf6;
+  --purple-bg: #ede9fe;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 1px 2px rgba(8,42,51,.06);
+  --shadow-md: 0 8px 24px -8px rgba(8,42,51,.16);
+  --shadow-lg: 0 16px 48px -12px rgba(8,42,51,.26);
+  --sidebar-w: 264px;
+  --sidebar-w-collapsed: 78px;
+  --topbar-h: 68px;
+  --transition: 180ms cubic-bezier(.4,0,.2,1);
 }
-html.dark{
-  --bg:#08151a; --bg-card:rgba(18,38,44,.75);
-  --border:rgba(255,255,255,.08); --text:#eaf3f5;
-  --text-dim:#9db4bb; --text-faint:#5b7480;
-  --success-bg:rgba(22,163,74,.15); --danger-bg:rgba(220,38,38,.15);
-  --warn-bg:rgba(245,158,11,.15); --info-bg:rgba(37,99,168,.18); --purple-bg:rgba(139,92,246,.18);
-  --shadow-sm:0 1px 2px rgba(0,0,0,.3); --shadow-md:0 8px 24px -8px rgba(0,0,0,.5);
+
+html.dark {
+  --bg:#08151a;
+  --bg-card:rgba(18,38,44,.75);
+  --border:rgba(255,255,255,.08);
+  --text:#eaf3f5;
+  --text-dim:#9db4bb;
+  --text-faint:#5b7480;
+  --success-bg:rgba(22,163,74,.15);
+  --danger-bg:rgba(220,38,38,.15);
+  --warn-bg:rgba(245,158,11,.15);
+  --info-bg:rgba(37,99,168,.18);
+  --purple-bg:rgba(139,92,246,.18);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.3);
+  --shadow-md:0 8px 24px -8px rgba(0,0,0,.5);
   --shadow-lg:0 16px 48px -12px rgba(0,0,0,.6);
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%} html{overflow-x:hidden}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden;width:100%}
-::-webkit-scrollbar{width:9px;height:9px}
-::-webkit-scrollbar-thumb{background:rgba(15,76,92,.18);border-radius:99px}
-html.dark ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14)}
-.mono{font-family:'JetBrains Mono',monospace}
 
-/* Shell */
-.app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh}
-.app.sb-collapsed{grid-template-columns:var(--sidebar-w-collapsed) 1fr}
-.sidebar{background:linear-gradient(180deg,var(--navy-deep),var(--navy) 70%);color:#eaf6f8;padding:20px 14px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;z-index:40;overflow-y:auto;width:var(--sidebar-w)}
-.app.sb-collapsed .sidebar{width:var(--sidebar-w-collapsed)}
-.app.sb-collapsed .sidebar .brand-text,
-.app.sb-collapsed .sidebar .nav-label,
-.app.sb-collapsed .sidebar .nav-item span:not(.ic),
-.app.sb-collapsed .sidebar .who,
-.app.sb-collapsed .sidebar .chev{display:none}
-.app.sb-collapsed .nav-item{justify-content:center}
-.brand{display:flex;align-items:center;gap:11px;padding:6px 8px 18px;flex-shrink:0}
-.brand img{width:32px;height:32px;border-radius:8px}
-.brand-text{display:flex;flex-direction:column;line-height:1.15}
-.brand-text strong{font-size:15px;font-weight:800}
-.brand-text span{font-size:10.5px;color:#9fd4de;letter-spacing:.06em;text-transform:uppercase}
-.nav-scroll{flex:1;overflow-y:auto}
-.nav-group{margin-bottom:2px}
-.nav-group-head{display:flex;align-items:center;justify-content:space-between;padding:12px 10px 5px;cursor:pointer;border:none;background:none;width:100%;color:inherit;font-family:inherit}
-.nav-label{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:#6fa2ad;font-weight:700}
-.nav-group-head .chev{font-size:9px;color:#6fa2ad;transition:transform var(--transition)}
-.nav-group.collapsed .chev{transform:rotate(-90deg)}
-.nav-group.collapsed .nav-items{display:none}
-.nav-item{display:flex;align-items:center;gap:10px;padding:8.5px 10px;border-radius:9px;color:#cfe7ea;font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:background var(--transition),color var(--transition);white-space:nowrap;text-decoration:none}
-.nav-item .ic{width:17px;text-align:center;font-size:13.5px}
-.nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
-.nav-item.active{background:rgba(245,166,35,.16);color:#ffd899;border-color:rgba(245,166,35,.3);font-weight:600}
-.sidebar-foot{border-top:1px solid rgba(255,255,255,.08);padding-top:12px;margin-top:8px;display:flex;align-items:center;gap:10px;padding-left:4px}
-.sidebar-foot .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#25748a,#0c3d4a);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px;color:#fff}
-.sidebar-foot .who{display:flex;flex-direction:column;line-height:1.2}
-.sidebar-foot .who strong{font-size:12.5px;color:#fff}
-.sidebar-foot .who span{font-size:10.5px;color:#8fbac2}
-.sb-collapse-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#cfe7ea;width:26px;height:26px;border-radius:8px;cursor:pointer;margin-left:auto;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px}
-
-.main{min-width:0;display:flex;flex-direction:column}
-.topbar{height:var(--topbar-h);position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;padding:0 26px;background:var(--bg-card);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
-.hamburger{display:none;width:36px;height:36px;border-radius:9px;border:1px solid var(--border);background:var(--white);align-items:center;justify-content:center;cursor:pointer;color:var(--navy);font-size:18px}
-html.dark .hamburger{background:rgba(255,255,255,.05)}
-.sb-toggle-desktop{width:34px;height:34px;border-radius:9px;border:1px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--navy);font-size:13px}
-html.dark .sb-toggle-desktop{background:rgba(255,255,255,.05);color:#dff0f2}
-.topbar-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
-.topbar-right{display:flex;align-items:center;gap:10px;margin-left:auto}
-.page-title{display:flex;flex-direction:column;line-height:1.2;min-width:0}
-.page-title h1{margin:0;font-size:clamp(16px,2.4vw,19px);font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.breadcrumb{font-size:11px;color:var(--text-faint);display:flex;align-items:center;gap:6px;margin-bottom:2px}
-.breadcrumb a{color:var(--text-faint);text-decoration:none}
-.crumb{font-size:12px;color:var(--text-dim)}
-.crumb .live-dot{width:6px;height:6px;border-radius:50%;background:var(--success);display:inline-block;margin-right:5px;animation:pulse-dot 1.8s infinite}
-.crumb .live-dot.off{background:var(--danger);animation:none}
-@keyframes pulse-dot{0%{box-shadow:0 0 0 0 rgba(22,163,74,.45)}70%{box-shadow:0 0 0 7px rgba(22,163,74,0)}100%{box-shadow:0 0 0 0 rgba(22,163,74,0)}}
-.icon-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--navy);font-size:15px}
-html.dark .icon-btn{background:rgba(255,255,255,.04);color:#dff0f2}
-.admin-chip{display:flex;align-items:center;gap:9px;padding:5px 10px 5px 5px;border-radius:99px;border:1px solid var(--border);background:var(--white);cursor:pointer}
-html.dark .admin-chip{background:rgba(255,255,255,.04)}
-.admin-chip .av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#d97e06);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--navy-deep)}
-.admin-chip .info{display:flex;flex-direction:column;line-height:1.15}
-.admin-chip .info strong{font-size:12.3px}
-.admin-chip .info span{font-size:10.5px;color:var(--text-dim)}
-.content{padding:clamp(14px,2vw,22px) clamp(14px,2.6vw,26px) 60px;min-width:0}
-@media(min-width:1920px){.content{max-width:1800px;margin:0 auto}}
-
-.page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
-.page-header h2{font-size:clamp(18px,2.6vw,23px);font-weight:800}
-.page-header .sub{font-size:13px;color:var(--text-dim);margin-top:3px;max-width:640px}
-.page-header .header-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--border);background:var(--white);border-radius:10px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;color:var(--navy);transition:background var(--transition);font-family:inherit;min-height:38px;text-decoration:none;white-space:nowrap}
-html.dark .btn{background:rgba(255,255,255,.04);color:#dff0f2}
-.btn:hover:not(:disabled){background:var(--gold-soft);color:var(--navy-deep)}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn-primary{background:var(--navy);color:#fff;border-color:var(--navy)}
-.btn-primary:hover:not(:disabled){background:var(--navy-light);color:#fff}
-.btn-sm{padding:6px 10px;font-size:11.5px;min-height:32px}
-
-/* Filters */
-.filters{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:16px;box-shadow:var(--shadow-sm);backdrop-filter:blur(10px)}
-.filter-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.filter-row + .filter-row{margin-top:10px}
-.filter-row input,.filter-row select{border:1px solid var(--border);background:var(--white);border-radius:9px;padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;min-height:38px}
-html.dark .filter-row input,html.dark .filter-row select{background:rgba(255,255,255,.04);color:var(--text)}
-.range-select{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:3px;flex-wrap:wrap}
-.range-btn{border:none;background:none;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;color:var(--text-dim);cursor:pointer;font-family:inherit}
-.range-btn.active{background:var(--navy);color:#fff}
-.custom-range{display:none;align-items:center;gap:6px;font-size:12px;flex-wrap:wrap}
-.custom-range.show{display:flex}
-.range-label{font-size:11.5px;color:var(--text-faint);margin-left:auto}
-.range-label strong{color:var(--text-dim);font-weight:600}
-
-.kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
-@media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:520px){.kpi-grid{grid-template-columns:1fr}}
-.kpi{padding:14px 16px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border);box-shadow:var(--shadow-sm);backdrop-filter:blur(10px);min-width:0}
-.kpi .lbl{font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kpi .val{font-size:17px;font-weight:800;margin-top:5px;font-variant-numeric:tabular-nums;word-break:break-word}
-.kpi .sub{font-size:11px;color:var(--text-faint);margin-top:4px;display:flex;align-items:center;gap:6px}
-.kpi .delta{font-weight:700}
-.kpi .delta.up{color:var(--success)}
-.kpi .delta.down{color:var(--danger)}
-.kpi .delta.neutral{color:var(--text-faint)}
-
-.section-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin:24px 2px 10px}
-.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow-sm);backdrop-filter:blur(10px);min-width:0}
-.card + .card{margin-top:16px}
-.card h3{margin:0 0 12px;font-size:14px;font-weight:800}
-.chart-wrap{position:relative;width:100%;height:300px}
-
-.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;padding-bottom:2px}
-.tabs::-webkit-scrollbar{display:none}
-.tab{padding:10px 14px;font-size:12.5px;font-weight:600;color:var(--text-dim);cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;font-family:inherit;white-space:nowrap}
-.tab.active{color:var(--navy);border-bottom-color:var(--gold)}
-html.dark .tab.active{color:#dff0f2}
-.tab-panel{display:none}
-.tab-panel.active{display:block}
-
-.table-scroll{overflow-x:auto;overflow-y:auto;max-height:560px;border-radius:var(--radius);-webkit-overflow-scrolling:touch}
-.table-hint{display:none;font-size:11px;color:var(--text-faint);padding:6px 0 0;text-align:center}
-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:800px}
-thead th{text-align:left;padding:11px 14px;color:var(--text-dim);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1;white-space:nowrap}
-tbody td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
-tbody tr:last-child td{border-bottom:none}
-tbody tr:hover{background:rgba(245,166,35,.04)}
-td.wrap{white-space:normal;max-width:240px}
-.cell-mono{font-family:'JetBrains Mono',monospace;font-size:11.5px}
-.badge{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:99px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;text-transform:capitalize}
-.badge.success{background:var(--success-bg);color:var(--success)}
-.badge.danger{background:var(--danger-bg);color:var(--danger)}
-.badge.warn{background:var(--warn-bg);color:#b3720a}
-.badge.info{background:var(--info-bg);color:var(--info)}
-.badge.purple{background:var(--purple-bg);color:var(--purple)}
-.badge.neutral{background:var(--bg);color:var(--text-dim);border:1px solid var(--border)}
-
-.empty-state{text-align:center;padding:42px 20px;color:var(--text-faint);font-size:13px}
-.empty-state .ic{font-size:28px;margin-bottom:8px;display:block}
-.unavailable-box{text-align:center;padding:24px 14px;color:var(--text-faint)}
-.unavailable-box button{margin-top:10px;border:1px solid var(--border);background:var(--white);color:var(--navy);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer}
-.skel{background:linear-gradient(90deg,var(--bg) 25%,var(--border) 50%,var(--bg) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;height:12px;display:block}
-@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-.pagination{display:flex;justify-content:space-between;align-items:center;padding:14px 4px 0;font-size:12.5px;color:var(--text-dim);flex-wrap:wrap;gap:10px}
-.pagination button{border:1px solid var(--border);background:var(--white);color:var(--navy);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;min-height:34px}
-html.dark .pagination button{background:rgba(255,255,255,.04);color:#dff0f2}
-.pagination button:disabled{opacity:.45;cursor:not-allowed}
-
-.toast-stack{position:fixed;bottom:22px;right:14px;left:14px;display:flex;flex-direction:column;gap:10px;z-index:500;pointer-events:none;align-items:flex-end}
-@media(min-width:640px){.toast-stack{left:auto;max-width:380px}}
-.toast{background:var(--navy-deep);color:#fff;padding:12px 16px;border-radius:11px;font-size:12.8px;font-weight:600;box-shadow:var(--shadow-lg);border-left:3px solid var(--gold);pointer-events:auto;max-width:100%}
-.toast.success{border-left-color:var(--success)}
-.toast.error{border-left-color:var(--danger)}
-
-.scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:39;display:none}
-.scrim.show{display:block}
-.mnav{display:none;position:fixed;bottom:10px;left:50%;transform:translateX(-50%);width:calc(100% - 20px);max-width:420px;height:54px;background:rgba(255,255,255,.92);backdrop-filter:blur(22px);border:1px solid rgba(255,255,255,.8);border-radius:17px;box-shadow:0 6px 22px rgba(12,61,74,.12);z-index:450;align-items:center;justify-content:space-around;padding:0 4px}
-html.dark .mnav{background:rgba(18,38,44,.92);border-color:rgba(255,255,255,.1)}
-.mni{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:9px;font-weight:600;color:var(--text-faint);text-decoration:none;flex:1;padding:4px 0}
-.mni i{font-size:16px;padding:2px 4px;border-radius:8px}
-.mni.active{color:var(--navy)}
-html.dark .mni.active{color:#dff0f2}
-
-@media(max-width:900px){
-  .app{grid-template-columns:1fr!important}
-  .sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);width:290px!important;box-shadow:var(--shadow-lg);z-index:50;height:100vh}
-  .sidebar.open{transform:translateX(0)}
-  .hamburger{display:flex}
-  .sb-toggle-desktop{display:none}
-  .chart-wrap{height:240px}
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html, body { height:100%; }
+html { overflow-x:hidden; }
+body {
+  margin:0;
+  font-family:'Inter',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  transition: background var(--transition), color var(--transition);
+  overflow-x:hidden;
+  width:100%;
 }
-@media(max-width:640px){
-  :root{--topbar-h:60px}
-  .topbar{padding:0 14px;height:60px;gap:8px}
-  .admin-chip .info{display:none}
-  .content{padding:14px 12px 80px}
-  .mnav{display:flex!important}
-  .page-header{flex-direction:column;align-items:stretch}
-  .filter-row{flex-direction:column;align-items:stretch}
-  .filter-row input,.filter-row select,.filter-row .btn{width:100%}
-  .range-label{margin-left:0}
-  .table-hint{display:block}
+
+::-webkit-scrollbar { width:9px; height:9px; }
+::-webkit-scrollbar-thumb { background:rgba(15,76,92,.18); border-radius:99px; }
+html.dark ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.14); }
+
+.mono { font-family:'JetBrains Mono',monospace; }
+:focus-visible { outline:2.5px solid var(--brand-accent); outline-offset:2px; border-radius:6px; }
+
+.app { display:grid; grid-template-columns:var(--sidebar-w) 1fr; min-height:100vh; transition:grid-template-columns var(--transition); }
+.app.sb-collapsed { grid-template-columns:var(--sidebar-w-collapsed) 1fr; }
+
+/* Sidebar */
+aside#sidebar {
+  background:linear-gradient(180deg,var(--navy-deep),var(--navy) 70%);
+  color:#eaf6f8;
+  padding:20px 14px 16px;
+  display:flex;
+  flex-direction:column;
+  position:sticky;
+  top:0;
+  height:100vh;
+  z-index:40;
+  overflow-y:auto;
+  overflow-x:hidden;
+  width:var(--sidebar-w);
+  transition: transform var(--transition), width var(--transition);
+}
+.app.sb-collapsed aside#sidebar { width:var(--sidebar-w-collapsed); }
+.app.sb-collapsed aside#sidebar .brand-text,
+.app.sb-collapsed aside#sidebar .nav-label,
+.app.sb-collapsed aside#sidebar .nav-item span:not(.ic),
+.app.sb-collapsed aside#sidebar .who,
+.app.sb-collapsed aside#sidebar .chev { display:none; }
+.app.sb-collapsed aside#sidebar .nav-item { justify-content:center; }
+
+.brand { display:flex; align-items:center; gap:11px; padding:6px 8px 18px; flex-shrink:0; }
+.brand-logo, .brand .brand-mark, .brand img {
+  width:32px; height:32px; border-radius:8px; flex-shrink:0;
+  display:grid; place-items:center;
+  font-weight:800; font-size:14px;
+}
+.brand-logo, .brand img { object-fit:cover; }
+.brand .brand-mark { background:var(--gold); color:var(--navy-deep); }
+.brand .brand-text { display:flex; flex-direction:column; line-height:1.15; }
+.brand .brand-text strong { font-size:15px; font-weight:800; letter-spacing:-.01em; }
+.brand .brand-text span { font-size:10.5px; color:#9fd4de; letter-spacing:.06em; text-transform:uppercase; }
+
+.nav-scroll { flex:1; overflow-y:auto; padding-right:2px; }
+.nav-group { margin-bottom:2px; }
+.nav-group-head {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 10px 5px; cursor:pointer; user-select:none;
+  border:none; background:none; width:100%; color:inherit;
+}
+.nav-group.collapsed .nav-items { display:none; }
+.nav-label { font-size:10px; text-transform:uppercase; letter-spacing:.09em; color:#6fa2ad; font-weight:700; }
+.chev { transition: transform var(--transition); color:#6fa2ad; display:inline-flex; align-items:center; }
+.chev i { font-size:10px; }
+.nav-group.collapsed .chev { transform: rotate(-90deg); }
+.nav-item {
+  display:flex; align-items:center; gap:10px;
+  padding:8.5px 10px; border-radius:9px;
+  color:#cfe7ea; font-size:13px; font-weight:500;
+  cursor:pointer; border:1px solid transparent; white-space:nowrap;
+  text-decoration:none; min-height:36px;
+}
+.nav-item .ic {
+  width:17px; text-align:center; font-size:13.5px; flex-shrink:0;
+  display:inline-flex; align-items:center; justify-content:center;
+}
+.nav-item .ic i { font-size:13.5px; line-height:1; }
+.nav-item:hover, .nav-item:focus-visible { background:rgba(255,255,255,.06); color:#fff; }
+.nav-item.active { background:rgba(245,166,35,.16); color:#ffd899; border-color:rgba(245,166,35,.3); font-weight:600; }
+
+.sidebar-foot {
+  border-top:1px solid rgba(255,255,255,.08);
+  padding-top:12px; margin-top:8px;
+  display:flex; align-items:center; gap:10px; padding-left:4px; flex-shrink:0;
+}
+.sidebar-foot .av {
+  width:34px; height:34px; border-radius:50%;
+  background:linear-gradient(135deg,#25748a,#0c3d4a);
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:12.5px; color:#fff;
+  border:1.5px solid rgba(255,255,255,.18); flex-shrink:0;
+}
+.sidebar-foot .who { display:flex; flex-direction:column; line-height:1.2; }
+.sidebar-foot .who strong { font-size:12.5px; color:#fff; }
+.sidebar-foot .who span { font-size:10.5px; color:#8fbac2; }
+.sb-collapse-btn {
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
+  color:#cfe7ea; width:26px; height:26px; border-radius:8px;
+  cursor:pointer; margin-left:auto; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:11px;
+}
+.sb-collapse-btn i { font-size:11px; }
+.sb-collapse-btn:hover { background:rgba(255,255,255,.14); }
+
+/* Topbar */
+.main { min-width:0; display:flex; flex-direction:column; }
+.topbar {
+  height:var(--topbar-h);
+  position:sticky; top:0; z-index:30;
+  display:flex; align-items:center; gap:14px;
+  padding:0 26px;
+  background:var(--bg-card);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.hamburger {
+  display:none;
+  width:36px; height:36px; border-radius:9px;
+  border:1px solid var(--border); background:var(--white);
+  align-items:center; justify-content:center;
+  cursor:pointer; color:var(--navy); font-size:18px;
+}
+html.dark .hamburger { background:rgba(255,255,255,.05); color:#dff0f2; }
+.sb-toggle-desktop {
+  width:34px; height:34px; border-radius:9px;
+  border:1px solid var(--border); background:var(--white);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; color:var(--navy); font-size:13px; flex-shrink:0;
+}
+html.dark .sb-toggle-desktop { background:rgba(255,255,255,.05); color:#dff0f2; }
+.page-title { display:flex; flex-direction:column; line-height:1.2; min-width:0; }
+.breadcrumb { font-size:11px; color:var(--text-faint); display:flex; align-items:center; gap:6px; margin-bottom:2px; }
+.breadcrumb a { color:var(--text-faint); text-decoration:none; }
+.page-title h1 { margin:0; font-size:clamp(16px,2.4vw,19px); font-weight:800; letter-spacing:-.01em; display:flex; align-items:center; gap:8px; }
+.page-title h1 i { font-size:1.1rem; color:var(--navy); }
+.icon-btn {
+  width:38px; height:38px; border-radius:10px;
+  border:1px solid var(--border); background:var(--white);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; color:var(--navy); font-size:15px;
+  margin-left:auto;
+}
+html.dark .icon-btn { background:rgba(255,255,255,.04); color:#dff0f2; }
+.icon-btn:hover { background:var(--gold-soft); color:var(--navy-deep); }
+
+/* Content */
+.content { padding:clamp(14px,2vw,22px) clamp(14px,2.6vw,26px) 60px; min-width:0; }
+@media (min-width:1920px) { .content { max-width:1800px; margin:0 auto; } }
+
+.page-header {
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:16px; flex-wrap:wrap; margin-bottom:16px;
+}
+.page-header h2 { font-size:clamp(18px,2.6vw,23px); font-weight:800; letter-spacing:-.01em; }
+.page-header .sub { font-size:13px; color:var(--text-dim); margin-top:3px; max-width:640px; }
+.page-header .actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.page-header .updated {
+  font-size:11px; color:var(--text-faint);
+  display:flex; align-items:center; gap:6px;
+}
+.page-header .updated i { font-size:10px; }
+
+.filter-bar {
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:12px 16px;
+  margin-bottom:16px;
+  display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+  position:sticky; top:var(--topbar-h); z-index:20;
+  box-shadow:var(--shadow-sm);
+  backdrop-filter:blur(14px);
+}
+.filter-pills { display:flex; gap:4px; flex-wrap:wrap; }
+.pill {
+  border:1px solid var(--border); background:var(--white);
+  color:var(--navy); border-radius:999px;
+  padding:6px 12px; font-size:12px; font-weight:600;
+  cursor:pointer; min-height:32px;
+  display:inline-flex; align-items:center; gap:5px;
+  transition: background var(--transition);
+}
+html.dark .pill { background:rgba(255,255,255,.04); color:#dff0f2; }
+.pill:hover:not(.active) { background:var(--gold-soft); color:var(--navy-deep); }
+.pill.active { background:var(--navy); color:#fff; border-color:var(--navy); }
+.pill i { font-size:10px; }
+
+.filter-field {
+  display:flex; align-items:center; gap:6px;
+  border:1px solid var(--border); background:var(--white);
+  border-radius:9px; padding:0 10px; min-height:34px;
+}
+html.dark .filter-field { background:rgba(255,255,255,.04); }
+.filter-field label { font-size:11px; color:var(--text-faint); font-weight:600; white-space:nowrap; }
+.filter-field input, .filter-field select {
+  border:none; background:transparent; outline:none;
+  font-family:inherit; font-size:12px; color:var(--text);
+  padding:6px 0;
+}
+.filter-field input[type="date"] { width:130px; }
+
+.filter-chip {
+  font-size:11px; color:var(--text-dim);
+  background:var(--bg); padding:4px 10px; border-radius:999px;
+  border:1px solid var(--border);
+  display:inline-flex; align-items:center; gap:5px;
+}
+.filter-chip strong { color:var(--text); font-weight:700; }
+
+.btn {
+  display:inline-flex; align-items:center; gap:6px;
+  border:1px solid var(--border); background:var(--white);
+  border-radius:10px; padding:8px 14px;
+  font-size:12px; font-weight:600; cursor:pointer;
+  color:var(--navy); font-family:inherit;
+  min-height:34px; text-decoration:none;
+}
+html.dark .btn { background:rgba(255,255,255,.04); color:#dff0f2; }
+.btn:hover:not(:disabled) { background:var(--gold-soft); color:var(--navy-deep); }
+.btn:disabled { opacity:.5; cursor:not-allowed; }
+.btn-primary { background:var(--navy); color:#fff; border-color:var(--navy); }
+.btn-primary:hover:not(:disabled) { background:var(--navy-light); color:#fff; }
+.btn-sm { padding:5px 10px; font-size:11px; min-height:28px; border-radius:7px; }
+.btn i { font-size:11px; }
+
+.toggle-switch {
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:11.5px; color:var(--text-dim); font-weight:600;
+  cursor:pointer; padding:4px 6px; border-radius:6px;
+}
+.toggle-switch input { accent-color:var(--navy); }
+.toggle-switch:hover { background:var(--bg); }
+
+/* KPI grid */
+.kpi-grid {
+  display:grid; grid-template-columns:repeat(4, 1fr);
+  gap:12px; margin-bottom:16px;
+}
+@media(max-width:1400px) { .kpi-grid { grid-template-columns:repeat(3, 1fr); } }
+@media(max-width:900px)  { .kpi-grid { grid-template-columns:repeat(2, 1fr); } }
+@media(max-width:520px)  { .kpi-grid { grid-template-columns:1fr; } }
+.kpi {
+  padding:14px 16px; border-radius:14px;
+  background:var(--bg-card); border:1px solid var(--border);
+  box-shadow:var(--shadow-sm); position:relative;
+  min-height:110px;
+  display:flex; flex-direction:column;
+}
+.kpi-head { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+.kpi-icon {
+  width:26px; height:26px; border-radius:7px;
+  background:var(--bg); color:var(--navy);
+  display:grid; place-items:center; font-size:11px;
+}
+html.dark .kpi-icon { background:rgba(255,255,255,.04); color:#dff0f2; }
+.kpi-lbl {
+  font-size:10.5px; color:var(--text-dim);
+  text-transform:uppercase; letter-spacing:.05em; font-weight:700;
+  flex:1;
+}
+.kpi-lbl small {
+  display:block; font-size:9px; letter-spacing:0; text-transform:none;
+  color:var(--text-faint); font-weight:500; margin-top:1px;
+}
+.kpi-body { display:flex; flex-direction:column; gap:6px; flex:1; }
+.kpi-row {
+  display:flex; align-items:baseline; gap:6px;
+  font-variant-numeric:tabular-nums;
+}
+.kpi-ccy {
+  font-size:10px; font-weight:800; color:var(--text-faint);
+  letter-spacing:.05em; min-width:28px;
+}
+.kpi-val { font-size:17px; font-weight:800; color:var(--text); }
+.kpi-val.small { font-size:14px; }
+.kpi-sub { font-size:11px; color:var(--text-faint); }
+.kpi-delta {
+  display:inline-flex; align-items:center; gap:4px;
+  font-size:10.5px; font-weight:700; padding:2px 6px;
+  border-radius:5px; margin-left:auto;
+}
+.kpi-delta.up   { background:var(--success-bg); color:var(--success); }
+.kpi-delta.down { background:var(--danger-bg); color:var(--danger); }
+.kpi-delta.flat { background:var(--bg); color:var(--text-faint); }
+.kpi-unavailable {
+  display:flex; flex-direction:column; gap:6px;
+  align-items:flex-start; margin-top:6px;
+}
+.kpi-unavailable .msg {
+  font-size:11.5px; color:var(--text-faint); line-height:1.35;
+}
+.kpi.skel {
+  background:
+    linear-gradient(90deg, var(--bg) 25%, var(--border) 50%, var(--bg) 75%);
+  background-size:200% 100%;
+  animation:shimmer 1.4s infinite;
+}
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* Tabs */
+.tab-nav {
+  display:flex; gap:2px;
+  border-bottom:1px solid var(--border);
+  margin-bottom:16px;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.tab-nav::-webkit-scrollbar { display:none; }
+.tab-btn {
+  padding:11px 14px; border:none; background:none; cursor:pointer;
+  font-family:inherit; font-size:12.5px; font-weight:600;
+  color:var(--text-dim);
+  border-bottom:2px solid transparent;
+  white-space:nowrap; min-height:44px;
+  display:flex; align-items:center; gap:6px;
+  position:relative; flex-shrink:0;
+}
+.tab-btn i { font-size:11px; }
+.tab-btn:hover { color:var(--text); }
+.tab-btn.active { color:var(--brand-primary); border-bottom-color:var(--brand-accent); }
+.tab-btn[aria-disabled="true"] { opacity:.4; cursor:not-allowed; }
+.tab-btn .count {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:18px; height:16px; padding:0 5px;
+  background:var(--danger); color:#fff;
+  font-size:9.5px; font-weight:700; border-radius:99px;
+}
+
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+
+.card {
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:18px 20px;
+  box-shadow:var(--shadow-sm); backdrop-filter:blur(10px);
+}
+.card + .card { margin-top:16px; }
+.card-header {
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:12px; flex-wrap:wrap; margin-bottom:12px;
+}
+.card h3 { margin:0; font-size:14px; font-weight:800; }
+.card .hint { font-size:11.5px; color:var(--text-faint); margin-top:3px; }
+
+/* Charts */
+.chart-row {
+  display:grid; grid-template-columns:2fr 1fr; gap:16px; margin-bottom:16px;
+}
+@media (max-width:1024px) { .chart-row { grid-template-columns:1fr; } }
+.chart-card {
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:16px 18px;
+  box-shadow:var(--shadow-sm);
+  display:flex; flex-direction:column; min-height:320px;
+}
+.chart-card .chart-head {
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:12px; flex-wrap:wrap; margin-bottom:12px;
+}
+.chart-card h3 { margin:0; font-size:13px; font-weight:800; }
+.chart-wrap { position:relative; flex:1; min-height:240px; }
+.chart-wrap canvas { max-width:100%; }
+
+.chart-switch { display:flex; gap:4px; flex-wrap:wrap; }
+.chart-switch .pill {
+  font-size:11px; padding:4px 10px; min-height:26px;
+}
+
+.insights-grid {
+  display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:16px;
+}
+@media(max-width:900px) { .insights-grid { grid-template-columns:repeat(2, 1fr); } }
+@media(max-width:520px) { .insights-grid { grid-template-columns:1fr; } }
+.insight-card {
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:14px; padding:14px;
+  box-shadow:var(--shadow-sm);
+}
+.insight-card .lbl {
+  font-size:10.5px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--text-faint); margin-bottom:4px;
+}
+.insight-card .val { font-size:14px; font-weight:800; color:var(--text); }
+.insight-card .sub { font-size:11px; color:var(--text-dim); margin-top:2px; }
+
+.needs-strip {
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:14px 16px;
+  margin-bottom:16px;
+  box-shadow:var(--shadow-sm);
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+}
+.needs-strip .label {
+  font-size:11px; text-transform:uppercase; font-weight:700;
+  letter-spacing:.05em; color:var(--text-faint);
+}
+.needs-strip .chip {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:6px 10px; border-radius:999px;
+  font-size:11.5px; font-weight:600; text-decoration:none;
+  border:1px solid transparent;
+}
+.needs-strip .chip.danger { background:var(--danger-bg); color:var(--danger); border-color:rgba(220,38,38,.2); }
+.needs-strip .chip.warn   { background:var(--warn-bg);   color:#92400e;      border-color:rgba(245,158,11,.25); }
+.needs-strip .chip.ok     { background:var(--success-bg); color:var(--success); border-color:rgba(22,163,74,.2); }
+.needs-strip .chip:hover { filter: brightness(0.97); }
+
+/* Tables */
+.table-wrap { overflow-x:auto; border-radius:var(--radius-md); }
+table {
+  width:100%; border-collapse:collapse; font-size:12.5px; min-width:800px;
+}
+thead th {
+  text-align:left; padding:11px 12px;
+  color:var(--text-dim); font-weight:700; font-size:10.5px;
+  text-transform:uppercase; letter-spacing:.05em;
+  background:var(--bg); border-bottom:1px solid var(--border);
+  position:sticky; top:0; z-index:1;
+  white-space:nowrap;
+}
+thead th.sortable { cursor:pointer; user-select:none; }
+thead th.sortable:hover { color:var(--text); }
+thead th .sort-ind { display:inline-block; margin-left:4px; font-size:8px; color:var(--text-faint); }
+thead th[aria-sort="ascending"]  .sort-ind::after { content:'\25B2'; color:var(--navy); }
+thead th[aria-sort="descending"] .sort-ind::after { content:'\25BC'; color:var(--navy); }
+tbody td {
+  padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:middle;
+  font-variant-numeric:tabular-nums;
+}
+tbody tr:last-child td { border-bottom:none; }
+tbody tr:hover { background:rgba(245,166,35,.05); }
+tbody tr.clickable { cursor:pointer; }
+td.num { text-align:right; }
+td.mono { font-family:'JetBrains Mono',monospace; font-size:11px; }
+
+.badge {
+  font-size:10.5px; font-weight:700;
+  padding:2px 8px; border-radius:99px;
+  display:inline-flex; align-items:center; gap:4px;
+  white-space:nowrap; text-transform:capitalize;
+}
+.badge i { font-size:9px; }
+.badge.success { background:var(--success-bg); color:var(--success); }
+.badge.danger  { background:var(--danger-bg);  color:var(--danger); }
+.badge.warn    { background:var(--warn-bg);    color:#b3720a; }
+.badge.info    { background:var(--info-bg);    color:var(--info); }
+.badge.purple  { background:var(--purple-bg);  color:var(--purple); }
+.badge.neutral { background:var(--bg); color:var(--text-dim); border:1px solid var(--border); }
+
+.empty-state {
+  text-align:center; padding:42px 20px; color:var(--text-faint);
+}
+.empty-state .ic { font-size:26px; margin-bottom:8px; display:block; }
+.empty-state .title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:4px; }
+.empty-state .hint { font-size:12px; }
+.unavailable-box {
+  text-align:center; padding:24px 16px; color:var(--text-faint);
+  border-radius:var(--radius-md); border:1px dashed var(--border);
+}
+.unavailable-box .ic { font-size:22px; margin-bottom:6px; display:block; color:var(--warn); }
+.unavailable-box .title { font-size:13px; font-weight:700; color:var(--text); margin-bottom:4px; }
+.unavailable-box .hint { font-size:11.5px; margin-bottom:10px; }
+
+.pagination {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:14px 2px 0; font-size:12px; color:var(--text-dim);
+  flex-wrap:wrap; gap:8px;
+}
+.pagination .page-info { font-variant-numeric:tabular-nums; }
+.pagination .page-actions { display:flex; gap:6px; align-items:center; }
+.pagination button {
+  border:1px solid var(--border); background:var(--white);
+  color:var(--navy); border-radius:8px; padding:6px 12px;
+  font-size:11.5px; font-weight:600; cursor:pointer; min-height:32px;
+}
+html.dark .pagination button { background:rgba(255,255,255,.04); color:#dff0f2; }
+.pagination button:disabled { opacity:.4; cursor:not-allowed; }
+.pagination select {
+  border:1px solid var(--border); background:var(--white);
+  border-radius:8px; padding:5px 8px; font-size:11.5px;
+  font-family:inherit; min-height:32px; cursor:pointer;
+}
+html.dark .pagination select { background:rgba(255,255,255,.04); color:var(--text); }
+
+.summary-strip {
+  display:flex; flex-wrap:wrap; gap:8px;
+  padding:10px 12px; border-radius:var(--radius-md);
+  background:var(--bg); margin-bottom:12px;
+  border:1px solid var(--border);
+}
+.summary-strip .item {
+  display:flex; align-items:center; gap:5px;
+  font-size:11.5px; color:var(--text-dim);
+}
+.summary-strip .item strong {
+  color:var(--text); font-weight:700;
+  font-variant-numeric:tabular-nums;
+}
+.summary-strip .item.currency {
+  padding:3px 8px; border-radius:6px;
+  background:var(--bg-card); border:1px solid var(--border);
+}
+
+/* Search */
+.search-wrap {
+  position:relative; flex:1 1 220px; min-width:180px;
+  display:flex; align-items:center;
+}
+.search-wrap i {
+  position:absolute; left:10px; color:var(--text-faint);
+  font-size:11px; pointer-events:none;
+}
+.search-wrap input {
+  width:100%; border:1px solid var(--border); background:var(--white);
+  border-radius:9px; padding:8px 10px 8px 30px;
+  font-family:inherit; font-size:12px; color:var(--text);
+  min-height:34px; outline:none;
+}
+html.dark .search-wrap input { background:rgba(255,255,255,.04); color:var(--text); }
+.search-wrap input:focus { border-color:var(--navy); }
+
+/* Filter selects */
+.tab-filters {
+  display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+  margin-bottom:12px;
+}
+.tab-filters select, .tab-filters .filter-field {
+  min-height:34px;
+}
+.tab-filters select {
+  border:1px solid var(--border); background:var(--white);
+  border-radius:9px; padding:6px 10px; font-size:12px;
+  font-family:inherit; color:var(--text); outline:none;
+  min-height:34px;
+}
+html.dark .tab-filters select { background:rgba(255,255,255,.04); color:var(--text); }
+
+/* Drawer */
+.drawer-scrim {
+  position:fixed; inset:0;
+  background:rgba(5,15,20,.5);
+  backdrop-filter:blur(2px);
+  z-index:300; opacity:0; pointer-events:none;
+  transition:opacity 220ms ease;
+}
+.drawer-scrim.show { opacity:1; pointer-events:auto; }
+.drawer {
+  position:fixed; top:0; right:0; height:100vh;
+  width:min(560px,96vw);
+  background:var(--bg);
+  z-index:301;
+  box-shadow:var(--shadow-lg);
+  transform:translateX(100%);
+  transition:transform 260ms cubic-bezier(.4,0,.2,1);
+  display:flex; flex-direction:column;
+  overflow:hidden;
+}
+.drawer.open { transform:translateX(0); }
+@media (max-width:768px) { .drawer { width:100%; } }
+.dd-head {
+  display:flex; align-items:center; gap:14px;
+  padding:18px 22px;
+  background:linear-gradient(135deg,var(--navy),var(--navy-deep));
+  color:#fff; flex-shrink:0;
+}
+.dd-head h2 { margin:0; font-size:15px; font-weight:800; flex:1; min-width:0; }
+.dd-close {
+  width:36px; height:36px; border-radius:10px;
+  border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.08);
+  color:#fff; cursor:pointer; font-size:14px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+}
+.dd-close i { font-size:14px; }
+.dd-body { flex:1; overflow-y:auto; padding:18px 22px 40px; }
+.dd-section { margin-bottom:16px; }
+.dd-section h4 {
+  margin:0 0 8px; font-size:10.5px; font-weight:800;
+  text-transform:uppercase; letter-spacing:.06em;
+  color:var(--text-dim); padding-bottom:5px;
+  border-bottom:1px solid var(--border);
+}
+.dd-field {
+  display:flex; justify-content:space-between; gap:12px;
+  padding:6px 0; font-size:12.5px;
+  border-bottom:1px dashed var(--border);
+}
+.dd-field:last-child { border-bottom:none; }
+.dd-field .k { color:var(--text-dim); font-weight:600; flex-shrink:0; }
+.dd-field .v { font-weight:600; text-align:right; word-break:break-word; overflow-wrap:anywhere; }
+.dd-field .v.mono { font-family:'JetBrains Mono',monospace; font-size:11px; }
+.dd-field .v.num { font-variant-numeric:tabular-nums; }
+.dd-actions {
+  display:flex; gap:8px; flex-wrap:wrap;
+  margin-bottom:14px;
+}
+
+/* Toasts */
+.toast-stack {
+  position:fixed; bottom:22px; right:22px;
+  display:flex; flex-direction:column; gap:8px;
+  z-index:500; max-width:380px;
+}
+.toast {
+  background:#0c1f26; color:#fff;
+  padding:11px 14px; border-radius:11px;
+  font-size:12.5px; font-weight:600;
+  box-shadow:var(--shadow-md);
+  border-left:3px solid var(--gold);
+  animation:toastIn .25s ease;
+  word-break:break-word;
+  display:flex; align-items:flex-start; gap:8px;
+}
+.toast i { font-size:12px; margin-top:2px; flex-shrink:0; }
+.toast.success { border-left-color:var(--success); }
+.toast.error   { border-left-color:var(--danger); }
+.toast.warn    { border-left-color:var(--warn); }
+@keyframes toastIn { from{opacity:0;transform:translateX(30px)} to{opacity:1;transform:translateX(0)} }
+
+/* Scrim for mobile sidebar */
+.scrim {
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.4);
+  z-index:39; display:none;
+}
+.scrim.show { display:block; }
+
+/* Utilities */
+.row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.grow { flex:1; }
+.text-muted { color:var(--text-faint); }
+.text-right { text-align:right; }
+
+/* Print */
+@media print {
+  aside#sidebar, .topbar, .filter-bar, .tab-nav,
+  .page-header .actions, .dd-actions, .pagination,
+  .needs-strip, .chart-switch { display:none !important; }
+  .app { display:block !important; }
+  .content { padding:0 !important; }
+  body { background:#fff; }
+  .card, .kpi, .chart-card, .insight-card { box-shadow:none; border-color:#ddd; }
+  .tab-content { display:none !important; }
+  .tab-content.active { display:block !important; }
+  table { font-size:10px; }
+  thead th { background:#f0f0f0 !important; }
+}
+
+/* Mobile */
+@media (max-width:768px) {
+  .app { grid-template-columns:1fr !important; }
+  aside#sidebar {
+    position:fixed; left:0; top:0;
+    transform:translateX(-100%);
+    width:290px !important;
+    box-shadow:var(--shadow-lg);
+    z-index:50;
+    height:100vh;
+  }
+  aside#sidebar.open { transform:translateX(0); }
+  .hamburger { display:flex; }
+  .sb-toggle-desktop { display:none; }
+  .topbar { padding:0 14px; height:60px; }
+  .content { padding:12px 10px 40px; }
+  .page-header { flex-direction:column; align-items:stretch; }
+  .filter-bar { position:static; }
+  .filter-field { flex:1 1 100%; }
+  .filter-field input[type="date"] { width:100%; }
+}
+
+@media (max-width:400px) {
+  .kpi-grid { grid-template-columns:1fr; }
+  .insights-grid { grid-template-columns:1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+  .kpi.skel { animation:none; background:var(--bg); }
 }
 </style>
 </head>
 <body>
+
 <div class="app" id="appRoot">
 
-<aside class="sidebar" id="sidebar">
-    <div class="brand">
-        <img src="../images/miles.png" alt="" onerror="this.style.display='none'">
-        <div class="brand-text"><strong>MilesSpace</strong><span>Admin</span></div>
-        <button class="sb-collapse-btn" id="sbCollapseBtn"><i class="fas fa-angles-left"></i></button>
-    </div>
-    <nav class="nav-scroll">
-        <div class="nav-group"><div class="nav-group-head"><span class="nav-label">Overview</span></div>
-            <div class="nav-items"><a href="/admin/dashboard.html" class="nav-item"><span class="ic">📊</span><span>Dashboard</span></a></div></div>
-        <div class="nav-group"><button class="nav-group-head" onclick="toggleNavGroup(this)" aria-expanded="true"><span class="nav-label">Customers</span><span class="chev">▾</span></button>
-            <div class="nav-items">
-                <a href="/admin/users.html" class="nav-item"><span class="ic">👥</span><span>Users</span></a>
-                <a href="/admin/support.html" class="nav-item"><span class="ic">💬</span><span>Support</span></a>
-            </div></div>
-        <div class="nav-group"><button class="nav-group-head" onclick="toggleNavGroup(this)" aria-expanded="true"><span class="nav-label">Money</span><span class="chev">▾</span></button>
-            <div class="nav-items">
-                <a href="/admin/orders.html" class="nav-item"><span class="ic">🧮</span><span>Orders</span></a>
-                <a href="/admin/transactions.html" class="nav-item"><span class="ic">💳</span><span>Transactions</span></a>
-                <a href="/admin/deposits.html" class="nav-item"><span class="ic">📥</span><span>Deposits</span></a>
-                <a href="/admin/ledger.html" class="nav-item"><span class="ic">📒</span><span>Ledger</span></a>
-                <a href="/admin/reconciliation.html" class="nav-item"><span class="ic">🔄</span><span>Reconciliation</span></a>
-            </div></div>
-        <div class="nav-group"><button class="nav-group-head" onclick="toggleNavGroup(this)" aria-expanded="true"><span class="nav-label">Services</span><span class="chev">▾</span></button>
-            <div class="nav-items">
-                <a href="/admin/sellgift.html" class="nav-item"><span class="ic">🎁</span><span>Gift Cards</span></a>
-                <a href="/admin/airtime-data.html" class="nav-item"><span class="ic">📶</span><span>Airtime &amp; Data</span></a>
-                <a href="/admin/bills.html" class="nav-item"><span class="ic">🧾</span><span>Bills</span></a>
-                <a href="/admin/esim.html" class="nav-item"><span class="ic">📡</span><span>eSIM</span></a>
-                <a href="/admin/virtual-sms.html" class="nav-item"><span class="ic">📱</span><span>Virtual SMS</span></a>
-                <a href="/admin/boost.html" class="nav-item"><span class="ic">📈</span><span>Boost</span></a>
-                <a href="/admin/marketplace-products.html" class="nav-item"><span class="ic">📦</span><span>Marketplace</span></a>
-            </div></div>
-        <div class="nav-group"><button class="nav-group-head" onclick="toggleNavGroup(this)" aria-expanded="true"><span class="nav-label">Operations</span><span class="chev">▾</span></button>
-            <div class="nav-items">
-                <a href="/admin/orders.html?status=failed" class="nav-item"><span class="ic">⚠️</span><span>Failed Orders</span></a>
-                <a href="/admin/providers.html" class="nav-item"><span class="ic">🔌</span><span>Providers</span></a>
-                <a href="/admin/webhooks.html" class="nav-item"><span class="ic">🪝</span><span>Webhooks</span></a>
-            </div></div>
-        <div class="nav-group"><button class="nav-group-head" onclick="toggleNavGroup(this)" aria-expanded="true"><span class="nav-label">Analytics</span><span class="chev">▾</span></button>
-            <div class="nav-items">
-                <a href="/admin/revenue.html" class="nav-item"><span class="ic">💹</span><span>Revenue</span></a>
-                <a href="/admin/reports.html" class="nav-item active"><span class="ic">📄</span><span>Reports</span></a>
-            </div></div>
-        <div class="nav-group collapsed"><button class="nav-group-head" onclick="toggleNavGroup(this)" aria-expanded="false"><span class="nav-label">System</span><span class="chev">▾</span></button>
-            <div class="nav-items">
-                <a href="/admin/notifications.html" class="nav-item"><span class="ic">🔔</span><span>Notifications</span></a>
-                <a href="/admin/settings.html" class="nav-item"><span class="ic">⚙️</span><span>Settings</span></a>
-            </div></div>
-    </nav>
-    <div class="sidebar-foot">
-        <div class="av" id="adminAvatar">DA</div>
-        <div class="who"><strong id="adminName">Admin</strong><span id="adminRole">Admin</span></div>
-    </div>
-</aside>
-<div class="scrim" id="scrim"></div>
+  <aside id="sidebar"></aside>
+  <div class="scrim" id="scrim"></div>
 
-<div class="main">
+  <div class="main">
     <header class="topbar">
-        <button class="hamburger" id="hamburger">☰</button>
-        <button class="sb-toggle-desktop" id="sbToggleDesktop"><i class="fas fa-bars"></i></button>
-        <div class="topbar-left">
-            <div class="page-title">
-                <nav class="breadcrumb"><a href="/admin/dashboard">Home</a><span>/</span><span>Analytics</span><span>/</span><span>Reports</span></nav>
-                <h1>Reports</h1>
-                <div class="crumb"><span class="live-dot" id="liveDot"></span><span id="liveDotLabel">Checking…</span> · <span id="lastUpdated">never</span></div>
-            </div>
-        </div>
-        <div class="topbar-right">
-            <button class="icon-btn" title="Notifications" onclick="window.location.href='/admin/notifications'">🔔</button>
-            <button class="icon-btn" id="darkToggle" title="Toggle dark mode">🌙</button>
-            <div class="admin-chip" id="adminChip">
-                <div class="av" id="chipAvatar">DA</div>
-                <div class="info"><strong id="chipName">Admin</strong><span id="chipRole">Admin</span></div>
-                <span style="font-size:10px;color:var(--text-faint);">▾</span>
-            </div>
-        </div>
+      <button class="hamburger" id="hamburger" aria-label="Open menu"><i class="fa-solid fa-bars"></i></button>
+      <button class="sb-toggle-desktop" id="sbToggleDesktop" aria-label="Collapse sidebar"><i class="fa-solid fa-bars"></i></button>
+      <div class="page-title">
+        <nav class="breadcrumb">
+          <a href="/admin/dashboard">Home</a><span>/</span>
+          <span>Analytics</span><span>/</span>
+          <span>Reports</span>
+        </nav>
+        <h1><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Reports</h1>
+      </div>
+      <button class="icon-btn" id="darkToggle" title="Toggle dark mode" aria-label="Toggle dark mode"><i class="fa-solid fa-moon"></i></button>
     </header>
 
     <div class="content">
-        <div class="page-header">
-            <div>
-                <h2>Reports</h2>
-                <div class="sub">Monitor platform activity, financial performance, orders, customers and provider operations.</div>
+
+      <div class="page-header">
+        <div>
+          <h2>Reports &amp; Analytics</h2>
+          <div class="sub">Revenue, orders, providers, webhooks, failures and reconciliation — per currency, never mixed.</div>
+          <div class="updated" id="lastUpdated"><i class="fa-solid fa-clock"></i> Never updated</div>
+        </div>
+        <div class="actions">
+          <button class="btn" id="refreshBtn"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+          <div style="position:relative;">
+            <button class="btn" id="exportBtn" aria-haspopup="menu" aria-expanded="false">
+              <i class="fa-solid fa-download"></i> Export
+              <i class="fa-solid fa-chevron-down" style="font-size:8px"></i>
+            </button>
+            <div id="exportMenu" class="card" hidden style="position:absolute;right:0;top:100%;z-index:25;padding:8px;min-width:220px;margin:8px 0 0 0;box-shadow:var(--shadow-lg);">
+              <div style="display:flex;flex-direction:column;gap:2px;" id="exportMenuItems"></div>
             </div>
-            <div class="header-actions">
-                <button class="btn" id="refreshBtn"><i class="fas fa-rotate-right"></i> Refresh</button>
-                <div style="position:relative">
-                    <button class="btn" id="exportBtn"><i class="fas fa-download"></i> Export <i class="fas fa-caret-down" style="font-size:9px"></i></button>
-                    <div id="exportMenu" style="display:none;position:absolute;right:0;top:100%;margin-top:4px;background:var(--white);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-md);z-index:20;min-width:180px;overflow:hidden">
-                        <button class="btn" data-export="overview" style="display:block;width:100%;border:none;border-radius:0;text-align:left">Overview CSV</button>
-                        <button class="btn" data-export="transactions" style="display:block;width:100%;border:none;border-radius:0;text-align:left">Transactions CSV</button>
-                        <button class="btn" data-export="orders" style="display:block;width:100%;border:none;border-radius:0;text-align:left">Orders CSV</button>
-                        <button class="btn" data-export="products" style="display:block;width:100%;border:none;border-radius:0;text-align:left">Products CSV</button>
-                        <button class="btn" data-export="providers" style="display:block;width:100%;border:none;border-radius:0;text-align:left">Providers CSV</button>
-                        <button class="btn" data-export="failures" style="display:block;width:100%;border:none;border-radius:0;text-align:left">Failures CSV</button>
-                        <button class="btn" data-export="reconciliation" style="display:block;width:100%;border:none;border-radius:0;text-align:left">Reconciliation CSV</button>
-                    </div>
-                </div>
-            </div>
+          </div>
+          <button class="btn" id="printBtn"><i class="fa-solid fa-print"></i> Print</button>
         </div>
+      </div>
 
-        <div class="filters">
-            <div class="filter-row">
-                <div class="range-select" id="rangeSelect">
-                    <button class="range-btn active" data-range="today">Today</button>
-                    <button class="range-btn" data-range="yesterday">Yesterday</button>
-                    <button class="range-btn" data-range="7d">7D</button>
-                    <button class="range-btn" data-range="30d">30D</button>
-                    <button class="range-btn" data-range="month">This Month</button>
-                    <button class="range-btn" data-range="lastmonth">Last Month</button>
-                    <button class="range-btn" data-range="custom">Custom</button>
-                </div>
-                <select id="fCurrency">
-                    <option value="all">All currencies</option>
-                    <option value="NGN">NGN</option>
-                    <option value="USD">USD</option>
-                </select>
-                <div class="custom-range" id="customRange">
-                    <input type="date" id="customFrom"><span>to</span>
-                    <input type="date" id="customTo">
-                    <button class="btn btn-sm" id="customApply">Apply</button>
-                </div>
-                <div class="range-label">Showing: <strong id="rangeLabelText">Today</strong> · <span id="rangeLabelDetail">—</span></div>
-            </div>
+      <!-- Filter bar -->
+      <div class="filter-bar" role="region" aria-label="Report filters">
+        <div class="filter-pills" id="presetPills"></div>
+        <div class="filter-field">
+          <label for="fromDate">From</label>
+          <input type="date" id="fromDate" aria-label="From date">
         </div>
-
-        <div class="kpi-grid" id="kpiGrid">
-            <div class="kpi"><div class="lbl">Total Transactions</div><div class="val" id="kpi-tx"><span class="skel" style="width:60%;height:20px"></span></div><div class="sub" id="kpi-tx-sub">—</div></div>
-            <div class="kpi"><div class="lbl">Total Revenue</div><div class="val" id="kpi-rev"><span class="skel" style="width:60%;height:20px"></span></div><div class="sub" id="kpi-rev-sub">—</div></div>
-            <div class="kpi"><div class="lbl">Total Funding</div><div class="val" id="kpi-fund"><span class="skel" style="width:60%;height:20px"></span></div><div class="sub" id="kpi-fund-sub">Wallet deposits (not revenue)</div></div>
-            <div class="kpi"><div class="lbl">Total Refunds</div><div class="val" id="kpi-refund"><span class="skel" style="width:60%;height:20px"></span></div><div class="sub" id="kpi-refund-sub">—</div></div>
-            <div class="kpi"><div class="lbl">Successful Orders</div><div class="val" id="kpi-success"><span class="skel" style="width:60%;height:20px"></span></div><div class="sub" id="kpi-success-sub">—</div></div>
-            <div class="kpi"><div class="lbl">Failed Orders</div><div class="val" id="kpi-failed"><span class="skel" style="width:60%;height:20px"></span></div><div class="sub" id="kpi-failed-sub">—</div></div>
-            <div class="kpi"><div class="lbl">Active Customers</div><div class="val" id="kpi-cust"><span class="skel" style="width:60%;height:20px"></span></div><div class="sub" id="kpi-cust-sub">New in period</div></div>
-            <div class="kpi"><div class="lbl">Provider Issues</div><div class="val" id="kpi-prov"><span class="skel" style="width:60%;height:20px"></span></div><div class="sub" id="kpi-prov-sub">Failed webhooks</div></div>
+        <div class="filter-field">
+          <label for="toDate">To</label>
+          <input type="date" id="toDate" aria-label="To date">
         </div>
-
-        <div class="tabs" id="tabs">
-            <button class="tab active" data-tab="overview">Overview</button>
-            <button class="tab" data-tab="transactions">Transactions</button>
-            <button class="tab" data-tab="orders">Orders</button>
-            <button class="tab" data-tab="customers">Customers</button>
-            <button class="tab" data-tab="products">Products</button>
-            <button class="tab" data-tab="providers">Providers</button>
-            <button class="tab" data-tab="webhooks">Webhooks</button>
-            <button class="tab" data-tab="failures">Failures</button>
-            <button class="tab" data-tab="reconciliation">Reconciliation</button>
+        <div class="filter-field">
+          <label for="currencySel">Currency</label>
+          <select id="currencySel" aria-label="Currency">
+            <option value="all">All</option>
+            <option value="NGN">NGN</option>
+            <option value="USD">USD</option>
+          </select>
         </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="compareToggle">
+          Compare to previous
+        </label>
+        <div class="filter-chip" id="rangeChip" style="margin-left:auto;">
+          <i class="fa-solid fa-calendar-day"></i> <span id="rangeLabel">—</span>
+        </div>
+      </div>
 
+      <!-- KPI grid -->
+      <div class="kpi-grid" id="kpiGrid" role="region" aria-label="Key performance indicators"></div>
+
+      <!-- Tabs -->
+      <nav class="tab-nav" role="tablist" aria-label="Report sections" id="tabNav">
+        <button class="tab-btn active" role="tab" aria-selected="true" data-tab="overview">
+          <i class="fa-solid fa-chart-pie"></i> Overview
+        </button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-tab="transactions">
+          <i class="fa-solid fa-credit-card"></i> Transactions
+        </button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-tab="orders">
+          <i class="fa-solid fa-receipt"></i> Orders
+        </button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-tab="customers">
+          <i class="fa-solid fa-user-group"></i> Customers
+        </button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-tab="products">
+          <i class="fa-solid fa-boxes-stacked"></i> Products
+        </button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-tab="providers">
+          <i class="fa-solid fa-plug"></i> Providers
+        </button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-tab="webhooks">
+          <i class="fa-solid fa-link"></i> Webhooks
+        </button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-tab="failures">
+          <i class="fa-solid fa-triangle-exclamation"></i> Failures
+        </button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-tab="reconciliation">
+          <i class="fa-solid fa-scale-balanced"></i> Reconciliation
+        </button>
+      </nav>
+
+      <div id="tabContent">
         <!-- OVERVIEW -->
-        <div class="tab-panel active" data-panel="overview">
-            <div class="card">
-                <h3>Transactions · Revenue · Refunds</h3>
-                <div class="chart-wrap"><canvas id="chartOverview"></canvas></div>
+        <section class="tab-content active" id="tab-overview" role="tabpanel">
+          <div class="needs-strip" id="needsStrip" hidden></div>
+
+          <div class="chart-row">
+            <div class="chart-card">
+              <div class="chart-head">
+                <h3>Trend</h3>
+                <div class="chart-switch">
+                  <button class="pill active" data-metric="revenue">Revenue</button>
+                  <button class="pill" data-metric="profit">Profit</button>
+                  <button class="pill" data-metric="refunds">Refunds</button>
+                  <button class="pill" data-metric="orders">Orders</button>
+                  <button class="pill" data-currency="NGN">NGN</button>
+                  <button class="pill" data-currency="USD">USD</button>
+                </div>
+              </div>
+              <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
             </div>
-        </div>
+            <div class="chart-card">
+              <div class="chart-head">
+                <h3>Revenue by product</h3>
+              </div>
+              <div class="chart-wrap"><canvas id="productChart"></canvas></div>
+            </div>
+          </div>
+
+          <div class="chart-row" style="grid-template-columns:1fr;">
+            <div class="chart-card">
+              <div class="chart-head">
+                <h3>Revenue by provider</h3>
+              </div>
+              <div class="chart-wrap"><canvas id="providerChart"></canvas></div>
+            </div>
+          </div>
+
+          <div class="insights-grid" id="insightsGrid"></div>
+        </section>
 
         <!-- TRANSACTIONS -->
-        <div class="tab-panel" data-panel="transactions">
-            <div class="card">
-                <div class="filter-row" style="margin-bottom:10px">
-                    <input type="search" id="txSearch" placeholder="Search reference, provider ref, description…">
-                    <select id="txStatus"><option value="">All statuses</option><option value="completed">Completed</option><option value="pending">Pending</option><option value="failed">Failed</option><option value="refunded">Refunded</option></select>
-                    <select id="txType"><option value="">All types</option><option value="deposit">Deposit</option><option value="boost">Boost</option><option value="refund">Refund</option><option value="fee_revenue">Fee</option></select>
-                    <button class="btn btn-sm" id="txApply">Apply</button>
-                </div>
-                <div class="table-scroll">
-                    <table>
-                        <thead><tr><th>Reference</th><th>User</th><th>Type</th><th>Amount</th><th>Currency</th><th>Status</th><th>Provider</th><th>Created</th></tr></thead>
-                        <tbody id="txBody"></tbody>
-                    </table>
-                </div>
-                <div class="table-hint">↔ Swipe to see more columns</div>
-                <div class="pagination" id="txPager"></div>
+        <section class="tab-content" id="tab-transactions" role="tabpanel">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3>Transactions</h3>
+                <div class="hint">All ledger transactions created in the selected period.</div>
+              </div>
             </div>
-        </div>
+            <div class="tab-filters">
+              <div class="search-wrap">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input id="txSearch" type="search" placeholder="Search reference, description…" aria-label="Search transactions">
+              </div>
+              <select id="txStatus" aria-label="Status">
+                <option value="all">All statuses</option>
+                <option value="completed">Completed</option>
+                <option value="pending">Pending</option>
+                <option value="failed">Failed</option>
+                <option value="refunded">Refunded</option>
+              </select>
+              <select id="txType" aria-label="Type"><option value="all">All types</option></select>
+              <select id="txProvider" aria-label="Provider"><option value="all">All providers</option></select>
+            </div>
+            <div class="summary-strip" id="txSummary" hidden></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="sortable" data-sort="created_at">Date <span class="sort-ind"></span></th>
+                    <th>Reference</th>
+                    <th>User</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th class="num">Amount</th>
+                    <th class="num sortable" data-sort="amount">Fee <span class="sort-ind"></span></th>
+                    <th>Provider</th>
+                  </tr>
+                </thead>
+                <tbody id="txBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="txPagination"></div>
+          </div>
+        </section>
 
         <!-- ORDERS -->
-        <div class="tab-panel" data-panel="orders">
-            <div class="card">
-                <div class="filter-row" style="margin-bottom:10px">
-                    <input type="search" id="orSearch" placeholder="Search order ref, provider id, customer…">
-                    <select id="orStatus"><option value="">All statuses</option><option value="pending">Pending</option><option value="processing">Processing</option><option value="completed">Completed</option><option value="failed">Failed</option><option value="refunded">Refunded</option></select>
-                    <button class="btn btn-sm" id="orApply">Apply</button>
-                </div>
-                <div class="table-scroll">
-                    <table>
-                        <thead><tr><th>Order</th><th>User</th><th>Product</th><th>Provider</th><th>Amount</th><th>Status</th><th>Refund</th><th>Created</th></tr></thead>
-                        <tbody id="orBody"></tbody>
-                    </table>
-                </div>
-                <div class="table-hint">↔ Swipe to see more columns</div>
-                <div class="pagination" id="orPager"></div>
+        <section class="tab-content" id="tab-orders" role="tabpanel">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3>Orders</h3>
+                <div class="hint">Service orders created in the selected period.</div>
+              </div>
             </div>
-        </div>
+            <div class="tab-filters">
+              <div class="search-wrap">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input id="orSearch" type="search" placeholder="Search order ref, provider ref…" aria-label="Search orders">
+              </div>
+              <select id="orStatus" aria-label="Status">
+                <option value="all">All statuses</option>
+                <option value="completed">Completed</option>
+                <option value="pending">Pending</option>
+                <option value="failed">Failed</option>
+                <option value="refunded">Refunded</option>
+                <option value="manual_review">Manual review</option>
+              </select>
+              <select id="orProduct" aria-label="Product"><option value="all">All products</option></select>
+              <select id="orProvider" aria-label="Provider"><option value="all">All providers</option></select>
+            </div>
+            <div class="summary-strip" id="orSummary" hidden></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="sortable" data-sort="created_at">Date <span class="sort-ind"></span></th>
+                    <th>Order ref</th>
+                    <th>User</th>
+                    <th>Product</th>
+                    <th>Provider</th>
+                    <th>Status</th>
+                    <th class="num">Total</th>
+                    <th class="num">Profit</th>
+                  </tr>
+                </thead>
+                <tbody id="orBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="orPagination"></div>
+          </div>
+        </section>
 
         <!-- CUSTOMERS -->
-        <div class="tab-panel" data-panel="customers">
-            <div class="card">
-                <h3>Top Customers</h3>
-                <div class="table-scroll">
-                    <table>
-                        <thead><tr><th>Customer</th><th>Orders</th><th>Spent</th><th>Refunded</th><th>Net Spend</th><th>Last Order</th></tr></thead>
-                        <tbody id="cuBody"></tbody>
-                    </table>
-                </div>
+        <section class="tab-content" id="tab-customers" role="tabpanel">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3>Customers</h3>
+                <div class="hint">Per-currency. Only PII the operator is permitted to see.</div>
+              </div>
             </div>
-        </div>
+            <div class="tab-filters">
+              <select id="cuCurrency" aria-label="Currency">
+                <option value="">All</option>
+                <option value="NGN">NGN</option>
+                <option value="USD">USD</option>
+              </select>
+            </div>
+            <div class="summary-strip" id="cuSummary" hidden></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Ccy</th>
+                    <th class="num sortable" data-sort="orders">Orders <span class="sort-ind"></span></th>
+                    <th class="num sortable" data-sort="spent">Spent <span class="sort-ind"></span></th>
+                    <th class="num">Refunded</th>
+                    <th class="num sortable" data-sort="net_spend">Net <span class="sort-ind"></span></th>
+                    <th class="sortable" data-sort="last_order">Last order <span class="sort-ind"></span></th>
+                  </tr>
+                </thead>
+                <tbody id="cuBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="cuPagination"></div>
+          </div>
+        </section>
 
         <!-- PRODUCTS -->
-        <div class="tab-panel" data-panel="products">
-            <div class="card">
-                <h3>Product Performance</h3>
-                <div class="table-scroll">
-                    <table>
-                        <thead><tr><th>Product</th><th>Orders</th><th>Revenue</th><th>Provider Cost</th><th>Refunds</th><th>Profit</th><th>Margin</th></tr></thead>
-                        <tbody id="prBody"></tbody>
-                    </table>
-                </div>
+        <section class="tab-content" id="tab-products" role="tabpanel">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3>Products</h3>
+                <div class="hint">Revenue by product, per currency, with share %.</div>
+              </div>
             </div>
-        </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Ccy</th>
+                    <th class="num">Orders</th>
+                    <th class="num">Revenue</th>
+                    <th class="num">Cost</th>
+                    <th class="num">Refunds</th>
+                    <th class="num">Profit</th>
+                    <th class="num">Margin</th>
+                    <th class="num">Share</th>
+                  </tr>
+                </thead>
+                <tbody id="prBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
 
         <!-- PROVIDERS -->
-        <div class="tab-panel" data-panel="providers">
-            <div class="card">
-                <h3>Provider Performance</h3>
-                <div class="table-scroll">
-                    <table>
-                        <thead><tr><th>Provider</th><th>Orders</th><th>Revenue</th><th>Cost</th><th>Profit</th><th>Failed</th><th>Success Rate</th></tr></thead>
-                        <tbody id="pvBody"></tbody>
-                    </table>
-                </div>
+        <section class="tab-content" id="tab-providers" role="tabpanel">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3>Providers</h3>
+                <div class="hint">Revenue and success rate, per currency, with share %.</div>
+              </div>
             </div>
-        </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Provider</th>
+                    <th>Ccy</th>
+                    <th class="num">Orders</th>
+                    <th class="num">Revenue</th>
+                    <th class="num">Cost</th>
+                    <th class="num">Profit</th>
+                    <th class="num">Failed</th>
+                    <th class="num">Success</th>
+                    <th class="num">Share</th>
+                  </tr>
+                </thead>
+                <tbody id="pvBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
 
         <!-- WEBHOOKS -->
-        <div class="tab-panel" data-panel="webhooks">
-            <div class="card">
-                <h3>Webhook Activity</h3>
-                <div class="table-scroll">
-                    <table>
-                        <thead><tr><th>Provider</th><th>Event</th><th>Event ID</th><th>Signature</th><th>Status</th><th>Received</th></tr></thead>
-                        <tbody id="whBody"></tbody>
-                    </table>
-                </div>
+        <section class="tab-content" id="tab-webhooks" role="tabpanel">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3>Webhooks</h3>
+                <div class="hint">Processing events from all providers.</div>
+              </div>
             </div>
-        </div>
+            <div class="summary-strip" id="whSummary" hidden></div>
+            <div class="tab-filters">
+              <select id="whProvider" aria-label="Provider"><option value="all">All providers</option></select>
+              <select id="whStatus" aria-label="Status">
+                <option value="all">All statuses</option>
+                <option value="received">Received</option>
+                <option value="processing">Processing</option>
+                <option value="processed">Processed</option>
+                <option value="failed">Failed</option>
+              </select>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Received</th>
+                    <th>Provider</th>
+                    <th>Event</th>
+                    <th>Status</th>
+                    <th>Signature</th>
+                    <th>Error</th>
+                  </tr>
+                </thead>
+                <tbody id="whBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="whPagination"></div>
+          </div>
+        </section>
 
         <!-- FAILURES -->
-        <div class="tab-panel" data-panel="failures">
-            <div class="card">
-                <h3>Recent Failures</h3>
-                <div class="table-scroll">
-                    <table>
-                        <thead><tr><th>Reference</th><th>User</th><th>Module</th><th>Provider</th><th>Type</th><th>Amount</th><th>Message</th><th>When</th></tr></thead>
-                        <tbody id="flBody"></tbody>
-                    </table>
-                </div>
+        <section class="tab-content" id="tab-failures" role="tabpanel">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3>Failures</h3>
+                <div class="hint">Unified view of failed orders, transactions and webhooks.</div>
+              </div>
             </div>
-        </div>
+            <div class="tab-filters">
+              <select id="faKind" aria-label="Kind">
+                <option value="all">All</option>
+                <option value="order">Orders</option>
+                <option value="transaction">Transactions</option>
+                <option value="webhook">Webhooks</option>
+              </select>
+              <select id="faProvider" aria-label="Provider"><option value="all">All providers</option></select>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Kind</th>
+                    <th>Reference</th>
+                    <th>User</th>
+                    <th>Module</th>
+                    <th>Provider</th>
+                    <th class="num">Amount</th>
+                    <th>Error</th>
+                  </tr>
+                </thead>
+                <tbody id="faBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="faPagination"></div>
+          </div>
+        </section>
 
         <!-- RECONCILIATION -->
-        <div class="tab-panel" data-panel="reconciliation">
-            <div class="card">
-                <h3>Reconciliation Issues</h3>
-                <div class="table-scroll">
-                    <table>
-                        <thead><tr><th>Type</th><th>Severity</th><th>Reference</th><th>Provider</th><th>Amount</th><th>Expected</th><th>Actual</th></tr></thead>
-                        <tbody id="rcBody"></tbody>
-                    </table>
-                </div>
+        <section class="tab-content" id="tab-reconciliation" role="tabpanel">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3>Reconciliation checks</h3>
+                <div class="hint">Read-only. Detail actions live on the Reconciliation page.</div>
+              </div>
+              <a class="btn" href="/admin/reconciliation.html"><i class="fa-solid fa-external-link-alt"></i> Full page</a>
             </div>
-        </div>
+            <div id="reconList"></div>
+          </div>
+        </section>
+      </div>
+
     </div>
-</div>
+  </div>
 </div>
 
-<div class="toast-stack" id="toastStack"></div>
+<!-- Drawer -->
+<div class="drawer-scrim" id="drawerScrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="ddTitle">
+  <div class="dd-head">
+    <h2 id="ddTitle">Details</h2>
+    <button class="dd-close" id="ddClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="dd-body" id="ddBody"></div>
+</aside>
 
-<nav class="mnav">
-    <a href="/admin/dashboard" class="mni"><i class="fas fa-home"></i><span>Home</span></a>
-    <a href="/admin/orders" class="mni"><i class="fas fa-receipt"></i><span>Orders</span></a>
-    <a href="/admin/reports" class="mni active"><i class="fas fa-file-alt"></i><span>Reports</span></a>
-    <a href="/admin/providers" class="mni"><i class="fas fa-plug"></i><span>Providers</span></a>
-    <a href="/admin/settings" class="mni"><i class="fas fa-cog"></i><span>Settings</span></a>
-</nav>
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
 <script>
 'use strict';
 
+// ═══════════════════════════════════════════════════════════════════════
+// Reports UI
+// ═══════════════════════════════════════════════════════════════════════
+
 const API = {
-    overview:       '/api/admin/reports/overview',
-    transactions:   '/api/admin/reports/transactions',
-    orders:         '/api/admin/reports/orders',
-    customers:      '/api/admin/reports/customers',
-    products:       '/api/admin/reports/products',
-    providers:      '/api/admin/reports/providers',
-    webhooks:       '/api/admin/reports/webhooks',
-    failures:       '/api/admin/reports/failures',
-    reconciliation: '/api/admin/reports/reconciliation',
-    exportCsv:      '/api/admin/reports/export',
-    me:             '/api/admin/me'
+  meta:           '/api/admin/reports/meta',
+  overview:       '/api/admin/reports/overview',
+  timeseries:     '/api/admin/reports/timeseries',
+  transactions:   '/api/admin/reports/transactions',
+  orders:         '/api/admin/reports/orders',
+  customers:      '/api/admin/reports/customers',
+  products:       '/api/admin/reports/products',
+  providers:      '/api/admin/reports/providers',
+  webhooks:       '/api/admin/reports/webhooks',
+  failures:       '/api/admin/reports/failures',
+  reconciliation: '/api/admin/reports/reconciliation',
+  export:         '/api/admin/reports/export',
+  me:             '/api/admin/me'
 };
 
-const CURRENCY_SYMBOLS = { NGN: '₦', USD: '$' };
+const PRESET_LABELS = {
+  today: 'Today', yesterday: 'Yesterday',
+  '7d': 'Last 7 days', '30d': 'Last 30 days',
+  thismonth: 'This month', lastmonth: 'Last month'
+};
+
+const CURRENCY_SYMBOL = { NGN: '₦', USD: '$' };
+
 const State = {
-    range: { key: 'today', from: null, to: null, label: 'Today', detail: '' },
-    currency: 'all',
-    chartRef: null,
-    tx: { page: 1, limit: 25, totalPages: 1 },
-    or: { page: 1, limit: 25, totalPages: 1 }
+  preset: 'today',
+  from: null,
+  to: null,
+  currency: 'all',
+  tab: 'overview',
+  page: { transactions: 1, orders: 1, customers: 1, webhooks: 1, failures: 1 },
+  search: { transactions: '', orders: '', failures: '' },
+  status: { transactions: 'all', orders: 'all', failures: 'all' },
+  type: 'all',
+  provider: 'all',
+  product: 'all',
+  kind: 'all',
+  granularity: 'day',
+  compare: false,
+  chartMetric: 'revenue',
+  chartCurrency: 'NGN',
+  meta: null,
+  seq: { overview: 0, timeseries: 0, transactions: 0, orders: 0, customers: 0, products: 0, providers: 0, webhooks: 0, failures: 0, reconciliation: 0 },
+  abort: { overview: null, timeseries: null, transactions: null, orders: null, customers: null, products: null, providers: null, webhooks: null, failures: null, reconciliation: null },
+  cache: new Map(),
+  refreshTimer: null,
+  lastUpdatedAt: 0,
+  charts: { trend: null, product: null, provider: null },
+  drawerRecord: null
 };
 
 function escapeHtml(s) {
-    if (s === null || s === undefined) return '';
-    return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
 }
-function formatMoney(v, c) {
-    if (v === null || v === undefined || v === '') return null;
-    const n = Number(v);
-    if (!Number.isFinite(n)) return null;
-    const ccy = String(c || '').toUpperCase();
-    return (CURRENCY_SYMBOLS[ccy] || (ccy ? ccy + ' ' : '')) + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function fmtMoney(amount, currency) {
+  if (amount == null || amount === '') return '—';
+  const ccy = String(currency || '').toUpperCase();
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return '—';
+  const decimals = ccy === 'USD' ? 2 : 2;
+  const formatted = n.toLocaleString('en-US', {
+    minimumFractionDigits: decimals, maximumFractionDigits: decimals
+  });
+  return (CURRENCY_SYMBOL[ccy] || (ccy ? ccy + ' ' : '')) + formatted;
 }
-function formatNumber(v) {
-    if (v === null || v === undefined || v === '') return null;
-    const n = Number(v);
-    return Number.isFinite(n) ? n.toLocaleString('en-US') : null;
+function fmtCount(n) {
+  if (n == null) return '—';
+  const num = Number(n);
+  if (!Number.isFinite(num)) return '—';
+  return num.toLocaleString('en-US');
 }
-function timeAgo(iso) {
-    if (!iso) return '—';
-    const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-    if (s < 60) return 'just now';
-    if (s < 3600) return Math.floor(s / 60) + 'm ago';
-    if (s < 86400) return Math.floor(s / 3600) + 'h ago';
-    return new Date(iso).toLocaleDateString();
+function fmtPct(n) {
+  if (n == null) return '—';
+  const num = Number(n);
+  if (!Number.isFinite(num)) return '—';
+  return (num >= 0 ? '+' : '') + num.toFixed(2) + '%';
 }
-function formatDateTime(iso) {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleString('en-US', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+function fmtDateWAT(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d)) return '—';
+  return d.toLocaleString('en-GB', {
+    timeZone: 'Africa/Lagos',
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  }) + ' WAT';
 }
-function formatDateShort(iso) {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+function fmtDateOnlyWAT(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d)) return '—';
+  return d.toLocaleDateString('en-GB', {
+    timeZone: 'Africa/Lagos',
+    day: '2-digit', month: 'short', year: 'numeric'
+  });
 }
-function statusBadge(status) {
-    const s = String(status || '').toLowerCase();
-    if (['completed','success','delivered','partial'].includes(s)) return 'success';
-    if (['failed','cancelled','expired','reversed'].includes(s)) return 'danger';
-    if (['pending','processing','in_progress','confirming','partially_paid'].includes(s)) return 'warn';
-    if (s === 'refunded') return 'info';
-    if (s === 'manual_review' || s === 'provider_unknown') return 'purple';
-    return 'neutral';
+function toDateInputValue(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  const wat = new Date(d.getTime() + 60 * 60 * 1000);
+  const y = wat.getUTCFullYear();
+  const m = String(wat.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(wat.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
 }
-function severityBadge(s) {
-    const x = String(s || '').toLowerCase();
-    if (x === 'critical') return 'danger';
-    if (x === 'high') return 'warn';
-    if (x === 'medium') return 'info';
-    return 'neutral';
-}
-function showToast(msg, type = 'info') {
-    const stack = document.getElementById('toastStack');
-    const el = document.createElement('div');
-    el.className = 'toast ' + type;
-    el.textContent = msg;
-    stack.appendChild(el);
-    setTimeout(() => el.remove(), 3400);
-}
-function toggleNavGroup(head) {
-    const g = head.closest('.nav-group');
-    g.classList.toggle('collapsed');
-}
-function deltaHtml(p) {
-    if (p == null) return '<span class="delta neutral">—</span>';
-    const v = Number(p);
-    if (!Number.isFinite(v) || v === 0) return '<span class="delta neutral">0.0%</span>';
-    return `<span class="delta ${v > 0 ? 'up' : 'down'}">${v > 0 ? '+' : ''}${v.toFixed(1)}% vs prev</span>`;
+function debounce(fn, ms) {
+  let t;
+  return function (...args) {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, args), ms);
+  };
 }
 
-async function api(url) {
-    try {
-        const res = await AdminSession.fetch(url);
-        let json = null;
-        try { json = await res.json(); } catch {}
-        if (!res.ok || json?.success === false) {
-            return { ok: false, status: res.status, error: json?.error || 'Request failed', code: json?.code };
-        }
-        return { ok: true, data: json };
-    } catch (e) {
-        return { ok: false, status: 0, error: 'Network error' };
-    }
+function showToast(msg, type = 'info', sticky = false) {
+  const stack = document.getElementById('toastStack');
+  if (!stack) return;
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const icon = type === 'success' ? 'fa-check-circle'
+             : type === 'error'   ? 'fa-circle-exclamation'
+             : type === 'warn'    ? 'fa-triangle-exclamation'
+             :                       'fa-circle-info';
+  el.innerHTML = `<i class="fa-solid ${icon}"></i><span>${escapeHtml(msg)}</span>`;
+  stack.appendChild(el);
+  if (!sticky) {
+    setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateX(30px)';
+      el.style.transition = 'opacity .3s, transform .3s';
+      setTimeout(() => el.remove(), 300);
+    }, 3800);
+  }
+  return el;
 }
 
-/* ─── date ranges (same logic as revenue page) ─── */
-function rangeFor(key, cf, ct) {
-    const now = new Date();
-    const O = 60 * 60 * 1000;
-    const startWat = d => new Date(Date.UTC(new Date(d.getTime()+O).getUTCFullYear(), new Date(d.getTime()+O).getUTCMonth(), new Date(d.getTime()+O).getUTCDate(), 0, 0, 0) - O);
-    const endWat = d => new Date(startWat(d).getTime() + 86400000 - 1);
-    switch (key) {
-        case 'today':      { const f = startWat(now), t = endWat(now); return { from: f.toISOString(), to: t.toISOString(), label: 'Today', detail: formatDateShort(f) }; }
-        case 'yesterday':  { const y = new Date(now.getTime()-86400000); const f = startWat(y), t = endWat(y); return { from: f.toISOString(), to: t.toISOString(), label: 'Yesterday', detail: formatDateShort(f) }; }
-        case '7d':         { const f = startWat(new Date(now.getTime()-6*86400000)), t = endWat(now); return { from: f.toISOString(), to: t.toISOString(), label: 'Last 7 days', detail: `${formatDateShort(f)} – ${formatDateShort(t)}` }; }
-        case '30d':        { const f = startWat(new Date(now.getTime()-29*86400000)), t = endWat(now); return { from: f.toISOString(), to: t.toISOString(), label: 'Last 30 days', detail: `${formatDateShort(f)} – ${formatDateShort(t)}` }; }
-        case 'month':      { const l = new Date(now.getTime()+O); const f = new Date(Date.UTC(l.getUTCFullYear(), l.getUTCMonth(), 1, 0, 0, 0) - O), t = endWat(now); return { from: f.toISOString(), to: t.toISOString(), label: 'This month', detail: `${formatDateShort(f)} – ${formatDateShort(t)}` }; }
-        case 'lastmonth':  { const l = new Date(now.getTime()+O); const f = new Date(Date.UTC(l.getUTCFullYear(), l.getUTCMonth()-1, 1, 0, 0, 0) - O), t = new Date(Date.UTC(l.getUTCFullYear(), l.getUTCMonth(), 1, 0, 0, 0) - O - 1); return { from: f.toISOString(), to: t.toISOString(), label: 'Last month', detail: `${formatDateShort(f)} – ${formatDateShort(t)}` }; }
-        case 'custom': {
-            if (!cf || !ct) return rangeFor('today');
-            const f = startWat(new Date(cf)), t = endWat(new Date(ct));
-            return { from: f.toISOString(), to: t.toISOString(), label: 'Custom', detail: `${formatDateShort(f)} – ${formatDateShort(t)}` };
-        }
-        default: return rangeFor('today');
-    }
-}
-function applyRange(key, opts = {}) {
-    const r = rangeFor(key, opts.cf, opts.ct);
-    State.range = { key, ...r };
-    document.getElementById('rangeLabelText').textContent = r.label;
-    document.getElementById('rangeLabelDetail').textContent = r.detail;
-    document.querySelectorAll('#rangeSelect .range-btn').forEach(b => b.classList.toggle('active', b.dataset.range === key));
-    document.getElementById('customRange').classList.toggle('show', key === 'custom');
-}
-function scopeQuery(extra = {}) {
-    const q = new URLSearchParams();
-    q.set('from', State.range.from);
-    q.set('to', State.range.to);
-    if (State.currency !== 'all') q.set('currency', State.currency);
-    for (const [k, v] of Object.entries(extra)) if (v) q.set(k, v);
-    return q.toString();
-}
+async function apiCall(url, opts = {}) {
+  const fetcher = window.AdminSession?.fetch || ((u, o) =>
+    fetch(u, Object.assign({ credentials: 'include' }, o)));
 
-/* ─── KPI / Overview ─── */
-async function loadOverview() {
-    const { ok, data, error, code } = await api(API.overview + '?' + scopeQuery());
-    if (!ok) {
-        updateLiveStatus(false);
-        if (code === 'REPORTS_RPC_NOT_DEPLOYED') showToast('Reports RPCs not deployed. Run the revenue migration.', 'error');
-        else showToast(error || 'Failed to load overview', 'error');
-        return;
-    }
-    updateLiveStatus(true);
-    const s = data.summary || {};
-    document.getElementById('kpi-tx').textContent = formatNumber(s.transactions?.count) || '0';
-    document.getElementById('kpi-tx-sub').innerHTML = deltaHtml(s.transactions?.changePct);
+  let res;
+  try {
+    res = await fetcher(url, opts);
+  } catch (e) {
+    if (e.name === 'AbortError') throw e;
+    return {
+      ok: false, status: 0, code: 'NETWORK_ERROR',
+      error: 'Network error. Please check your connection.',
+      request_id: null
+    };
+  }
 
-    const ccy = State.currency === 'all' ? 'NGN' : State.currency;
-    document.getElementById('kpi-rev').textContent = formatMoney(s.revenue?.gross, ccy) || '—';
-    document.getElementById('kpi-rev-sub').innerHTML = `Net ${formatMoney(s.revenue?.net, ccy) || '—'} · ${deltaHtml(s.revenue?.changePct).replace(/<[^>]+>/g,'')}`;
+  let text = '', json = null;
+  try { text = await res.text(); } catch {}
+  try { json = text ? JSON.parse(text) : null; } catch {}
 
-    document.getElementById('kpi-fund').textContent = formatMoney(s.funding?.total, ccy) || '—';
-    document.getElementById('kpi-fund-sub').textContent = `${formatNumber(s.funding?.count) || 0} deposits · NOT revenue`;
+  if (res.status === 401) {
+    if (window.AdminSession?.redirectToLogin) window.AdminSession.redirectToLogin();
+    return { ok: false, status: 401, code: 'UNAUTHORIZED', error: 'Session expired.', request_id: null };
+  }
+  if (res.status === 403) {
+    return {
+      ok: false, status: 403,
+      code: (json && json.code) || 'PERMISSION_DENIED',
+      error: 'You do not have permission to view this report.',
+      request_id: (json && json.request_id) || res.headers.get('X-Request-Id') || null
+    };
+  }
+  if (res.status === 429) {
+    const retry = res.headers.get('Retry-After');
+    return {
+      ok: false, status: 429, code: 'RATE_LIMITED',
+      error: `Too many requests.${retry ? ` Try again in ${retry}s.` : ''}`,
+      request_id: (json && json.request_id) || res.headers.get('X-Request-Id') || null
+    };
+  }
 
-    document.getElementById('kpi-refund').textContent = formatMoney(s.refunds?.total, ccy) || '—';
+  if (!res.ok || (json && json.success === false)) {
+    return {
+      ok: false,
+      status: res.status,
+      code: (json && json.code) || 'HTTP_' + res.status,
+      error: (json && (json.error || json.message)) || text || 'Request failed.',
+      request_id: (json && json.request_id) || res.headers.get('X-Request-Id') || null,
+      extra: json
+    };
+  }
 
-    document.getElementById('kpi-success').textContent = formatNumber(s.orders?.completed) || '0';
-    document.getElementById('kpi-success-sub').textContent = s.orders?.total
-        ? `${Math.round((s.orders.completed / s.orders.total) * 100)}% of ${s.orders.total}`
-        : '—';
-
-    document.getElementById('kpi-failed').textContent = formatNumber(s.orders?.failed) || '0';
-    document.getElementById('kpi-failed-sub').textContent = s.orders?.total
-        ? `${Math.round((s.orders.failed / s.orders.total) * 100)}% of ${s.orders.total}`
-        : '—';
-
-    document.getElementById('kpi-cust').textContent = formatNumber(s.customers?.active) || '0';
-    document.getElementById('kpi-cust-sub').textContent = 'Orders with activity';
-
-    document.getElementById('kpi-prov').textContent = formatNumber(s.providerIssues?.failedWebhooks) || '0';
-    document.getElementById('kpi-prov-sub').textContent = `${s.providerIssues?.failedProviderOrders || 0} failed orders`;
+  return { ok: true, data: json || {} };
 }
 
-/* ─── Overview chart ─── */
-async function loadOverviewChart() {
-    const { ok, data } = await api('/api/admin/revenue/timeseries?' + scopeQuery({ granularity: 'day' }));
-    if (!ok || !data?.available) return;
-    const points = data.points || [];
-    const canvas = document.getElementById('chartOverview');
-    if (!canvas) return;
-    if (State.chartRef) { try { State.chartRef.destroy(); } catch(e){} State.chartRef = null; }
-    const ccy = State.currency === 'all' ? 'NGN' : State.currency;
-    const dark = document.documentElement.classList.contains('dark');
-    State.chartRef = new Chart(canvas.getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: points.map(p => formatDateShort(p.bucket)),
-            datasets: [
-                { label: 'Revenue', data: points.map(p => Number(p[ccy]?.revenue || 0)), borderColor: '#0f4c5c', backgroundColor: 'rgba(15,76,92,.08)', tension: .35, fill: true, borderWidth: 2 },
-                { label: 'Profit',  data: points.map(p => Number(p[ccy]?.profit  || 0)), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,.08)', tension: .35, fill: false, borderWidth: 2 },
-                { label: 'Refunds', data: points.map(p => Number(p[ccy]?.refunds || 0)), borderColor: '#dc2626', backgroundColor: 'rgba(220,38,38,.08)', tension: .35, fill: false, borderWidth: 2 }
-            ]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
-                legend: { labels: { color: dark ? '#93aab1' : '#5b7480', usePointStyle: true } },
-                tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatMoney(ctx.parsed.y, ccy) || '—'}` } }
-            },
-            scales: {
-                x: { grid: { display: false }, ticks: { color: dark ? '#93aab1' : '#5b7480' } },
-                y: { grid: { color: dark ? 'rgba(255,255,255,.06)' : 'rgba(15,76,92,.06)' }, ticks: { color: dark ? '#93aab1' : '#5b7480' } }
-            }
-        }
+function nextSeq(key) {
+  if (State.abort[key]) {
+    try { State.abort[key].abort(); } catch {}
+    State.abort[key] = null;
+  }
+  const controller = new AbortController();
+  State.abort[key] = controller;
+  State.seq[key] += 1;
+  return { seq: State.seq[key], signal: controller.signal };
+}
+
+function isStale(key, seq) {
+  return State.seq[key] !== seq;
+}
+
+function buildQuery(extra = {}) {
+  const q = new URLSearchParams();
+  if (State.from || State.to) {
+    if (State.from) q.set('from', State.from);
+    if (State.to) q.set('to', State.to);
+  } else {
+    q.set('preset', State.preset || 'today');
+  }
+  if (State.currency && State.currency !== 'all') q.set('currency', State.currency);
+  for (const [k, v] of Object.entries(extra)) {
+    if (v != null && v !== '' && v !== 'all') q.set(k, v);
+  }
+  return q.toString();
+}
+
+function filterSignature(extra = {}) {
+  const parts = [
+    State.preset, State.from || '', State.to || '',
+    State.currency || 'all',
+    extra.search || '', extra.status || '', extra.type || '',
+    extra.provider || '', extra.product || '', extra.kind || ''
+  ];
+  return parts.join('|');
+}
+
+function readUrlState() {
+  const u = new URL(window.location.href);
+  const p = u.searchParams;
+  const preset = p.get('preset');
+  const from = p.get('from');
+  const to = p.get('to');
+  const ccy = p.get('currency');
+  const tab = p.get('tab');
+
+  if (preset && ['today','yesterday','7d','30d','thismonth','lastmonth'].includes(preset)) {
+    State.preset = preset;
+    State.from = null;
+    State.to = null;
+  } else if (from && to) {
+    State.preset = 'custom';
+    State.from = from;
+    State.to = to;
+  } else {
+    State.preset = 'today';
+  }
+  State.currency = ccy === 'NGN' || ccy === 'USD' ? ccy : 'all';
+  State.tab = ['overview','transactions','orders','customers','products',
+               'providers','webhooks','failures','reconciliation'].includes(tab)
+    ? tab : 'overview';
+
+  const page = parseInt(p.get('page') || '1', 10);
+  if (State.page[State.tab] != null && Number.isFinite(page) && page > 0) {
+    State.page[State.tab] = page;
+  }
+  const search = p.get('search');
+  if (search && State.search[State.tab] != null) {
+    State.search[State.tab] = search;
+  }
+  const status = p.get('status');
+  if (status && State.status[State.tab] != null) {
+    State.status[State.tab] = status;
+  }
+}
+
+function writeUrlState() {
+  const u = new URL(window.location.href);
+  const p = u.searchParams;
+  if (State.from || State.to) {
+    p.set('from', State.from || '');
+    p.set('to', State.to || '');
+    p.delete('preset');
+  } else {
+    p.set('preset', State.preset || 'today');
+    p.delete('from');
+    p.delete('to');
+  }
+  if (State.currency !== 'all') p.set('currency', State.currency); else p.delete('currency');
+  p.set('tab', State.tab);
+  const page = State.page[State.tab];
+  if (page && page > 1) p.set('page', String(page)); else p.delete('page');
+  const search = State.search[State.tab];
+  if (search) p.set('search', search); else p.delete('search');
+  const status = State.status[State.tab];
+  if (status && status !== 'all') p.set('status', status); else p.delete('status');
+  try {
+    history.replaceState(null, '', u.toString());
+  } catch {}
+}
+
+function initShell() {
+  const hamburger = document.getElementById('hamburger');
+  const sbToggle = document.getElementById('sbToggleDesktop');
+  const scrim = document.getElementById('scrim');
+  const appRoot = document.getElementById('appRoot');
+
+  hamburger && hamburger.addEventListener('click', () => {
+    document.getElementById('sidebar')?.classList.toggle('open');
+    scrim?.classList.toggle('show');
+  });
+  scrim && scrim.addEventListener('click', () => {
+    document.getElementById('sidebar')?.classList.remove('open');
+    scrim.classList.remove('show');
+  });
+  sbToggle && sbToggle.addEventListener('click', () =>
+    appRoot?.classList.toggle('sb-collapsed'));
+
+  const darkToggle = document.getElementById('darkToggle');
+  darkToggle && darkToggle.addEventListener('click', () => {
+    const next = !document.documentElement.classList.contains('dark');
+    applyDark(next);
+    try { localStorage.setItem('ms-admin-reports-dark', next ? '1' : '0'); } catch {}
+    if (State.charts.trend)    { State.charts.trend.destroy();    State.charts.trend = null; }
+    if (State.charts.product)  { State.charts.product.destroy();  State.charts.product = null; }
+    if (State.charts.provider) { State.charts.provider.destroy(); State.charts.provider = null; }
+    if (State.tab === 'overview') loadOverview();
+  });
+
+  const fillAdmin = () => {
+    const av = document.getElementById('adminAvatar');
+    const nm = document.getElementById('adminName');
+    const rl = document.getElementById('adminRole');
+    if (!av || !nm || !rl) return false;
+    apiCall(API.me).then(r => {
+      if (!r.ok || !r.data || !r.data.data || !r.data.data.user) return;
+      const u = r.data.data.user;
+      const name = u.username || (u.email ? String(u.email).split('@')[0] : 'Admin');
+      av.textContent = (name[0] || 'A').toUpperCase();
+      nm.textContent = name;
+      rl.textContent = (u.role || 'admin')
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase());
     });
+    return true;
+  };
+  if (!fillAdmin()) {
+    const obs = new MutationObserver(() => { if (fillAdmin()) obs.disconnect(); });
+    obs.observe(document.body, { childList: true, subtree: true });
+  }
 }
 
-/* ─── Transactions ─── */
-async function loadTx() {
-    const tb = document.getElementById('txBody');
-    tb.innerHTML = Array.from({length:5}).map(() => `<tr><td colspan="8"><span class="skel" style="width:70%;display:inline-block"></span></td></tr>`).join('');
-    const extra = {
-        page: State.tx.page,
-        limit: State.tx.limit,
-        search: document.getElementById('txSearch').value.trim(),
-        status: document.getElementById('txStatus').value,
-        type: document.getElementById('txType').value
-    };
-    const { ok, data, error } = await api(API.transactions + '?' + scopeQuery(extra));
-    if (!ok || !data?.available) {
-        tb.innerHTML = `<tr><td colspan="8"><div class="empty-state">${escapeHtml(data?.reason || error || 'Unavailable')}</div></td></tr>`;
-        return;
-    }
-    const rows = data.transactions || [];
-    State.tx.totalPages = data.pagination?.totalPages || 1;
-    if (!rows.length) { tb.innerHTML = `<tr><td colspan="8"><div class="empty-state">No transactions in this period</div></td></tr>`; renderPager('txPager', State.tx, loadTx); return; }
-    tb.innerHTML = rows.map(t => `
-        <tr>
-            <td class="cell-mono">${escapeHtml(t.reference || '—')}</td>
-            <td>${escapeHtml(t.user?.username || '—')}<div style="font-size:11px;color:var(--text-dim)">${escapeHtml(t.user?.email || '')}</div></td>
-            <td>${escapeHtml(String(t.type || '').replace(/_/g,' '))}</td>
-            <td>${formatMoney(t.amount, t.currency) || '—'}</td>
-            <td><span class="badge ${t.currency === 'USD' ? 'info' : 'neutral'}">${escapeHtml(t.currency || '—')}</span></td>
-            <td><span class="badge ${statusBadge(t.status)}">${escapeHtml(t.status || '—')}</span></td>
-            <td>${escapeHtml(t.provider || '—')}</td>
-            <td title="${escapeHtml(formatDateTime(t.createdAt))}">${escapeHtml(timeAgo(t.createdAt))}</td>
-        </tr>`).join('');
-    renderPager('txPager', State.tx, loadTx);
+function applyDark(on) {
+  document.documentElement.classList.toggle('dark', on);
+  const btn = document.getElementById('darkToggle');
+  if (btn) btn.innerHTML = `<i class="fa-solid ${on ? 'fa-sun' : 'fa-moon'}"></i>`;
 }
 
-/* ─── Orders ─── */
-async function loadOr() {
-    const tb = document.getElementById('orBody');
-    tb.innerHTML = Array.from({length:5}).map(() => `<tr><td colspan="8"><span class="skel" style="width:70%;display:inline-block"></span></td></tr>`).join('');
-    const extra = {
-        page: State.or.page,
-        limit: State.or.limit,
-        search: document.getElementById('orSearch').value.trim(),
-        status: document.getElementById('orStatus').value
-    };
-    const { ok, data, error } = await api(API.orders + '?' + scopeQuery(extra));
-    if (!ok || !data?.available) {
-        tb.innerHTML = `<tr><td colspan="8"><div class="empty-state">${escapeHtml(data?.reason || error || 'Unavailable')}</div></td></tr>`;
-        return;
-    }
-    const rows = data.orders || [];
-    State.or.totalPages = data.pagination?.totalPages || 1;
-    if (!rows.length) { tb.innerHTML = `<tr><td colspan="8"><div class="empty-state">No orders in this period</div></td></tr>`; renderPager('orPager', State.or, loadOr); return; }
-    tb.innerHTML = rows.map(o => `
-        <tr>
-            <td class="cell-mono">${escapeHtml(o.orderRef || '—')}</td>
-            <td>${escapeHtml(o.user?.username || '—')}<div style="font-size:11px;color:var(--text-dim)">${escapeHtml(o.user?.email || '')}</div></td>
-            <td>${escapeHtml(String(o.productType || '').replace(/_/g,' '))}</td>
-            <td>${escapeHtml(o.provider || '—')}</td>
-            <td>${formatMoney(o.totalAmount, o.currency) || '—'}</td>
-            <td><span class="badge ${statusBadge(o.status)}">${escapeHtml(o.status || '—')}</span></td>
-            <td>${o.refundStatus === 'refunded' ? `<span class="badge info">${formatMoney(o.refundAmount, o.currency) || 'refunded'}</span>` : '<span style="color:var(--text-faint)">—</span>'}</td>
-            <td title="${escapeHtml(formatDateTime(o.createdAt))}">${escapeHtml(timeAgo(o.createdAt))}</td>
-        </tr>`).join('');
-    renderPager('orPager', State.or, loadOr);
-}
+function renderPresetPills() {
+  const wrap = document.getElementById('presetPills');
+  if (!wrap) return;
+  const presets = (State.meta && State.meta.presets) || [
+    { key: 'today', label: 'Today' }, { key: 'yesterday', label: 'Yesterday' },
+    { key: '7d', label: '7d' }, { key: '30d', label: '30d' },
+    { key: 'thismonth', label: 'This month' }, { key: 'lastmonth', label: 'Last month' }
+  ];
+  const activeKey = (State.from || State.to) ? null : State.preset;
 
-/* ─── Customers ─── */
-async function loadCu() {
-    const tb = document.getElementById('cuBody');
-    tb.innerHTML = `<tr><td colspan="6"><span class="skel" style="width:70%;display:inline-block"></span></td></tr>`;
-    const { ok, data } = await api(API.customers + '?' + scopeQuery({ limit: 20 }));
-    if (!ok || !data?.available) { tb.innerHTML = `<tr><td colspan="6"><div class="empty-state">Unavailable</div></td></tr>`; return; }
-    const rows = data.customers || [];
-    if (!rows.length) { tb.innerHTML = `<tr><td colspan="6"><div class="empty-state">No customer activity in this period</div></td></tr>`; return; }
-    tb.innerHTML = rows.map(c => `
-        <tr>
-            <td><strong>${escapeHtml(c.user.username)}</strong><div style="font-size:11px;color:var(--text-dim)">${escapeHtml(c.user.email || '')}</div></td>
-            <td>${formatNumber(c.orders) || '0'}</td>
-            <td>${formatMoney(c.spent, 'NGN') || '—'}</td>
-            <td>${formatMoney(c.refunded, 'NGN') || '—'}</td>
-            <td style="font-weight:700">${formatMoney(c.netSpend, 'NGN') || '—'}</td>
-            <td>${escapeHtml(timeAgo(c.lastOrder))}</td>
-        </tr>`).join('');
-}
-
-/* ─── Products ─── */
-async function loadPr() {
-    const tb = document.getElementById('prBody');
-    tb.innerHTML = `<tr><td colspan="7"><span class="skel" style="width:70%;display:inline-block"></span></td></tr>`;
-    const { ok, data } = await api(API.products + '?' + scopeQuery());
-    if (!ok || !data?.available) { tb.innerHTML = `<tr><td colspan="7"><div class="empty-state">Unavailable</div></td></tr>`; return; }
-    const rows = data.products || [];
-    if (!rows.length) { tb.innerHTML = `<tr><td colspan="7"><div class="empty-state">No product revenue in this period</div></td></tr>`; return; }
-    tb.innerHTML = rows.map(p => `
-        <tr>
-            <td><strong>${escapeHtml(String(p.product || '').replace(/_/g,' '))}</strong></td>
-            <td>${formatNumber(p.orders) || '0'}</td>
-            <td>${formatMoney(p.revenue, p.currency) || '—'}</td>
-            <td>${formatMoney(p.providerCost, p.currency) || '—'}</td>
-            <td>${formatMoney(p.refunds, p.currency) || '—'}</td>
-            <td>${formatMoney(p.profit, p.currency) || '—'}</td>
-            <td>${Number(p.marginPct || 0).toFixed(1)}%</td>
-        </tr>`).join('');
-}
-
-/* ─── Providers ─── */
-async function loadPv() {
-    const tb = document.getElementById('pvBody');
-    tb.innerHTML = `<tr><td colspan="7"><span class="skel" style="width:70%;display:inline-block"></span></td></tr>`;
-    const { ok, data } = await api(API.providers + '?' + scopeQuery());
-    if (!ok || !data?.available) { tb.innerHTML = `<tr><td colspan="7"><div class="empty-state">Unavailable</div></td></tr>`; return; }
-    const rows = data.providers || [];
-    if (!rows.length) { tb.innerHTML = `<tr><td colspan="7"><div class="empty-state">No provider activity in this period</div></td></tr>`; return; }
-    tb.innerHTML = rows.map(p => `
-        <tr>
-            <td><strong style="text-transform:capitalize">${escapeHtml(p.provider)}</strong></td>
-            <td>${formatNumber(p.orders) || '0'}</td>
-            <td>${formatMoney(p.revenue, p.currency) || '—'}</td>
-            <td>${formatMoney(p.providerCost, p.currency) || '—'}</td>
-            <td>${formatMoney(p.profit, p.currency) || '—'}</td>
-            <td>${formatNumber(p.failedOrders) || '0'}</td>
-            <td>${Number(p.successRate || 0).toFixed(1)}%</td>
-        </tr>`).join('');
-}
-
-/* ─── Webhooks ─── */
-async function loadWh() {
-    const tb = document.getElementById('whBody');
-    tb.innerHTML = `<tr><td colspan="6"><span class="skel" style="width:70%;display:inline-block"></span></td></tr>`;
-    const { ok, data } = await api(API.webhooks + '?' + scopeQuery({ limit: 50 }));
-    if (!ok || !data?.available) { tb.innerHTML = `<tr><td colspan="6"><div class="empty-state">${escapeHtml(data?.reason || 'Unavailable')}</div></td></tr>`; return; }
-    const rows = data.webhooks || [];
-    if (!rows.length) { tb.innerHTML = `<tr><td colspan="6"><div class="empty-state">No webhook events in this period</div></td></tr>`; return; }
-    tb.innerHTML = rows.map(w => `
-        <tr>
-            <td><strong style="text-transform:capitalize">${escapeHtml(w.provider || '—')}</strong></td>
-            <td>${escapeHtml(w.event_type || '—')}</td>
-            <td class="cell-mono">${escapeHtml(w.event_id || '—')}</td>
-            <td><span class="badge ${w.signature_valid ? 'success' : 'warn'}">${w.signature_valid ? '✓ valid' : 'unverified'}</span></td>
-            <td><span class="badge ${statusBadge(w.processing_status)}">${escapeHtml(w.processing_status || '—')}</span></td>
-            <td>${escapeHtml(timeAgo(w.received_at))}</td>
-        </tr>`).join('');
-}
-
-/* ─── Failures ─── */
-async function loadFl() {
-    const tb = document.getElementById('flBody');
-    tb.innerHTML = `<tr><td colspan="8"><span class="skel" style="width:70%;display:inline-block"></span></td></tr>`;
-    const { ok, data } = await api(API.failures + '?' + scopeQuery({ limit: 100 }));
-    if (!ok || !data?.available) { tb.innerHTML = `<tr><td colspan="8"><div class="empty-state">Unavailable</div></td></tr>`; return; }
-    const rows = data.failures || [];
-    if (!rows.length) { tb.innerHTML = `<tr><td colspan="8"><div class="empty-state">No failures in this period</div></td></tr>`; return; }
-    tb.innerHTML = rows.map(f => `
-        <tr>
-            <td class="cell-mono">${escapeHtml(f.reference || '—')}</td>
-            <td>${escapeHtml(f.user?.username || '—')}</td>
-            <td>${escapeHtml(String(f.module || '').replace(/_/g,' '))}</td>
-            <td>${escapeHtml(f.provider || '—')}</td>
-            <td><span class="badge danger">${escapeHtml(f.errorType)}</span></td>
-            <td>${formatMoney(f.amount, f.currency) || '—'}</td>
-            <td class="wrap">${escapeHtml(f.errorMessage || '—')}</td>
-            <td>${escapeHtml(timeAgo(f.createdAt))}</td>
-        </tr>`).join('');
-}
-
-/* ─── Reconciliation ─── */
-async function loadRc() {
-    const tb = document.getElementById('rcBody');
-    tb.innerHTML = `<tr><td colspan="7"><span class="skel" style="width:70%;display:inline-block"></span></td></tr>`;
-    const { ok, data } = await api(API.reconciliation + '?' + scopeQuery());
-    if (!ok || !data?.available) { tb.innerHTML = `<tr><td colspan="7"><div class="empty-state">Unavailable</div></td></tr>`; return; }
-    const rows = data.issues || [];
-    if (!rows.length) { tb.innerHTML = `<tr><td colspan="7"><div class="empty-state">No reconciliation issues detected</div></td></tr>`; return; }
-    tb.innerHTML = rows.map(i => `
-        <tr>
-            <td>${escapeHtml(String(i.type || '').replace(/_/g,' '))}</td>
-            <td><span class="badge ${severityBadge(i.severity)}">${escapeHtml(i.severity)}</span></td>
-            <td class="cell-mono">${escapeHtml(i.reference || '—')}</td>
-            <td>${escapeHtml(i.provider || '—')}</td>
-            <td>${formatMoney(i.amount, i.currency) || '—'}</td>
-            <td>${escapeHtml(String(i.expected ?? '—'))}</td>
-            <td>${escapeHtml(String(i.actual ?? '—'))}</td>
-        </tr>`).join('');
-}
-
-/* ─── Pager ─── */
-function renderPager(id, state, loader) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.innerHTML = `
-        <div>Page ${state.page} of ${state.totalPages}</div>
-        <div>
-            <button ${state.page <= 1 ? 'disabled' : ''} data-pager="prev">← Previous</button>
-            <button ${state.page >= state.totalPages ? 'disabled' : ''} data-pager="next">Next →</button>
-        </div>`;
-    el.querySelector('[data-pager="prev"]')?.addEventListener('click', () => { if (state.page > 1) { state.page--; loader(); } });
-    el.querySelector('[data-pager="next"]')?.addEventListener('click', () => { if (state.page < state.totalPages) { state.page++; loader(); } });
-}
-
-/* ─── Update live indicator ─── */
-function updateLiveStatus(ok) {
-    const dot = document.getElementById('liveDot');
-    const lbl = document.getElementById('liveDotLabel');
-    const upd = document.getElementById('lastUpdated');
-    if (ok) { dot.classList.remove('off'); lbl.textContent = 'Live data'; upd.textContent = new Date().toLocaleTimeString(); }
-    else { dot.classList.add('off'); lbl.textContent = 'Unable to update'; }
-}
-
-/* ─── Tabs ─── */
-document.getElementById('tabs')?.addEventListener('click', (e) => {
-    const btn = e.target.closest('.tab');
-    if (!btn) return;
-    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === btn));
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === btn.dataset.tab));
-    if (btn.dataset.tab === 'transactions') loadTx();
-    if (btn.dataset.tab === 'orders') loadOr();
-    if (btn.dataset.tab === 'customers') loadCu();
-    if (btn.dataset.tab === 'products') loadPr();
-    if (btn.dataset.tab === 'providers') loadPv();
-    if (btn.dataset.tab === 'webhooks') loadWh();
-    if (btn.dataset.tab === 'failures') loadFl();
-    if (btn.dataset.tab === 'reconciliation') loadRc();
-});
-
-/* ─── Export ─── */
-document.getElementById('exportBtn')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const m = document.getElementById('exportMenu');
-    m.style.display = m.style.display === 'block' ? 'none' : 'block';
-});
-document.querySelectorAll('[data-export]').forEach(btn => {
+  wrap.innerHTML = presets.map(p => `
+    <button class="pill${activeKey === p.key ? ' active' : ''}"
+            data-preset="${escapeHtml(p.key)}">${escapeHtml(p.label)}</button>
+  `).join('');
+  wrap.querySelectorAll('[data-preset]').forEach(btn => {
     btn.addEventListener('click', () => {
-        document.getElementById('exportMenu').style.display = 'none';
-        const kind = btn.dataset.export;
-        const url = API.exportCsv + '?' + scopeQuery({ type: kind });
-        AdminSession.fetch(url)
-            .then(r => r.blob())
-            .then(blob => {
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = `report_${kind}_${Date.now()}.csv`;
-                document.body.appendChild(a); a.click(); a.remove();
-                URL.revokeObjectURL(a.href);
-                showToast(`Exported ${kind}`, 'success');
-            })
-            .catch(() => showToast('Export failed', 'error'));
+      State.preset = btn.dataset.preset;
+      State.from = null;
+      State.to = null;
+      document.getElementById('fromDate').value = '';
+      document.getElementById('toDate').value = '';
+      resetAllPages();
+      writeUrlState();
+      refreshAll();
+      renderPresetPills();
     });
-});
-document.addEventListener('click', (e) => {
-    if (!e.target.closest('#exportBtn') && !e.target.closest('#exportMenu')) {
-        const m = document.getElementById('exportMenu');
-        if (m) m.style.display = 'none';
+  });
+}
+
+function renderRangeChip(period) {
+  const el = document.getElementById('rangeLabel');
+  if (!el || !period) return;
+  const from = period.from || State.from;
+  const to   = period.to   || State.to;
+  const label = period.label || State.preset || 'today';
+  const labelText = PRESET_LABELS[label] || label;
+  el.innerHTML =
+    `<strong>${escapeHtml(labelText)}</strong> · ` +
+    `${escapeHtml(fmtDateOnlyWAT(from))} – ${escapeHtml(fmtDateOnlyWAT(to))}`;
+}
+
+function resetAllPages() {
+  for (const k of Object.keys(State.page)) State.page[k] = 1;
+  State.cache.clear();
+}
+
+function refreshAll() {
+  loadKpis(); // Always refresh KPIs regardless of tab
+  if (State.tab === 'overview') {
+    renderKpiSkeletons();
+    loadOverview();
+    return;
+  }
+  if (State.tab === 'transactions')   return loadTransactions();
+  if (State.tab === 'orders')         return loadOrders();
+  if (State.tab === 'customers')      return loadCustomers();
+  if (State.tab === 'products')       return loadProducts();
+  if (State.tab === 'providers')      return loadProviders();
+  if (State.tab === 'webhooks')       return loadWebhooks();
+  if (State.tab === 'failures')       return loadFailures();
+  if (State.tab === 'reconciliation') return loadReconciliation();
+}
+
+function initFilterBar() {
+  document.getElementById('fromDate')?.addEventListener('change', () => {
+    State.from = document.getElementById('fromDate').value || null;
+    State.preset = 'custom';
+    resetAllPages();
+    writeUrlState();
+    refreshAll();
+    renderPresetPills();
+  });
+  document.getElementById('toDate')?.addEventListener('change', () => {
+    State.to = document.getElementById('toDate').value || null;
+    State.preset = 'custom';
+    resetAllPages();
+    writeUrlState();
+    refreshAll();
+    renderPresetPills();
+  });
+  document.getElementById('currencySel')?.addEventListener('change', () => {
+    State.currency = document.getElementById('currencySel').value || 'all';
+    resetAllPages();
+    writeUrlState();
+    refreshAll();
+  });
+  document.getElementById('compareToggle')?.addEventListener('change', () => {
+    State.compare = document.getElementById('compareToggle').checked;
+    if (State.tab === 'overview') loadOverview();
+    if (State.tab === 'transactions') loadTransactions();
+    if (State.tab === 'orders') loadOrders();
+  });
+  document.getElementById('refreshBtn')?.addEventListener('click', () => {
+    State.cache.clear();
+    refreshAll();
+    showToast('Refreshing…', 'info');
+  });
+  document.getElementById('printBtn')?.addEventListener('click', () => {
+    window.print();
+  });
+}
+
+function hydrateFilterControls() {
+  document.getElementById('fromDate').value = State.from || '';
+  document.getElementById('toDate').value   = State.to || '';
+  document.getElementById('currencySel').value = State.currency || 'all';
+  document.getElementById('compareToggle').checked = !!State.compare;
+  renderPresetPills();
+}
+
+function initTabs() {
+  const nav = document.getElementById('tabNav');
+  if (!nav) return;
+  nav.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-tab]');
+    if (!btn) return;
+    if (btn.getAttribute('aria-disabled') === 'true') return;
+    setTab(btn.dataset.tab);
+  });
+  nav.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
+    const buttons = Array.from(nav.querySelectorAll('[data-tab]:not([aria-disabled="true"])'));
+    const idx = buttons.indexOf(document.activeElement);
+    if (idx < 0) return;
+    ev.preventDefault();
+    const next = ev.key === 'ArrowRight' ? idx + 1 : idx - 1;
+    const target = buttons[(next + buttons.length) % buttons.length];
+    target.focus();
+    setTab(target.dataset.tab);
+  });
+}
+
+function setTab(tab) {
+  State.tab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const active = b.dataset.tab === tab;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-selected', String(active));
+  });
+  document.querySelectorAll('.tab-content').forEach(c => {
+    c.classList.toggle('active', c.id === 'tab-' + tab);
+  });
+  writeUrlState();
+  loadTab(tab);
+}
+
+function loadTab(tab) {
+  if (tab === 'overview')        return loadOverview();
+  if (tab === 'transactions')    return loadTransactions();
+  if (tab === 'orders')          return loadOrders();
+  if (tab === 'customers')       return loadCustomers();
+  if (tab === 'products')        return loadProducts();
+  if (tab === 'providers')       return loadProviders();
+  if (tab === 'webhooks')        return loadWebhooks();
+  if (tab === 'failures')        return loadFailures();
+  if (tab === 'reconciliation')  return loadReconciliation();
+}
+
+function kpiCardSkeleton(label) {
+  return `<div class="kpi skel"><div class="kpi-head"><span class="kpi-lbl">${escapeHtml(label)}</span></div></div>`;
+}
+function renderKpiSkeletons() {
+  const grid = document.getElementById('kpiGrid');
+  if (!grid) return;
+  grid.innerHTML = [
+    kpiCardSkeleton('Revenue'),
+    kpiCardSkeleton('Profit'),
+    kpiCardSkeleton('Funding'),
+    kpiCardSkeleton('Refunds'),
+    kpiCardSkeleton('Orders'),
+    kpiCardSkeleton('Customers'),
+    kpiCardSkeleton('Transactions'),
+    kpiCardSkeleton('Provider issues')
+  ].join('');
+}
+
+function buildKpiCard({ icon, label, hint, rows = [], linkHref = null, unavailable = null }) {
+  const head = `<div class="kpi-head">
+    <div class="kpi-icon"><i class="fa-solid ${escapeHtml(icon)}"></i></div>
+    <div class="kpi-lbl">${escapeHtml(label)}${hint ? `<small>${escapeHtml(hint)}</small>` : ''}</div>
+  </div>`;
+
+  if (unavailable) {
+    return `<div class="kpi">${head}<div class="kpi-body">
+      <div class="kpi-unavailable">
+        <div class="msg"><i class="fa-solid fa-triangle-exclamation" style="color:var(--warn)"></i> ${escapeHtml(unavailable.reason || 'Unavailable')}</div>
+        <button class="btn btn-sm" data-retry-kpi="1"><i class="fa-solid fa-rotate-right"></i> Retry</button>
+      </div>
+    </div></div>`;
+  }
+
+  const rowsHtml = rows.map(r => `
+    <div class="kpi-row">
+      <span class="kpi-ccy">${escapeHtml(r.currency || '')}</span>
+      <span class="kpi-val${r.small ? ' small' : ''}">${escapeHtml(r.value)}</span>
+      ${r.delta != null ? renderDelta(r.delta, r.deltaGood) : ''}
+    </div>
+    ${r.sub ? `<div class="kpi-sub">${escapeHtml(r.sub)}</div>` : ''}
+  `).join('');
+
+  const wrapped = linkHref
+    ? `<a href="${escapeHtml(linkHref)}" class="kpi" style="text-decoration:none;color:inherit;display:flex;flex-direction:column;">${head}<div class="kpi-body">${rowsHtml}</div></a>`
+    : `<div class="kpi">${head}<div class="kpi-body">${rowsHtml}</div></div>`;
+  return wrapped;
+}
+
+function renderDelta(pct, good) {
+  if (pct == null) {
+    return '<span class="kpi-delta flat"><i class="fa-solid fa-minus"></i> —</span>';
+  }
+  const cls = pct === 0 ? 'flat'
+    : ((pct > 0) === (good !== false) ? 'up' : 'down');
+  const icon = pct === 0 ? 'fa-minus'
+    : pct > 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+  return `<span class="kpi-delta ${cls}"><i class="fa-solid ${icon}"></i> ${pct.toFixed(2)}%</span>`;
+}
+
+function renderKpis(overview) {
+  const grid = document.getElementById('kpiGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  const cards = [];
+
+  // ── Revenue ────────────────────────────────────────
+  if (!overview || !overview.revenue || !overview.revenue.available) {
+    cards.push(buildKpiCard({
+      icon: 'fa-sack-dollar',
+      label: 'Revenue',
+      hint: 'Net of refunds',
+      unavailable: { reason: overview?.revenue?.message || 'Revenue unavailable' }
+    }));
+  } else {
+    const rows = (overview.revenue.byCurrency || []).map(r => ({
+      currency: r.currency,
+      value: fmtMoney(r.net, r.currency),
+      delta: State.compare && r.changePct != null ? r.changePct : null,
+      deltaGood: true,
+      sub: `Gross ${fmtMoney(r.gross, r.currency)} · Refunds ${fmtMoney(r.refunds, r.currency)}`
+    }));
+    cards.push(buildKpiCard({
+      icon: 'fa-sack-dollar',
+      label: 'Revenue',
+      hint: 'Net of refunds',
+      rows: rows.length ? rows : [{ currency: '—', value: '—', sub: 'No orders in this period' }],
+      linkHref: '/admin/revenue.html'
+    }));
+  }
+
+  // ── Profit ────────────────────────────────────────
+  if (!overview || !overview.revenue || !overview.revenue.available) {
+    cards.push(buildKpiCard({
+      icon: 'fa-chart-line',
+      label: 'Profit',
+      hint: 'Margin',
+      unavailable: { reason: 'Profit unavailable' }
+    }));
+  } else {
+    const rows = (overview.revenue.byCurrency || []).map(r => ({
+      currency: r.currency,
+      value: fmtMoney(r.profit, r.currency),
+      sub: r.marginPct != null ? `Margin ${r.marginPct.toFixed(2)}%` : ''
+    }));
+    cards.push(buildKpiCard({
+      icon: 'fa-chart-line',
+      label: 'Profit',
+      hint: 'Margin',
+      rows: rows.length ? rows : [{ currency: '—', value: '—' }],
+      linkHref: '/admin/revenue.html'
+    }));
+  }
+
+  // ── Funding (NOT revenue) ─────────────────────────
+  if (!overview || !overview.funding || !overview.funding.available) {
+    cards.push(buildKpiCard({
+      icon: 'fa-arrow-down-to-line',
+      label: 'Funding',
+      hint: 'Deposits — not revenue',
+      unavailable: { reason: 'Funding unavailable' }
+    }));
+  } else {
+    const rows = (overview.funding.byCurrency || []).map(r => ({
+      currency: r.currency,
+      value: fmtMoney(r.total, r.currency),
+      sub: `${fmtCount(r.count)} deposits`
+    }));
+    cards.push(buildKpiCard({
+      icon: 'fa-arrow-down-to-line',
+      label: 'Funding',
+      hint: 'Deposits — not revenue',
+      rows: rows.length ? rows : [{ currency: '—', value: '—', sub: 'No deposits in this period' }],
+      linkHref: '/admin/deposits.html'
+    }));
+  }
+
+  // ── Refunds ───────────────────────────────────────
+  if (!overview || !overview.revenue || !overview.revenue.available) {
+    cards.push(buildKpiCard({
+      icon: 'fa-rotate-left',
+      label: 'Refunds',
+      unavailable: { reason: 'Refund data unavailable' }
+    }));
+  } else {
+    const rows = (overview.revenue.byCurrency || []).map(r => ({
+      currency: r.currency,
+      value: fmtMoney(r.refunds, r.currency),
+      sub: `${fmtCount(r.refundedOrders)} refunded orders`
+    }));
+    cards.push(buildKpiCard({
+      icon: 'fa-rotate-left',
+      label: 'Refunds',
+      hint: 'Refunded volume',
+      rows: rows.length ? rows : [{ currency: '—', value: '—' }]
+    }));
+  }
+
+  // ── Orders ────────────────────────────────────────
+  if (!overview || !overview.revenue || !overview.revenue.available) {
+    cards.push(buildKpiCard({
+      icon: 'fa-receipt',
+      label: 'Orders',
+      unavailable: { reason: 'Order data unavailable' }
+    }));
+  } else {
+    const rows = (overview.revenue.byCurrency || []).map(r => ({
+      currency: r.currency,
+      value: fmtCount(r.orders),
+      sub: `${fmtCount(r.completedOrders)} done · ${fmtCount(r.failedOrders)} failed`
+    }));
+    cards.push(buildKpiCard({
+      icon: 'fa-receipt',
+      label: 'Orders',
+      hint: 'Completed / failed',
+      rows: rows.length ? rows : [{ currency: '—', value: '—' }],
+      linkHref: '/admin/orders.html'
+    }));
+  }
+
+  // ── Customers ─────────────────────────────────────
+  if (!overview || !overview.customers || !overview.customers.available) {
+    cards.push(buildKpiCard({
+      icon: 'fa-user-group',
+      label: 'Customers',
+      unavailable: { reason: 'Customer data unavailable' }
+    }));
+  } else {
+    const byCcy = overview.customers.byCurrency || [];
+    const rows = byCcy.map(c => ({
+      currency: c.currency,
+      value: fmtCount(c.active),
+      sub: ''
+    }));
+    if (overview.customers.new_customers > 0) {
+      rows.push({
+        currency: '+',
+        value: `${fmtCount(overview.customers.new_customers)} new`,
+        small: true
+      });
     }
-});
+    cards.push(buildKpiCard({
+      icon: 'fa-user-group',
+      label: 'Customers',
+      hint: 'Active in period',
+      rows: rows.length ? rows : [{ currency: '—', value: '—' }],
+      linkHref: '/admin/users.html'
+    }));
+  }
 
-/* ─── Init ─── */
-document.addEventListener('DOMContentLoaded', () => {
-    if (!AdminSession.getToken()) return AdminSession.redirectToLogin();
+  // ── Transactions ──────────────────────────────────
+  if (!overview || !overview.transactions || !overview.transactions.available) {
+    cards.push(buildKpiCard({
+      icon: 'fa-credit-card',
+      label: 'Transactions',
+      unavailable: { reason: 'Transaction data unavailable' }
+    }));
+  } else {
+    const rows = (overview.transactions.byCurrency || []).map(t => ({
+      currency: t.currency,
+      value: fmtCount(t.total),
+      delta: State.compare && t.changePct != null ? t.changePct : null,
+      deltaGood: true,
+      sub: `${fmtCount(t.completed)} done · ${fmtCount(t.failed)} failed`
+    }));
+    cards.push(buildKpiCard({
+      icon: 'fa-credit-card',
+      label: 'Transactions',
+      hint: 'All ledger events',
+      rows: rows.length ? rows : [{ currency: '—', value: '—' }],
+      linkHref: '/admin/transactions.html'
+    }));
+  }
 
-    document.getElementById('hamburger')?.addEventListener('click', () => {
-        document.getElementById('sidebar').classList.toggle('open');
-        document.getElementById('scrim').classList.toggle('show');
-    });
-    document.getElementById('scrim')?.addEventListener('click', () => {
-        document.getElementById('sidebar').classList.remove('open');
-        document.getElementById('scrim').classList.remove('show');
-    });
-    document.getElementById('sbToggleDesktop')?.addEventListener('click', () => document.getElementById('appRoot').classList.toggle('sb-collapsed'));
-    document.getElementById('sbCollapseBtn')?.addEventListener('click', () => document.getElementById('appRoot').classList.toggle('sb-collapsed'));
-    document.getElementById('darkToggle')?.addEventListener('click', () => {
-        document.documentElement.classList.toggle('dark');
-        document.getElementById('darkToggle').textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
-        loadOverviewChart();
-    });
-    document.getElementById('adminChip')?.addEventListener('click', async () => {
-        if (confirm('Are you sure you want to logout?')) await AdminSession.logout();
-    });
+  // ── Provider issues ───────────────────────────────
+  if (!overview || !overview.provider_issues || !overview.provider_issues.available) {
+    cards.push(buildKpiCard({
+      icon: 'fa-plug',
+      label: 'Provider issues',
+      unavailable: { reason: 'Provider data unavailable' }
+    }));
+  } else {
+    const pi = overview.provider_issues;
+    const rows = [];
+    rows.push({ currency: 'order', value: fmtCount(pi.failed_provider_orders || 0), sub: 'failed orders' });
+    if (pi.failed_webhooks != null) {
+      rows.push({ currency: 'hook', value: fmtCount(pi.failed_webhooks), sub: 'failed webhooks' });
+    }
+    if (pi.signature_failures != null && pi.signature_failures > 0) {
+      rows.push({ currency: 'sig', value: fmtCount(pi.signature_failures), sub: 'signature failures' });
+    }
+    if (pi.duplicate_webhooks != null && pi.duplicate_webhooks > 0) {
+      rows.push({ currency: 'dup', value: fmtCount(pi.duplicate_webhooks), sub: 'duplicate webhooks' });
+    }
+    cards.push(buildKpiCard({
+      icon: 'fa-plug',
+      label: 'Provider issues',
+      hint: 'Failed orders + webhook errors',
+      rows,
+      linkHref: '/admin/webhooks.html'
+    }));
+  }
 
-    applyRange('today');
+  grid.innerHTML = cards.join('');
 
-    document.getElementById('rangeSelect')?.addEventListener('click', (e) => {
-        const btn = e.target.closest('.range-btn');
-        if (!btn) return;
-        if (btn.dataset.range === 'custom') { document.getElementById('customRange').classList.add('show'); return; }
-        applyRange(btn.dataset.range);
-        loadAll();
-    });
-    document.getElementById('customApply')?.addEventListener('click', () => {
-        applyRange('custom', {
-            cf: document.getElementById('customFrom').value,
-            ct: document.getElementById('customTo').value
-        });
-        loadAll();
-    });
-    document.getElementById('fCurrency')?.addEventListener('change', (e) => {
-        State.currency = e.target.value;
-        loadAll();
-    });
-    document.getElementById('refreshBtn')?.addEventListener('click', () => {
-        loadAll();
-        showToast('Refreshed', 'success');
-    });
-
-    document.getElementById('txApply')?.addEventListener('click', () => { State.tx.page = 1; loadTx(); });
-    document.getElementById('orApply')?.addEventListener('click', () => { State.or.page = 1; loadOr(); });
-
-    loadAdminProfile();
-    loadAll();
-});
-
-async function loadAll() {
-    await Promise.allSettled([
-        loadOverview(),
-        loadOverviewChart(),
-        loadTx(),
-        loadOr(),
-        loadCu(),
-        loadPr(),
-        loadPv(),
-        loadWh(),
-        loadFl(),
-        loadRc()
-    ]);
+  grid.querySelectorAll('[data-retry-kpi]').forEach(btn => {
+    btn.addEventListener('click', () => loadKpis());
+  });
 }
 
-async function loadAdminProfile() {
-    const { ok, data } = await api(API.me);
-    if (!ok || !data?.data?.user) return;
-    const u = data.data.user;
-    const name = u.username || u.email?.split('@')[0] || 'Admin';
-    const role = u.role || 'admin';
-    const initials = name.slice(0, 1).toUpperCase();
-    ['adminName','chipName'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = name; });
-    ['adminRole','chipRole'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = role.charAt(0).toUpperCase() + role.slice(1); });
-    ['adminAvatar','chipAvatar'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = initials; });
+async function loadKpis() {
+  renderKpiSkeletons();
+  const { seq, signal } = nextSeq('overview');
+  const query = buildQuery({ fresh: Date.now().toString() });
+  try {
+    const r = await apiCall(`${API.overview}?${query}`, { signal });
+    if (isStale('overview', seq)) return;
+    if (!r.ok) throw new Error(r.error);
+    renderKpis(r.data);
+    updateLastUpdated();
+  } catch (e) {
+    if (e.name === 'AbortError') return;
+    const grid = document.getElementById('kpiGrid');
+    grid.innerHTML = `<div class="card" style="grid-column:1/-1"><div class="unavailable-box">${escapeHtml(e.message)}</div></div>`;
+  }
 }
 
-window.toggleNavGroup = toggleNavGroup;
-window.loadAll = loadAll;
+async function loadOverview() {
+  loadKpis();
+  document.getElementById('needsStrip').hidden = true;
+  document.getElementById('insightsGrid').innerHTML = '';
+
+  const { seq, signal } = nextSeq('overview');
+  const query = buildQuery({ fresh: Date.now().toString() });
+
+  const [overviewR, timeseriesR] = await Promise.all([
+    apiCall(`${API.overview}?${query}`, { signal }),
+    apiCall(`${API.timeseries}?${query}&granularity=day`, { signal })
+  ]);
+
+  if (isStale('overview', seq)) return;
+
+  if (!overviewR.ok) {
+    const grid = document.getElementById('kpiGrid');
+    grid.innerHTML = `<div class="card" style="grid-column:1/-1">
+      <div class="unavailable-box">
+        <span class="ic"><i class="fa-solid fa-circle-exclamation"></i></span>
+        <div class="title">Could not load overview</div>
+        <div class="hint">${escapeHtml(overviewR.error)}${overviewR.request_id ? ` <span class="text-muted">(req ${escapeHtml(overviewR.request_id.slice(0,8))})</span>` : ''}</div>
+        <button class="btn btn-primary" data-retry-overview><i class="fa-solid fa-rotate-right"></i> Retry</button>
+      </div>
+    </div>`;
+    grid.querySelector('[data-retry-overview]')?.addEventListener('click', () => loadOverview());
+    showToast(overviewR.error, 'error');
+    return;
+  }
+
+  const overview = overviewR.data;
+  renderKpis(overview);
+  renderRangeChip(overview.period);
+  renderNeedsStrip(overview);
+  renderInsights(overview);
+  renderOverviewCharts(overview, timeseriesR.ok ? timeseriesR.data : null);
+  updateLastUpdated();
+}
+
+function renderNeedsStrip(overview) {
+  const strip = document.getElementById('needsStrip');
+  if (!strip) return;
+
+  const chips = [];
+
+  if (overview.reconciliation && overview.reconciliation.available) {
+    const totalIssues = overview.reconciliation.total_issues || 0;
+    const unavailable = overview.reconciliation.checks_unavailable || 0;
+    if (totalIssues > 0) {
+      chips.push(`<a href="/admin/reconciliation.html" class="chip danger">
+        <i class="fa-solid fa-scale-unbalanced"></i> ${escapeHtml(String(totalIssues))} reconciliation issue${totalIssues === 1 ? '' : 's'}
+      </a>`);
+    } else if (unavailable > 0) {
+      chips.push(`<span class="chip warn">
+        <i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(String(unavailable))} check${unavailable === 1 ? '' : 's'} could not run
+      </span>`);
+    } else if (overview.reconciliation.all_clear) {
+      chips.push(`<span class="chip ok">
+        <i class="fa-solid fa-check"></i> Reconciliation clear
+      </span>`);
+    }
+  }
+
+  const failedOrders = overview.provider_issues?.failed_provider_orders || 0;
+  if (failedOrders > 0) {
+    chips.push(`<a href="/admin/orders.html?status=failed" class="chip danger">
+      <i class="fa-solid fa-receipt"></i> ${escapeHtml(String(failedOrders))} failed order${failedOrders === 1 ? '' : 's'}
+    </a>`);
+  }
+
+  const failedWebhooks = overview.webhooks?.failed || 0;
+  if (failedWebhooks > 0) {
+    chips.push(`<a href="/admin/webhooks.html" class="chip warn">
+      <i class="fa-solid fa-link"></i> ${escapeHtml(String(failedWebhooks))} failed webhook${failedWebhooks === 1 ? '' : 's'}
+    </a>`);
+  }
+
+  const sigFails = overview.webhooks?.signature_invalid || 0;
+  if (sigFails > 0) {
+    chips.push(`<a href="/admin/webhooks.html" class="chip danger">
+      <i class="fa-solid fa-shield-halved"></i> ${escapeHtml(String(sigFails))} signature failure${sigFails === 1 ? '' : 's'}
+    </a>`);
+  }
+
+  if (!chips.length) {
+    strip.hidden = true;
+    return;
+  }
+
+  strip.innerHTML = `<span class="label"><i class="fa-solid fa-circle-exclamation"></i> Needs attention</span>${chips.join('')}`;
+  strip.hidden = false;
+}
+
+function renderInsights(overview) {
+  const grid = document.getElementById('insightsGrid');
+  if (!grid) return;
+  if (!overview.insights || !overview.insights.available) {
+    grid.innerHTML = `<div class="card" style="grid-column:1/-1"><div class="unavailable-box">
+      <div class="title">Insights unavailable</div>
+    </div></div>`;
+    return;
+  }
+  const ins = overview.insights;
+  const cards = [];
+  if (ins.top_product) {
+    cards.push(`
+      <div class="insight-card">
+        <div class="lbl">Top product</div>
+        <div class="val">${escapeHtml(ins.top_product.product || '—')}</div>
+        <div class="sub">${escapeHtml(fmtMoney(ins.top_product.revenue, ins.top_product.currency))}</div>
+      </div>`);
+  }
+  if (ins.top_provider) {
+    cards.push(`
+      <div class="insight-card">
+        <div class="lbl">Top provider</div>
+        <div class="val">${escapeHtml(ins.top_provider.provider || '—')}</div>
+        <div class="sub">${escapeHtml(fmtMoney(ins.top_provider.revenue, ins.top_provider.currency))}</div>
+      </div>`);
+  }
+  if (ins.worst_provider) {
+    cards.push(`
+      <div class="insight-card">
+        <div class="lbl">Riskiest provider</div>
+        <div class="val">${escapeHtml(ins.worst_provider.provider || '—')}</div>
+        <div class="sub">${escapeHtml(String(ins.worst_provider.failed || 0))} failed / ${escapeHtml(String(ins.worst_provider.orders || 0))} total</div>
+      </div>`);
+  }
+  if (ins.best_day) {
+    cards.push(`
+      <div class="insight-card">
+        <div class="lbl">Best day</div>
+        <div class="val">${escapeHtml(fmtDateOnlyWAT(ins.best_day.date))}</div>
+        <div class="sub">${escapeHtml(fmtMoney(ins.best_day.revenue, ins.best_day.currency))}</div>
+      </div>`);
+  }
+  grid.innerHTML = cards.join('') || '<div class="card" style="grid-column:1/-1"><div class="empty-state"><span class="ic"><i class="fa-solid fa-chart-simple"></i></span><div class="hint">No insights for this period</div></div></div>';
+}
+
+function chartColors() {
+  const dark = document.documentElement.classList.contains('dark');
+  return {
+    line:        dark ? '#7dd3fc' : '#0f4c5c',
+    linePrev:    dark ? '#8fbac2' : '#a0aec0',
+    fill:        dark ? 'rgba(125,211,252,.18)' : 'rgba(15,76,92,.10)',
+    grid:        dark ? 'rgba(255,255,255,.06)' : 'rgba(15,76,92,.08)',
+    text:        dark ? '#eaf3f5' : '#0c1f26',
+    textFaint:   dark ? '#9db4bb' : '#5b7480',
+    bar:         dark ? '#7dd3fc' : '#0f4c5c',
+    barAlt:      dark ? '#f5a623' : '#f5a623',
+    danger:      dark ? '#f87171' : '#dc2626'
+  };
+}
+
+function renderOverviewCharts(overview, timeseries) {
+  renderTrendChart(timeseries);
+  renderProductChart(overview);
+  renderProviderChart(overview);
+}
+
+function renderTrendChart(timeseries) {
+  const canvas = document.getElementById('trendChart');
+  if (!canvas) return;
+  if (!timeseries || !timeseries.available) {
+    if (State.charts.trend) { State.charts.trend.destroy(); State.charts.trend = null; }
+    const wrap = canvas.parentElement;
+    wrap.innerHTML = '<div class="unavailable-box"><span class="ic"><i class="fa-solid fa-chart-line"></i></span><div class="title">Trend unavailable</div><div class="hint">Timeseries RPC not deployed or returned no data.</div></div>';
+    return;
+  }
+
+  const points = (timeseries.points || []).filter(p => p.currency === State.chartCurrency);
+  const labels = points.map(p => {
+    try { return fmtDateOnlyWAT(p.date); } catch { return p.date; }
+  });
+  const dataKey = State.chartMetric; // 'revenue' | 'profit' | 'refunds' | 'orders'
+  const values = points.map(p => Number(p[dataKey] || 0));
+
+  const colors = chartColors();
+  if (State.charts.trend) State.charts.trend.destroy();
+
+  State.charts.trend = new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: `${State.chartCurrency} ${dataKey}`,
+        data: values,
+        borderColor: colors.line,
+        backgroundColor: colors.fill,
+        borderWidth: 2,
+        tension: 0.3,
+        pointRadius: 2,
+        pointHoverRadius: 5,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(12,31,38,.92)',
+          titleColor: '#fff',
+          bodyColor: '#eaf3f5',
+          callbacks: {
+            label: (ctx) => {
+              const v = ctx.parsed.y;
+              return dataKey === 'orders'
+                ? `${Number(v).toLocaleString('en-US')} orders`
+                : fmtMoney(v, State.chartCurrency);
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: colors.grid },
+          ticks: { color: colors.textFaint, maxTicksLimit: 10, font: { size: 10 } }
+        },
+        y: {
+          grid: { color: colors.grid },
+          ticks: {
+            color: colors.textFaint,
+            font: { size: 10 },
+            callback: (v) => dataKey === 'orders' ? v : fmtMoney(v, State.chartCurrency)
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderProductChart(overview) {
+  const canvas = document.getElementById('productChart');
+  if (!canvas) return;
+  if (!overview.revenue || !overview.revenue.available) {
+    if (State.charts.product) { State.charts.product.destroy(); State.charts.product = null; }
+    canvas.parentElement.innerHTML = '<div class="unavailable-box"><span class="ic"><i class="fa-solid fa-chart-bar"></i></span><div class="title">Unavailable</div></div>';
+    return;
+  }
+
+  const cached = State.cache.get('products:' + filterSignature());
+  if (!cached || !cached.available) {
+    if (State.charts.product) { State.charts.product.destroy(); State.charts.product = null; }
+    canvas.parentElement.innerHTML = '<div class="empty-state"><span class="ic"><i class="fa-solid fa-boxes-stacked"></i></span><div class="hint">Open the Products tab to populate this chart</div></div>';
+    return;
+  }
+
+  const rows = (cached.products || []).filter(r => r.currency === State.chartCurrency);
+  const labels = rows.map(r => r.product);
+  const values = rows.map(r => Number(r.revenue || 0));
+  const colors = chartColors();
+
+  if (State.charts.product) State.charts.product.destroy();
+
+  State.charts.product = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: State.chartCurrency,
+        data: values,
+        backgroundColor: colors.bar,
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: (ctx) => fmtMoney(ctx.parsed.y, State.chartCurrency) }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: colors.textFaint, font: { size: 10 } }
+        },
+        y: {
+          grid: { color: colors.grid },
+          ticks: {
+            color: colors.textFaint, font: { size: 10 },
+            callback: (v) => fmtMoney(v, State.chartCurrency)
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderProviderChart(overview) {
+  const canvas = document.getElementById('providerChart');
+  if (!canvas) return;
+  if (!overview.revenue || !overview.revenue.available) {
+    if (State.charts.provider) { State.charts.provider.destroy(); State.charts.provider = null; }
+    canvas.parentElement.innerHTML = '<div class="unavailable-box"><span class="ic"><i class="fa-solid fa-chart-bar"></i></span><div class="title">Unavailable</div></div>';
+    return;
+  }
+
+  const cached = State.cache.get('providers:' + filterSignature());
+  if (!cached || !cached.available) {
+    if (State.charts.provider) { State.charts.provider.destroy(); State.charts.provider = null; }
+    canvas.parentElement.innerHTML = '<div class="empty-state"><span class="ic"><i class="fa-solid fa-plug"></i></span><div class="hint">Open the Providers tab to populate this chart</div></div>';
+    return;
+  }
+
+  const rows = (cached.providers || []).filter(r => r.currency === State.chartCurrency);
+  const labels = rows.map(r => r.provider);
+  const values = rows.map(r => Number(r.revenue || 0));
+  const colors = chartColors();
+
+  if (State.charts.provider) State.charts.provider.destroy();
+
+  State.charts.provider = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: State.chartCurrency,
+        data: values,
+        backgroundColor: colors.barAlt,
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => fmtMoney(ctx.parsed.y, State.chartCurrency) } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: colors.textFaint, font: { size: 10 } } },
+        y: {
+          grid: { color: colors.grid },
+          ticks: { color: colors.textFaint, font: { size: 10 }, callback: (v) => fmtMoney(v, State.chartCurrency) }
+        }
+      }
+    }
+  });
+}
+
+function initChartSwitch() {
+  document.querySelectorAll('.chart-switch [data-metric]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      State.chartMetric = btn.dataset.metric;
+      document.querySelectorAll('.chart-switch [data-metric]').forEach(b => b.classList.toggle('active', b === btn));
+      if (State.tab === 'overview') loadOverview();
+    });
+  });
+  document.querySelectorAll('.chart-switch [data-currency]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      State.chartCurrency = btn.dataset.currency;
+      document.querySelectorAll('.chart-switch [data-currency]').forEach(b => b.classList.toggle('active', b === btn));
+      if (State.tab === 'overview') loadOverview();
+    });
+  });
+  document.querySelectorAll(`.chart-switch [data-metric="${State.chartMetric}"]`).forEach(b => b.classList.add('active'));
+  document.querySelectorAll(`.chart-switch [data-currency="${State.chartCurrency}"]`).forEach(b => b.classList.add('active'));
+}
+
+async function loadMeta() {
+  const r = await apiCall(API.meta);
+  if (!r.ok) {
+    showToast('Could not load report metadata: ' + r.error, 'error');
+    return;
+  }
+  State.meta = r.data;
+  renderPresetPills();
+  populateDropdowns();
+  renderExportMenu();
+}
+
+function populateDropdowns() {
+  const m = State.meta || {};
+  
+  // Force arrays. If the backend returns null/undefined, fall back to [].
+  const types = Array.isArray(m.transaction_types) ? m.transaction_types : [];
+  const providers = Array.isArray(m.providers) ? m.providers : [];
+  const products = Array.isArray(m.product_types) ? m.product_types : [];
+
+  const txType = document.getElementById('txType');
+  if (txType && txType.options.length <= 1) {
+    for (const t of types) {
+      const o = document.createElement('option'); o.value = t; o.textContent = t;
+      txType.appendChild(o);
+    }
+  }
+  for (const selId of ['txProvider', 'orProvider', 'whProvider', 'faProvider']) {
+    const sel = document.getElementById(selId);
+    if (!sel || sel.options.length > 1) continue;
+    for (const p of providers) {
+      const o = document.createElement('option'); o.value = p; o.textContent = p;
+      sel.appendChild(o);
+    }
+  }
+  const orProduct = document.getElementById('orProduct');
+  if (orProduct && orProduct.options.length <= 1) {
+    for (const p of products) {
+      const o = document.createElement('option'); o.value = p; o.textContent = p;
+      orProduct.appendChild(o);
+    }
+  }
+}
+
+async function loadTransactions() {
+  const body = document.getElementById('txBody');
+  body.innerHTML = '<tr><td colspan="8"><div class="skel" style="height:18px;width:60%"></div></td></tr>';
+
+  const { seq, signal } = nextSeq('transactions');
+  const query = buildQuery({
+    page: State.page.transactions,
+    limit: 25,
+    search: State.search.transactions,
+    status: State.status.transactions,
+    type: State.type,
+    provider: State.provider
+  });
+
+  const r = await apiCall(`${API.transactions}?${query}`, { signal });
+  if (isStale('transactions', seq)) return;
+
+  if (!r.ok) {
+    body.innerHTML = `<tr><td colspan="8"><div class="unavailable-box">
+      <span class="ic"><i class="fa-solid fa-circle-exclamation"></i></span>
+      <div class="title">Could not load transactions</div>
+      <div class="hint">${escapeHtml(r.error)}</div>
+      <button class="btn btn-primary" data-retry-tx>Retry</button>
+    </div></td></tr>`;
+    body.querySelector('[data-retry-tx]')?.addEventListener('click', () => loadTransactions());
+    return;
+  }
+
+  const data = r.data;
+  renderTxSummary(data.summary);
+  const rows = data.transactions || [];
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="8"><div class="empty-state">
+      <span class="ic"><i class="fa-solid fa-inbox"></i></span>
+      <div class="title">No transactions match this filter</div>
+      <div class="hint">Try widening the date range.</div>
+    </div></td></tr>`;
+  } else {
+    body.innerHTML = rows.map(t => {
+      const dirCls = t.direction === 'credit' ? 'success' : 'danger';
+      const sign = t.direction === 'credit' ? '+' : '−';
+      return `<tr class="clickable" data-tx-id="${escapeHtml(t.id)}">
+        <td title="${escapeHtml(fmtDateWAT(t.createdAt))}">${escapeHtml(fmtDateWAT(t.createdAt).split(',')[0])}</td>
+        <td class="mono">${escapeHtml(t.reference || '—')}</td>
+        <td>${escapeHtml(t.user?.username || '—')}</td>
+        <td>${escapeHtml(t.type || '—')}</td>
+        <td><span class="badge ${txStatusBadge(t.status)}">${escapeHtml(t.status || '—')}</span></td>
+        <td class="num"><span class="badge ${dirCls}">${sign} ${escapeHtml(fmtMoney(t.absolute_amount, t.currency))}</span></td>
+        <td class="num">${escapeHtml(fmtMoney(t.fee, t.currency))}</td>
+        <td>${escapeHtml(t.provider || '—')}</td>
+      </tr>`;
+    }).join('');
+
+    body.querySelectorAll('[data-tx-id]').forEach(tr => {
+      tr.addEventListener('click', () => openTxDrawer(tr.dataset.txId, data.transactions.find(x => x.id === tr.dataset.txId)));
+    });
+  }
+  renderPagination('txPagination', data.pagination, (p) => {
+    State.page.transactions = p;
+    writeUrlState();
+    loadTransactions();
+  });
+}
+
+function renderTxSummary(summary) {
+  const strip = document.getElementById('txSummary');
+  if (!strip) return;
+  if (!summary || !summary.available) {
+    strip.innerHTML = `<span class="item text-muted">Summary unavailable</span>`;
+    strip.hidden = false;
+    return;
+  }
+  const parts = (summary.byCurrency || []).map(c => `
+    <span class="item currency">
+      <strong>${escapeHtml(c.currency)}</strong>
+      ${fmtCount(c.count)} tx ·
+      ${fmtCount(c.completed)} done ·
+      ${fmtCount(c.failed)} failed ·
+      fees ${escapeHtml(fmtMoney(c.fees, c.currency))}
+    </span>
+  `);
+  strip.innerHTML = parts.join('') || '<span class="item text-muted">No rows</span>';
+  strip.hidden = false;
+}
+
+async function loadOrders() {
+  const body = document.getElementById('orBody');
+  body.innerHTML = '<tr><td colspan="8"><div class="skel" style="height:18px;width:60%"></div></td></tr>';
+
+  const { seq, signal } = nextSeq('orders');
+  const query = buildQuery({
+    page: State.page.orders,
+    limit: 25,
+    search: State.search.orders,
+    status: State.status.orders,
+    product: State.product,
+    provider: State.provider
+  });
+
+  const r = await apiCall(`${API.orders}?${query}`, { signal });
+  if (isStale('orders', seq)) return;
+
+  if (!r.ok) {
+    body.innerHTML = `<tr><td colspan="8"><div class="unavailable-box">
+      <span class="ic"><i class="fa-solid fa-circle-exclamation"></i></span>
+      <div class="title">Could not load orders</div>
+      <div class="hint">${escapeHtml(r.error)}</div>
+      <button class="btn btn-primary" data-retry-or>Retry</button>
+    </div></td></tr>`;
+    body.querySelector('[data-retry-or]')?.addEventListener('click', () => loadOrders());
+    return;
+  }
+
+  const data = r.data;
+  renderOrSummary(data.summary);
+  const rows = data.orders || [];
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="8"><div class="empty-state">
+      <span class="ic"><i class="fa-solid fa-inbox"></i></span>
+      <div class="title">No orders match this filter</div>
+      <div class="hint">Try widening the date range.</div>
+    </div></td></tr>`;
+  } else {
+    body.innerHTML = rows.map(o => `
+      <tr class="clickable" data-or-id="${escapeHtml(o.id)}">
+        <td title="${escapeHtml(fmtDateWAT(o.createdAt))}">${escapeHtml(fmtDateWAT(o.createdAt).split(',')[0])}</td>
+        <td class="mono">${escapeHtml(o.orderRef || '—')}</td>
+        <td>${escapeHtml(o.user?.username || '—')}</td>
+        <td>${escapeHtml(o.productType || '—')}</td>
+        <td>${escapeHtml(o.provider || '—')}</td>
+        <td><span class="badge ${orderStatusBadge(o.status)}">${escapeHtml(o.status || '—')}</span></td>
+        <td class="num">${escapeHtml(fmtMoney(o.totalAmount, o.currency))}</td>
+        <td class="num">${escapeHtml(fmtMoney(o.profitAmount, o.currency))}</td>
+      </tr>`).join('');
+
+    body.querySelectorAll('[data-or-id]').forEach(tr => {
+      tr.addEventListener('click', () => openOrderDrawer(tr.dataset.orId, data.orders.find(x => x.id === tr.dataset.orId)));
+    });
+  }
+  renderPagination('orPagination', data.pagination, (p) => {
+    State.page.orders = p;
+    writeUrlState();
+    loadOrders();
+  });
+}
+
+function renderOrSummary(summary) {
+  const strip = document.getElementById('orSummary');
+  if (!strip) return;
+  if (!summary || !summary.available) {
+    strip.innerHTML = `<span class="item text-muted">Summary unavailable</span>`;
+    strip.hidden = false;
+    return;
+  }
+  const parts = (summary.byCurrency || []).map(c => `
+    <span class="item currency">
+      <strong>${escapeHtml(c.currency)}</strong>
+      ${fmtCount(c.total)} orders ·
+      ${fmtCount(c.completed)} done ·
+      ${fmtCount(c.failed)} failed ·
+      success ${c.successRate.toFixed(1)}% ·
+      value ${escapeHtml(fmtMoney(c.totalValue, c.currency))}
+    </span>
+  `);
+  strip.innerHTML = parts.join('') || '<span class="item text-muted">No rows</span>';
+  strip.hidden = false;
+}
+
+async function loadCustomers() {
+  const body = document.getElementById('cuBody');
+  body.innerHTML = '<tr><td colspan="8"><div class="skel" style="height:18px;width:60%"></div></td></tr>';
+
+  const { seq, signal } = nextSeq('customers');
+  const query = buildQuery({
+    page: State.page.customers,
+    limit: 25,
+    currency: document.getElementById('cuCurrency')?.value || State.currency
+  });
+
+  const r = await apiCall(`${API.customers}?${query}`, { signal });
+  if (isStale('customers', seq)) return;
+
+  if (!r.ok) {
+    body.innerHTML = `<tr><td colspan="8"><div class="unavailable-box">
+      <span class="ic"><i class="fa-solid fa-circle-exclamation"></i></span>
+      <div class="title">Could not load customers</div>
+      <div class="hint">${escapeHtml(r.error)}</div>
+      <button class="btn btn-primary" data-retry-cu>Retry</button>
+    </div></td></tr>`;
+    body.querySelector('[data-retry-cu]')?.addEventListener('click', () => loadCustomers());
+    return;
+  }
+
+  const data = r.data;
+  const strip = document.getElementById('cuSummary');
+  if (strip) {
+    strip.innerHTML = `<span class="item">${fmtCount(data.summary?.total_customers)} customers · ${fmtCount(data.summary?.new_customers)} new in period</span>`;
+    strip.hidden = false;
+  }
+
+  const rows = data.customers || [];
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="8"><div class="empty-state">
+      <span class="ic"><i class="fa-solid fa-inbox"></i></span>
+      <div class="title">No customers match this filter</div>
+    </div></td></tr>`;
+  } else {
+    body.innerHTML = rows.map(c => `
+      <tr class="clickable" data-cu-id="${escapeHtml(c.user.id)}">
+        <td>${escapeHtml(c.user.username || '—')}</td>
+        <td>${escapeHtml(c.user.email || '—')}</td>
+        <td>${escapeHtml(c.currency || '—')}</td>
+        <td class="num">${fmtCount(c.orders)}</td>
+        <td class="num">${escapeHtml(fmtMoney(c.spent, c.currency))}</td>
+        <td class="num">${escapeHtml(fmtMoney(c.refunded, c.currency))}</td>
+        <td class="num">${escapeHtml(fmtMoney(c.netSpend, c.currency))}</td>
+        <td>${escapeHtml(fmtDateOnlyWAT(c.lastOrder))}</td>
+      </tr>`).join('');
+
+    body.querySelectorAll('[data-cu-id]').forEach(tr => {
+      tr.addEventListener('click', () => openCustomerDrawer(tr.dataset.cuId, data.customers.find(x => x.user.id === tr.dataset.cuId)));
+    });
+  }
+  renderPagination('cuPagination', data.pagination, (p) => {
+    State.page.customers = p;
+    writeUrlState();
+    loadCustomers();
+  });
+}
+
+async function loadProducts() {
+  const body = document.getElementById('prBody');
+  body.innerHTML = '<tr><td colspan="9"><div class="skel" style="height:18px;width:60%"></div></td></tr>';
+
+  const { seq, signal } = nextSeq('products');
+  const query = buildQuery();
+  const cacheKey = 'products:' + filterSignature();
+
+  const r = await apiCall(`${API.products}?${query}`, { signal });
+  if (isStale('products', seq)) return;
+
+  if (!r.ok) {
+    body.innerHTML = `<tr><td colspan="9"><div class="unavailable-box">
+      <span class="ic"><i class="fa-solid fa-circle-exclamation"></i></span>
+      <div class="title">Could not load products</div>
+      <div class="hint">${escapeHtml(r.error)}</div>
+      <button class="btn btn-primary" data-retry-pr>Retry</button>
+    </div></td></tr>`;
+    body.querySelector('[data-retry-pr]')?.addEventListener('click', () => loadProducts());
+    return;
+  }
+
+  const data = r.data;
+  State.cache.set(cacheKey, data);
+
+  const rows = data.products || [];
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="9"><div class="empty-state">
+      <span class="ic"><i class="fa-solid fa-inbox"></i></span>
+      <div class="title">No product revenue in this period</div>
+    </div></td></tr>`;
+    return;
+  }
+
+  body.innerHTML = rows.map(p => `
+    <tr>
+      <td>${escapeHtml(p.product || '—')}</td>
+      <td>${escapeHtml(p.currency || '—')}</td>
+      <td class="num">${fmtCount(p.orders)}</td>
+      <td class="num">${escapeHtml(fmtMoney(p.revenue, p.currency))}</td>
+      <td class="num">${escapeHtml(fmtMoney(p.providerCost, p.currency))}</td>
+      <td class="num">${escapeHtml(fmtMoney(p.refunds, p.currency))}</td>
+      <td class="num">${escapeHtml(fmtMoney(p.profit, p.currency))}</td>
+      <td class="num">${p.marginPct != null ? p.marginPct.toFixed(2) + '%' : '—'}</td>
+      <td class="num">${p.share_pct != null ? p.share_pct.toFixed(2) + '%' : '—'}</td>
+    </tr>`).join('');
+
+  if (State.tab === 'overview') renderProductChart({ revenue: { available: true } });
+}
+
+async function loadProviders() {
+  const body = document.getElementById('pvBody');
+  body.innerHTML = '<tr><td colspan="9"><div class="skel" style="height:18px;width:60%"></div></td></tr>';
+
+  const { seq, signal } = nextSeq('providers');
+  const query = buildQuery();
+  const cacheKey = 'providers:' + filterSignature();
+
+  const r = await apiCall(`${API.providers}?${query}`, { signal });
+  if (isStale('providers', seq)) return;
+
+  if (!r.ok) {
+    body.innerHTML = `<tr><td colspan="9"><div class="unavailable-box">
+      <span class="ic"><i class="fa-solid fa-circle-exclamation"></i></span>
+      <div class="title">Could not load providers</div>
+      <div class="hint">${escapeHtml(r.error)}</div>
+      <button class="btn btn-primary" data-retry-pv>Retry</button>
+    </div></td></tr>`;
+    body.querySelector('[data-retry-pv]')?.addEventListener('click', () => loadProviders());
+    return;
+  }
+
+  const data = r.data;
+  State.cache.set(cacheKey, data);
+
+  const rows = data.providers || [];
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="9"><div class="empty-state">
+      <span class="ic"><i class="fa-solid fa-inbox"></i></span>
+      <div class="title">No provider revenue in this period</div>
+    </div></td></tr>`;
+    return;
+  }
+
+  body.innerHTML = rows.map(p => {
+    const srCls = p.successRate >= 95 ? 'success' : p.successRate >= 80 ? 'warn' : 'danger';
+    return `<tr>
+      <td>${escapeHtml(p.provider || '—')}</td>
+      <td>${escapeHtml(p.currency || '—')}</td>
+      <td class="num">${fmtCount(p.orders)}</td>
+      <td class="num">${escapeHtml(fmtMoney(p.revenue, p.currency))}</td>
+      <td class="num">${escapeHtml(fmtMoney(p.providerCost, p.currency))}</td>
+      <td class="num">${escapeHtml(fmtMoney(p.profit, p.currency))}</td>
+      <td class="num">${fmtCount(p.failedOrders)}</td>
+      <td class="num"><span class="badge ${srCls}">${p.successRate != null ? p.successRate.toFixed(2) + '%' : '—'}</span></td>
+      <td class="num">${p.share_pct != null ? p.share_pct.toFixed(2) + '%' : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  if (State.tab === 'overview') renderProviderChart({ revenue: { available: true } });
+}
+
+async function loadWebhooks() {
+  const body = document.getElementById('whBody');
+  body.innerHTML = '<tr><td colspan="6"><div class="skel" style="height:18px;width:60%"></div></td></tr>';
+
+  const { seq, signal } = nextSeq('webhooks');
+  const query = buildQuery({
+    page: State.page.webhooks,
+    limit: 25,
+    provider: document.getElementById('whProvider')?.value || State.provider,
+    status: document.getElementById('whStatus')?.value || State.status.webhooks
+  });
+
+  const r = await apiCall(`${API.webhooks}?${query}`, { signal });
+  if (isStale('webhooks', seq)) return;
+
+  if (!r.ok) {
+    body.innerHTML = `<tr><td colspan="6"><div class="unavailable-box">
+      <span class="ic"><i class="fa-solid fa-circle-exclamation"></i></span>
+      <div class="title">Could not load webhooks</div>
+      <div class="hint">${escapeHtml(r.error)}</div>
+      <button class="btn btn-primary" data-retry-wh>Retry</button>
+    </div></td></tr>`;
+    body.querySelector('[data-retry-wh]')?.addEventListener('click', () => loadWebhooks());
+    return;
+  }
+
+  const data = r.data;
+  renderWhSummary(data.stats);
+  const rows = data.webhooks || [];
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="6"><div class="empty-state">
+      <span class="ic"><i class="fa-solid fa-inbox"></i></span>
+      <div class="title">No webhooks in this period</div>
+    </div></td></tr>`;
+  } else {
+    body.innerHTML = rows.map(w => `
+      <tr>
+        <td title="${escapeHtml(fmtDateWAT(w.receivedAt))}">${escapeHtml(fmtDateWAT(w.receivedAt).split(',')[0])}</td>
+        <td>${escapeHtml(w.provider || '—')}</td>
+        <td>${escapeHtml(w.eventType || '—')}</td>
+        <td><span class="badge ${whStatusBadge(w.processingStatus)}">${escapeHtml(w.processingStatus || '—')}</span></td>
+        <td>${w.signatureValid ? '<i class="fa-solid fa-check" style="color:var(--success)"></i> Valid' : '<i class="fa-solid fa-xmark" style="color:var(--danger)"></i> Invalid'}</td>
+        <td>${escapeHtml(w.processingError || '—')}</td>
+      </tr>`).join('');
+  }
+  renderPagination('whPagination', data.pagination, (p) => {
+    State.page.webhooks = p;
+    writeUrlState();
+    loadWebhooks();
+  });
+}
+
+function renderWhSummary(stats) {
+  const strip = document.getElementById('whSummary');
+  if (!strip) return;
+  if (!stats || !stats.available) {
+    strip.innerHTML = `<span class="item text-muted">Stats unavailable</span>`;
+    strip.hidden = false;
+    return;
+  }
+  strip.innerHTML = `
+    <span class="item currency"><strong>${fmtCount(stats.received)}</strong> received</span>
+    <span class="item currency"><strong>${fmtCount(stats.processed)}</strong> processed</span>
+    <span class="item currency"><strong>${fmtCount(stats.failed)}</strong> failed</span>
+    <span class="item currency"><strong>${fmtCount(stats.duplicate)}</strong> duplicate</span>
+    <span class="item currency"><strong>${fmtCount(stats.signature_invalid)}</strong> bad signature</span>
+  `;
+  strip.hidden = false;
+}
+
+async function loadFailures() {
+  const body = document.getElementById('faBody');
+  body.innerHTML = '<tr><td colspan="8"><div class="skel" style="height:18px;width:60%"></div></td></tr>';
+
+  const { seq, signal } = nextSeq('failures');
+  const query = buildQuery({
+    page: State.page.failures,
+    limit: 25,
+    kind: document.getElementById('faKind')?.value || State.kind,
+    provider: document.getElementById('faProvider')?.value || State.provider
+  });
+
+  const r = await apiCall(`${API.failures}?${query}`, { signal });
+  if (isStale('failures', seq)) return;
+
+  if (!r.ok) {
+    body.innerHTML = `<tr><td colspan="8"><div class="unavailable-box">
+      <span class="ic"><i class="fa-solid fa-circle-exclamation"></i></span>
+      <div class="title">Could not load failures</div>
+      <div class="hint">${escapeHtml(r.error)}</div>
+      <button class="btn btn-primary" data-retry-fa>Retry</button>
+    </div></td></tr>`;
+    body.querySelector('[data-retry-fa]')?.addEventListener('click', () => loadFailures());
+    return;
+  }
+
+  const data = r.data;
+  const rows = data.failures || [];
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="8"><div class="empty-state">
+      <span class="ic"><i class="fa-solid fa-circle-check"></i></span>
+      <div class="title">No failures in this period</div>
+      <div class="hint">Everything that was charged is either delivered or refunded.</div>
+    </div></td></tr>`;
+  } else {
+    body.innerHTML = rows.map(f => `
+      <tr>
+        <td title="${escapeHtml(fmtDateWAT(f.createdAt))}">${escapeHtml(fmtDateWAT(f.createdAt).split(',')[0])}</td>
+        <td><span class="badge neutral">${escapeHtml(f.kind)}</span></td>
+        <td class="mono">${escapeHtml(f.reference || '—')}</td>
+        <td>${escapeHtml(f.user?.username || '—')}</td>
+        <td>${escapeHtml(f.module || '—')}</td>
+        <td>${escapeHtml(f.provider || '—')}</td>
+        <td class="num">${f.amount != null ? escapeHtml(fmtMoney(f.amount, f.currency)) : '—'}</td>
+        <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(f.errorMessage || '')}">${escapeHtml(f.errorMessage || '—')}</td>
+      </tr>`).join('');
+  }
+  renderPagination('faPagination', data.pagination, (p) => {
+    State.page.failures = p;
+    writeUrlState();
+    loadFailures();
+  });
+}
+
+async function loadReconciliation() {
+  const container = document.getElementById('reconList');
+  container.innerHTML = '<div class="skel" style="height:60px"></div><div class="skel" style="height:60px;margin-top:8px"></div>';
+
+  const { seq, signal } = nextSeq('reconciliation');
+  const query = buildQuery();
+  const r = await apiCall(`${API.reconciliation}?${query}`, { signal });
+  if (isStale('reconciliation', seq)) return;
+
+  if (!r.ok) {
+    container.innerHTML = `<div class="unavailable-box">
+      <span class="ic"><i class="fa-solid fa-circle-exclamation"></i></span>
+      <div class="title">Could not run reconciliation</div>
+      <div class="hint">${escapeHtml(r.error)}</div>
+      <button class="btn btn-primary" data-retry-recon>Retry</button>
+    </div>`;
+    container.querySelector('[data-retry-recon]')?.addEventListener('click', () => loadReconciliation());
+    return;
+  }
+
+  const data = r.data;
+  const checks = data.checks || [];
+
+  if (!checks.length) {
+    container.innerHTML = `<div class="empty-state">
+      <span class="ic"><i class="fa-solid fa-scale-balanced"></i></span>
+      <div class="title">No checks configured</div>
+      <div class="hint">Deploy migrations/2026_reports_v3.sql to enable reconciliation.</div>
+    </div>`;
+    return;
+  }
+
+  if (data.summary.all_clear) {
+    container.innerHTML = `<div class="empty-state">
+      <span class="ic" style="color:var(--success)"><i class="fa-solid fa-circle-check"></i></span>
+      <div class="title">All checks passed</div>
+      <div class="hint">Every reconciliation check ran and reported zero issues.</div>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = checks.map(c => {
+    let statusBadge;
+    if (c.status === 'ok') {
+      statusBadge = '<span class="badge success"><i class="fa-solid fa-check"></i> OK</span>';
+    } else if (c.status === 'issues') {
+      statusBadge = `<span class="badge danger"><i class="fa-solid fa-circle-exclamation"></i> ${escapeHtml(String(c.count))} issue${c.count === 1 ? '' : 's'}</span>`;
+    } else {
+      statusBadge = '<span class="badge warn"><i class="fa-solid fa-triangle-exclamation"></i> Could not run</span>';
+    }
+    return `<div class="card" style="margin-bottom:10px;padding:14px 16px;">
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <div style="font-weight:800;font-size:13px;">${escapeHtml(c.label || c.key)}</div>
+          <div class="hint" style="margin-top:3px;">Severity: ${escapeHtml(c.severity || '—')}</div>
+          ${c.error ? `<div class="hint" style="color:var(--danger);margin-top:3px;">${escapeHtml(c.error)}</div>` : ''}
+        </div>
+        ${statusBadge}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderPagination(containerId, pagination, onPage) {
+  const el = document.getElementById(containerId);
+  if (!el || !pagination) return;
+  const page = pagination.page || 1;
+  const totalPages = pagination.totalPages || 1;
+  const total = pagination.total || 0;
+
+  el.innerHTML = `
+    <div class="page-info">Page ${page} of ${totalPages} · ${fmtCount(total)} rows</div>
+    <div class="page-actions">
+      <select data-page-size>
+        <option value="10"${pagination.limit === 10 ? ' selected' : ''}>10 / page</option>
+        <option value="25"${pagination.limit === 25 ? ' selected' : ''}>25 / page</option>
+        <option value="50"${pagination.limit === 50 ? ' selected' : ''}>50 / page</option>
+        <option value="100"${pagination.limit === 100 ? ' selected' : ''}>100 / page</option>
+        <option value="200"${pagination.limit === 200 ? ' selected' : ''}>200 / page</option>
+      </select>
+      <button data-page-prev ${page <= 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i> Prev</button>
+      <button data-page-next ${page >= totalPages ? 'disabled' : ''}>Next <i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+  `;
+
+  el.querySelector('[data-page-prev]')?.addEventListener('click', () => {
+    if (page > 1) onPage(page - 1);
+  });
+  el.querySelector('[data-page-next]')?.addEventListener('click', () => {
+    if (page < totalPages) onPage(page + 1);
+  });
+  el.querySelector('[data-page-size]')?.addEventListener('change', (ev) => {
+    onPage(1);
+  });
+}
+
+function txStatusBadge(status) {
+  const s = String(status || '').toLowerCase();
+  if (s === 'completed') return 'success';
+  if (s === 'failed') return 'danger';
+  if (s === 'refunded') return 'info';
+  if (s === 'pending' || s === 'processing') return 'warn';
+  return 'neutral';
+}
+function orderStatusBadge(status) {
+  const s = String(status || '').toLowerCase();
+  if (s === 'completed') return 'success';
+  if (['failed','cancelled','expired'].includes(s)) return 'danger';
+  if (s === 'refunded') return 'info';
+  if (['pending','processing','paid','in_progress','provider_unknown'].includes(s)) return 'warn';
+  if (s === 'manual_review') return 'purple';
+  return 'neutral';
+}
+function whStatusBadge(status) {
+  const s = String(status || '').toLowerCase();
+  if (s === 'processed') return 'success';
+  if (s === 'failed') return 'danger';
+  if (s === 'received' || s === 'processing') return 'warn';
+  return 'neutral';
+}
+
+function renderExportMenu() {
+  const menu = document.getElementById('exportMenuItems');
+  if (!menu) return;
+  const kinds = State.meta?.export_kinds || [
+    'overview','transactions','orders','customers','products',
+    'providers','webhooks','failures','reconciliation'
+  ];
+  menu.innerHTML = kinds.map(k => `
+    <button class="btn" style="justify-content:flex-start;border:none;background:transparent;" data-export-kind="${escapeHtml(k)}">
+      <i class="fa-solid fa-file-csv"></i>
+      ${escapeHtml(k.charAt(0).toUpperCase() + k.slice(1))}
+    </button>
+  `).join('');
+
+  menu.querySelectorAll('[data-export-kind]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      runExport(btn.dataset.exportKind);
+      toggleExportMenu(false);
+    });
+  });
+}
+
+function toggleExportMenu(show) {
+  const m = document.getElementById('exportMenu');
+  const b = document.getElementById('exportBtn');
+  if (!m || !b) return;
+  const nextOpen = show != null ? show : m.hidden;
+  m.hidden = !nextOpen;
+  b.setAttribute('aria-expanded', String(nextOpen));
+}
+
+async function runExport(kind) {
+  const btn = document.getElementById('exportBtn');
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Exporting…';
+  try {
+    const query = buildQuery({ type: kind });
+    const fetcher = window.AdminSession?.fetch
+      || ((u, o) => fetch(u, Object.assign({ credentials: 'include' }, o)));
+    const res = await fetcher(`${API.export}?${query}`);
+
+    if (!res.ok) {
+      let body = null;
+      try { body = await res.json(); } catch {}
+      const reqId = (body && body.request_id) || res.headers.get('X-Request-Id');
+      showToast(
+        `Export failed${reqId ? ` (req ${String(reqId).slice(0, 8)})` : ''}: ` +
+        ((body && (body.error || body.message)) || `HTTP ${res.status}`),
+        'error'
+      );
+      return;
+    }
+
+    const blob = await res.blob();
+    const filename = parseFilename(res.headers.get('Content-Disposition'))
+      || `milesspace-${kind}-report.csv`;
+    const truncated = res.headers.get('X-Export-Truncated') === '1';
+    const rows = parseInt(res.headers.get('X-Export-Rows') || '0', 10);
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    if (truncated) {
+      showToast(
+        `Exported ${fmtCount(rows)} rows (capped — the full set exceeds the export limit).`,
+        'warn'
+      );
+    } else {
+      showToast(`Exported ${fmtCount(rows)} rows.`, 'success');
+    }
+  } catch (e) {
+    showToast('Export failed: ' + (e.message || 'unknown'), 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
+}
+
+function parseFilename(cd) {
+  if (!cd) return null;
+  const m = /filename="?([^";]+)"?/i.exec(cd);
+  return m ? m[1] : null;
+}
+
+function openDrawer() {
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawerScrim').classList.add('show');
+}
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawerScrim').classList.remove('show');
+  State.drawerRecord = null;
+}
+
+function openTxDrawer(id, record) {
+  const title = document.getElementById('ddTitle');
+  const body = document.getElementById('ddBody');
+  if (!record) return;
+  title.textContent = 'Transaction';
+  body.innerHTML = `
+    <div class="dd-section">
+      <h4>Reference</h4>
+      <div class="dd-field"><span class="k">Reference</span><span class="v mono">${escapeHtml(record.reference || '—')}</span></div>
+      <div class="dd-field"><span class="k">Type</span><span class="v">${escapeHtml(record.type || '—')}</span></div>
+      <div class="dd-field"><span class="k">Status</span><span class="v"><span class="badge ${txStatusBadge(record.status)}">${escapeHtml(record.status || '—')}</span></span></div>
+      <div class="dd-field"><span class="k">Direction</span><span class="v">${escapeHtml(record.direction || '—')}</span></div>
+      <div class="dd-field"><span class="k">Amount</span><span class="v num">${escapeHtml(fmtMoney(record.signed_amount, record.currency))}</span></div>
+      <div class="dd-field"><span class="k">Fee</span><span class="v num">${escapeHtml(fmtMoney(record.fee, record.currency))}</span></div>
+    </div>
+    <div class="dd-section">
+      <h4>User</h4>
+      <div class="dd-field"><span class="k">Username</span><span class="v">${escapeHtml(record.user?.username || '—')}</span></div>
+      <div class="dd-field"><span class="k">Email</span><span class="v">${escapeHtml(record.user?.email || '—')}</span></div>
+    </div>
+    <div class="dd-section">
+      <h4>Provider</h4>
+      <div class="dd-field"><span class="k">Provider</span><span class="v">${escapeHtml(record.provider || '—')}</span></div>
+      <div class="dd-field"><span class="k">Provider ref</span><span class="v mono">${escapeHtml(record.providerReference || '—')}</span></div>
+    </div>
+    <div class="dd-section">
+      <h4>Timeline</h4>
+      <div class="dd-field"><span class="k">Created</span><span class="v">${escapeHtml(fmtDateWAT(record.createdAt))}</span></div>
+      <div class="dd-field"><span class="k">Completed</span><span class="v">${escapeHtml(fmtDateWAT(record.completedAt))}</span></div>
+      ${record.failureReason ? `<div class="dd-field"><span class="k">Failure</span><span class="v" style="color:var(--danger)">${escapeHtml(record.failureReason)}</span></div>` : ''}
+    </div>
+    <div class="dd-actions">
+      <a class="btn" href="/admin/transactions.html?id=${encodeURIComponent(id)}" target="_blank" rel="noopener">
+        <i class="fa-solid fa-external-link-alt"></i> Open in Transactions
+      </a>
+    </div>
+  `;
+  openDrawer();
+}
+
+function openOrderDrawer(id, record) {
+  const title = document.getElementById('ddTitle');
+  const body = document.getElementById('ddBody');
+  if (!record) return;
+  title.textContent = 'Order';
+  body.innerHTML = `
+    <div class="dd-section">
+      <h4>Order</h4>
+      <div class="dd-field"><span class="k">Ref</span><span class="v mono">${escapeHtml(record.orderRef || '—')}</span></div>
+      <div class="dd-field"><span class="k">Status</span><span class="v"><span class="badge ${orderStatusBadge(record.status)}">${escapeHtml(record.status || '—')}</span></span></div>
+      <div class="dd-field"><span class="k">Product</span><span class="v">${escapeHtml(record.productType || '—')}</span></div>
+      <div class="dd-field"><span class="k">Provider</span><span class="v">${escapeHtml(record.provider || '—')}</span></div>
+    </div>
+    <div class="dd-section">
+      <h4>Money</h4>
+      <div class="dd-field"><span class="k">Total</span><span class="v num">${escapeHtml(fmtMoney(record.totalAmount, record.currency))}</span></div>
+      <div class="dd-field"><span class="k">Fee</span><span class="v num">${escapeHtml(fmtMoney(record.fee, record.currency))}</span></div>
+      <div class="dd-field"><span class="k">Provider cost</span><span class="v num">${escapeHtml(fmtMoney(record.providerCost, record.currency))}</span></div>
+      <div class="dd-field"><span class="k">Profit</span><span class="v num">${escapeHtml(fmtMoney(record.profitAmount, record.currency))}</span></div>
+      <div class="dd-field"><span class="k">Refund</span><span class="v num">${escapeHtml(fmtMoney(record.refundAmount, record.currency))} (${escapeHtml(record.refundStatus || 'none')})</span></div>
+    </div>
+    <div class="dd-section">
+      <h4>User</h4>
+      <div class="dd-field"><span class="k">Username</span><span class="v">${escapeHtml(record.user?.username || '—')}</span></div>
+      <div class="dd-field"><span class="k">Email</span><span class="v">${escapeHtml(record.user?.email || '—')}</span></div>
+    </div>
+    <div class="dd-section">
+      <h4>Timeline</h4>
+      <div class="dd-field"><span class="k">Created</span><span class="v">${escapeHtml(fmtDateWAT(record.createdAt))}</span></div>
+      <div class="dd-field"><span class="k">Completed</span><span class="v">${escapeHtml(fmtDateWAT(record.completedAt))}</span></div>
+      ${record.failureReason ? `<div class="dd-field"><span class="k">Failure</span><span class="v" style="color:var(--danger)">${escapeHtml(record.failureReason)}</span></div>` : ''}
+    </div>
+    <div class="dd-actions">
+      <a class="btn" href="/admin/orders.html?id=${encodeURIComponent(id)}" target="_blank" rel="noopener">
+        <i class="fa-solid fa-external-link-alt"></i> Open in Orders
+      </a>
+    </div>
+  `;
+  openDrawer();
+}
+
+function openCustomerDrawer(id, record) {
+  if (!record) return;
+  const title = document.getElementById('ddTitle');
+  const body = document.getElementById('ddBody');
+  title.textContent = 'Customer';
+  body.innerHTML = `
+    <div class="dd-section">
+      <h4>Customer</h4>
+      <div class="dd-field"><span class="k">Username</span><span class="v">${escapeHtml(record.user?.username || '—')}</span></div>
+      <div class="dd-field"><span class="k">Email</span><span class="v">${escapeHtml(record.user?.email || '—')}</span></div>
+      <div class="dd-field"><span class="k">User ID</span><span class="v mono">${escapeHtml(id)}</span></div>
+    </div>
+    <div class="dd-section">
+      <h4>Activity (${escapeHtml(record.currency || '—')})</h4>
+      <div class="dd-field"><span class="k">Orders</span><span class="v num">${fmtCount(record.orders)}</span></div>
+      <div class="dd-field"><span class="k">Spent</span><span class="v num">${escapeHtml(fmtMoney(record.spent, record.currency))}</span></div>
+      <div class="dd-field"><span class="k">Refunded</span><span class="v num">${escapeHtml(fmtMoney(record.refunded, record.currency))}</span></div>
+      <div class="dd-field"><span class="k">Net spend</span><span class="v num">${escapeHtml(fmtMoney(record.netSpend, record.currency))}</span></div>
+      <div class="dd-field"><span class="k">Last order</span><span class="v">${escapeHtml(fmtDateWAT(record.lastOrder))}</span></div>
+    </div>
+    <div class="dd-actions">
+      <a class="btn" href="/admin/users.html?id=${encodeURIComponent(id)}" target="_blank" rel="noopener">
+        <i class="fa-solid fa-external-link-alt"></i> Open user page
+      </a>
+    </div>
+  `;
+  openDrawer();
+}
+
+function initDrawer() {
+  document.getElementById('ddClose')?.addEventListener('click', closeDrawer);
+  document.getElementById('drawerScrim')?.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') closeDrawer();
+  });
+}
+
+function initTabFilters() {
+  const debouncedTxSearch = debounce(() => {
+    State.search.transactions = document.getElementById('txSearch').value.trim();
+    State.page.transactions = 1;
+    writeUrlState();
+    loadTransactions();
+  }, 350);
+  document.getElementById('txSearch')?.addEventListener('input', debouncedTxSearch);
+  document.getElementById('txStatus')?.addEventListener('change', () => {
+    State.status.transactions = document.getElementById('txStatus').value;
+    State.page.transactions = 1;
+    writeUrlState();
+    loadTransactions();
+  });
+  document.getElementById('txType')?.addEventListener('change', () => {
+    State.type = document.getElementById('txType').value;
+    State.page.transactions = 1;
+    writeUrlState();
+    loadTransactions();
+  });
+  document.getElementById('txProvider')?.addEventListener('change', () => {
+    State.provider = document.getElementById('txProvider').value;
+    State.page.transactions = 1;
+    writeUrlState();
+    loadTransactions();
+  });
+
+  const debouncedOrSearch = debounce(() => {
+    State.search.orders = document.getElementById('orSearch').value.trim();
+    State.page.orders = 1;
+    writeUrlState();
+    loadOrders();
+  }, 350);
+  document.getElementById('orSearch')?.addEventListener('input', debouncedOrSearch);
+  document.getElementById('orStatus')?.addEventListener('change', () => {
+    State.status.orders = document.getElementById('orStatus').value;
+    State.page.orders = 1;
+    writeUrlState();
+    loadOrders();
+  });
+  document.getElementById('orProduct')?.addEventListener('change', () => {
+    State.product = document.getElementById('orProduct').value;
+    State.page.orders = 1;
+    writeUrlState();
+    loadOrders();
+  });
+  document.getElementById('orProvider')?.addEventListener('change', () => {
+    State.provider = document.getElementById('orProvider').value;
+    State.page.orders = 1;
+    writeUrlState();
+    loadOrders();
+  });
+
+  document.getElementById('cuCurrency')?.addEventListener('change', () => {
+    State.page.customers = 1;
+    loadCustomers();
+  });
+
+  document.getElementById('whProvider')?.addEventListener('change', () => {
+    State.page.webhooks = 1;
+    loadWebhooks();
+  });
+  document.getElementById('whStatus')?.addEventListener('change', () => {
+    State.page.webhooks = 1;
+    loadWebhooks();
+  });
+
+  document.getElementById('faKind')?.addEventListener('change', () => {
+    State.kind = document.getElementById('faKind').value;
+    State.page.failures = 1;
+    loadFailures();
+  });
+  document.getElementById('faProvider')?.addEventListener('change', () => {
+    State.provider = document.getElementById('faProvider').value;
+    State.page.failures = 1;
+    loadFailures();
+  });
+}
+
+function scheduleAutoRefresh() {
+  if (State.refreshTimer) clearInterval(State.refreshTimer);
+  const includesToday = ['today','7d','30d','thismonth'].includes(State.preset)
+    || (!State.from && !State.to);
+  if (!includesToday) return;
+  State.refreshTimer = setInterval(() => {
+    if (document.hidden) return;
+    if (State.tab !== 'overview') return;
+    loadOverview();
+  }, 60_000);
+}
+
+function updateLastUpdated() {
+  State.lastUpdatedAt = Date.now();
+  const el = document.getElementById('lastUpdated');
+  if (!el) return;
+  const now = new Date();
+  const hh = String(now.getUTCHours() + 1).padStart(2, '0');
+  const mm = String(now.getUTCMinutes()).padStart(2, '0');
+  const ss = String(now.getUTCSeconds()).padStart(2, '0');
+  el.innerHTML = `<i class="fa-solid fa-clock"></i> Last updated ${escapeHtml(`${hh}:${mm}:${ss}`)} WAT`;
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && State.tab === 'overview') {
+    loadOverview();
+  }
+});
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!window.AdminSession?.getToken()) {
+    if (window.AdminSession?.redirectToLogin) window.AdminSession.redirectToLogin();
+    return;
+  }
+
+  readUrlState();
+  hydrateFilterControls();
+  initShell();
+  initTabs();
+  initFilterBar();
+  initTabFilters();
+  initDrawer();
+  initChartSwitch();
+
+  document.getElementById('exportBtn')?.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    toggleExportMenu();
+  });
+  document.addEventListener('click', (ev) => {
+    const m = document.getElementById('exportMenu');
+    if (!m || m.hidden) return;
+    if (ev.target.closest('#exportMenu') || ev.target.closest('#exportBtn')) return;
+    toggleExportMenu(false);
+  });
+
+  await loadMeta();
+
+  // Set tab from URL state and kick off the right loader
+  setTab(State.tab);
+
+  // Auto refresh
+  scheduleAutoRefresh();
+
+  // Re-render the "last updated" clock once per second
+  setInterval(updateLastUpdated, 60_000);
+});
+</script>
+
+<script>
+// Apply dark mode before paint — must run synchronously in <head>
+// (inlined here so this file is self-contained).
+(function () {
+  try {
+    var v = localStorage.getItem('ms-admin-reports-dark');
+    var dark = v === '1';
+    if (v == null) {
+      dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    if (dark) document.documentElement.classList.add('dark');
+  } catch (e) {}
+})();
 </script>
 </body>
 </html>

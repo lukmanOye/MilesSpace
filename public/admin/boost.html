@@ -2,1066 +2,1709 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
 <title>Boost · MilesSpace Admin</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<script src="/js/admin-session.js?v=2025-admin-dash-v4"></script>
+<link rel="stylesheet" href="/css/admin-shell.css?v=1">
+<script src="/js/admin-session.js?v=2025-admin-v5"></script>
+<script src="/js/admin-shell.js?v=2025-admin-v5" defer></script>
+<script src="/js/ui-kit.js?v=2025-admin-v5" defer></script>
 <style>
-:root{
-  --brand:#0f4c5c;--brand-deep:#0a3542;--brand-light:#14607a;
-  --gold:#f5a623;--gold-soft:#fde3ad;
-  --bg:#f4f7fb;--surface:#fff;--border:rgba(15,76,92,.09);
-  --text:#0c1f26;--text-dim:#5b7480;--text-faint:#8fa3ab;
-  --success:#16a34a;--success-bg:#e9f9ef;
-  --danger:#dc2626;--danger-bg:#fdecec;
-  --warn:#f59e0b;--warn-bg:#fef3d9;
-  --info:#2563a8;--info-bg:#e8f1fb;
-  --purple:#8b5cf6;--purple-bg:#ede9fe;
-  --radius:12px;--radius-lg:16px;
-  --shadow-sm:0 1px 2px rgba(8,42,51,.06);
-  --shadow-md:0 8px 24px -8px rgba(8,42,51,.16);
-  --sidebar-w:264px;--topbar-h:68px;
-}
-html.dark{
-  --bg:#08151a;--surface:#12262c;--border:rgba(255,255,255,.08);
-  --text:#eaf3f5;--text-dim:#9db4bb;--text-faint:#5b7480;
-  --success-bg:rgba(22,163,74,.15);--danger-bg:rgba(220,38,38,.15);
-  --warn-bg:rgba(245,158,11,.15);--info-bg:rgba(37,99,168,.18);--purple-bg:rgba(139,92,246,.18);
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden}
-::-webkit-scrollbar{width:9px;height:9px}
-::-webkit-scrollbar-thumb{background:rgba(15,76,92,.18);border-radius:99px}
-html.dark ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14)}
-:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:6px}
-.mono{font-family:'JetBrains Mono',monospace}
+/* ═════════════════════════════════════════════════════════════════
+   BOOST ADMIN — page-specific CSS. Additive on admin-shell.css.
+   ═════════════════════════════════════════════════════════════════ */
 
-/* ─── SHELL ─── */
-.app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh;transition:grid-template-columns .2s ease}
-.scrim{display:none;position:fixed;inset:0;background:rgba(5,15,20,.5);backdrop-filter:blur(2px);z-index:39}
-.scrim.show{display:block}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:18px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:11px 16px;border:none;background:none;color:var(--text-dim);font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;min-height:44px;transition:color .15s,border-color .15s;font-family:inherit}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--navy);border-bottom-color:var(--navy)}
+.tab .cnt{display:inline-block;margin-left:6px;background:var(--bg-alt);color:var(--text-dim);border-radius:99px;padding:1px 7px;font-size:10.5px;font-weight:700}
+.tab.active .cnt{background:var(--navy);color:#fff}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
 
-/* ─── SIDEBAR ─── */
-.sidebar{background:linear-gradient(180deg,var(--brand-deep),var(--brand) 70%);color:#eaf6f8;padding:20px 14px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;width:var(--sidebar-w);z-index:40}
-.brand{display:flex;align-items:center;gap:11px;padding:6px 8px 18px}
-.brand-mark{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--gold),#d97e06);display:flex;align-items:center;justify-content:center;font-size:15px;color:#0c1d22;font-weight:800}
-.brand-text strong{font-size:15px;font-weight:800;display:block}
-.brand-text span{font-size:10.5px;color:#9fd4de;text-transform:uppercase;letter-spacing:.06em}
-.nav-scroll{flex:1;overflow-y:auto;margin-top:6px}
-.nav-label{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:#6fa2ad;font-weight:700;padding:14px 10px 6px}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:9px;color:#cfe7ea;font-size:13px;font-weight:500;text-decoration:none;cursor:pointer;transition:background .15s}
-.nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
-.nav-item.active{background:rgba(245,166,35,.16);color:#ffd899;font-weight:600}
-.nav-item .ic{width:17px;text-align:center}
-.sidebar-foot{border-top:1px solid rgba(255,255,255,.08);padding-top:12px;margin-top:8px;display:flex;align-items:center;gap:10px}
-.sidebar-foot .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#25748a,#0c3d4a);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px;color:#fff}
+.dry-banner,.provider-warn{padding:10px 14px;border-radius:10px;margin-bottom:14px;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dry-banner{background:var(--danger-bg);border:1px solid var(--danger-bd);color:var(--danger)}
+.provider-warn{background:var(--danger-bg);border:1px solid var(--danger-bd);color:var(--danger);justify-content:space-between}
+.provider-warn .btn{background:var(--danger);color:#fff;border-color:var(--danger);padding:6px 10px;font-size:12px;min-height:32px;flex-shrink:0}
+.provider-warn .btn:hover{background:#a01717;border-color:#a01717}
 
-/* ─── MAIN ─── */
-.main{display:flex;flex-direction:column;min-width:0}
-.topbar{height:var(--topbar-h);position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:12px;padding:0 22px;background:rgba(255,255,255,.72);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
-html.dark .topbar{background:rgba(18,38,44,.75)}
-.hamburger{display:none;width:40px;height:40px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--brand);font-size:16px;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
-.topbar-titles{flex:1;min-width:0}
-.topbar h1{margin:0;font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.topbar .sub{font-size:11.5px;color:var(--text-dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.topbar-actions{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.provider-card{display:flex;flex-wrap:wrap;gap:14px;padding:12px 14px;background:var(--bg-alt);border:1px solid var(--border);border-radius:10px;font-size:12.5px;margin-bottom:16px;align-items:center}
+.provider-card .pr{display:flex;align-items:center;gap:6px;min-width:0}
+.provider-card strong{color:var(--text)}
+.provider-card .balance{font-variant-numeric:tabular-nums;font-weight:700}
 
-.content{padding:22px 22px 60px;max-width:1440px;width:100%;margin:0 auto;min-width:0}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;min-width:0}
+.kpi .lbl{font-size:10.5px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .val{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2;overflow-wrap:anywhere}
+.kpi .sub{font-size:11px;color:var(--text-faint);margin-top:3px}
 
-/* ─── BUTTONS ─── */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:9px 14px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--brand);font-family:inherit;transition:background .15s;min-height:38px;white-space:nowrap}
-.btn:hover:not(:disabled){background:var(--gold-soft);color:var(--brand-deep)}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn-primary{background:var(--brand);color:#fff;border-color:var(--brand)}
-.btn-primary:hover:not(:disabled){background:var(--brand-light);color:#fff}
-.btn-danger{background:var(--danger);color:#fff;border-color:var(--danger)}
-.btn-danger:hover:not(:disabled){background:#b91c1c;color:#fff}
-.btn-icon{padding:9px;width:38px;height:38px}
+.alerts-card{margin-bottom:16px;padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px}
+.alerts-card h3{font-size:14px;font-weight:800;margin:0 0 10px}
+.alert{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border-radius:9px;font-size:12.5px;line-height:1.5;margin-bottom:6px}
+.alert:last-child{margin-bottom:0}
+.alert-warn{background:var(--warn-bg);border:1px solid var(--warn-bd);color:var(--warn)}
+.alert-danger{background:var(--danger-bg);border:1px solid var(--danger-bd);color:var(--danger)}
+.alert-info{background:var(--info-bg);border:1px solid var(--info-bd);color:var(--info)}
+.alert .ic{flex-shrink:0;margin-top:1px}
+.alert .body{flex:1;min-width:0}
+.alert .body strong{display:block;margin-bottom:2px;font-weight:700}
+.alert .body .meta{font-size:11.5px;opacity:.85}
 
-/* ─── LAYOUT ─── */
-.layout{display:flex;gap:22px;align-items:flex-start}
-.side-menu{width:220px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:10px;position:sticky;top:calc(var(--topbar-h) + 16px)}
-.side-menu .item{padding:10px 12px;font-size:13px;color:var(--text-dim);border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:2px;border:none;background:none;font-family:inherit;text-align:left;width:100%;min-height:40px}
-.side-menu .item:hover{background:var(--bg);color:var(--text)}
-.side-menu .item.active{background:var(--brand);color:#fff}
-.panels{flex:1;min-width:0}
-.panel{display:none}
-.panel.active{display:block}
+.range-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.range-pill{padding:8px 14px;border-radius:99px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-dim);font-size:12px;font-weight:600;cursor:pointer;min-height:38px;transition:all .15s;font-family:inherit}
+.range-pill:hover{border-color:var(--border-strong);color:var(--text)}
+.range-pill.active{background:var(--navy);color:#fff;border-color:var(--navy)}
 
-/* ─── CARDS ─── */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow-sm);min-width:0}
-.card + .card{margin-top:16px}
-.card h3{margin:0 0 12px;font-size:14px;font-weight:800}
-.card .hint{font-size:11.5px;color:var(--text-faint);margin-bottom:12px;line-height:1.5}
+.svc-row-list{display:flex;flex-direction:column;gap:6px}
+.svc-row{background:var(--bg-card);border:1px solid var(--border);border-radius:11px;padding:12px 14px;display:grid;grid-template-columns:24px 1fr auto auto;gap:12px;align-items:center;min-width:0}
+.svc-row:hover{border-color:var(--border-strong)}
+.svc-row-cb{width:18px;height:18px;accent-color:var(--navy);cursor:pointer;margin-top:2px}
+.svc-row-main{min-width:0}
+.svc-row-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px;line-height:1.35;word-break:break-word}
+.svc-row-meta{display:flex;flex-wrap:wrap;gap:4px 8px;font-size:11.5px;color:var(--text-dim);margin-top:4px}
+.svc-row-meta span{white-space:nowrap}
+.svc-row-meta strong{color:var(--text)}
+.svc-row-right{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+.price-info{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:11px;color:var(--text-dim);min-width:0;text-align:right}
+.price-info .big{font-size:13px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
+.badge-src{font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.03em}
+.src-custom{background:var(--purple-bg);color:var(--purple)}
+.src-service{background:var(--info-bg);color:var(--info)}
+.src-global{background:var(--bg-alt);color:var(--text-dim)}
+.warn-chip{background:var(--danger-bg);color:var(--danger);font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase}
 
-/* ─── KPI ─── */
-.kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
-.kpi{padding:14px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-sm);min-width:0}
-.kpi .lbl{font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kpi .val{font-size:18px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums;word-break:break-word}
-.kpi .sub{font-size:11px;color:var(--text-faint);margin-top:4px}
+.toggle{position:relative;display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:var(--text-dim);cursor:pointer;min-height:36px;padding:0 4px;user-select:none}
+.toggle input{position:absolute;opacity:0;width:0;height:0}
+.toggle .tk{width:32px;height:18px;background:var(--border-strong);border-radius:99px;position:relative;transition:background .15s;flex-shrink:0}
+.toggle .tk::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;background:#fff;border-radius:50%;transition:transform .15s}
+.toggle input:checked + .tk{background:var(--success)}
+.toggle input:checked + .tk::after{transform:translateX(14px)}
+.toggle input:disabled + .tk{opacity:.5;cursor:not-allowed}
 
-/* ─── FILTERS ─── */
-.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center}
-.filters input,.filters select{border:1px solid var(--border);background:var(--surface);border-radius:9px;padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;min-height:38px;max-width:100%}
-.filters input[type="search"]{flex:1 1 240px;min-width:0}
-.filters input[type="date"]{min-width:0;width:auto}
-.filters .btn{flex-shrink:0}
+.bulk-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 14px;background:var(--info-bg);border:1px solid var(--info-bd);border-radius:11px;margin-bottom:12px;font-size:12.5px}
+.bulk-bar:empty{display:none}
+.bulk-bar strong{color:var(--info)}
+.bulk-bar .btn{flex:0 0 auto}
 
-/* ─── TABLES ─── */
-.table-scroll{overflow-x:auto;overflow-y:auto;max-height:640px;border-radius:var(--radius);-webkit-overflow-scrolling:touch}
-.table-hint{display:none;font-size:11px;color:var(--text-faint);padding:6px 0 0;text-align:center}
-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:880px}
-thead th{text-align:left;padding:11px 14px;color:var(--text-dim);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1;white-space:nowrap}
-tbody td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
-tbody td.wrap{white-space:normal;max-width:220px}
-tbody tr{cursor:pointer;transition:background .15s}
-tbody tr:hover{background:rgba(245,166,35,.05)}
-tbody tr:last-child td{border-bottom:none}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 4px 0;font-size:12.5px;color:var(--text-dim);flex-wrap:wrap}
+.pager .btns{display:flex;gap:6px;flex-wrap:wrap}
 
-/* ─── BADGES ─── */
-.badge{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:99px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;text-transform:capitalize}
-.badge.success{background:var(--success-bg);color:var(--success)}
-.badge.danger{background:var(--danger-bg);color:var(--danger)}
-.badge.warn{background:var(--warn-bg);color:#b3720a}
-.badge.info{background:var(--info-bg);color:var(--info)}
-.badge.purple{background:var(--purple-bg);color:var(--purple)}
-.badge.neutral{background:var(--bg);color:var(--text-dim);border:1px solid var(--border)}
-
-/* ─── STATES ─── */
-.empty-state{text-align:center;padding:52px 20px;color:var(--text-faint)}
-.empty-state .ic{font-size:28px;margin-bottom:8px;display:block}
-.unavailable-box{text-align:center;padding:24px 14px;color:var(--text-faint)}
-.unavailable-box .ic{font-size:22px;display:block;margin-bottom:6px}
-.unavailable-box button{margin-top:10px;border:1px solid var(--border);background:var(--surface);color:var(--brand);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer}
-
-.skel{background:linear-gradient(90deg,var(--bg) 25%,var(--border) 50%,var(--bg) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;height:12px;display:block}
-@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-
-.pagination{display:flex;justify-content:space-between;align-items:center;padding:14px 4px 0;font-size:12.5px;color:var(--text-dim);flex-wrap:wrap;gap:8px}
-.pagination button{border:1px solid var(--border);background:var(--surface);color:var(--brand);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;min-height:36px}
-.pagination button:disabled{opacity:.45;cursor:not-allowed}
-
-/* ─── DRAWER ─── */
-.drawer-scrim{position:fixed;inset:0;background:rgba(5,15,20,.5);backdrop-filter:blur(2px);z-index:300;opacity:0;pointer-events:none;transition:opacity 220ms}
-.drawer-scrim.show{opacity:1;pointer-events:auto}
-.drawer{position:fixed;top:0;right:0;height:100vh;width:min(720px,100vw);background:var(--bg);z-index:301;box-shadow:var(--shadow-md);transform:translateX(100%);transition:transform 260ms cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
-.drawer.open{transform:translateX(0)}
-.dh{display:flex;align-items:center;gap:12px;padding:18px 20px;background:linear-gradient(135deg,var(--brand),var(--brand-deep));color:#fff;flex-shrink:0}
-.dh .ic{width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.dh .titles{flex:1;min-width:0}
-.dh h2{margin:0;font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dh .sub{font-size:11.5px;color:rgba(255,255,255,.7);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dh .close{width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;flex-shrink:0}
-.db{flex:1;overflow-y:auto;padding:18px 20px 40px}
-.dd-section{margin-bottom:18px}
-.dd-section h4{margin:0 0 8px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);padding-bottom:6px;border-bottom:1px solid var(--border)}
-.dd-field{display:flex;justify-content:space-between;gap:10px;padding:8px 0;font-size:12.5px;border-bottom:1px dashed var(--border)}
-.dd-field:last-child{border-bottom:none}
-.dd-field .k{color:var(--text-dim);font-weight:600;flex-shrink:0;min-width:110px}
-.dd-field .v{font-weight:700;text-align:right;word-break:break-word;overflow-wrap:anywhere}
-.dd-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding:12px;border-radius:12px;background:var(--surface);border:1px solid var(--border)}
-.dd-actions .btn{flex:1 1 auto;min-width:130px}
-
-/* ─── MODAL ─── */
-.modal-scrim{position:fixed;inset:0;background:rgba(5,15,20,.6);backdrop-filter:blur(3px);z-index:400;display:none;align-items:center;justify-content:center;padding:14px}
-.modal-scrim.show{display:flex}
-.modal{background:var(--surface);border-radius:16px;max-width:560px;width:100%;max-height:92vh;box-shadow:var(--shadow-md);overflow:hidden;display:flex;flex-direction:column}
-.modal h3{margin:0;padding:16px 20px;font-size:15px;font-weight:800;border-bottom:1px solid var(--border);flex-shrink:0}
-.modal .body{padding:16px 20px;overflow-y:auto;flex:1}
-.modal .body label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;margin-top:12px}
-.modal .body label:first-child{margin-top:0}
-.modal .body input,.modal .body select,.modal .body textarea{width:100%;border:1px solid var(--border);border-radius:9px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--surface);color:var(--text);outline:none;min-height:40px}
-.modal .body textarea{min-height:80px;resize:vertical}
-.modal .body .cbrow{display:flex;gap:10px;align-items:center;padding:8px 0}
-.modal .body .cbrow input{width:auto;min-height:0}
-.modal .foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid var(--border);flex-shrink:0}
-.modal .foot .btn{flex:1}
-@media(min-width:500px){.modal .foot .btn{flex:0 1 auto;min-width:110px}}
-
-/* ─── TOASTS ─── */
-.toast-stack{position:fixed;bottom:22px;right:14px;left:14px;display:flex;flex-direction:column;gap:10px;z-index:500;pointer-events:none;align-items:flex-end}
-@media(min-width:640px){.toast-stack{left:auto;max-width:380px}}
-.toast{background:#0c1f26;color:#fff;padding:12px 16px;border-radius:11px;font-size:12.8px;font-weight:600;box-shadow:var(--shadow-md);border-left:3px solid var(--gold);pointer-events:auto;max-width:100%;animation:tin .22s ease both}
-.toast.success{border-left-color:var(--success)}
-.toast.error{border-left-color:var(--danger)}
-@keyframes tin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-
-/* ─── SETTINGS FORM ─── */
-.cfg-form{display:grid;gap:14px;max-width:520px;min-width:0}
+.cfg-form{display:grid;gap:14px;max-width:560px}
 .cfg-form label{display:block;font-size:12.5px;font-weight:600;color:var(--text)}
-.cfg-form input[type="number"],.cfg-form input[type="text"]{margin-top:6px;width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;font-size:14px;background:var(--surface);color:var(--text);min-height:40px}
-.cfg-form .row-inline{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px dashed var(--border)}
-.cfg-form .row-inline input{width:auto;margin:0}
+.cfg-form input[type="number"]{margin-top:6px;width:100%;padding:10px 12px;border:1px solid var(--border-strong);border-radius:9px;font-size:14px;background:var(--bg-card);color:var(--text);min-height:42px}
+.cfg-form .row-inline{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px dashed var(--border);flex-wrap:wrap}
+.cfg-form .row-inline input[type="checkbox"]{width:18px;height:18px;accent-color:var(--navy);cursor:pointer;flex-shrink:0}
+.cfg-form .row-inline span{font-size:13px;font-weight:500}
+.cfg-missing{background:var(--warn-bg);border:1px solid var(--warn-bd);color:var(--warn);padding:10px 12px;border-radius:9px;font-size:12px;line-height:1.5;margin-bottom:12px}
 
-/* ══════════════════════════════════════════════════════════════
-   RESPONSIVE
-   ══════════════════════════════════════════════════════════════ */
+.save-bar{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom,0px));background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-top:16px;box-shadow:var(--sh-md);display:flex;align-items:center;gap:10px;flex-wrap:wrap;z-index:5}
+.save-bar .state{flex:1;min-width:0;font-size:12px;color:var(--text-dim)}
+.save-bar .state strong{color:var(--warn)}
+.save-bar .btn{flex:0 0 auto}
 
-@media(max-width:1024px){
-  .kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .side-menu{width:200px}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.filter-row input[type="search"]{flex:1 1 220px;padding:9px 12px;border:1px solid var(--border-strong);border-radius:9px;font-size:13px;background:var(--bg-card);color:var(--text);min-height:44px;min-width:0}
+.filter-row select{padding:9px 30px 9px 12px;border:1px solid var(--border-strong);border-radius:9px;font-size:13px;background-color:var(--bg-card);color:var(--text);min-height:44px;cursor:pointer;min-width:0}
+.filter-row input[type="date"]{padding:9px 12px;border:1px solid var(--border-strong);border-radius:9px;font-size:13px;background:var(--bg-card);color:var(--text);min-height:44px;min-width:0;-webkit-appearance:none;appearance:none}
+
+.orders-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:880px}
+.orders-table thead tr{text-align:left;color:var(--text-faint);font-size:11px;text-transform:uppercase}
+.orders-table th{padding:10px;font-weight:700;white-space:nowrap}
+.orders-table td{padding:10px;border-bottom:1px solid var(--border);vertical-align:top}
+.orders-table tbody tr{cursor:pointer}
+.orders-table tbody tr:hover{background:var(--bg-alt)}
+
+.attention-card{background:var(--purple-bg);border:1px solid var(--purple-bd);border-radius:12px;padding:12px 14px;margin-bottom:8px;font-size:12.5px}
+.attention-card .r1{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.attention-card .ref{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--purple);flex:1;min-width:0;word-break:break-all}
+.attention-card .svc{font-weight:700;margin-bottom:4px}
+.attention-card .meta{font-size:11.5px;color:var(--purple);opacity:.9;margin-bottom:8px;line-height:1.5}
+.attention-card button{width:100%;padding:9px;border-radius:8px;background:var(--purple);color:#fff;border:none;font-size:12px;font-weight:600;cursor:pointer;min-height:40px}
+
+.verify-block{background:var(--warn-bg);border:1px solid var(--warn-bd);border-radius:9px;padding:10px 12px;font-size:12px;color:var(--warn);line-height:1.5;margin-bottom:10px}
+.verify-block label{display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-weight:500}
+.verify-block input[type="checkbox"]{width:16px;height:16px;margin-top:1px;flex-shrink:0;accent-color:var(--warn);cursor:pointer}
+
+.stale-hint{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-faint);margin-bottom:8px;opacity:0;transition:opacity .2s}
+.stale-hint.show{opacity:1}
+
+@media (max-width:900px){
+  .svc-row{grid-template-columns:24px 1fr;gap:8px 12px}
+  .svc-row-meta{grid-column:2}
+  .price-info{grid-column:2;align-items:flex-start;text-align:left}
+  .svc-row-right{grid-column:1 / -1;justify-content:flex-start;border-top:1px solid var(--border);padding-top:8px;margin-top:2px;gap:6px}
+  .svc-row-right .btn{min-height:38px}
 }
-
-@media(max-width:900px){
-  .app{grid-template-columns:1fr}
-  .sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);transition:transform .25s ease;box-shadow:var(--shadow-md)}
-  .sidebar.open{transform:translateX(0)}
-  .hamburger{display:inline-flex}
-  .layout{flex-direction:column;gap:14px}
-  .side-menu{width:100%;position:static;display:flex;flex-wrap:wrap;gap:6px;padding:8px}
-  .side-menu .item{flex:1 1 calc(50% - 6px);min-width:130px;justify-content:center;margin-bottom:0}
+@media (max-width:768px){
+  .orders-table{min-width:0}
+  .orders-table thead{display:none}
+  .orders-table,
+  .orders-table tbody,
+  .orders-table tr,
+  .orders-table td{display:block;width:100%}
+  .orders-table tbody tr{border:1px solid var(--border);border-radius:11px;padding:12px;margin-bottom:8px;background:var(--bg-card);cursor:pointer}
+  .orders-table tbody tr:last-child{margin-bottom:0}
+  .orders-table tbody td{padding:4px 0;border:none;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;font-size:12.5px;min-width:0;word-break:break-word}
+  .orders-table tbody td[data-cell]::before{content:attr(data-cell);color:var(--text-faint);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;flex-shrink:0;min-width:74px}
+  .orders-table tbody td[colspan]::before{display:none}
+  .orders-table tbody td[colspan]{display:block;text-align:center;padding:20px 8px;font-size:12.5px}
 }
-
-@media(max-width:640px){
-  :root{--topbar-h:60px}
-  .content{padding:14px 12px 80px}
-  .topbar{padding:0 12px;gap:8px}
-  .topbar h1{font-size:14px}
-  .topbar .sub{display:none}
-  .topbar-actions .btn span{display:none}
-  .topbar-actions .btn{padding:9px 10px}
-  .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-  .kpi{padding:12px 14px}
+@media (max-width:640px){
+  .tab{padding:10px 12px;font-size:12.5px;min-height:42px}
+  .tab .cnt{font-size:10px;padding:1px 6px}
+  .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .kpi{padding:10px 12px}
   .kpi .val{font-size:16px}
-  .card{padding:14px 14px;border-radius:14px}
-  .drawer{width:100vw}
-  .drawer .db{padding:14px 16px 40px}
-  .drawer .dh{padding:14px 16px}
-  .table-hint{display:block}
-  .filters{flex-direction:column;align-items:stretch}
-  .filters input,.filters select,.filters .btn{width:100%}
-  .filters input[type="search"]{flex:none}
-  .modal .foot{flex-direction:column}
-  .modal .foot .btn{width:100%}
-  .pagination{flex-direction:column;align-items:stretch}
-  .pagination div:last-child{display:flex;gap:8px}
-  .pagination button{flex:1;margin:0}
-  .dd-field{flex-direction:column;gap:2px}
-  .dd-field .k{min-width:0;font-size:11.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em}
-  .dd-field .v{text-align:left}
+  .kpi .lbl{font-size:9.5px}
+  .alerts-card{padding:12px}
+  .alert{padding:8px 10px;font-size:12px}
+  .alert .body .meta{font-size:11px;opacity:1}
+  .provider-card{gap:8px}
+  .provider-card .pr{flex-basis:100%}
+  .filter-row input[type="search"],.filter-row select,.filter-row input[type="date"],.filter-row > .btn{width:100%;flex:1 1 100%}
+  .pager{flex-direction:column;align-items:stretch}
+  .pager .btns{width:100%}
+  .pager .btns .btn{flex:1;min-height:42px}
+  .save-bar{flex-direction:column;align-items:stretch}
+  .save-bar .btn{width:100%;min-height:44px}
+  .svc-row{padding:12px}
+  .price-info{align-items:flex-start;text-align:left}
+  .price-info .big{font-size:14px}
+  .attention-card button{min-height:44px}
+  .form-row input,.form-row select,.form-row textarea{min-height:44px}
+  .verify-block input[type="checkbox"]{width:20px;height:20px}
 }
-
-@media(max-width:380px){
-  .kpi-grid{grid-template-columns:1fr}
-  .side-menu .item{flex:1 1 100%}
+@media (max-width:359px){.kpi-grid{grid-template-columns:1fr}}
+@media (max-width:900px){
+  .detail-drawer{width:100vw !important;max-width:100vw !important;border-radius:0 !important;border-left:none !important}
+  .detail-drawer .dd-body{-webkit-overflow-scrolling:touch;padding-bottom:90px}
+  .detail-drawer .dd-actions{position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--border);z-index:2;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px)) !important}
+  .detail-drawer .dd-actions .btn{flex:1 1 auto;min-width:130px;min-height:44px}
 }
+@media (max-width:640px){body,.content{overflow-x:hidden}}
 </style>
 </head>
 <body>
-<div class="app" id="appRoot">
-
-<!-- ═══ Sidebar ═══ -->
-<aside class="sidebar" id="sidebar">
-    <div class="brand">
-        <div class="brand-mark">M</div>
-        <div class="brand-text"><strong>MilesSpace</strong><span>Admin</span></div>
-    </div>
-    <nav class="nav-scroll">
-        <div class="nav-label">Overview</div>
-        <a href="/admin/dashboard.html" class="nav-item"><span class="ic">📊</span>Dashboard</a>
-        <div class="nav-label">Services</div>
-        <a href="/admin/gift-cards.html" class="nav-item"><span class="ic">🎁</span>Gift Cards</a>
-        <a href="/admin/airtime-data.html" class="nav-item"><span class="ic">📶</span>Airtime &amp; Data</a>
-        <a href="/admin/boost.html" class="nav-item active"><span class="ic">📈</span>Boost</a>
-        <div class="nav-label">System</div>
-        <a href="/admin/settings.html" class="nav-item"><span class="ic">⚙️</span>Settings</a>
-    </nav>
-    <div class="sidebar-foot">
-        <div class="av" id="adminAvatar">DA</div>
-        <div><strong id="adminName" style="font-size:12.5px">Admin</strong><div id="adminRole" style="font-size:10.5px;color:#8fbac2">Loading…</div></div>
-    </div>
-</aside>
-<div class="scrim" id="scrim"></div>
-
-<!-- ═══ Main ═══ -->
-<div class="main">
-    <header class="topbar">
-        <button class="hamburger" id="hamburger" aria-label="Open menu"><i class="fas fa-bars"></i></button>
-        <div class="topbar-titles">
-            <h1>📈 Boost</h1>
-            <div class="sub">Social boosting operations across SMMWiz</div>
-        </div>
-        <div class="topbar-actions">
-            <button class="btn" id="refreshBtn" title="Refresh"><i class="fas fa-rotate-right"></i><span>Refresh</span></button>
-            <button class="btn btn-primary" id="syncBtn" title="Sync now"><i class="fas fa-arrows-rotate"></i><span>Sync</span></button>
-        </div>
-    </header>
-
-    <div class="content">
-        <div class="layout">
-            <aside class="side-menu" id="boostMenu">
-                <button class="item active" data-section="overview"><i class="fas fa-chart-pie" style="width:16px"></i> Overview</button>
-                <button class="item" data-section="orders"><i class="fas fa-receipt" style="width:16px"></i> Orders</button>
-                <button class="item" data-section="services"><i class="fas fa-list" style="width:16px"></i> Services</button>
-                <button class="item" data-section="settings"><i class="fas fa-cog" style="width:16px"></i> Settings</button>
-            </aside>
-
-            <div class="panels">
-                <!-- ══════ OVERVIEW ══════ -->
-                <div class="panel active" id="panel-overview">
-                    <div class="kpi-grid">
-                        <div class="kpi"><div class="lbl">Total Orders</div><div class="val" id="kpi-total">—</div></div>
-                        <div class="kpi"><div class="lbl">Pending</div><div class="val" id="kpi-pending" style="color:#b3720a">—</div></div>
-                        <div class="kpi"><div class="lbl">Processing</div><div class="val" id="kpi-processing" style="color:var(--info)">—</div></div>
-                        <div class="kpi"><div class="lbl">Completed</div><div class="val" id="kpi-completed" style="color:var(--success)">—</div></div>
-                        <div class="kpi"><div class="lbl">Failed</div><div class="val" id="kpi-failed" style="color:var(--danger)">—</div></div>
-                        <div class="kpi"><div class="lbl">Refunded</div><div class="val" id="kpi-refunded" style="color:var(--purple)">—</div></div>
-                        <div class="kpi"><div class="lbl">Revenue (NGN)</div><div class="val" id="kpi-rev-ngn">—</div></div>
-                        <div class="kpi"><div class="lbl">Revenue (USD)</div><div class="val" id="kpi-rev-usd">—</div></div>
-                        <div class="kpi"><div class="lbl">Cost (NGN)</div><div class="val" id="kpi-cost-ngn">—</div></div>
-                        <div class="kpi"><div class="lbl">Cost (USD)</div><div class="val" id="kpi-cost-usd">—</div></div>
-                        <div class="kpi"><div class="lbl">Profit (NGN)</div><div class="val" id="kpi-profit-ngn" style="color:var(--success)">—</div></div>
-                        <div class="kpi"><div class="lbl">Profit (USD)</div><div class="val" id="kpi-profit-usd" style="color:var(--success)">—</div></div>
-                    </div>
-                    <div class="card">
-                        <h3>Recent Orders</h3>
-                        <div class="table-scroll">
-                            <table>
-                                <thead><tr><th>Order</th><th>Customer</th><th>Service</th><th>Qty</th><th>Amount</th><th>Status</th><th>Created</th></tr></thead>
-                                <tbody id="recentOrdersBody"></tbody>
-                            </table>
-                        </div>
-                        <div class="table-hint">↔ Swipe to see more columns</div>
-                    </div>
-                </div>
-
-                <!-- ══════ ORDERS ══════ -->
-                <div class="panel" id="panel-orders">
-                    <div class="card">
-                        <h3>Boost Orders</h3>
-                        <div class="filters">
-                            <input type="search" id="fSearch" placeholder="Search order, service, email…">
-                            <select id="fStatus">
-                                <option value="all">All Statuses</option>
-                                <option value="pending">Pending</option>
-                                <option value="processing">Processing</option>
-                                <option value="in_progress">In Progress</option>
-                                <option value="partial">Partial</option>
-                                <option value="completed">Completed</option>
-                                <option value="failed">Failed</option>
-                                <option value="refunded">Refunded</option>
-                                <option value="cancelled">Cancelled</option>
-                                <option value="provider_unknown">Provider Unknown</option>
-                            </select>
-                            <select id="fCurrency">
-                                <option value="all">All Currencies</option>
-                                <option value="NGN">NGN</option>
-                                <option value="USD">USD</option>
-                            </select>
-                            <input type="date" id="fFrom">
-                            <input type="date" id="fTo">
-                            <button class="btn btn-primary" id="applyBtn"><i class="fas fa-filter"></i> Apply</button>
-                            <button class="btn" id="clearBtn">Clear</button>
-                        </div>
-                        <div class="table-scroll">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Order</th>
-                                        <th>Customer</th>
-                                        <th>Service</th>
-                                        <th>Qty</th>
-                                        <th>Amount</th>
-                                        <th>Cost</th>
-                                        <th>Profit</th>
-                                        <th>Status</th>
-                                        <th>Provider ID</th>
-                                        <th>Created</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="ordersBody"></tbody>
-                            </table>
-                        </div>
-                        <div class="table-hint">↔ Swipe to see more columns</div>
-                        <div class="pagination">
-                            <div id="pageInfo">—</div>
-                            <div>
-                                <button id="prevBtn" disabled>Previous</button>
-                                <button id="nextBtn" disabled>Next</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ══════ SERVICES ══════ -->
-                <div class="panel" id="panel-services">
-                    <div class="card">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap">
-                            <h3 style="margin:0">Boost Services</h3>
-                            <button class="btn btn-primary" id="syncServicesBtn"><i class="fas fa-arrows-rotate"></i> Sync from SMMWiz</button>
-                        </div>
-                        <div class="hint">Only <strong>active</strong> and <strong>visible</strong> services are shown to customers. Import from SMMWiz, then toggle each service on.</div>
-                        <div class="table-scroll">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Provider ID</th>
-                                        <th>Name</th>
-                                        <th>Platform</th>
-                                        <th>Category</th>
-                                        <th>Rate (USD/1k)</th>
-                                        <th>Markup</th>
-                                        <th>Min</th>
-                                        <th>Max</th>
-                                        <th>Active</th>
-                                        <th>Visible</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="servicesBody"></tbody>
-                            </table>
-                        </div>
-                        <div class="table-hint">↔ Swipe to see more columns</div>
-                    </div>
-                </div>
-
-                <!-- ══════ SETTINGS ══════ -->
-                <div class="panel" id="panel-settings">
-                    <div class="card">
-                        <h3>Boost Configuration</h3>
-                        <div class="hint">These values affect every new boost order. Existing orders keep their snapshot.</div>
-                        <div class="cfg-form">
-                            <label>USD → NGN rate
-                                <input type="number" id="cfgUsdRate" step="0.01">
-                            </label>
-                            <label>Default markup (%)
-                                <input type="number" id="cfgMarkup" step="0.01">
-                            </label>
-                            <div class="row-inline">
-                                <input type="checkbox" id="cfgEnabled">
-                                <span style="font-size:13px">Boost system enabled</span>
-                            </div>
-                            <div class="row-inline">
-                                <input type="checkbox" id="cfgAllowNgn">
-                                <span style="font-size:13px">Allow NGN payments</span>
-                            </div>
-                            <div class="row-inline">
-                                <input type="checkbox" id="cfgAllowUsd">
-                                <span style="font-size:13px">Allow USD payments</span>
-                            </div>
-                            <div style="font-size:12px;color:var(--text-dim)">SMMWiz API key: <strong id="cfgSmmwiz">—</strong></div>
-                            <div>
-                                <button class="btn btn-primary" id="saveCfgBtn" style="width:100%"><i class="fas fa-save"></i> Save settings</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </div>
-</div>
-</div>
-
-<div class="drawer-scrim" id="drawerScrim"></div>
-<aside class="drawer" id="drawer" role="dialog" aria-modal="true">
-    <div class="dh">
-        <div class="ic" id="dIcon">📈</div>
-        <div class="titles"><h2 id="dTitle">Order</h2><div class="sub" id="dSub"></div></div>
-        <button class="close" id="dClose" aria-label="Close">✕</button>
-    </div>
-    <div class="db" id="dBody"></div>
-</aside>
-
-<div class="modal-scrim" id="modalScrim">
-    <div class="modal" role="dialog" aria-modal="true">
-        <h3 id="mTitle">Action</h3>
-        <div class="body" id="mBody"></div>
-        <div class="foot">
-            <button class="btn" id="mCancel">Cancel</button>
-            <button class="btn btn-primary" id="mConfirm">Confirm</button>
-        </div>
-    </div>
-</div>
-
+<div class="app" id="appRoot"></div>
 <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
 <script>
 'use strict';
 
-const API = {
-    overview:    '/api/admin/boost/overview',
-    orders:      '/api/admin/boost/orders',
-    order:       id => `/api/admin/boost/orders/${encodeURIComponent(id)}`,
-    orderStatus: id => `/api/admin/boost/orders/${encodeURIComponent(id)}/status`,
-    orderRefund: id => `/api/admin/boost/orders/${encodeURIComponent(id)}/refund`,
-    orderNote:   id => `/api/admin/boost/orders/${encodeURIComponent(id)}/note`,
-    sync:        '/api/admin/boost/sync',
-    services:    '/api/admin/boost/services',
-    service:     id => `/api/admin/boost/services/${encodeURIComponent(id)}`,
-    syncServices:'/api/admin/boost/services/sync',
-    config:      '/api/admin/boost/config',
-    me:          '/api/admin/me'
-};
+/* ═════════════════════════════════════════════════════════════════
+   PRIMITIVES — defined before anything below uses them.
+   ═════════════════════════════════════════════════════════════════ */
 
-const CURRENCY_SYMBOLS = { NGN: '₦', USD: '$' };
-
-const State = {
-    page: 1, limit: 25, totalPages: 1,
-    filters: {},
-    currentOrder: null
-};
-
-function escapeHtml(s) {
-    if (s === null || s === undefined) return '';
-    return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+function debounce(fn, ms) {
+  let t;
+  return function () {
+    const args = arguments, ctx = this;
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(ctx, args), ms || 250);
+  };
 }
-function formatMoney(v, ccy) {
-    if (v === null || v === undefined || v === '') return null;
+
+function perf(label, startedAt) {
+  if (!startedAt) return () => {};
+  return () => {
+    const ms = Date.now() - startedAt;
+    if (ms > 2500) console.warn('[boost-slow] ' + label + ' took ' + ms + 'ms');
+  };
+}
+
+function _ensureToastFallback() {
+  if (typeof window.MS === 'object' && typeof window.MS.toast === 'function') return;
+  window.MS = window.MS || {};
+  window.MS.toast = function (msg, kind) {
+    const stack = document.getElementById('toastStack');
+    if (!stack) return;
+    const el = document.createElement('div');
+    el.className = 'toast ' + (kind === 'success' ? 'success' : kind === 'error' ? 'error' : kind === 'warn' ? 'warn' : 'info');
+    el.textContent = msg;
+    stack.appendChild(el);
+    setTimeout(() => el.remove(), 3600);
+  };
+  window.MS.confirmModal = window.MS.confirmModal || async function (o) {
+    return window.confirm((o && o.title ? o.title + '\n\n' : '') + ((o && o.message) || 'Are you sure?'));
+  };
+  window.MS.reasonModal = window.MS.reasonModal || async function (o) {
+    const r = prompt((o && o.title ? o.title + '\n\n' : '') + ((o && o.message) || 'Reason:'));
+    return r && r.trim().length >= 4 ? r.trim() : null;
+  };
+}
+_ensureToastFallback();
+
+/* ═════════════════════════════════════════════════════════════════
+   Utility
+   ═════════════════════════════════════════════════════════════════ */
+
+const U = {
+  esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  },
+  money(v, c) {
+    if (v == null || v === '') return '—';
     const n = Number(v);
-    if (!Number.isFinite(n)) return null;
-    const c = String(ccy || '').toUpperCase();
-    return (CURRENCY_SYMBOLS[c] || (c ? c + ' ' : '')) + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-function formatNumber(v) {
-    if (v === null || v === undefined || v === '') return null;
+    if (!isFinite(n)) return '—';
+    const sym = String(c || '').toUpperCase() === 'USD' ? '$' : '₦';
+    return sym + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  },
+  int(v) {
+    if (v == null) return '—';
     const n = Number(v);
-    return Number.isFinite(n) ? n.toLocaleString('en-US') : null;
-}
-function timeAgo(iso) {
+    return isFinite(n) ? n.toLocaleString('en-US') : '—';
+  },
+  dt(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? '—'
+      : d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  },
+  ago(iso) {
     if (!iso) return '—';
     const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
     if (s < 60) return 'just now';
     if (s < 3600) return Math.floor(s / 60) + 'm ago';
     if (s < 86400) return Math.floor(s / 3600) + 'h ago';
-    if (s < 604800) return Math.floor(s / 86400) + 'd ago';
-    return new Date(iso).toLocaleDateString();
-}
-function formatDateTime(iso) {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
-function statusBadge(status) {
-    const s = String(status || '').toLowerCase();
+    return Math.floor(s / 86400) + 'd ago';
+  },
+  statusClass(s) {
+    s = String(s || '').toLowerCase();
     if (s === 'completed') return 'success';
     if (s === 'failed' || s === 'cancelled') return 'danger';
-    if (s === 'refunded') return 'info';
+    if (s === 'refunded' || s === 'partial_refunded') return 'info';
     if (s === 'provider_unknown' || s === 'manual_review') return 'purple';
-    if (['pending','processing','in_progress','partial'].includes(s)) return 'warn';
+    if (['pending', 'processing', 'in_progress', 'partial', 'awaiting_payment'].includes(s)) return 'warn';
     return 'neutral';
-}
-function showToast(msg, type = 'info') {
-    const stack = document.getElementById('toastStack');
-    const el = document.createElement('div');
-    el.className = 'toast ' + type;
-    el.textContent = msg;
-    stack.appendChild(el);
-    setTimeout(() => el.remove(), 3400);
-}
+  }
+};
 
-async function api(url, opts = {}) {
-    try {
-        const res = await AdminSession.fetch(url, opts);
-        let json = null;
-        try { json = await res.json(); } catch {}
-        if (!res.ok || json?.success === false) {
-            return { ok: false, status: res.status, code: json?.code, error: json?.error || json?.message || 'Request failed', missing: json?.missing };
-        }
-        return { ok: true, data: json };
-    } catch (e) {
-        return { ok: false, status: 0, code: 'NETWORK_ERROR', error: 'Network error' };
-    }
-}
+/* ═════════════════════════════════════════════════════════════════
+   State
+   ═════════════════════════════════════════════════════════════════ */
 
-function showSection(name) {
-    document.querySelectorAll('#boostMenu .item').forEach(el => el.classList.toggle('active', el.dataset.section === name));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('panel-' + name)?.classList.add('active');
-    if (name === 'overview') loadOverview();
-    if (name === 'orders') loadOrders();
-    if (name === 'services') loadServices();
-    if (name === 'settings') loadConfig();
-    closeSidebarMobile();
-}
+const State = {
+  tab: 'overview',
+  range: 'today',
+  overview: null,
+  overviewSig: null,
+  overviewFetchedAt: 0,
+  orders: { page: 1, limit: 25, totalPages: 1, count: 0, filters: {}, list: [], sig: null, fetchedAt: 0 },
+  services: { page: 1, limit: 50, totalPages: 1, count: 0, filters: {}, list: [], selected: new Set(), sig: null, fetchedAt: 0 },
+  config: null,
+  originalConfig: null,
+  pendingConfigChanges: {},
+  provider: { balance: null, currency: null, configured: false, dry_run: false, loading: true },
+  alerts: null,
+  alertsLoadedAt: 0,
+  recentOrders: [],
+  attentionOrders: [],
+  orderCache: new Map()
+};
 
-// ─── Sidebar (mobile) ───
-function openSidebarMobile() {
-    document.getElementById('sidebar').classList.add('open');
-    document.getElementById('scrim').classList.add('show');
-}
-function closeSidebarMobile() {
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('scrim').classList.remove('show');
-}
+const API = {
+  overview:      '/api/admin/boost/overview',
+  orders:        '/api/admin/boost/orders',
+  order:         id => '/api/admin/boost/orders/' + encodeURIComponent(id),
+  orderStatus:   id => '/api/admin/boost/orders/' + encodeURIComponent(id) + '/status',
+  orderRefund:   id => '/api/admin/boost/orders/' + encodeURIComponent(id) + '/refund',
+  orderNote:     id => '/api/admin/boost/orders/' + encodeURIComponent(id) + '/note',
+  orderRecheck:  id => '/api/admin/boost/orders/' + encodeURIComponent(id) + '/recheck',
+  sync:          '/api/admin/boost/sync',
+  services:      '/api/admin/boost/services',
+  service:       id => '/api/admin/boost/services/' + encodeURIComponent(id),
+  servicesBulk:  '/api/admin/boost/services/bulk',
+  servicesSync:  '/api/admin/boost/services/sync',
+  provider:      '/api/admin/boost/provider',
+  alerts:        '/api/admin/boost/alerts',
+  config:        '/api/admin/boost/config'
+};
 
-// ─── Overview ───
-async function loadOverview() {
-    const { ok, data, error } = await api(API.overview);
-    if (!ok) {
-        ['kpi-total','kpi-pending','kpi-processing','kpi-completed','kpi-failed','kpi-refunded',
-         'kpi-rev-ngn','kpi-rev-usd','kpi-cost-ngn','kpi-cost-usd','kpi-profit-ngn','kpi-profit-usd']
-            .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '—'; });
-        document.getElementById('recentOrdersBody').innerHTML =
-            `<tr><td colspan="7"><div class="unavailable-box"><span class="ic">⚠️</span>${escapeHtml(error)}</div></td></tr>`;
-        return;
-    }
-    const o = data.overview || {};
-    document.getElementById('kpi-total').textContent = formatNumber(o.total) ?? '0';
-    document.getElementById('kpi-pending').textContent = formatNumber(o.pending) ?? '0';
-    document.getElementById('kpi-processing').textContent = formatNumber(o.processing) ?? '0';
-    document.getElementById('kpi-completed').textContent = formatNumber(o.completed) ?? '0';
-    document.getElementById('kpi-failed').textContent = formatNumber(o.failed) ?? '0';
-    document.getElementById('kpi-refunded').textContent = formatNumber(o.refunded) ?? '0';
-    document.getElementById('kpi-rev-ngn').textContent = o.summaryAvailable ? (formatMoney(o.revenueNgn, 'NGN') || '—') : '—';
-    document.getElementById('kpi-rev-usd').textContent = o.summaryAvailable ? (formatMoney(o.revenueUsd, 'USD') || '—') : '—';
-    document.getElementById('kpi-cost-ngn').textContent = o.summaryAvailable ? (formatMoney(o.costNgn, 'NGN') || '—') : '—';
-    document.getElementById('kpi-cost-usd').textContent = o.summaryAvailable ? (formatMoney(o.costUsd, 'USD') || '—') : '—';
-    document.getElementById('kpi-profit-ngn').textContent = o.summaryAvailable ? (formatMoney(o.profitNgn, 'NGN') || '—') : '—';
-    document.getElementById('kpi-profit-usd').textContent = o.summaryAvailable ? (formatMoney(o.profitUsd, 'USD') || '—') : '—';
+/* ═════════════════════════════════════════════════════════════════
+   Network
+   ═════════════════════════════════════════════════════════════════ */
 
-    const r = await api(API.orders + '?limit=8');
-    const tb = document.getElementById('recentOrdersBody');
-    if (!r.ok) { tb.innerHTML = `<tr><td colspan="7"><div class="unavailable-box">Unable to load recent orders</div></td></tr>`; return; }
-    const rows = r.data.orders || [];
-    if (!rows.length) { tb.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="ic">📭</span>No boost orders yet</div></td></tr>`; return; }
-    tb.innerHTML = rows.map(o => `
-        <tr data-id="${escapeHtml(o.id)}">
-            <td><span class="mono" style="font-size:11px">${escapeHtml(o.order_ref)}</span></td>
-            <td>${escapeHtml(o.user?.username || '—')}</td>
-            <td class="wrap">${escapeHtml(o.service_name || '—')}</td>
-            <td>${formatNumber(o.quantity) || '—'}</td>
-            <td>${formatMoney(o.total_amount, o.currency) || '—'}</td>
-            <td><span class="badge ${statusBadge(o.status)}">${escapeHtml(o.status)}</span></td>
-            <td title="${escapeHtml(formatDateTime(o.created_at))}">${escapeHtml(timeAgo(o.created_at))}</td>
-        </tr>
-    `).join('');
-    tb.querySelectorAll('tr[data-id]').forEach(tr => tr.addEventListener('click', () => openOrder(tr.dataset.id)));
-}
-
-// ─── Orders ───
-function buildQuery() {
-    const q = new URLSearchParams();
-    q.set('page', State.page);
-    q.set('limit', State.limit);
-    const f = State.filters;
-    if (f.search) q.set('search', f.search);
-    if (f.status && f.status !== 'all') q.set('status', f.status);
-    if (f.currency && f.currency !== 'all') q.set('currency', f.currency);
-    if (f.from) q.set('from', f.from);
-    if (f.to) q.set('to', f.to);
-    return q.toString();
-}
-async function loadOrders() {
-    const tb = document.getElementById('ordersBody');
-    tb.innerHTML = Array.from({ length: 6 }).map(() => `<tr><td colspan="10"><span class="skel" style="width:60%;display:inline-block"></span></td></tr>`).join('');
-    const { ok, data, error } = await api(API.orders + '?' + buildQuery());
-    if (!ok) { tb.innerHTML = `<tr><td colspan="10"><div class="unavailable-box"><span class="ic">⚠️</span>${escapeHtml(error)}</div></td></tr>`; return; }
-    const rows = data.orders || [];
-    State.totalPages = data.totalPages || 1;
-    if (!rows.length) {
-        tb.innerHTML = `<tr><td colspan="10"><div class="empty-state"><span class="ic">📭</span>No orders match your filters</div></td></tr>`;
-        document.getElementById('pageInfo').textContent = 'No results';
-        document.getElementById('prevBtn').disabled = true;
-        document.getElementById('nextBtn').disabled = true;
-        return;
-    }
-    tb.innerHTML = rows.map(o => `
-        <tr data-id="${escapeHtml(o.id)}">
-            <td><span class="mono" style="font-size:11px">${escapeHtml(o.order_ref)}</span></td>
-            <td>${escapeHtml(o.user?.username || '—')}</td>
-            <td class="wrap">${escapeHtml(o.service_name || '—')}</td>
-            <td>${formatNumber(o.quantity) || '—'}</td>
-            <td>${formatMoney(o.total_amount, o.currency) || '—'}</td>
-            <td>${formatMoney(o.provider_cost, o.currency) || '—'}</td>
-            <td>${formatMoney(o.profit_amount, o.currency) || '—'}</td>
-            <td><span class="badge ${statusBadge(o.status)}">${escapeHtml(o.status)}</span></td>
-            <td><span class="mono" style="font-size:11px">${escapeHtml(o.api_order_id || '—')}</span></td>
-            <td title="${escapeHtml(formatDateTime(o.created_at))}">${escapeHtml(timeAgo(o.created_at))}</td>
-        </tr>
-    `).join('');
-    tb.querySelectorAll('tr[data-id]').forEach(tr => tr.addEventListener('click', () => openOrder(tr.dataset.id)));
-    document.getElementById('pageInfo').textContent =
-        `Showing ${(State.page - 1) * State.limit + 1}–${Math.min(State.page * State.limit, data.count)} of ${data.count}`;
-    document.getElementById('prevBtn').disabled = State.page <= 1;
-    document.getElementById('nextBtn').disabled = State.page >= State.totalPages;
-}
-
-// ─── Services ───
-async function loadServices() {
-    const tb = document.getElementById('servicesBody');
-    tb.innerHTML = `<tr><td colspan="11"><div class="empty-state"><span class="ic">⏳</span>Loading…</div></td></tr>`;
-    const { ok, data, error } = await api(API.services + '?limit=200');
-    if (!ok) { tb.innerHTML = `<tr><td colspan="11"><div class="unavailable-box"><span class="ic">⚠️</span>${escapeHtml(error)}</div></td></tr>`; return; }
-    const rows = data.services || [];
-    if (!rows.length) {
-        tb.innerHTML = `<tr><td colspan="11"><div class="empty-state"><span class="ic">📦</span>No services imported yet. Click "Sync from SMMWiz".</div></td></tr>`;
-        return;
-    }
-    tb.innerHTML = rows.map(s => `
-        <tr>
-            <td><span class="mono" style="font-size:11px">${escapeHtml(s.provider_service_id)}</span></td>
-            <td class="wrap">${escapeHtml(s.name)}</td>
-            <td>${escapeHtml(s.platform || '—')}</td>
-            <td>${escapeHtml(s.category || '—')}</td>
-            <td>${s.provider_rate != null ? Number(s.provider_rate).toFixed(4) : '—'}</td>
-            <td>${s.markup_percent != null ? (Number(s.markup_percent) * 100).toFixed(2) + '%' : '—'}</td>
-            <td>${formatNumber(s.min_quantity) || '—'}</td>
-            <td>${formatNumber(s.max_quantity) || '—'}</td>
-            <td><span class="badge ${s.active ? 'success' : 'neutral'}">${s.active ? 'Yes' : 'No'}</span></td>
-            <td><span class="badge ${s.visible_to_users ? 'success' : 'neutral'}">${s.visible_to_users ? 'Yes' : 'No'}</span></td>
-            <td><button class="btn" data-edit="${escapeHtml(s.id)}"><i class="fas fa-pen"></i> Edit</button></td>
-        </tr>
-    `).join('');
-    tb.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openServiceModal(rows.find(x => x.id === b.dataset.edit))));
-}
-
-// ─── Config ───
-async function loadConfig() {
-    const { ok, data, error } = await api(API.config);
-    if (!ok) { showToast('Unable to load config: ' + error, 'error'); return; }
-    const c = data.config || {};
-    document.getElementById('cfgUsdRate').value = c.usd_to_ngn ?? 1600;
-    document.getElementById('cfgMarkup').value = c.markup_percent ?? 18;
-    document.getElementById('cfgEnabled').checked = c.enabled !== false;
-    document.getElementById('cfgAllowNgn').checked = c.allow_ngn !== false;
-    document.getElementById('cfgAllowUsd').checked = c.allow_usd !== false;
-    const smm = document.getElementById('cfgSmmwiz');
-    smm.textContent = c.smmwiz_configured ? 'Configured ✓' : 'Not configured';
-    smm.style.color = c.smmwiz_configured ? 'var(--success)' : 'var(--danger)';
-}
-
-document.getElementById('saveCfgBtn')?.addEventListener('click', async () => {
-    const body = {
-        usd_to_ngn: Number(document.getElementById('cfgUsdRate').value),
-        markup_percent: Number(document.getElementById('cfgMarkup').value),
-        enabled: document.getElementById('cfgEnabled').checked,
-        allow_ngn: document.getElementById('cfgAllowNgn').checked,
-        allow_usd: document.getElementById('cfgAllowUsd').checked
+async function call(url, opts) {
+  try {
+    const fetcher = (window.AdminSession && typeof AdminSession.fetch === 'function')
+      ? AdminSession.fetch
+      : function (u, o) { return fetch(u, Object.assign({ credentials: 'include' }, o)); };
+    const res = await fetcher(url, opts || {});
+    let json = null;
+    const ct = res.headers.get('content-type') || '';
+    if (ct.includes('application/json')) { try { json = await res.json(); } catch (_) {} }
+    if (res.ok) return { ok: true, status: res.status, body: json };
+    return {
+      ok: false, status: res.status,
+      code: json && json.code,
+      error: (json && (json.error || json.message)) || ('HTTP ' + res.status),
+      body: json
     };
-    const { ok, error } = await api(API.config, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    if (!ok) { showToast('Save failed: ' + error, 'error'); return; }
-    showToast('Settings saved', 'success');
-});
-
-// ─── Drawer ───
-function openDrawer() { document.getElementById('drawer').classList.add('open'); document.getElementById('drawerScrim').classList.add('show'); }
-function closeDrawer() { document.getElementById('drawer').classList.remove('open'); document.getElementById('drawerScrim').classList.remove('show'); }
-async function openOrder(id) {
-    document.getElementById('dTitle').textContent = 'Loading…';
-    document.getElementById('dSub').textContent = '';
-    document.getElementById('dBody').innerHTML = `<div class="empty-state">Loading order…</div>`;
-    openDrawer();
-    const { ok, data, error } = await api(API.order(id));
-    if (!ok) {
-        document.getElementById('dBody').innerHTML = `<div class="unavailable-box">${escapeHtml(error)}</div>`;
-        return;
-    }
-    State.currentOrder = data.order;
-    renderOrder(data);
+  } catch (e) {
+    return { ok: false, status: 0, code: 'NETWORK_ERROR', error: 'Network error', body: null };
+  }
 }
-function renderOrder(data) {
-    const o = data.order;
-    document.getElementById('dTitle').textContent = o.order_ref;
-    document.getElementById('dSub').textContent = `${o.service_name} · ${o.user?.username || ''}`;
-    const actions = buildOrderActions(o);
-    document.getElementById('dBody').innerHTML = `
-        <div class="dd-actions">${actions}</div>
-        <div class="dd-section">
-            <h4>Order</h4>
-            <div class="dd-field"><span class="k">Reference</span><span class="v mono">${escapeHtml(o.order_ref)}</span></div>
-            <div class="dd-field"><span class="k">Service</span><span class="v">${escapeHtml(o.service_name || '—')}</span></div>
-            <div class="dd-field"><span class="k">Platform</span><span class="v">${escapeHtml(o.platform || '—')}</span></div>
-            <div class="dd-field"><span class="k">Target</span><span class="v" style="word-break:break-all">${escapeHtml(o.link)}</span></div>
-            <div class="dd-field"><span class="k">Quantity</span><span class="v">${formatNumber(o.quantity) || '—'}</span></div>
-            <div class="dd-field"><span class="k">Status</span><span class="v"><span class="badge ${statusBadge(o.status)}">${escapeHtml(o.status)}</span></span></div>
-            <div class="dd-field"><span class="k">Created</span><span class="v">${escapeHtml(formatDateTime(o.created_at))}</span></div>
-            ${o.completed_at ? `<div class="dd-field"><span class="k">Completed</span><span class="v">${escapeHtml(formatDateTime(o.completed_at))}</span></div>` : ''}
-            ${o.failed_at ? `<div class="dd-field"><span class="k">Failed</span><span class="v">${escapeHtml(formatDateTime(o.failed_at))}</span></div>` : ''}
+
+/* ═════════════════════════════════════════════════════════════════
+   Shell
+   ═════════════════════════════════════════════════════════════════ */
+
+function renderShell() {
+  const content = document.getElementById('content');
+  if (!content) return;
+  content.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h2>Boost</h2>
+        <p class="sub">Social boosting operations across SMMWiz.</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-ghost" id="refreshBtn"><i class="fas fa-rotate-right"></i> Refresh</button>
+        <button class="btn btn-primary" id="syncBtn"><i class="fas fa-arrows-rotate"></i> Sync now</button>
+      </div>
+    </div>
+    <div id="bannerHost"></div>
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="overview" role="tab">Overview</button>
+      <button class="tab" data-tab="orders" role="tab">Orders <span class="cnt" id="tabOrdersCnt">—</span></button>
+      <button class="tab" data-tab="services" role="tab">Services <span class="cnt" id="tabServicesCnt">—</span></button>
+      <button class="tab" data-tab="settings" role="tab">Settings</button>
+    </div>
+    <section class="tab-panel active" id="panel-overview"></section>
+    <section class="tab-panel" id="panel-orders"></section>
+    <section class="tab-panel" id="panel-services"></section>
+    <section class="tab-panel" id="panel-settings"></section>
+  `;
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+  document.getElementById('refreshBtn').addEventListener('click', () => refreshCurrent(true));
+  document.getElementById('syncBtn').addEventListener('click', doSync);
+  renderBanners();
+  switchTab(State.tab);
+}
+
+function renderBanners() {
+  const host = document.getElementById('bannerHost');
+  if (!host) return;
+  const parts = [];
+  if (State.provider.dry_run) {
+    parts.push('<div class="dry-banner"><i class="fas fa-triangle-exclamation"></i> Provider DRY-RUN is ON. No real orders will be sent to SMMWiz.</div>');
+  }
+  if (State.provider.loading) {
+    // no banner while loading
+  } else if (!State.provider.configured) {
+    parts.push('<div class="provider-warn"><span><i class="fas fa-triangle-exclamation"></i> SMMWiz is not configured. Boosting cannot submit orders.</span></div>');
+  } else if (State.provider.balance === null) {
+    parts.push('<div class="provider-warn"><span><i class="fas fa-plug-circle-xmark"></i> Provider balance is unreachable. Check the API key or SMMWiz status.</span><button class="btn" id="retryProviderBtn"><i class="fas fa-rotate"></i> Retry</button></div>');
+  } else if (State.provider.balance < 20) {
+    parts.push(`<div class="provider-warn"><span><i class="fas fa-triangle-exclamation"></i> Low provider balance: <strong>$${Number(State.provider.balance).toFixed(2)}</strong>. Top up SMMWiz to keep filling orders.</span><button class="btn" id="retryProviderBtn"><i class="fas fa-rotate"></i> Retry</button></div>`);
+  }
+  host.innerHTML = parts.join('');
+  document.getElementById('retryProviderBtn')?.addEventListener('click', () => loadProvider(true));
+}
+
+function switchTab(tab) {
+  State.tab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+  if (tab === 'overview') renderOverviewPanel();
+  if (tab === 'orders')   renderOrdersPanel();
+  if (tab === 'services') renderServicesPanel();
+  if (tab === 'settings') renderSettingsPanel();
+  if (history.replaceState) history.replaceState(null, '', '#' + tab);
+}
+
+function refreshCurrent(force) {
+  if (State.tab === 'overview') { loadOverview(force); loadAlerts(force); }
+  else if (State.tab === 'orders') loadOrders(force);
+  else if (State.tab === 'services') loadServices(force);
+  else if (State.tab === 'settings') loadConfig(force);
+}
+
+async function doSync() {
+  const btn = document.getElementById('syncBtn');
+  btn.disabled = true;
+  const r = await call(API.sync, { method: 'POST' });
+  btn.disabled = false;
+  if (!r.ok) {
+    const msg = r.code === 'PROVIDER_NOT_CONFIGURED' ? 'SMMWiz is not configured. Set SMMWIZ_API_KEY.' : (r.error || 'Sync failed');
+    window.MS.toast(msg, 'error'); return;
+  }
+  const sub = (r.body.submit && r.body.submit.submitted) || 0;
+  const sw = (r.body.sweep && r.body.sweep.updated) || 0;
+  window.MS.toast('Sync: ' + sub + ' submitted, ' + sw + ' updated', 'success');
+  State.overviewSig = null;
+  State.orders.sig = null;
+  State.services.sig = null;
+  State.orderCache.clear();
+  refreshCurrent(true);
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   Provider & alerts
+   ═════════════════════════════════════════════════════════════════ */
+
+let _providerInFlight = null;
+async function loadProvider(force) {
+  if (_providerInFlight && !force) return _providerInFlight;
+  State.provider.loading = true;
+  renderBanners();
+  _providerInFlight = (async () => {
+    const r = await call(API.provider);
+    if (r.ok && r.body) {
+      const b = r.body.balance || {};
+      State.provider = {
+        configured: !!r.body.configured,
+        dry_run: !!r.body.dry_run,
+        balance: (b && typeof b.balance === 'number') ? b.balance : null,
+        currency: (b && b.currency) || 'USD',
+        loading: false
+      };
+    } else {
+      State.provider.loading = false;
+    }
+    renderBanners();
+  })().finally(() => { _providerInFlight = null; });
+  return _providerInFlight;
+}
+
+async function loadAlerts(force) {
+  const fresh = State.alerts && (Date.now() - State.alertsLoadedAt) < 30000;
+  if (fresh && !force) { renderAlerts(); return; }
+  const r = await call(API.alerts);
+  if (r.ok && r.body && r.body.alerts) {
+    State.alerts = r.body.alerts;
+    State.alertsLoadedAt = Date.now();
+  }
+  renderAlerts();
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   Overview
+   ═════════════════════════════════════════════════════════════════ */
+
+const RANGE_PRESETS = {
+  today: { label: 'Today' },
+  '7d':  { label: '7 days' },
+  '30d': { label: '30 days' },
+  all:   { label: 'All' }
+};
+
+function rangeToDates(range) {
+  if (range === 'all') return { from: null, to: null };
+  const to = new Date();
+  const from = new Date();
+  if (range === 'today') from.setUTCHours(0, 0, 0, 0);
+  else if (range === '7d')  from.setUTCDate(from.getUTCDate() - 7);
+  else if (range === '30d') from.setUTCDate(from.getUTCDate() - 30);
+  return { from: from.toISOString(), to: to.toISOString() };
+}
+
+const OVERVIEW_FRESH_MS = 30_000;
+
+function renderOverviewPanel() {
+  const panel = document.getElementById('panel-overview');
+  if (!panel.querySelector('#overviewKpis')) {
+    panel.innerHTML = `
+      <div class="range-pills" id="rangePills">
+        ${Object.entries(RANGE_PRESETS).map(([k, v]) =>
+          `<button class="range-pill ${State.range === k ? 'active' : ''}" data-range="${k}">${v.label}</button>`
+        ).join('')}
+      </div>
+      <div class="alerts-card" id="alertsCard">
+        <h3>Alerts</h3>
+        <div id="alertsBody"><div style="color:var(--text-faint);font-size:12.5px">Loading…</div></div>
+      </div>
+      <div class="provider-card" id="providerCard">
+        <div class="pr"><strong>Provider:</strong> <span id="provName">—</span></div>
+        <div class="pr"><strong>Balance:</strong> <span class="balance" id="provBalance">—</span></div>
+        <div class="pr"><strong>Dry-run:</strong> <span id="provDry">—</span></div>
+      </div>
+      <div class="kpi-grid" id="overviewKpis"></div>
+      <div class="card panel" style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap">
+          <h3 style="margin:0;font-size:14px;font-weight:800">Needs attention</h3>
         </div>
-        <div class="dd-section">
-            <h4>Financial</h4>
-            <div class="dd-field"><span class="k">Customer paid</span><span class="v">${formatMoney(o.total_amount, o.currency) || '—'}</span></div>
-            <div class="dd-field"><span class="k">Provider cost</span><span class="v">${formatMoney(o.provider_cost, o.currency) || '—'}</span></div>
-            <div class="dd-field"><span class="k">Profit</span><span class="v" style="color:var(--success)">${formatMoney(o.profit_amount, o.currency) || '—'}</span></div>
-            <div class="dd-field"><span class="k">Markup</span><span class="v">${o.markup_percent != null ? (Number(o.markup_percent) * 100).toFixed(2) + '%' : '—'}</span></div>
-            <div class="dd-field"><span class="k">FX rate</span><span class="v">${o.usd_rate != null ? Number(o.usd_rate).toFixed(2) : '—'}</span></div>
+        <div id="attentionList"><div style="color:var(--text-faint);font-size:12.5px">Loading…</div></div>
+      </div>
+      <div class="card panel">
+        <h3 style="margin:0 0 12px;font-size:14px;font-weight:800">Recent orders</h3>
+        <div style="overflow-x:auto">
+          <table class="orders-table">
+            <thead><tr>
+              <th>Order</th><th>Customer</th><th>Service</th>
+              <th>Qty</th><th>Amount</th><th>Status</th><th>Created</th>
+            </tr></thead>
+            <tbody id="recentBody">
+              <tr><td colspan="7" style="padding:24px;text-align:center;color:var(--text-faint)">Loading…</td></tr>
+            </tbody>
+          </table>
         </div>
-        <div class="dd-section">
-            <h4>Provider</h4>
-            <div class="dd-field"><span class="k">Provider</span><span class="v">${escapeHtml(o.provider || '—')}</span></div>
-            <div class="dd-field"><span class="k">API order ID</span><span class="v mono">${escapeHtml(o.api_order_id || '—')}</span></div>
-            <div class="dd-field"><span class="k">Provider status</span><span class="v">${escapeHtml(o.provider_status || '—')}</span></div>
-            <div class="dd-field"><span class="k">Last checked</span><span class="v">${escapeHtml(formatDateTime(o.provider_last_checked_at))}</span></div>
-            <div class="dd-field"><span class="k">Start count</span><span class="v">${formatNumber(o.start_count) || '—'}</span></div>
-            <div class="dd-field"><span class="k">Remains</span><span class="v">${formatNumber(o.remains) || '—'}</span></div>
-        </div>
-        ${o.failure_reason ? `<div class="dd-section"><h4>Failure</h4><div class="dd-field"><span class="k">Reason</span><span class="v" style="color:var(--danger)">${escapeHtml(o.failure_reason)}</span></div></div>` : ''}
-        <div class="dd-section">
-            <h4>Refund</h4>
-            <div class="dd-field"><span class="k">Status</span><span class="v">${escapeHtml(o.refund_status || 'none')}</span></div>
-            <div class="dd-field"><span class="k">Reference</span><span class="v mono">${escapeHtml(o.refund_reference || '—')}</span></div>
-            <div class="dd-field"><span class="k">Processed</span><span class="v">${escapeHtml(formatDateTime(o.refund_processed_at))}</span></div>
-        </div>
-        <div class="dd-section">
-            <h4>Admin</h4>
-            <div class="dd-field"><span class="k">Note</span><span class="v">${escapeHtml(o.admin_note || '—')}</span></div>
-        </div>
+      </div>
     `;
-    document.getElementById('btnStatus')?.addEventListener('click', () => openStatusModal(o));
-    document.getElementById('btnRefund')?.addEventListener('click', () => openRefundModal(o));
-    document.getElementById('btnNote')?.addEventListener('click', () => openNoteModal(o));
-}
-function buildOrderActions(o) {
-    const buttons = [];
-    const s = String(o.status || '').toLowerCase();
-    if (!['completed','refunded'].includes(s)) {
-        buttons.push(`<button class="btn" id="btnStatus"><i class="fas fa-exchange-alt"></i> Status</button>`);
-    }
-    if (['failed','cancelled','provider_unknown','manual_review','partial'].includes(s) && o.refund_status !== 'refunded') {
-        buttons.push(`<button class="btn btn-danger" id="btnRefund"><i class="fas fa-rotate-left"></i> Refund</button>`);
-    }
-    buttons.push(`<button class="btn" id="btnNote"><i class="fas fa-sticky-note"></i> Note</button>`);
-    return buttons.join('');
+    document.querySelectorAll('#rangePills .range-pill').forEach(b =>
+      b.addEventListener('click', () => {
+        State.range = b.dataset.range;
+        document.querySelectorAll('#rangePills .range-pill').forEach(x =>
+          x.classList.toggle('active', x === b)
+        );
+        State.overviewSig = null;
+        loadOverview(true);
+      })
+    );
+  }
+  renderProviderCard();
+  renderAlerts();
+  loadOverview(false);
+  loadAlerts(false);
 }
 
-// ─── Modal ───
-function openModal({ title, bodyHtml, confirmLabel = 'Confirm', onConfirm }) {
-    const scrim = document.getElementById('modalScrim');
-    document.getElementById('mTitle').textContent = title;
-    document.getElementById('mBody').innerHTML = bodyHtml;
-    document.getElementById('mConfirm').textContent = confirmLabel;
-    const cancel = () => { scrim.classList.remove('show'); document.getElementById('mConfirm').onclick = null; };
-    document.getElementById('mCancel').onclick = cancel;
-    document.getElementById('mConfirm').onclick = async () => { const ok = await onConfirm(); if (ok) cancel(); };
-    scrim.classList.add('show');
-    setTimeout(() => document.getElementById('mBody')?.querySelector('input,textarea,select')?.focus(), 50);
+function renderProviderCard() {
+  const name = document.getElementById('provName');
+  const bal  = document.getElementById('provBalance');
+  const dry  = document.getElementById('provDry');
+  if (!name) return;
+  if (State.provider.loading) { name.textContent = 'Loading…'; bal.textContent = '—'; dry.textContent = '—'; return; }
+  name.textContent = State.provider.configured ? 'SMMWiz (configured)' : 'Not configured';
+  bal.textContent  = State.provider.balance === null
+    ? (State.provider.configured ? 'unreachable' : '—')
+    : '$' + Number(State.provider.balance).toFixed(2);
+  dry.textContent  = State.provider.dry_run ? 'ON' : 'off';
 }
-function openStatusModal(o) {
-    openModal({
-        title: 'Change status',
-        confirmLabel: 'Apply',
-        bodyHtml: `
-            <label>Current status: <strong>${escapeHtml(o.status)}</strong></label>
-            <label for="stNext">New status</label>
-            <select id="stNext">
-                <option value="processing">processing</option>
-                <option value="in_progress">in_progress</option>
-                <option value="partial">partial</option>
-                <option value="completed">completed</option>
-                <option value="failed">failed</option>
-                <option value="cancelled">cancelled</option>
-                <option value="manual_review">manual_review</option>
-            </select>
-            <label for="stNote">Reason (required)</label>
-            <textarea id="stNote" rows="3" placeholder="Why is this changing?"></textarea>
-        `,
-        onConfirm: async () => {
-            const status = document.getElementById('stNext').value;
-            const note = document.getElementById('stNote').value.trim();
-            if (note.length < 4) { showToast('Reason is required.', 'error'); return false; }
-            const { ok, error } = await api(API.orderStatus(o.id), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status, note })
-            });
-            if (!ok) { showToast(error || 'Status change failed', 'error'); return false; }
-            showToast('Status updated', 'success');
-            openOrder(o.id);
-            loadOrders();
-            return true;
-        }
+
+function renderAlerts() {
+  const body = document.getElementById('alertsBody');
+  if (!body) return;
+  if (!State.alerts) { body.innerHTML = '<div style="color:var(--text-faint);font-size:12.5px">Loading…</div>'; return; }
+  const a = State.alerts;
+  const rows = [];
+  if (a.provider_unknown_old && a.provider_unknown_old.warn)
+    rows.push({ cls: 'danger', icon: 'fa-triangle-exclamation', title: 'Orders stuck at provider_unknown', meta: `${a.provider_unknown_old.count} order(s) waiting >10 min. Verify at SMMWiz before refunding.` });
+  if (a.services_below_cost && a.services_below_cost.warn)
+    rows.push({ cls: 'warn', icon: 'fa-dollar-sign', title: 'Services priced below cost', meta: `${a.services_below_cost.count} active service(s) with price < provider cost.` });
+  if (a.usd_to_ngn_age_hours && a.usd_to_ngn_age_hours.warn)
+    rows.push({ cls: 'warn', icon: 'fa-clock', title: 'USD→NGN rate stale', meta: `Last update ${a.usd_to_ngn_age_hours.hours || '?'}h ago (>24h). Refresh from Settings.` });
+  if (a.provider_balance && a.provider_balance.warn)
+    rows.push({ cls: 'danger', icon: 'fa-wallet', title: 'Low provider balance', meta: `Balance $${Number(a.provider_balance.usd || 0).toFixed(2)} (< $20). Top up SMMWiz.` });
+  if (a.failure_rate_1h && a.failure_rate_1h.warn)
+    rows.push({ cls: 'warn', icon: 'fa-chart-line', title: 'Elevated failure rate', meta: `${a.failure_rate_1h.pct}% failed in the last hour (${a.failure_rate_1h.failed}/${a.failure_rate_1h.total}).` });
+  if (!rows.length) { body.innerHTML = '<div style="color:var(--text-faint);font-size:12.5px">All clear.</div>'; return; }
+  body.innerHTML = rows.map(r => `
+    <div class="alert alert-${r.cls}">
+      <i class="fas ${r.icon} ic"></i>
+      <div class="body"><strong>${U.esc(r.title)}</strong><div class="meta">${U.esc(r.meta)}</div></div>
+    </div>
+  `).join('');
+}
+
+async function loadOverview(force) {
+  const { from, to } = rangeToDates(State.range);
+  const sig = JSON.stringify({ range: State.range });
+  const fresh = State.overview && State.overviewSig === sig &&
+                (Date.now() - State.overviewFetchedAt) < OVERVIEW_FRESH_MS;
+
+  if (!force && fresh) {
+    paintOverviewKpis(State.overview);
+    paintRecentOrders(State.recentOrders);
+    paintAttention(State.attentionOrders);
+    return;
+  }
+
+  const qs = new URLSearchParams();
+  qs.set('range', State.range);
+  if (from) qs.set('from', from);
+  if (to)   qs.set('to', to);
+
+  const done = perf('loadOverview', Date.now());
+  const [ro, rr, ra] = await Promise.all([
+    call(API.overview + '?' + qs.toString()),
+    call(API.orders + '?limit=8&withCount=false'),
+    call(API.orders + '?status=provider_unknown&limit=20&withCount=false')
+  ]);
+  done();
+
+  if (!ro.ok) {
+    const kp = document.getElementById('overviewKpis');
+    if (kp) kp.innerHTML = '<div class="kpi"><div class="lbl">Error</div><div class="val" style="font-size:14px;color:var(--danger)">' + U.esc(ro.error || 'Failed') + '</div></div>';
+    return;
+  }
+  State.overview = ro.body.overview || {};
+  State.overviewSig = sig;
+  State.overviewFetchedAt = Date.now();
+  paintOverviewKpis(State.overview);
+
+  State.recentOrders = (rr.ok && rr.body && rr.body.orders) || [];
+  paintRecentOrders(State.recentOrders);
+
+  State.attentionOrders = (ra.ok && ra.body && ra.body.orders) || [];
+  paintAttention(State.attentionOrders);
+}
+
+function paintOverviewKpis(o) {
+  const kp = document.getElementById('overviewKpis');
+  if (!kp) return;
+  const money = o.summaryAvailable;
+  kp.innerHTML = `
+    <div class="kpi"><div class="lbl">Total</div><div class="val">${U.int(o.total || 0)}</div></div>
+    <div class="kpi"><div class="lbl">Pending</div><div class="val" style="color:var(--warn)">${U.int(o.pending || 0)}</div></div>
+    <div class="kpi"><div class="lbl">Processing</div><div class="val" style="color:var(--info)">${U.int(o.processing || 0)}</div></div>
+    <div class="kpi"><div class="lbl">Completed</div><div class="val" style="color:var(--success)">${U.int(o.completed || 0)}</div></div>
+    <div class="kpi"><div class="lbl">Failed</div><div class="val" style="color:var(--danger)">${U.int(o.failed || 0)}</div></div>
+    <div class="kpi"><div class="lbl">Refunded</div><div class="val" style="color:var(--purple)">${U.int(o.refunded || 0)}</div></div>
+    <div class="kpi"><div class="lbl">Revenue NGN</div><div class="val">${money ? U.money(o.revenueNgn, 'NGN') : '—'}</div></div>
+    <div class="kpi"><div class="lbl">Revenue USD</div><div class="val">${money ? U.money(o.revenueUsd, 'USD') : '—'}</div></div>
+    <div class="kpi"><div class="lbl">Profit NGN</div><div class="val" style="color:var(--success)">${money ? U.money(o.profitNgn, 'NGN') : '—'}</div></div>
+    <div class="kpi"><div class="lbl">Profit USD</div><div class="val" style="color:var(--success)">${money ? U.money(o.profitUsd, 'USD') : '—'}</div></div>
+  `;
+}
+
+function paintRecentOrders(rows) {
+  const recentBody = document.getElementById('recentBody');
+  if (!recentBody) return;
+  if (!rows || !rows.length) {
+    recentBody.innerHTML = '<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--text-faint)">No orders yet</td></tr>';
+    return;
+  }
+  recentBody.innerHTML = rows.map(o => `
+    <tr data-order-id="${U.esc(o.id)}">
+      <td data-cell="Order">${U.esc(o.order_ref)}</td>
+      <td data-cell="Customer">${U.esc(o.user && o.user.username || '—')}</td>
+      <td data-cell="Service">${U.esc(o.service_name || '—')}</td>
+      <td data-cell="Qty">${U.int(o.quantity)}</td>
+      <td data-cell="Amount">${U.money(o.total_amount, o.currency)}</td>
+      <td data-cell="Status"><span class="badge ${U.statusClass(o.status)}">${U.esc(o.status)}</span></td>
+      <td data-cell="Created">${U.ago(o.created_at)}</td>
+    </tr>
+  `).join('');
+  recentBody.querySelectorAll('[data-order-id]').forEach(tr =>
+    tr.addEventListener('click', () => {
+      const row = rows.find(o => String(o.id) === String(tr.dataset.orderId));
+      if (row) State.orderCache.set(String(row.id), row);
+      openOrderDrawer(tr.dataset.orderId);
+    })
+  );
+}
+
+function paintAttention(rows) {
+  const attList = document.getElementById('attentionList');
+  if (!attList) return;
+  if (!rows || !rows.length) {
+    attList.innerHTML = '<div style="color:var(--text-faint);font-size:12.5px">All clear. No provider_unknown orders.</div>';
+    return;
+  }
+  attList.innerHTML = rows.slice(0, 5).map(o => `
+    <div class="attention-card">
+      <div class="r1">
+        <span class="ref">${U.esc(o.order_ref)}</span>
+        <span class="badge purple">Provider unknown</span>
+      </div>
+      <div class="svc">${U.esc(o.service_name || '—')} · ${U.int(o.quantity)}</div>
+      <div class="meta">Customer: ${U.esc(o.user && o.user.username || '—')} · ${U.money(o.total_amount, o.currency)} · ${U.ago(o.created_at)}</div>
+      <button data-order-id="${U.esc(o.id)}">Review</button>
+    </div>
+  `).join('');
+  attList.querySelectorAll('[data-order-id]').forEach(b =>
+    b.addEventListener('click', () => {
+      const row = rows.find(o => String(o.id) === String(b.dataset.orderId));
+      if (row) State.orderCache.set(String(row.id), row);
+      switchTab('orders');
+      setTimeout(() => openOrderDrawer(b.dataset.orderId), 0);
+    })
+  );
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   Orders
+   ═════════════════════════════════════════════════════════════════ */
+
+const ORDERS_FRESH_MS = 15_000;
+
+function renderOrdersPanel() {
+  const panel = document.getElementById('panel-orders');
+  if (!panel.querySelector('#ordersBody')) {
+    panel.innerHTML = `
+      <div class="card panel">
+        <h3 style="margin:0 0 12px;font-size:14px;font-weight:800">Boost Orders</h3>
+        <div class="filter-row">
+          <input type="search" id="fSearch" placeholder="Search order, service, email…">
+          <select id="fStatus">
+            <option value="all">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="processing">Processing</option>
+            <option value="in_progress">In progress</option>
+            <option value="partial">Partial</option>
+            <option value="completed">Completed</option>
+            <option value="failed">Failed</option>
+            <option value="refunded">Refunded</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="provider_unknown">Provider unknown</option>
+            <option value="manual_review">Manual review</option>
+          </select>
+          <select id="fCurrency">
+            <option value="all">All currencies</option>
+            <option value="NGN">NGN</option>
+            <option value="USD">USD</option>
+          </select>
+          <input type="date" id="fFrom">
+          <input type="date" id="fTo">
+          <button class="btn btn-primary" id="applyBtn"><i class="fas fa-filter"></i> Apply</button>
+          <button class="btn btn-ghost" id="clearBtn">Clear</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="orders-table">
+            <thead><tr>
+              <th>Order</th><th>Customer</th><th>Service</th><th>Qty</th>
+              <th>Amount</th><th>Cost</th><th>Profit</th><th>Status</th><th>Created</th>
+            </tr></thead>
+            <tbody id="ordersBody">
+              <tr><td colspan="9" style="padding:24px;text-align:center;color:var(--text-faint)">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <div id="pageInfo">—</div>
+          <div class="btns">
+            <button class="btn btn-ghost" id="prevBtn" disabled>Previous</button>
+            <button class="btn btn-ghost" id="nextBtn" disabled>Next</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.getElementById('applyBtn').addEventListener('click', () => {
+      State.orders.filters = {
+        search:   document.getElementById('fSearch').value.trim(),
+        status:   document.getElementById('fStatus').value,
+        currency: document.getElementById('fCurrency').value,
+        from:     document.getElementById('fFrom').value,
+        to:       document.getElementById('fTo').value
+      };
+      State.orders.page = 1;
+      State.orders.sig = null;
+      loadOrders(true);
     });
-}
-function openRefundModal(o) {
-    openModal({
-        title: 'Refund order',
-        confirmLabel: 'Refund',
-        bodyHtml: `
-            <div style="font-size:12.5px;color:var(--text-dim);margin-bottom:10px;line-height:1.5">This will credit the customer's wallet for <strong>${escapeHtml(formatMoney(o.total_amount, o.currency) || '—')}</strong> and mark the order refunded.</div>
-            <label for="rfReason">Reason (required)</label>
-            <textarea id="rfReason" rows="3"></textarea>
-        `,
-        onConfirm: async () => {
-            const reason = document.getElementById('rfReason').value.trim();
-            if (reason.length < 4) { showToast('Reason is required.', 'error'); return false; }
-            const { ok, error } = await api(API.orderRefund(o.id), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason })
-            });
-            if (!ok) { showToast(error || 'Refund failed', 'error'); return false; }
-            showToast('Refund applied', 'success');
-            openOrder(o.id);
-            loadOrders();
-            return true;
-        }
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      ['fSearch', 'fFrom', 'fTo'].forEach(id => document.getElementById(id).value = '');
+      ['fStatus', 'fCurrency'].forEach(id => document.getElementById(id).value = 'all');
+      State.orders.filters = {};
+      State.orders.page = 1;
+      State.orders.sig = null;
+      loadOrders(true);
     });
-}
-function openNoteModal(o) {
-    openModal({
-        title: 'Add internal note',
-        confirmLabel: 'Save',
-        bodyHtml: `<label for="ntText">Note</label><textarea id="ntText" rows="4">${escapeHtml(o.admin_note || '')}</textarea>`,
-        onConfirm: async () => {
-            const note = document.getElementById('ntText').value.trim();
-            if (note.length < 2) { showToast('Note is required.', 'error'); return false; }
-            const { ok, error } = await api(API.orderNote(o.id), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ note })
-            });
-            if (!ok) { showToast(error || 'Failed to save note', 'error'); return false; }
-            showToast('Note saved', 'success');
-            openOrder(o.id);
-            return true;
-        }
+    document.getElementById('prevBtn').addEventListener('click', () => {
+      if (State.orders.page > 1) { State.orders.page--; State.orders.sig = null; loadOrders(true); }
     });
-}
-function openServiceModal(s) {
-    openModal({
-        title: `Edit "${s.name}"`,
-        confirmLabel: 'Save',
-        bodyHtml: `
-            <label>Display name</label>
-            <input type="text" id="svcName" value="${escapeHtml(s.name || '')}">
-            <label>Platform</label>
-            <select id="svcPlatform">
-                ${['instagram','tiktok','youtube','facebook','twitter','telegram','whatsapp','discord','spotify','other'].map(p =>
-                    `<option value="${p}" ${s.platform === p ? 'selected' : ''}>${p}</option>`).join('')}
-            </select>
-            <label>Category</label>
-            <input type="text" id="svcCategory" value="${escapeHtml(s.category || '')}">
-            <label>Markup (%, e.g. 18)</label>
-            <input type="number" step="0.01" id="svcMarkup" value="${s.markup_percent != null ? (Number(s.markup_percent) * 100).toFixed(2) : ''}">
-            <label>Custom price per 1,000 USD (leave empty to use markup)</label>
-            <input type="number" step="0.0001" id="svcCustomPrice" value="${s.custom_price != null ? Number(s.custom_price) : ''}">
-            <label>Min quantity</label>
-            <input type="number" id="svcMin" value="${s.min_quantity ?? ''}">
-            <label>Max quantity</label>
-            <input type="number" id="svcMax" value="${s.max_quantity ?? ''}">
-            <div class="cbrow"><input type="checkbox" id="svcActive" ${s.active ? 'checked' : ''}><label style="margin:0">Active</label></div>
-            <div class="cbrow"><input type="checkbox" id="svcVisible" ${s.visible_to_users ? 'checked' : ''}><label style="margin:0">Visible to users</label></div>
-        `,
-        onConfirm: async () => {
-            const patch = {
-                name: document.getElementById('svcName').value.trim(),
-                platform: document.getElementById('svcPlatform').value,
-                category: document.getElementById('svcCategory').value.trim(),
-                active: document.getElementById('svcActive').checked,
-                visible_to_users: document.getElementById('svcVisible').checked
-            };
-            const markupRaw = document.getElementById('svcMarkup').value;
-            if (markupRaw !== '') patch.markup_percent = Number(markupRaw) / 100;
-            const customRaw = document.getElementById('svcCustomPrice').value;
-            patch.custom_price = customRaw === '' ? null : Number(customRaw);
-            const minRaw = document.getElementById('svcMin').value;
-            patch.min_quantity = minRaw === '' ? null : Number(minRaw);
-            const maxRaw = document.getElementById('svcMax').value;
-            patch.max_quantity = maxRaw === '' ? null : Number(maxRaw);
-
-            const { ok, error } = await api(API.service(s.id), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(patch)
-            });
-            if (!ok) { showToast(error || 'Save failed', 'error'); return false; }
-            showToast('Service updated', 'success');
-            loadServices();
-            return true;
-        }
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      if (State.orders.page < State.orders.totalPages) { State.orders.page++; State.orders.sig = null; loadOrders(true); }
     });
+  }
+  loadOrders(false);
 }
 
-// ─── Admin profile ───
-async function loadAdminProfile() {
-    const { ok, data } = await api(API.me);
-    if (!ok || !data?.data?.user) return;
-    const user = data.data.user;
-    const name = user.username || user.email?.split('@')[0] || 'Admin';
-    const role = user.role || 'admin';
-    document.getElementById('adminName').textContent = name;
-    document.getElementById('adminRole').textContent = role.charAt(0).toUpperCase() + role.slice(1);
-    document.getElementById('adminAvatar').textContent = name.slice(0, 1).toUpperCase();
+async function loadOrders(force) {
+  const qs = new URLSearchParams({ page: State.orders.page, limit: State.orders.limit, withCount: 'true' });
+  const f = State.orders.filters;
+  if (f.search)   qs.set('search', f.search);
+  if (f.status && f.status !== 'all')     qs.set('status', f.status);
+  if (f.currency && f.currency !== 'all') qs.set('currency', f.currency);
+  if (f.from) qs.set('from', f.from);
+  if (f.to)   qs.set('to', f.to);
+  const sig = qs.toString();
+
+  const fresh = State.orders.sig === sig && State.orders.list.length &&
+                (Date.now() - State.orders.fetchedAt) < ORDERS_FRESH_MS;
+
+  if (!force && fresh) {
+    paintOrdersRows(State.orders.list, State.orders.count, State.orders.totalPages);
+    return;
+  }
+
+  const tb = document.getElementById('ordersBody');
+  if (tb) tb.innerHTML = '<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--text-faint)">Loading…</td></tr>';
+  const done = perf('loadOrders', Date.now());
+  const r = await call(API.orders + '?' + sig);
+  done();
+  if (!r.ok) {
+    if (tb) tb.innerHTML = '<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--danger)">' + U.esc(r.error || 'Failed') + '</td></tr>';
+    return;
+  }
+  State.orders.totalPages = r.body.totalPages || 1;
+  State.orders.count = r.body.count || 0;
+  State.orders.list = r.body.orders || [];
+  State.orders.sig = sig;
+  State.orders.fetchedAt = Date.now();
+  State.orders.list.forEach(o => State.orderCache.set(String(o.id), o));
+  paintOrdersRows(State.orders.list, State.orders.count, State.orders.totalPages);
+  const cnt = document.getElementById('tabOrdersCnt');
+  if (cnt) cnt.textContent = String(State.orders.count);
 }
 
-// ─── Init ───
-document.addEventListener('DOMContentLoaded', () => {
-    if (!AdminSession.getToken()) return AdminSession.redirectToLogin();
+function paintOrdersRows(rows, count, totalPages) {
+  const tb = document.getElementById('ordersBody');
+  if (!tb) return;
+  if (!rows.length) {
+    tb.innerHTML = '<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--text-faint)">No orders match your filters</td></tr>';
+    document.getElementById('pageInfo').textContent = 'No results';
+    document.getElementById('prevBtn').disabled = true;
+    document.getElementById('nextBtn').disabled = true;
+    return;
+  }
+  tb.innerHTML = rows.map(o => `
+    <tr data-order-id="${U.esc(o.id)}">
+      <td data-cell="Order">${U.esc(o.order_ref)}</td>
+      <td data-cell="Customer">${U.esc(o.user && o.user.username || '—')}</td>
+      <td data-cell="Service">${U.esc(o.service_name || '—')}</td>
+      <td data-cell="Qty">${U.int(o.quantity)}</td>
+      <td data-cell="Amount">${U.money(o.total_amount, o.currency)}</td>
+      <td data-cell="Cost">${U.money(o.provider_cost, o.currency)}</td>
+      <td data-cell="Profit">${U.money(o.profit_amount, o.currency)}</td>
+      <td data-cell="Status"><span class="badge ${U.statusClass(o.status)}">${U.esc(o.status)}</span></td>
+      <td data-cell="Created">${U.ago(o.created_at)}</td>
+    </tr>
+  `).join('');
+  tb.querySelectorAll('[data-order-id]').forEach(tr =>
+    tr.addEventListener('click', () => {
+      const row = rows.find(o => String(o.id) === String(tr.dataset.orderId));
+      if (row) State.orderCache.set(String(row.id), row);
+      openOrderDrawer(tr.dataset.orderId);
+    })
+  );
+  document.getElementById('pageInfo').textContent =
+    `Showing ${(State.orders.page - 1) * State.orders.limit + 1}–${Math.min(State.orders.page * State.orders.limit, count)} of ${count}`;
+  document.getElementById('prevBtn').disabled = State.orders.page <= 1;
+  document.getElementById('nextBtn').disabled = State.orders.page >= totalPages;
+}
 
-    document.getElementById('hamburger')?.addEventListener('click', openSidebarMobile);
-    document.getElementById('scrim')?.addEventListener('click', closeSidebarMobile);
+/* ═════════════════════════════════════════════════════════════════
+   Order drawer
+   ═════════════════════════════════════════════════════════════════ */
 
-    document.querySelectorAll('#boostMenu .item').forEach(el => {
-        el.addEventListener('click', () => showSection(el.dataset.section));
+async function openOrderDrawer(id) {
+  const key = String(id);
+  const cached = State.orderCache.get(key);
+
+  const d = document.createElement('div');
+  d.className = 'drawer-scrim open';
+  d.innerHTML = `
+    <div class="detail-drawer open" role="dialog" aria-modal="true" style="display:flex;flex-direction:column">
+      <div class="dd-head">
+        <div class="dd-ic"><i class="fas fa-receipt"></i></div>
+        <div class="dd-titles">
+          <h2 id="drawerTitle">${cached ? U.esc(cached.order_ref || 'Order') : 'Loading…'}</h2>
+          <div class="dd-sub" id="drawerSub">${cached ? U.esc((cached.service_name || '') + ' · ' + (cached.user && cached.user.username || '')) : ''}</div>
+        </div>
+        <button class="dd-close" aria-label="Close"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="dd-body" id="drawerBody">
+        <div class="stale-hint" id="drawerHint"><i class="fas fa-spinner fa-spin"></i> Refreshing details…</div>
+        ${cached ? renderOrderBody(cached, true) : '<div class="empty-state" style="padding:40px"><div class="sk" style="height:120px"></div></div>'}
+      </div>
+      <div class="dd-actions" id="drawerActions" style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0">
+        ${cached ? renderOrderActions(cached) : '<span style="color:var(--text-faint);font-size:12.5px">Loading…</span>'}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(d);
+  document.body.style.overflow = 'hidden';
+
+  const close = () => { d.remove(); document.body.style.overflow = ''; };
+  d.querySelector('.dd-close').addEventListener('click', close);
+  d.addEventListener('click', e => { if (e.target === d) close(); });
+
+  const attachActionHandlers = (order) => {
+    d.querySelector('#btnRecheck')?.addEventListener('click', async () => {
+      const btn = d.querySelector('#btnRecheck');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking…';
+      const rr = await call(API.orderRecheck(id), { method: 'POST' });
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-arrows-rotate"></i> Check provider';
+      if (!rr.ok) { window.MS.toast(rr.error || 'Failed', 'error'); return; }
+      window.MS.toast(rr.body.refreshed ? 'Updated' : 'No change', 'success');
+      if (rr.body.order) {
+        State.orderCache.set(key, rr.body.order);
+        paintDrawerInPlace(d, rr.body.order, false);
+        attachActionHandlers(rr.body.order);
+      }
     });
 
-    document.getElementById('applyBtn')?.addEventListener('click', () => {
-        State.filters = {
-            search: document.getElementById('fSearch').value.trim(),
-            status: document.getElementById('fStatus').value,
-            currency: document.getElementById('fCurrency').value,
-            from: document.getElementById('fFrom').value,
-            to: document.getElementById('fTo').value
-        };
-        State.page = 1;
-        loadOrders();
+    d.querySelector('#btnNote')?.addEventListener('click', async () => {
+      const note = await window.MS.reasonModal({ title: 'Add note', message: 'Internal note for this order.', min: 2 });
+      if (!note) return;
+      const rr = await call(API.orderNote(id), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note })
+      });
+      if (!rr.ok) { window.MS.toast(rr.error || 'Failed', 'error'); return; }
+      window.MS.toast('Note saved', 'success');
+      if (rr.body.order) {
+        State.orderCache.set(key, rr.body.order);
+        paintDrawerInPlace(d, rr.body.order, false);
+        attachActionHandlers(rr.body.order);
+      }
     });
-    document.getElementById('clearBtn')?.addEventListener('click', () => {
-        ['fSearch','fFrom','fTo'].forEach(id => document.getElementById(id).value = '');
-        ['fStatus','fCurrency'].forEach(id => document.getElementById(id).value = 'all');
-        State.filters = {};
-        State.page = 1;
-        loadOrders();
-    });
-    document.getElementById('prevBtn')?.addEventListener('click', () => { if (State.page > 1) { State.page--; loadOrders(); } });
-    document.getElementById('nextBtn')?.addEventListener('click', () => { if (State.page < State.totalPages) { State.page++; loadOrders(); } });
 
-    document.getElementById('syncBtn')?.addEventListener('click', async (e) => {
-        const btn = e.currentTarget;
-        btn.disabled = true;
-        const { ok, data, error, code, missing } = await api(API.sync, { method: 'POST' });
-        btn.disabled = false;
-        if (!ok) {
-            const msg = code === 'PROVIDER_NOT_CONFIGURED'
-                ? 'SMMWiz is not configured. Set ' + (missing || 'SMMWIZ_API_KEY') + ' on the server.'
-                : (error || 'Sync failed');
-            showToast(msg, 'error');
+    d.querySelector('#btnStatus')?.addEventListener('click', async () => {
+      const allowed = order.allowed_transitions || [];
+      if (!allowed.length) { window.MS.toast('No valid transitions for this status.', 'info'); return; }
+      const currentStatus = String(order.status).toLowerCase();
+      const next = prompt('New status (' + allowed.join(', ') + '):', allowed[0]);
+      if (!next || !allowed.includes(next)) return;
+      const reason = await window.MS.reasonModal({ title: 'Change status', message: 'Reason is required.', min: 4 });
+      if (!reason) return;
+      let verified_at_provider = false;
+      if (['provider_unknown', 'manual_review'].includes(currentStatus) && next === 'refunded') {
+        const confirmed = await window.MS.confirmModal({
+          title: 'Verify at provider',
+          message: 'Confirm you have checked SMMWiz and the order was NOT fulfilled. This cannot be undone.',
+          confirmText: 'Verified'
+        });
+        if (!confirmed) { window.MS.toast('Cancelled', 'info'); return; }
+        verified_at_provider = true;
+      }
+      const rr = await call(API.orderStatus(id), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: next, note: reason, verified_at_provider })
+      });
+      if (!rr.ok) { window.MS.toast(rr.error || 'Failed', 'error'); return; }
+      window.MS.toast('Status updated', 'success');
+      if (rr.body.order) {
+        State.orderCache.set(key, rr.body.order);
+        paintDrawerInPlace(d, rr.body.order, false);
+        attachActionHandlers(rr.body.order);
+      }
+      State.orders.sig = null;
+      State.overviewSig = null;
+    });
+
+    d.querySelector('#btnRefund')?.addEventListener('click', async () => {
+      const status = String(order.status).toLowerCase();
+      const allowNonFailed = ['provider_unknown', 'manual_review', 'partial'].includes(status);
+      const needsVerify = ['provider_unknown', 'manual_review'].includes(status);
+
+      const w = document.createElement('div');
+      w.className = 'drawer-scrim open';
+      w.innerHTML = `
+        <div class="detail-drawer open" role="dialog" aria-modal="true" style="max-width:480px">
+          <div class="dd-head">
+            <div class="dd-ic" style="background:rgba(255,255,255,.18)"><i class="fas fa-rotate-left"></i></div>
+            <div class="dd-titles">
+              <h2>Refund order</h2>
+              <div class="dd-sub">${U.esc(order.order_ref)} · ${U.money(order.total_amount, order.currency)}</div>
+            </div>
+            <button class="dd-close" aria-label="Close"><i class="fas fa-xmark"></i></button>
+          </div>
+          <div class="dd-body">
+            ${allowNonFailed
+              ? `<div class="verify-block">This order is <strong>${U.esc(status)}</strong>. Refunding will credit the customer immediately. ${needsVerify ? 'You <strong>must</strong> verify at SMMWiz first.' : ''}</div>`
+              : `<div class="verify-block" style="background:var(--info-bg);border-color:var(--info-bd);color:var(--info)">This will credit the customer wallet and mark the order refunded.</div>`}
+            ${needsVerify ? `<div class="verify-block"><label><input type="checkbox" id="verifyCheck"> I have checked the SMMWiz panel and this order was <strong>not</strong> fulfilled.</label></div>` : ''}
+            <div class="form-row"><label>Reason (required)</label><textarea id="refundReason" rows="3" style="width:100%;padding:10px;border:1px solid var(--border-strong);border-radius:9px;font-size:14px"></textarea></div>
+          </div>
+          <div class="dd-actions" style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0">
+            <button class="btn btn-ghost" id="refundCancel">Cancel</button>
+            <button class="btn btn-danger" id="refundGo" ${needsVerify ? 'disabled' : ''}><i class="fas fa-rotate-left"></i> Refund</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(w);
+      const wClose = () => w.remove();
+      w.querySelector('.dd-close').addEventListener('click', wClose);
+      w.querySelector('#refundCancel').addEventListener('click', wClose);
+      const verify = w.querySelector('#verifyCheck');
+      const go = w.querySelector('#refundGo');
+      if (verify) verify.addEventListener('change', () => { go.disabled = !verify.checked; });
+      go.addEventListener('click', async () => {
+        const reason = (w.querySelector('#refundReason').value || '').trim();
+        if (reason.length < 4) { window.MS.toast('Reason must be at least 4 characters', 'error'); return; }
+        const verified_at_provider = verify ? !!verify.checked : false;
+        if (needsVerify && !verified_at_provider) { window.MS.toast('Verification is required for this status.', 'error'); return; }
+        go.disabled = true;
+        go.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refunding…';
+        const rr = await call(API.orderRefund(id), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason, allow_non_failed: allowNonFailed, verified_at_provider })
+        });
+        go.disabled = false;
+        go.innerHTML = '<i class="fas fa-rotate-left"></i> Refund';
+        if (!rr.ok) {
+          if (rr.code === 'REFUND_PENDING_RECONCILE') {
+            window.MS.toast('Refund recorded. Wallet credit will be reconciled by the worker.', 'warn');
+            wClose();
+            const patched = { ...order, status: 'refunded', refund_status: 'refunded', refund_processed_at: new Date().toISOString() };
+            State.orderCache.set(key, patched);
+            paintDrawerInPlace(d, patched, false);
+            attachActionHandlers(patched);
+            State.orders.sig = null;
             return;
+          }
+          window.MS.toast(rr.error || 'Refund failed', 'error'); return;
         }
-        const submitted = data.submit?.submitted ?? 0;
-        const updated = data.sweep?.updated ?? 0;
-        showToast(`Sync complete: ${submitted} submitted, ${updated} updated`, 'success');
-        showSection('overview');
+        window.MS.toast('Refund applied', 'success');
+        wClose();
+        const patched = { ...order, status: 'refunded', refund_status: 'refunded', refund_processed_at: new Date().toISOString() };
+        State.orderCache.set(key, patched);
+        paintDrawerInPlace(d, patched, false);
+        attachActionHandlers(patched);
+        State.orders.sig = null;
+        State.overviewSig = null;
+      });
     });
+  };
 
-    document.getElementById('syncServicesBtn')?.addEventListener('click', async (e) => {
-        const btn = e.currentTarget;
-        btn.disabled = true;
-        const { ok, data, error, code, missing } = await api(API.syncServices, { method: 'POST' });
-        btn.disabled = false;
-        if (!ok) {
-            const msg = code === 'PROVIDER_NOT_CONFIGURED'
-                ? 'SMMWiz is not configured. Set ' + (missing || 'SMMWIZ_API_KEY') + ' on the server.'
-                : (error || 'Sync failed');
-            showToast(msg, 'error');
-            return;
-        }
-        showToast(`Sync: ${data.created} new, ${data.updated} updated`, 'success');
-        loadServices();
+  if (cached) attachActionHandlers(cached);
+
+  const hint = d.querySelector('#drawerHint');
+  if (hint) hint.classList.add('show');
+  const r = await call(API.order(id));
+  if (hint) hint.classList.remove('show');
+  if (!r.ok) {
+    if (!cached) {
+      const body = d.querySelector('#drawerBody');
+      body.innerHTML = '<div class="empty-state" style="padding:30px;color:var(--text-faint)">' + U.esc(r.error || 'Could not load order.') + '</div>';
+    }
+    return;
+  }
+  const fresh = r.body.order;
+  State.orderCache.set(key, fresh);
+  paintDrawerInPlace(d, fresh, false);
+  attachActionHandlers(fresh);
+}
+
+function paintDrawerInPlace(d, o, isCached) {
+  const titleEl = d.querySelector('#drawerTitle');
+  const subEl   = d.querySelector('#drawerSub');
+  const bodyEl  = d.querySelector('#drawerBody');
+  const actEl   = d.querySelector('#drawerActions');
+  if (titleEl) titleEl.textContent = o.order_ref || 'Order';
+  if (subEl)   subEl.textContent   = (o.service_name || '') + ' · ' + (o.user && o.user.username || '');
+  if (bodyEl) {
+    const hint = bodyEl.querySelector('#drawerHint');
+    bodyEl.innerHTML = '';
+    if (hint) bodyEl.appendChild(hint);
+    const wrap = document.createElement('div');
+    wrap.innerHTML = renderOrderBody(o, isCached);
+    bodyEl.appendChild(wrap);
+  }
+  if (actEl) actEl.innerHTML = renderOrderActions(o);
+}
+
+function renderOrderBody(o, isCached) {
+  const core = `
+    <div class="dd-section">
+      <h4>Order</h4>
+      <div class="dd-field"><span class="k">Reference</span><span class="v mono">${U.esc(o.order_ref)}</span></div>
+      <div class="dd-field"><span class="k">Service</span><span class="v">${U.esc(o.service_name || '—')}</span></div>
+      <div class="dd-field"><span class="k">Target</span><span class="v" style="word-break:break-all">${U.esc(o.link || '—')}</span></div>
+      <div class="dd-field"><span class="k">Quantity</span><span class="v">${U.int(o.quantity)}</span></div>
+      <div class="dd-field"><span class="k">Status</span><span class="v"><span class="badge ${U.statusClass(o.status)}">${U.esc(o.status)}</span></span></div>
+      <div class="dd-field"><span class="k">Created</span><span class="v">${U.dt(o.created_at)}</span></div>
+    </div>
+    <div class="dd-section">
+      <h4>Money</h4>
+      <div class="dd-field"><span class="k">Customer paid</span><span class="v">${U.money(o.total_amount, o.currency)}</span></div>
+      <div class="dd-field"><span class="k">Provider cost</span><span class="v">${U.money(o.provider_cost, o.currency)}</span></div>
+      <div class="dd-field"><span class="k">Profit</span><span class="v" style="color:var(--success)">${U.money(o.profit_amount, o.currency)}</span></div>
+      ${o.refund_amount ? `<div class="dd-field"><span class="k">Refunded</span><span class="v" style="color:var(--danger)">${U.money(o.refund_amount, o.currency)}</span></div>` : ''}
+    </div>
+  `;
+  if (isCached) {
+    return core + '<div class="dd-section"><div style="padding:8px 0;color:var(--text-faint);font-size:12px"><i class="fas fa-spinner fa-spin"></i> Loading provider &amp; refund details…</div></div>';
+  }
+  return core + `
+    <div class="dd-section">
+      <h4>Provider</h4>
+      <div class="dd-field"><span class="k">Provider</span><span class="v">${U.esc(o.provider || '—')}</span></div>
+      <div class="dd-field"><span class="k">API order ID</span><span class="v mono">${U.esc(o.api_order_id || '—')}</span></div>
+      <div class="dd-field"><span class="k">Provider status</span><span class="v">${U.esc(o.provider_status || '—')}</span></div>
+      <div class="dd-field"><span class="k">Last checked</span><span class="v">${U.dt(o.provider_last_checked_at)}</span></div>
+      ${o.verified_at_provider ? `<div class="dd-field"><span class="k">Verified at provider</span><span class="v" style="color:var(--success)">${U.dt(o.verified_at_provider_at)}</span></div>` : ''}
+    </div>
+    <div class="dd-section">
+      <h4>Refund</h4>
+      <div class="dd-field"><span class="k">Status</span><span class="v">${U.esc(o.refund_status || 'none')}</span></div>
+      <div class="dd-field"><span class="k">Reference</span><span class="v mono">${U.esc(o.refund_reference || '—')}</span></div>
+      <div class="dd-field"><span class="k">Processed</span><span class="v">${U.dt(o.refund_processed_at)}</span></div>
+    </div>
+    <div class="dd-section">
+      <h4>Admin</h4>
+      <div class="dd-field"><span class="k">Note</span><span class="v">${U.esc(o.admin_note || '—')}</span></div>
+    </div>
+  `;
+}
+
+function renderOrderActions(o) {
+  const allowed = o.allowed_transitions || [];
+  return `
+    ${allowed.length ? '<button class="btn btn-ghost" id="btnStatus"><i class="fas fa-exchange-alt"></i> Change status</button>' : ''}
+    ${['failed', 'cancelled', 'provider_unknown', 'manual_review', 'partial'].includes(String(o.status).toLowerCase()) ? '<button class="btn btn-danger" id="btnRefund"><i class="fas fa-rotate-left"></i> Refund</button>' : ''}
+    <button class="btn btn-ghost" id="btnRecheck"><i class="fas fa-arrows-rotate"></i> Check provider</button>
+    <button class="btn btn-ghost" id="btnNote"><i class="fas fa-sticky-note"></i> Note</button>
+  `;
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   Services
+   ═════════════════════════════════════════════════════════════════ */
+
+const SERVICES_FRESH_MS = 30_000;
+
+function renderServicesPanel() {
+  const panel = document.getElementById('panel-services');
+  if (!panel.querySelector('#svcRowList')) {
+    panel.innerHTML = `
+      <div class="card panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap">
+          <h3 style="margin:0;font-size:14px;font-weight:800">Boost services</h3>
+          <button class="btn btn-primary" id="syncSvcBtn"><i class="fas fa-arrows-rotate"></i> Import from SMMWiz</button>
+        </div>
+        <p style="font-size:11.5px;color:var(--text-faint);margin-bottom:12px;line-height:1.5">Only <strong>active</strong> and <strong>visible</strong> services are shown to customers. New imports come in inactive — toggle on the ones you want to sell.</p>
+        <div class="filter-row">
+          <input type="search" id="sSearch" placeholder="Search services…">
+          <select id="sPlatform">
+            <option value="all">All platforms</option>
+            <option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="youtube">YouTube</option>
+            <option value="facebook">Facebook</option><option value="twitter">Twitter/X</option><option value="telegram">Telegram</option>
+            <option value="whatsapp">WhatsApp</option><option value="discord">Discord</option><option value="spotify">Spotify</option><option value="other">Other</option>
+          </select>
+          <select id="sLive">
+            <option value="all">All</option>
+            <option value="on">Active only</option>
+            <option value="off">Inactive only</option>
+          </select>
+          <select id="sLimit">
+            <option value="50">50 / page</option>
+            <option value="100">100 / page</option>
+            <option value="200">200 / page</option>
+          </select>
+        </div>
+        <div class="bulk-bar" id="bulkBar"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:6px 8px"><input type="checkbox" id="selAll" style="width:16px;height:16px;accent-color:var(--navy)"> Select this page</label>
+          <button class="btn btn-ghost btn-sm" id="bulkOn"><i class="fas fa-toggle-on"></i> Turn on selected</button>
+          <button class="btn btn-ghost btn-sm" id="bulkOff"><i class="fas fa-toggle-off"></i> Turn off selected</button>
+          <button class="btn btn-ghost btn-sm" id="bulkMarkup"><i class="fas fa-percent"></i> Set markup…</button>
+          <button class="btn btn-ghost btn-sm" id="bulkReset"><i class="fas fa-rotate-left"></i> Reset to global</button>
+        </div>
+        <div class="svc-row-list" id="svcRowList">
+          <div style="padding:30px;text-align:center;color:var(--text-faint)">Loading…</div>
+        </div>
+        <div class="pager">
+          <div id="svcPageInfo">—</div>
+          <div class="btns">
+            <button class="btn btn-ghost" id="svcPrev" disabled>Previous</button>
+            <button class="btn btn-ghost" id="svcNext" disabled>Next</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.getElementById('syncSvcBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('syncSvcBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing…';
+      const r = await call(API.servicesSync, { method: 'POST' });
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-arrows-rotate"></i> Import from SMMWiz';
+      if (!r.ok) {
+        const msg = r.code === 'PROVIDER_NOT_CONFIGURED' ? 'SMMWiz is not configured. Set SMMWIZ_API_KEY.' : (r.error || 'Import failed');
+        window.MS.toast(msg, 'error'); return;
+      }
+      const d = r.body || {};
+      window.MS.toast('Import complete: ' + d.created + ' new, ' + d.updated + ' updated, ' + d.deactivated + ' off' + (d.rate_changes ? ' (' + d.rate_changes + ' rate changes)' : '') + (d.skipped_non_default ? ' · ' + d.skipped_non_default + ' non-Default skipped' : ''), 'success');
+      State.services.page = 1;
+      State.services.sig = null;
+      loadServices(true);
     });
-
-    document.getElementById('refreshBtn')?.addEventListener('click', () => {
-        const active = document.querySelector('#boostMenu .item.active')?.dataset.section || 'overview';
-        showSection(active);
+    document.getElementById('sSearch').addEventListener('input', debounce(() => {
+      State.services.filters.search = document.getElementById('sSearch').value.trim();
+      State.services.page = 1; State.services.sig = null; loadServices(true);
+    }, 250));
+    document.getElementById('sPlatform').addEventListener('change', () => {
+      State.services.filters.platform = document.getElementById('sPlatform').value;
+      State.services.page = 1; State.services.sig = null; loadServices(true);
     });
-
-    document.getElementById('dClose')?.addEventListener('click', closeDrawer);
-    document.getElementById('drawerScrim')?.addEventListener('click', closeDrawer);
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
-            closeDrawer();
-            document.getElementById('modalScrim').classList.remove('show');
-            closeSidebarMobile();
-        }
+    document.getElementById('sLive').addEventListener('change', () => {
+      const v = document.getElementById('sLive').value;
+      State.services.filters.active = v === 'on' ? 'true' : v === 'off' ? 'false' : undefined;
+      State.services.page = 1; State.services.sig = null; loadServices(true);
     });
+    document.getElementById('sLimit').addEventListener('change', () => {
+      State.services.limit = parseInt(document.getElementById('sLimit').value, 10) || 50;
+      State.services.page = 1; State.services.sig = null; loadServices(true);
+    });
+    document.getElementById('selAll').addEventListener('change', e => {
+      if (e.target.checked) State.services.list.forEach(s => State.services.selected.add(s.id));
+      else State.services.selected.clear();
+      paintServiceList();
+      updateBulkBar();
+    });
+    document.getElementById('bulkOn').addEventListener('click', () => bulkToggle('active', true));
+    document.getElementById('bulkOff').addEventListener('click', () => bulkToggle('active', false));
+    document.getElementById('bulkReset').addEventListener('click', bulkReset);
+    document.getElementById('bulkMarkup').addEventListener('click', bulkMarkup);
+    document.getElementById('svcPrev').addEventListener('click', () => {
+      if (State.services.page > 1) { State.services.page--; State.services.sig = null; loadServices(true); }
+    });
+    document.getElementById('svcNext').addEventListener('click', () => {
+      if (State.services.page < State.services.totalPages) { State.services.page++; State.services.sig = null; loadServices(true); }
+    });
+  }
+  loadServices(false);
+}
 
-    loadAdminProfile();
-    loadOverview();
+async function loadServices(force) {
+  const qs = new URLSearchParams({ page: State.services.page, limit: State.services.limit });
+  const f = State.services.filters;
+  if (f.search) qs.set('search', f.search);
+  if (f.platform && f.platform !== 'all') qs.set('platform', f.platform);
+  if (f.active !== undefined) qs.set('active', f.active);
+  const sig = qs.toString();
+
+  const fresh = State.services.sig === sig && State.services.list.length &&
+                (Date.now() - State.services.fetchedAt) < SERVICES_FRESH_MS;
+
+  if (!force && fresh) {
+    paintServiceList();
+    return;
+  }
+
+  const list = document.getElementById('svcRowList');
+  if (list) list.innerHTML = '<div style="padding:30px;text-align:center;color:var(--text-faint)">Loading…</div>';
+  const done = perf('loadServices', Date.now());
+  const r = await call(API.services + '?' + sig);
+  done();
+  if (!r.ok) {
+    if (list) list.innerHTML = '<div style="padding:30px;text-align:center;color:var(--danger)">' + U.esc(r.error || 'Failed') + '</div>';
+    return;
+  }
+  State.services.list = r.body.services || [];
+  State.services.totalPages = r.body.totalPages || 1;
+  State.services.count = r.body.count || State.services.list.length;
+  State.services.sig = sig;
+  State.services.fetchedAt = Date.now();
+  const cnt = document.getElementById('tabServicesCnt');
+  if (cnt) cnt.textContent = String(State.services.count);
+  const pageIds = new Set(State.services.list.map(s => s.id));
+  [...State.services.selected].forEach(id => { if (!pageIds.has(id)) State.services.selected.delete(id); });
+  paintServiceList();
+  updateBulkBar();
+  const info = document.getElementById('svcPageInfo');
+  if (info) {
+    const from = (State.services.page - 1) * State.services.limit + 1;
+    const to = Math.min(State.services.page * State.services.limit, State.services.count);
+    info.textContent = State.services.count ? `Showing ${from}–${to} of ${State.services.count}` : 'No services';
+  }
+  document.getElementById('svcPrev').disabled = State.services.page <= 1;
+  document.getElementById('svcNext').disabled = State.services.page >= State.services.totalPages;
+}
+
+function paintServiceList() {
+  const list = document.getElementById('svcRowList');
+  if (!list) return;
+  if (!State.services.list.length) {
+    list.innerHTML = '<div style="padding:30px;text-align:center;color:var(--text-faint)"><i class="fas fa-box" style="font-size:1.5rem;display:block;margin-bottom:8px;color:var(--border)"></i>No services. Click "Import from SMMWiz".</div>';
+    return;
+  }
+  list.innerHTML = State.services.list.map(s => {
+    const eff = s.effective || {};
+    const src = eff.source || 'global';
+    const usd = eff.usd_per_1k;
+    const ngn = eff.ngn_per_1k;
+    const margin = eff.margin_pct;
+    const below = eff.below_cost;
+    const cb = State.services.selected.has(s.id) ? 'checked' : '';
+    const usdStr = usd != null ? '$' + Number(usd).toFixed(4) : '—';
+    const ngnStr = ngn != null ? '₦' + Number(ngn).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+    const marginStr = margin != null ? Number(margin).toFixed(1) + '%' : '—';
+    return `
+      <div class="svc-row" data-id="${U.esc(s.id)}">
+        <input type="checkbox" class="svc-row-cb" data-id="${U.esc(s.id)}" ${cb}>
+        <div class="svc-row-main">
+          <div class="svc-row-name">${U.esc(s.name || '—')}</div>
+          <div class="svc-row-meta">
+            <span>${U.esc(s.provider_service_id)}</span><span>·</span>
+            <span>${U.esc(s.platform || 'other')}</span><span>·</span>
+            <span>${U.esc(s.category || 'other')}</span><span>·</span>
+            <span>Min ${U.int(s.min_quantity)} · Max ${U.int(s.max_quantity)}</span>
+          </div>
+        </div>
+        <div class="price-info">
+          <span class="big">${ngnStr} <span style="font-weight:500;color:var(--text-dim);font-size:10px">/ 1k</span></span>
+          <span>${usdStr} · margin ${marginStr}</span>
+          <span style="display:inline-flex;gap:4px;margin-top:2px">
+            <span class="badge-src src-${src}">${src}</span>
+            ${below ? '<span class="warn-chip">Below cost</span>' : ''}
+          </span>
+        </div>
+        <div class="svc-row-right">
+          <label class="toggle"><input type="checkbox" data-toggle="active" data-id="${U.esc(s.id)}" ${s.active ? 'checked' : ''}><span class="tk"></span>Active</label>
+          <label class="toggle"><input type="checkbox" data-toggle="visible" data-id="${U.esc(s.id)}" ${s.visible_to_users ? 'checked' : ''}><span class="tk"></span>Visible</label>
+          <button class="btn btn-ghost btn-sm" data-edit="${U.esc(s.id)}"><i class="fas fa-pen"></i> Edit</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+  list.querySelectorAll('.svc-row-cb').forEach(cb => cb.addEventListener('change', e => {
+    const id = e.target.dataset.id;
+    if (e.target.checked) State.services.selected.add(id); else State.services.selected.delete(id);
+    updateBulkBar();
+  }));
+  list.querySelectorAll('[data-toggle]').forEach(inp => inp.addEventListener('change', async e => {
+    const id = e.target.dataset.id;
+    const field = e.target.dataset.toggle === 'active' ? 'active' : 'visible_to_users';
+    const value = e.target.checked;
+    // Optimistic UI
+    const row = State.services.list.find(x => x.id === id);
+    if (row) { row[field] = value; if (field === 'active' && value) row.visible_to_users = true; }
+    e.target.disabled = true;
+    const patch = {}; patch[field] = value;
+    if (field === 'active' && value) patch.visible_to_users = true;
+    const r = await call(API.service(id), {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch)
+    });
+    e.target.disabled = false;
+    if (!r.ok) {
+      e.target.checked = !value;
+      if (row) { row[field] = !value; if (field === 'active' && !value) row.visible_to_users = false; }
+      if (r.code === 'NO_PROVIDER_RATE') window.MS.toast('Cannot activate — no provider rate.', 'error');
+      else window.MS.toast(r.error || 'Failed', 'error');
+      return;
+    }
+    window.MS.toast('Saved', 'success');
+    // If we flipped Active on, also flip the Visible checkbox in the DOM.
+    if (field === 'active' && value) {
+      const v = list.querySelector(`[data-toggle="visible"][data-id="${CSS.escape(id)}"]`);
+      if (v) v.checked = true;
+    }
+  }));
+  list.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openServiceEdit(b.dataset.edit)));
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulkBar');
+  if (!bar) return;
+  const n = State.services.selected.size;
+  if (!n) { bar.innerHTML = ''; return; }
+  bar.innerHTML = `<strong>${n} selected</strong><span style="flex:1"></span><button class="btn btn-ghost btn-sm" id="bulkClear">Clear</button>`;
+  document.getElementById('bulkClear').addEventListener('click', () => {
+    State.services.selected.clear();
+    document.getElementById('selAll').checked = false;
+    paintServiceList(); updateBulkBar();
+  });
+}
+
+async function bulkToggle(field, value) {
+  if (!State.services.selected.size) { window.MS.toast('Select services first', 'warn'); return; }
+  const patch = {}; patch[field] = value;
+  if (field === 'active' && value) patch.visible_to_users = true;
+  const r = await call(API.servicesBulk, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids: [...State.services.selected], patch })
+  });
+  if (!r.ok) { window.MS.toast(r.error || 'Failed', 'error'); return; }
+  window.MS.toast('Updated ' + r.body.updated + ' services', 'success');
+  State.services.selected.clear();
+  document.getElementById('selAll').checked = false;
+  State.services.sig = null;
+  loadServices(true);
+}
+
+async function bulkReset() {
+  if (!State.services.selected.size) { window.MS.toast('Select services first', 'warn'); return; }
+  const r = await call(API.servicesBulk, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids: [...State.services.selected], patch: { markup_percent: null, custom_price: null } })
+  });
+  if (!r.ok) { window.MS.toast(r.error || 'Failed', 'error'); return; }
+  window.MS.toast('Reset to global markup', 'success');
+  State.services.selected.clear();
+  document.getElementById('selAll').checked = false;
+  State.services.sig = null;
+  loadServices(true);
+}
+
+async function bulkMarkup() {
+  if (!State.services.selected.size) { window.MS.toast('Select services first', 'warn'); return; }
+  const input = prompt('New markup percent (0–2000). Leave blank to skip:');
+  if (input == null || input.trim() === '') return;
+  const n = Number(input);
+  if (!isFinite(n) || n < 0 || n > 2000) { window.MS.toast('Invalid markup', 'error'); return; }
+  const r = await call(API.servicesBulk, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids: [...State.services.selected], patch: { markup_percent: n / 100, custom_price: null } })
+  });
+  if (!r.ok) { window.MS.toast(r.error || 'Failed', 'error'); return; }
+  window.MS.toast('Markup set on ' + r.body.updated + ' services', 'success');
+  State.services.selected.clear();
+  document.getElementById('selAll').checked = false;
+  State.services.sig = null;
+  loadServices(true);
+}
+
+async function openServiceEdit(id) {
+  const s = State.services.list.find(x => x.id === id);
+  if (!s) return;
+  const markupDisplay = s.markup_percent != null ? Number((Number(s.markup_percent) * 100).toFixed(2)) : '';
+  const d = document.createElement('div');
+  d.className = 'drawer-scrim open';
+  d.innerHTML = `
+    <div class="detail-drawer open" role="dialog" aria-modal="true" style="display:flex;flex-direction:column">
+      <div class="dd-head">
+        <div class="dd-ic"><i class="fas fa-pen"></i></div>
+        <div class="dd-titles">
+          <h2>Edit service</h2>
+          <div class="dd-sub">${U.esc(s.name || '')}</div>
+        </div>
+        <button class="dd-close" aria-label="Close"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="dd-body">
+        <div class="form-row"><label>Name</label><input type="text" id="edName" value="${U.esc(s.name || '')}"></div>
+        <div class="form-row"><label>Description (leave blank to auto-generate)</label><textarea id="edDesc" rows="3">${U.esc(s.description || '')}</textarea></div>
+        <div class="form-row"><label>Platform</label>
+          <select id="edPlatform">${['instagram', 'tiktok', 'youtube', 'facebook', 'twitter', 'telegram', 'whatsapp', 'discord', 'spotify', 'other'].map(p => `<option value="${p}" ${s.platform === p ? 'selected' : ''}>${p}</option>`).join('')}</select>
+        </div>
+        <div class="form-row"><label>Category</label>
+          <select id="edCat">${['followers', 'likes', 'views', 'comments', 'shares', 'subscribers', 'members', 'streams', 'plays', 'other'].map(c => `<option value="${c}" ${s.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select>
+        </div>
+        <div class="form-row"><label>Average delivery time (optional, e.g. "1–24 hrs")</label><input type="text" id="edAvg" value="${U.esc(s.average_time || '')}" placeholder="Leave blank if unknown"></div>
+        <div class="form-row"><label>Markup % (blank = use global)</label><input type="number" id="edMarkup" step="0.01" min="0" max="2000" value="${markupDisplay}"><div class="help">Current source: <strong>${U.esc(s.effective?.source || 'global')}</strong></div></div>
+        <div class="form-row"><label>Custom price USD/1k (overrides markup — blank to disable)</label><input type="number" id="edCustom" step="0.0001" min="0" value="${s.custom_price != null ? Number(s.custom_price) : ''}"></div>
+        <div class="form-row"><label>Min quantity</label><input type="number" id="edMin" min="1" value="${s.min_quantity ?? ''}"></div>
+        <div class="form-row"><label>Max quantity</label><input type="number" id="edMax" min="1" value="${s.max_quantity ?? ''}"></div>
+        <div class="form-row"><label class="toggle" style="text-transform:none;font-size:13px"><input type="checkbox" id="edActive" ${s.active ? 'checked' : ''}><span class="tk"></span>Active</label></div>
+        <div class="form-row"><label class="toggle" style="text-transform:none;font-size:13px"><input type="checkbox" id="edVisible" ${s.visible_to_users ? 'checked' : ''}><span class="tk"></span>Visible to users</label></div>
+        <div class="form-row"><label class="toggle" style="text-transform:none;font-size:13px"><input type="checkbox" id="edRefill" ${s.refill_allowed ? 'checked' : ''}><span class="tk"></span>Refill available</label></div>
+        <div class="form-row"><label>Refill days (if applicable)</label><input type="number" id="edRefillDays" min="0" value="${s.refill_days ?? ''}"></div>
+      </div>
+      <div class="dd-actions" style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0">
+        <button class="btn btn-ghost" id="edCancel">Cancel</button>
+        <button class="btn btn-primary" id="edSave"><i class="fas fa-save"></i> Save</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(d);
+  document.body.style.overflow = 'hidden';
+  const close = () => { d.remove(); document.body.style.overflow = ''; };
+  d.querySelector('.dd-close').addEventListener('click', close);
+  d.querySelector('#edCancel').addEventListener('click', close);
+  d.addEventListener('click', e => { if (e.target === d) close(); });
+  d.querySelector('#edSave').addEventListener('click', async () => {
+    const patch = {
+      name: d.querySelector('#edName').value.trim(),
+      description: (d.querySelector('#edDesc').value || '').trim() || null,
+      platform: d.querySelector('#edPlatform').value,
+      category: d.querySelector('#edCat').value,
+      average_time: (d.querySelector('#edAvg').value || '').trim() || null,
+      active: d.querySelector('#edActive').checked,
+      visible_to_users: d.querySelector('#edVisible').checked,
+      refill_allowed: d.querySelector('#edRefill').checked
+    };
+    const m = d.querySelector('#edMarkup').value;
+    patch.markup_percent = m === '' ? null : Number(m) / 100;
+    const c = d.querySelector('#edCustom').value;
+    patch.custom_price = c === '' ? null : Number(c);
+    const mn = d.querySelector('#edMin').value;
+    patch.min_quantity = mn === '' ? null : Number(mn);
+    const mx = d.querySelector('#edMax').value;
+    patch.max_quantity = mx === '' ? null : Number(mx);
+    const rd = d.querySelector('#edRefillDays').value;
+    patch.refill_days = rd === '' ? null : Number(rd);
+    const btn = d.querySelector('#edSave');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+    const r = await call(API.service(id), {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch)
+    });
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save"></i> Save';
+    if (!r.ok) {
+      if (r.code === 'NO_PROVIDER_RATE') window.MS.toast('Cannot activate — no provider rate.', 'error');
+      else window.MS.toast(r.error || 'Save failed', 'error');
+      return;
+    }
+    window.MS.toast('Saved', 'success');
+    close();
+    State.services.sig = null;
+    loadServices(true);
+  });
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   Settings
+   ═════════════════════════════════════════════════════════════════ */
+
+function renderSettingsPanel() {
+  const panel = document.getElementById('panel-settings');
+  if (!panel.querySelector('#cfgRate')) {
+    panel.innerHTML = '<div style="padding:30px;text-align:center;color:var(--text-faint)">Loading config…</div>';
+  }
+  loadConfig(false);
+}
+
+async function loadConfig(force) {
+  if (State.config && !force) { renderSettings(); return; }
+  const r = await call(API.config);
+  const panel = document.getElementById('panel-settings');
+  if (!r.ok) {
+    panel.innerHTML = '<div class="card panel" style="padding:20px;color:var(--danger)">Failed: ' + U.esc(r.error || '—') + '</div>';
+    return;
+  }
+  State.config = r.body.config || {};
+  State.provider.dry_run = !!State.config.dry_run;
+  State.provider.configured = !!State.config.smmwiz_configured;
+  State.originalConfig = JSON.parse(JSON.stringify(State.config));
+  State.pendingConfigChanges = {};
+  renderSettings();
+  renderBanners();
+}
+
+function renderSettings() {
+  const c = State.config;
+  const missing = c.missing_settings || [];
+  const dry = c.dry_run === true;
+  const panel = document.getElementById('panel-settings');
+  panel.innerHTML = `
+    <div class="card panel">
+      <h3 style="margin:0 0 12px;font-size:14px;font-weight:800">Boost configuration</h3>
+      <p style="font-size:11.5px;color:var(--text-faint);margin-bottom:12px;line-height:1.5">These values affect every new order. Existing orders keep their snapshot.</p>
+      ${missing.length ? `<div class="cfg-missing"><strong>Missing registry keys:</strong> ${missing.map(U.esc).join(', ')} — add these to adminSettingsService KEY_REGISTRY before using those fields.</div>` : ''}
+      ${dry ? '<div class="dry-banner"><i class="fas fa-triangle-exclamation"></i> DRY-RUN is ON. New orders will not hit SMMWiz.</div>' : ''}
+      <div class="provider-card">
+        <div class="pr"><strong>Provider:</strong> SMMWiz — ${c.smmwiz_configured ? 'Configured ✓' : 'Not configured'}</div>
+        <div class="pr"><strong>Balance:</strong> ${State.provider.balance === null ? 'unreachable' : ('$' + Number(State.provider.balance).toFixed(2))}</div>
+        <div class="pr"><strong>Dry-run:</strong> ${dry ? 'ON' : 'off'}</div>
+        ${c.version != null ? `<div class="pr"><strong>Config version:</strong> ${c.version}</div>` : ''}
+      </div>
+      <div class="cfg-form">
+        <label>USD → NGN rate<input type="number" id="cfgRate" step="0.01" min="1" value="${c.usd_to_ngn ?? ''}"></label>
+        <label>Global markup %<input type="number" id="cfgMarkup" step="0.01" min="0" max="2000" value="${c.markup_percent ?? ''}"></label>
+        <label>Min order (₦)<input type="number" id="cfgMin" step="0.01" min="0" value="${c.min_ngn ?? ''}" ${missing.includes('boost_min_ngn') ? 'disabled' : ''}></label>
+        <label>Max order (₦)<input type="number" id="cfgMax" step="0.01" min="0" value="${c.max_ngn ?? ''}" ${missing.includes('boost_max_ngn') ? 'disabled' : ''}></label>
+        <div class="row-inline"><input type="checkbox" id="cfgEnabled" ${c.enabled ? 'checked' : ''}><span>Boost system enabled</span></div>
+        <div class="row-inline"><input type="checkbox" id="cfgAllowNgn" ${c.allow_ngn ? 'checked' : ''} ${missing.includes('boost_allow_ngn') ? 'disabled' : ''}><span>Allow NGN payments</span></div>
+        <div class="row-inline"><input type="checkbox" id="cfgAllowUsd" ${c.allow_usd ? 'checked' : ''} ${missing.includes('boost_allow_usd') ? 'disabled' : ''}><span>Allow USD payments</span></div>
+      </div>
+      <div class="save-bar">
+        <div class="state" id="saveState">No changes</div>
+        <button class="btn btn-primary" id="saveCfgBtn"><i class="fas fa-save"></i> Save changes</button>
+      </div>
+    </div>
+  `;
+  ['cfgRate', 'cfgMarkup', 'cfgMin', 'cfgMax', 'cfgEnabled', 'cfgAllowNgn', 'cfgAllowUsd'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', collectChanges);
+    el.addEventListener('change', collectChanges);
+  });
+  document.getElementById('saveCfgBtn').addEventListener('click', saveConfig);
+}
+
+function collectChanges() {
+  const c = State.originalConfig;
+  const changes = {};
+  const v = id => { const el = document.getElementById(id); if (!el) return null; return el.type === 'checkbox' ? el.checked : el.value; };
+  const rate = v('cfgRate');   if (rate !== '' && Number(rate) !== Number(c.usd_to_ngn)) changes.usd_to_ngn = Number(rate);
+  const markup = v('cfgMarkup'); if (markup !== '' && Number(markup) !== Number(c.markup_percent)) changes.markup_percent = Number(markup);
+  const minN = v('cfgMin');    if (minN !== '' && Number(minN) !== Number(c.min_ngn)) changes.min_ngn = Number(minN);
+  const maxN = v('cfgMax');    if (maxN !== '' && Number(maxN) !== Number(c.max_ngn)) changes.max_ngn = Number(maxN);
+  if (v('cfgEnabled')  !== c.enabled)   changes.enabled = v('cfgEnabled');
+  if (v('cfgAllowNgn') !== c.allow_ngn) changes.allow_ngn = v('cfgAllowNgn');
+  if (v('cfgAllowUsd') !== c.allow_usd) changes.allow_usd = v('cfgAllowUsd');
+  State.pendingConfigChanges = changes;
+  const count = Object.keys(changes).length;
+  const st = document.getElementById('saveState');
+  if (st) {
+    if (count === 0) st.innerHTML = 'No changes';
+    else st.innerHTML = '<strong>' + count + ' change' + (count > 1 ? 's' : '') + '</strong> pending';
+  }
+}
+
+async function saveConfig() {
+  const changes = State.pendingConfigChanges;
+  if (!Object.keys(changes).length) { window.MS.toast('No changes to save', 'info'); return; }
+  const reason = await window.MS.reasonModal({ title: 'Save boost config', message: 'A reason is required and will be recorded.', min: 4 });
+  if (!reason) return;
+  const btn = document.getElementById('saveCfgBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+  try {
+    const body = { changes, reason, expected_version: State.config.version, confirm_large_change: false };
+    let r = await call(API.config, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!r.ok && r.code === 'LARGE_CHANGE_REQUIRES_CONFIRMATION') {
+      const oldV = r.body && r.body.old_value;
+      const newV = r.body && r.body.new_value;
+      const key = r.body && r.body.key;
+      const ok = await window.MS.confirmModal({
+        title: 'Confirm large change',
+        message: 'Change to ' + key + ' is more than 10% (' + oldV + ' → ' + newV + '). Proceed?',
+        confirmText: 'Confirm'
+      });
+      if (!ok) { window.MS.toast('Cancelled', 'info'); return; }
+      body.confirm_large_change = true;
+      r = await call(API.config, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    }
+    if (!r.ok) {
+      if (r.code === 'CONFIG_VERSION_CONFLICT') { window.MS.toast('Another admin saved first. Reloading…', 'warn'); State.config = null; loadConfig(true); return; }
+      window.MS.toast(r.error || 'Save failed', 'error');
+      return;
+    }
+    window.MS.toast('Saved', 'success');
+    State.overviewSig = null;
+    State.orders.sig = null;
+    State.services.sig = null;
+    if (State.config) {
+      if (changes.usd_to_ngn !== undefined) State.config.usd_to_ngn = changes.usd_to_ngn;
+      if (changes.markup_percent !== undefined) State.config.markup_percent = changes.markup_percent;
+      if (changes.min_ngn !== undefined) State.config.min_ngn = changes.min_ngn;
+      if (changes.max_ngn !== undefined) State.config.max_ngn = changes.max_ngn;
+      if (changes.enabled !== undefined) State.config.enabled = changes.enabled;
+      if (changes.allow_ngn !== undefined) State.config.allow_ngn = changes.allow_ngn;
+      if (changes.allow_usd !== undefined) State.config.allow_usd = changes.allow_usd;
+      if (r.body && r.body.result && r.body.result.version != null) State.config.version = r.body.result.version;
+      State.originalConfig = JSON.parse(JSON.stringify(State.config));
+      State.pendingConfigChanges = {};
+      renderSettings();
+    }
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save"></i> Save changes';
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   Init
+   ═════════════════════════════════════════════════════════════════ */
+
+document.addEventListener('DOMContentLoaded', async function () {
+  if (!window.AdminSession || !AdminSession.getToken()) { AdminSession.redirectToLogin(); return; }
+
+  loadProvider(false);
+  loadConfig(false).catch(() => {});
+
+  if (typeof window.MS !== 'undefined' && typeof window.MS.init === 'function') {
+    window.MS.init({
+      activeKey: 'boost',
+      title: 'Boost',
+      breadcrumb: [
+        { label: 'Admin', href: '/admin/dashboard.html' },
+        { label: 'Boost' }
+      ]
+    });
+  } else {
+    document.getElementById('appRoot').innerHTML = '<div style="padding:40px;text-align:center;color:var(--danger)">admin-shell.js not loaded</div>';
+    return;
+  }
+
+  const hash = (location.hash || '').replace('#', '');
+  if (['overview', 'orders', 'services', 'settings'].includes(hash)) State.tab = hash;
+  renderShell();
 });
 </script>
 </body>

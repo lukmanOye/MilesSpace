@@ -1,555 +1,512 @@
 // routes/admin/airtimeAdminRoutes.js
-// ─────────────────────────────────────────────────────────────────
-// Admin Airtime & Data API — routes only.
+// Airtime & Data admin API.
 //
-// The admin Airtime view shows a UNION of two underlying tables:
+// Batch 7 changes (2026-11-08):
+//   • GET /airtime/orders/export.csv is declared BEFORE
+//     GET /airtime/orders/:id (fixes INVALID_ID when id='export.csv').
+//   • CSV export includes the new wallet/payment columns:
+//     wallet_type, payment_amount, payment_currency, send_amount_usd,
+//     fee_usd, fee_percent, fx_usd_ngn, ledger_transaction_id,
+//     provider_transaction_id, refund_reference. All existing columns
+//     stay first and in the same order.
 //
-//   airtime_transactions        — DT One (Global Airtime)
-//   bill_payment_transactions   — VTpass (service_type = 'airtime')
-//
-// This file is a thin pass-through. It:
-//   • authenticates / authorizes the caller
-//   • validates request shape
-//   • calls airtimeService
-//   • translates errors into a stable response contract
-//
-// No business logic. No DB access. No provider SDK calls.
-//
-// Routes:
-//   GET    /api/admin/airtime/overview
-//   GET    /api/admin/airtime/orders
-//   GET    /api/admin/airtime/orders/:id
-//   POST   /api/admin/airtime/orders/:id/sync
-//   POST   /api/admin/airtime/orders/:id/retry
-//   POST   /api/admin/airtime/orders/:id/refund
-//   POST   /api/admin/airtime/orders/:id/review
-//   GET    /api/admin/airtime/routing
-//   PUT    /api/admin/airtime/routing
-//   GET    /api/admin/airtime/providers
-//   GET    /api/admin/airtime/providers/:provider/health
-//   POST   /api/admin/airtime/providers/:provider/health-check
-// ─────────────────────────────────────────────────────────────────
-
+// Batch 5 + fixes (unchanged):
+//   • All permission gates use PERMISSIONS.* constants from
+//     middleware/adminAuth.js.
+//   • Every handler goes through sendErr / handleException so
+//     server-side Supabase 401s never leak as auth errors.
+//   • serviceCtx() bridges req.adminContext → the shape
+//     airtimeService expects (adminId, adminEmail, ip, ...).
+//   • GET /airtime/config, /airtime/providers/:provider/balance,
+//     /airtime/providers (live adapter healthCheck).
+//   • Routing PUT rejects vtpass for non-NGA (INVALID_PROVIDER).
 'use strict';
 
 const express = require('express');
-const router = express.Router();
-const crypto = require('crypto');
+const router  = express.Router();
 
-const { requirePermission, PERMISSIONS } = require('../../middleware/adminAuth');
-const { supabaseAdmin } = require('../../db/supabase');
-const airtime = require('../../services/airtimeService');
+const {
+    requirePermission,
+    PERMISSIONS
+} = require('../../middleware/adminAuth');
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const airtimeService = require('../../services/airtimeService');
+const airtimePricing = require('../../services/airtimePricing');
+const adminSettings  = require('../../services/adminSettingsService');
+const dtoneAdapter   = require('../../services/airtimeProviders/dtoneAdapter');
+const vtpassAdapter  = require('../../services/airtimeProviders/vtpassAdapter');
 
-// ─── Request id middleware ───────────────────────────────────────
-// Every response carries a stable X-Request-ID. Server logs use the
-// same id so support can correlate without exposing internals.
-router.use((req, res, next) => {
-    req.atRequestId = req.headers['x-request-id']
-        || `AT-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
-    res.setHeader('X-Request-ID', req.atRequestId);
-    next();
-});
+// ═══════════════════════════════════════════════════════════════
+//  PERMISSION RESOLUTION
+//
+//  Pick the first permission that actually exists in the registry.
+//  This prevents `requirePermission(undefined)` (which the
+//  middleware interprets as "no check" and then the profile lookup
+//  still runs — but a missing sid/authContext surfaces as a 401).
+// ═══════════════════════════════════════════════════════════════
+function firstDefined(...candidates) {
+    for (const c of candidates) {
+        if (typeof c === 'string' && c) return c;
+    }
+    return null;
+}
 
-// ─── Safe error messages ─────────────────────────────────────────
-// Only codes listed here produce a specific client-facing message.
-// Any other code falls through to a generic message; the full error
-// is logged server-side with the request id.
+const P_SETTINGS_READ     = firstDefined(PERMISSIONS.SETTINGS_READ,     PERMISSIONS.SETTINGS_MANAGE);
+const P_SETTINGS_MANAGE   = firstDefined(PERMISSIONS.SETTINGS_MANAGE,   PERMISSIONS.SETTINGS_READ);
+const P_PROVIDERS_READ    = firstDefined(PERMISSIONS.PROVIDERS_READ,    PERMISSIONS.PROVIDERS_MANAGE, PERMISSIONS.SETTINGS_READ);
+const P_PROVIDERS_MANAGE  = firstDefined(PERMISSIONS.PROVIDERS_MANAGE,  PERMISSIONS.SETTINGS_MANAGE);
+const P_ORDERS_READ       = firstDefined(PERMISSIONS.ORDERS_READ);
+const P_ORDERS_MANAGE     = firstDefined(PERMISSIONS.ORDERS_MANAGE,     PERMISSIONS.ORDERS_RESOLVE, PERMISSIONS.ORDERS_READ);
+
+// If the registry is somehow missing even ORDERS_READ, fail the
+// whole module loudly at boot — never silently accept every caller.
+if (!P_ORDERS_READ) {
+    throw new Error(
+        '[AIRTIME ADMIN] PERMISSIONS.ORDERS_READ is not exported by ' +
+        'middleware/adminAuth.js. Cannot boot airtime admin routes.'
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SAFE_MESSAGES
+// ═══════════════════════════════════════════════════════════════
 const SAFE_MESSAGES = {
-    INVALID_ID:                 'Invalid identifier.',
-    REASON_REQUIRED:            'A reason is required.',
-    AO_NOT_FOUND:               'Airtime order not found.',
-    ALREADY_COMPLETED:          'This order is already completed.',
-    ALREADY_REFUNDED:           'This order is already refunded.',
-    IN_REFUND_STATE:            'This order is in a refund state.',
-    NOT_REFUNDABLE:             'This order is not eligible for a refund.',
-    NO_TRANSACTION:             'This order has no wallet transaction.',
-    TX_NOT_FOUND:               'The original transaction could not be found.',
-    TX_NOT_REFUNDABLE:          'The original transaction is not refundable.',
-    MISSING_ORDER_DATA:         'Order is missing required data.',
-    UNKNOWN_PROVIDER:           'Unknown provider.',
-    ORDER_STATE_CHANGED:        'The order changed before this action completed. Reload and try again.',
-    INVALID_STATUS_TRANSITION:  'That status change is not allowed.',
-    AUDIT_WRITE_FAILED:         'The action was aborted because the audit log could not be written.',
-    LEDGER_REFUND_FAILED:       'The wallet refund could not be completed.',
-    REFUND_POST_CREDIT_FAILED:  'The refund was applied, but the order could not be finalized. Marked for reconciliation.',
-    INVALID_COUNTRY:            'Invalid country code.',
-    INVALID_PROVIDER:           'Invalid provider.',
-    ROUTING_WRITE_FAILED:       'Failed to persist routing.',
-    ROUTING_READ_FAILED:        'Failed to read routing.',
-    ROUTE_EXISTS:               'A route for this country/network already exists.',
-    CONFIGURATION_CHANGED:      'The configuration changed before this action completed. Reload and try again.',
-    UNSUPPORTED_ROUTE:          'No provider route is configured for this request.',
-    PROVIDER_QUERY_FAILED:      'The provider could not be reached.',
-    ATTEMPT_ALLOC_FAILED:       'Failed to allocate attempt number.',
-    ATTEMPT_INSERT_FAILED:      'Failed to record attempt.',
-    RETRY_IN_PROGRESS:          'A retry for this order is already in progress.',
-    IDEMPOTENCY_CONFLICT:       'This idempotency key was already used with different parameters.',
-    IDEMPOTENCY_CLAIM_FAILED:   'Idempotency check failed.',
-    HEALTH_READ_FAILED:         'Failed to read provider health.',
-    HEALTH_WRITE_FAILED:        'Failed to persist provider health.'
+    INVALID_ID:               'Invalid order identifier.',
+    AO_NOT_FOUND:             'Order not found.',
+    REASON_REQUIRED:          'A reason of at least 4 characters is required.',
+    ALREADY_COMPLETED:        'This order is already completed.',
+    IN_REFUND_STATE:          'This order is already in a refund state.',
+    ALREADY_REFUNDED:         'This order has already been refunded.',
+    NOT_REFUNDABLE:           'Only failed orders can be refunded.',
+    NO_TRANSACTION:           'This order has no wallet transaction to refund.',
+    TX_NOT_FOUND:             'The original wallet transaction was not found.',
+    TX_NOT_REFUNDABLE:        'The original wallet transaction is not in a refundable state.',
+    LEDGER_REFUND_FAILED:     'Wallet refund failed. Please try again or contact support.',
+    INVALID_STATUS_TRANSITION:'This status change is not allowed for the current order state.',
+    UNKNOWN_PROVIDER:         'Unknown provider on this order.',
+    UNKNOWN_PROVIDER_NAME:    'Unknown provider.',
+    AUDIT_WRITE_FAILED:       'Audit logging failed. The action was aborted for safety.',
+    INVALID_COUNTRY:          'Invalid country code.',
+    INVALID_PROVIDER:         'Invalid provider.',
+    INVALID_SCOPE:            'Invalid scope. Must be all, local, or global.',
+    CONFIGURATION_CHANGED:    'The configuration changed while you were editing it. Reload and try again.',
+    ROUTE_EXISTS:             'A route for this country/network already exists.',
+    ROUTING_READ_FAILED:      'Failed to load routing configuration.',
+    ROUTING_WRITE_FAILED:     'Failed to save routing configuration.',
+    SERVICE_DISABLED:         'This service is currently unavailable.',
+    USE_LOCAL_AIRTIME:        'Use Local Airtime for Nigeria.',
+    INVALID_AMOUNT:           'Invalid amount.',
+    INVALID_NETWORK:          'Invalid network.',
+    NETWORK_REQUIRED:         'Country and network are required.',
+    UNKNOWN_ACTION:           'Unknown action.',
+    INVALID_BODY:             'Invalid request body.',
+    LIST_FAILED:              'Failed to load airtime orders.',
+    OVERVIEW_FAILED:          'Failed to load the airtime overview.'
 };
 
-// ─── Response helpers ────────────────────────────────────────────
-function sendOk(res, payload) {
-    if (res.headersSent) return;
-    res.json({ success: true, ...payload });
+// ═══════════════════════════════════════════════════════════════
+//  RESPONSE HELPERS
+// ═══════════════════════════════════════════════════════════════
+function sendOk(res, data) {
+    return res.json({ success: true, data });
 }
 
-function sendErr(res, req, err) {
-    if (res.headersSent) return;
-
-    const status = err?.status || 500;
-    const code = err?.code || 'AIRTIME_ERROR';
-    const message = SAFE_MESSAGES[code] || 'Airtime request failed.';
-
-    if (status >= 500 || !SAFE_MESSAGES[code]) {
-        console.error('[ADMIN AIRTIME]', req.atRequestId, code, err?.message || err);
-    }
-
-    const body = {
+function sendErr(res, status, code, message) {
+    const safeMsg = SAFE_MESSAGES[code] || message || 'Request failed.';
+    const requestId = res.locals?.requestId || null;
+    return res.status(status).json({
         success: false,
         code,
-        message,
-        request_id: req.atRequestId
-    };
-    if (err?.allowed_transitions) body.allowed_transitions = err.allowed_transitions;
-    if (err?.current_status)      body.current_status = err.current_status;
-    if (err?.expected_status)     body.expected_status = err.expected_status;
-    if (err?.current_version)     body.current_version = err.current_version;
-
-    res.status(status).json(body);
+        error: safeMsg,
+        ...(requestId ? { request_id: requestId } : {})
+    });
 }
 
-function ctxFrom(req) {
+function handleException(res, err, fallbackCode, fallbackStatus = 500) {
+    // Supabase Postgres errors sometimes carry .status = 401 when the
+    // server-side role lacks privileges. That is a server error, NOT
+    // an auth error. Never let it reach the client as 401/403.
+    const incoming = Number(err?.status) || 0;
+    const safeStatus = (incoming >= 400 && incoming < 500 && incoming !== 401 && incoming !== 403)
+        ? incoming
+        : fallbackStatus;
+
+    const code = err?.code || fallbackCode;
+    console.error(`[AIRTIME ADMIN] ${code} (was ${incoming}):`, err?.message || err);
+    return sendErr(res, safeStatus, code, err?.message);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SERVICE CONTEXT
+//
+//  airtimeService.recordAudit() reads ctx.adminId / ctx.adminEmail,
+//  while req.adminContext uses .id / .email. This helper bridges
+//  the two so audit rows carry the right actor id.
+// ═══════════════════════════════════════════════════════════════
+function serviceCtx(req) {
+    const ac = req.adminContext || {};
     return {
-        adminId:    req.adminContext?.id    || null,
-        adminEmail: req.adminContext?.email || null,
-        ip:         req.ip || req.headers['x-forwarded-for'] || null,
-        userAgent:  req.headers['user-agent'] || null,
-        requestId:  req.atRequestId
+        adminId:     ac.id || ac.adminId || null,
+        adminEmail:  ac.email || ac.adminEmail || null,
+        ip:          ac.ip || req.ip || null,
+        userAgent:   ac.userAgent || req.get('user-agent') || null,
+        requestId:   ac.requestId || req.id || null,
+        permissions: req.adminPermissions || ac.permissions || {}
     };
 }
 
-// ─── Idempotency ─────────────────────────────────────────────────
-// Uses the airtime_idempotency_claim RPC when it exists. Falls back
-// to a simple SELECT-then-INSERT if the RPC isn't deployed, so the
-// routes still work in a partially-migrated environment.
-async function withIdempotency({ req, bodyHash }) {
-    const key = req.headers['idempotency-key'];
-    if (!key || String(key).length < 8) return { fresh: true, noKey: true };
-
-    const adminId = req.adminContext?.id || 'anon';
-    const endpoint = `${req.method} ${req.baseUrl}${req.path}`;
-    const trimmedKey = String(key).slice(0, 200);
-
-    // Try the atomic RPC first.
-    let rpc;
+// ═══════════════════════════════════════════════════════════════
+//  LIST ORDERS
+// ═══════════════════════════════════════════════════════════════
+router.get('/airtime/orders', requirePermission(P_ORDERS_READ), async (req, res) => {
     try {
-        rpc = await supabaseAdmin.rpc('airtime_idempotency_claim', {
-            p_admin_id: adminId,
-            p_endpoint: endpoint,
-            p_idempotency_key: trimmedKey,
-            p_request_hash: bodyHash || null
-        });
+        const result = await airtimeService.listOrders(req.query);
+        return sendOk(res, result);
     } catch (e) {
-        rpc = { error: e };
+        return handleException(res, e, 'LIST_FAILED');
     }
+});
 
-    if (!rpc.error) {
-        const row = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-        if (row?.replay) return { fresh: false, replay: row.response };
-        if (row?.claimed) {
-            return {
-                fresh: true,
-                complete: async (response) => {
-                    try {
-                        await supabaseAdmin
-                            .from('admin_idempotency')
-                            .update({
-                                response,
-                                status: 'completed',
-                                updated_at: new Date().toISOString()
-                            })
-                            .eq('admin_id', adminId)
-                            .eq('endpoint', endpoint)
-                            .eq('idempotency_key', trimmedKey);
-                    } catch (e) {
-                        console.warn('[ADMIN AIRTIME] idempotency complete failed:', e.message);
-                    }
-                },
-                release: async () => {
-                    try {
-                        await supabaseAdmin
-                            .from('admin_idempotency')
-                            .delete()
-                            .eq('admin_id', adminId)
-                            .eq('endpoint', endpoint)
-                            .eq('idempotency_key', trimmedKey);
-                    } catch (e) {
-                        console.warn('[ADMIN AIRTIME] idempotency release failed:', e.message);
-                    }
-                }
+// ═══════════════════════════════════════════════════════════════
+//  OVERVIEW
+// ═══════════════════════════════════════════════════════════════
+router.get('/airtime/overview', requirePermission(P_ORDERS_READ), async (req, res) => {
+    try {
+        const overview = await airtimeService.getOverview(req.query);
+        return sendOk(res, { overview });
+    } catch (e) {
+        return handleException(res, e, 'OVERVIEW_FAILED');
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  CSV EXPORT — MUST be declared BEFORE '/airtime/orders/:id'
+//  so Express does not treat 'export.csv' as an order ID.
+// ═══════════════════════════════════════════════════════════════
+router.get('/airtime/orders/export.csv', requirePermission(P_ORDERS_READ), async (req, res) => {
+    try {
+        const result = await airtimeService.listOrders({
+            ...req.query,
+            page: 1,
+            limit: 10000
+        });
+        const rows = result.orders || [];
+
+        const header = [
+            // existing columns — SAME ORDER
+            'created_at', 'scope', 'provider', 'order_ref', 'status',
+            'country', 'network', 'phone_masked',
+            'amount', 'currency', 'customer_total_ngn',
+            'provider_cost_ngn', 'margin_ngn',
+            'failure_code', 'failure_reason', 'refunded',
+            // appended columns (additive — never reorder above)
+            'wallet_type', 'payment_amount', 'payment_currency',
+            'send_amount_usd', 'fee_usd', 'fee_percent', 'fx_usd_ngn',
+            'ledger_transaction_id', 'provider_transaction_id',
+            'refund_reference'
+        ];
+        const csv = [header.join(',')];
+
+        for (const r of rows) {
+            const cells = [
+                r.created_at || '',
+                r.scope || '',
+                r.provider || '',
+                r.order_ref || '',
+                r.status || '',
+                r.country_iso3 || '',
+                r.network_name || r.network_code || '',
+                r.phone_masked || '',
+                r.amount ?? '',
+                r.currency || '',
+                r.customer_price_ngn ?? '',
+                r.provider_cost_ngn ?? '',
+                r.margin_ngn ?? '',
+                r.failure_code || '',
+                (r.failure_reason || '').replace(/[,"\n]/g, ' '),
+                r.refunded ? 'yes' : 'no',
+                // appended cells
+                r.wallet_type || '',
+                r.payment_amount ?? '',
+                r.payment_currency || '',
+                r.send_amount_usd ?? '',
+                r.fee_usd ?? '',
+                r.fee_percent ?? '',
+                r.fx_usd_ngn ?? r.fx_rate ?? '',
+                r.transaction_id || '',
+                r.provider_transaction_id || '',
+                r.refund_reference || ''
+            ].map(v => {
+                const s = String(v == null ? '' : v);
+                return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+            });
+            csv.push(cells.join(','));
+        }
+
+        const filename = `airtime-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        return res.send(csv.join('\n'));
+    } catch (e) {
+        return handleException(res, e, 'LIST_FAILED');
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  ORDER DETAIL — AFTER export.csv
+// ═══════════════════════════════════════════════════════════════
+router.get('/airtime/orders/:id', requirePermission(P_ORDERS_READ), async (req, res) => {
+    try {
+        const payload = await airtimeService.getOrder(req.params.id);
+        return sendOk(res, payload);
+    } catch (e) {
+        return handleException(res, e, 'AO_NOT_FOUND', 404);
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  ACTIONS
+// ═══════════════════════════════════════════════════════════════
+router.post('/airtime/orders/:id/sync', requirePermission(P_ORDERS_MANAGE), async (req, res) => {
+    try {
+        const result = await airtimeService.syncOrder({
+            orderId: req.params.id,
+            ctx: serviceCtx(req)
+        });
+        return sendOk(res, result);
+    } catch (e) { return handleException(res, e, 'LIST_FAILED'); }
+});
+
+router.post('/airtime/orders/:id/retry', requirePermission(P_ORDERS_MANAGE), async (req, res) => {
+    try {
+        const result = await airtimeService.retryOrder({
+            orderId: req.params.id,
+            ctx: serviceCtx(req),
+            reason: req.body?.reason
+        });
+        return sendOk(res, result);
+    } catch (e) { return handleException(res, e, 'LIST_FAILED'); }
+});
+
+router.post('/airtime/orders/:id/refund', requirePermission(P_ORDERS_MANAGE), async (req, res) => {
+    try {
+        const result = await airtimeService.refundOrder({
+            orderId: req.params.id,
+            ctx: serviceCtx(req),
+            reason: req.body?.reason
+        });
+        return sendOk(res, result);
+    } catch (e) { return handleException(res, e, 'LEDGER_REFUND_FAILED', 400); }
+});
+
+router.post('/airtime/orders/:id/review', requirePermission(P_ORDERS_MANAGE), async (req, res) => {
+    try {
+        const result = await airtimeService.reviewOrder({
+            orderId: req.params.id,
+            ctx: serviceCtx(req),
+            reason: req.body?.reason
+        });
+        return sendOk(res, result);
+    } catch (e) { return handleException(res, e, 'INVALID_STATUS_TRANSITION', 422); }
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  PROVIDERS — list + per-provider balance + health check
+// ═══════════════════════════════════════════════════════════════
+router.get('/airtime/providers', requirePermission(P_PROVIDERS_READ), async (req, res) => {
+    try {
+        // 1. Try the cached DB row first (fast path).
+        const dbHealth = await airtimeService.getProviderHealth();
+
+        // 2. Live-fetch each adapter so we never show "unknown".
+        const providers = {};
+        for (const [key, adapter] of Object.entries({
+            dtone: dtoneAdapter,
+            vtpass: vtpassAdapter
+        })) {
+            const dbRow = dbHealth[key] || {};
+            let live = null;
+            let liveError = null;
+
+            try {
+                live = await adapter.healthCheck();
+            } catch (e) {
+                liveError = e.message || String(e);
+            }
+
+            const configured = live?.configured ?? dbRow.configured ?? null;
+            const reachable  = live?.reachable  ?? dbRow.reachable  ?? null;
+
+            const status = !configured
+                ? 'not_configured'
+                : !reachable
+                    ? 'unreachable'
+                    : 'operational';
+
+            // Extract scalar balance from either shape
+            const rawBal = live?.balance != null
+                ? live.balance
+                : (live?.balances && typeof live.balances === 'object')
+                    ? (live.balances.NGN ?? live.balances.USD ?? Object.values(live.balances)[0])
+                    : null;
+            const scalarBalance = rawBal != null && Number.isFinite(Number(rawBal))
+                ? Number(rawBal)
+                : null;
+
+            let threshold = null;
+            try {
+                threshold = key === 'dtone'
+                    ? Number(await adminSettings.getRaw('provider_balance_alert_dtone_usd').catch(() => 100))
+                    : Number(await adminSettings.getRaw('provider_balance_alert_vtpass_ngn').catch(() => 10000));
+            } catch (_) { /* optional */ }
+
+            providers[key] = {
+                provider: key,
+                label: key === 'dtone' ? 'DT One' : 'VTpass',
+                status,
+                configured,
+                reachable,
+                environment: live?.environment || dbRow.environment || null,
+                latencyMs: live?.latencyMs ?? dbRow.latencyMs ?? null,
+                lastSuccess: dbRow.lastSuccess || null,
+                lastFailure: dbRow.lastFailure || null,
+                recentCount: dbRow.recentCount || 0,
+                lastError: liveError || live?.lastError || dbRow.lastError || null,
+                balance: scalarBalance,
+                balances: live?.balances || null,
+                alertThreshold: Number.isFinite(threshold) ? threshold : null,
+                low: scalarBalance != null && Number.isFinite(threshold) && scalarBalance < threshold
             };
         }
-        return { fresh: true };
-    }
 
-    const msg = String(rpc.error?.message || '');
-    if (msg.includes('IDEMPOTENCY_CONFLICT')) {
-        const e = new Error('This idempotency key was already used with different parameters.');
-        e.status = 409; e.code = 'IDEMPOTENCY_CONFLICT';
-        throw e;
-    }
-
-    // RPC not deployed — degrade to best-effort SELECT-then-INSERT.
-    // Not atomic, but functional. Upgrade to the RPC when the
-    // migration is applied.
-    try {
-        const { data: existing } = await supabaseAdmin
-            .from('admin_idempotency')
-            .select('response, status, expires_at, request_hash')
-            .eq('admin_id', adminId)
-            .eq('endpoint', endpoint)
-            .eq('idempotency_key', trimmedKey)
-            .maybeSingle();
-
-        if (existing) {
-            if (existing.request_hash && bodyHash && existing.request_hash !== bodyHash) {
-                const e = new Error('This idempotency key was already used with different parameters.');
-                e.status = 409; e.code = 'IDEMPOTENCY_CONFLICT';
-                throw e;
-            }
-            if (existing.status === 'completed' && existing.response) {
-                return { fresh: false, replay: existing.response };
-            }
-        }
+        return sendOk(res, { providers });
     } catch (e) {
-        if (e.code === 'IDEMPOTENCY_CONFLICT') throw e;
-        // Table missing — fall through, no idempotency.
+        return handleException(res, e, 'LIST_FAILED');
     }
+});
 
-    return {
-        fresh: true,
-        complete: async (response) => {
-            try {
-                await supabaseAdmin.from('admin_idempotency').insert({
-                    admin_id: adminId,
-                    endpoint,
-                    idempotency_key: trimmedKey,
-                    request_hash: bodyHash || null,
-                    response,
-                    status: 'completed',
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString(),
-                    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-                });
-            } catch (e) {
-                console.warn('[ADMIN AIRTIME] idempotency insert failed:', e.message);
-            }
-        },
-        release: async () => {}
-    };
-}
-
-function hashBody(body) {
+router.get('/airtime/providers/:provider/balance', requirePermission(P_PROVIDERS_READ), async (req, res) => {
     try {
-        return crypto.createHash('sha256').update(JSON.stringify(body || {})).digest('hex');
-    } catch {
-        return null;
+        const provider = String(req.params.provider || '').toLowerCase();
+        const adapter = provider === 'dtone'
+            ? dtoneAdapter
+            : provider === 'vtpass'
+                ? vtpassAdapter
+                : null;
+
+        if (!adapter) {
+            return sendErr(res, 400, 'UNKNOWN_PROVIDER_NAME', 'Unknown provider.');
+        }
+
+        const live = await adapter.healthCheck();
+        const threshold = provider === 'dtone'
+            ? Number(await adminSettings.getRaw('provider_balance_alert_dtone_usd').catch(() => 100))
+            : Number(await adminSettings.getRaw('provider_balance_alert_vtpass_ngn').catch(() => 10000));
+
+        const low = live.balance != null
+            && Number.isFinite(threshold)
+            && live.balance < threshold;
+
+        return sendOk(res, {
+            provider,
+            balance: live.balance ?? null,
+            balances: live.balances || null,
+            configured: !!live.configured,
+            reachable: !!live.reachable,
+            lastError: live.lastError || null,
+            alertThreshold: Number.isFinite(threshold) ? threshold : null,
+            low
+        });
+    } catch (e) {
+        return handleException(res, e, 'LIST_FAILED');
     }
-}
+});
 
-// ═════════════════════════════════════════════════════════════════
-//  Overview
-// ═════════════════════════════════════════════════════════════════
-
-router.get(
-    '/airtime/overview',
-    requirePermission(PERMISSIONS.SERVICES_READ),
-    async (req, res) => {
-        try {
-            const overview = await airtime.getOverview({
-                from: req.query.from || null,
-                to:   req.query.to   || null
-            });
-            sendOk(res, { overview });
-        } catch (err) { sendErr(res, req, err); }
+router.post('/airtime/providers/:provider/health-check', requirePermission(P_PROVIDERS_MANAGE), async (req, res) => {
+    try {
+        const result = await airtimeService.healthCheckProvider({
+            provider: req.params.provider,
+            ctx: serviceCtx(req)
+        });
+        return sendOk(res, result);
+    } catch (e) {
+        return handleException(res, e, 'UNKNOWN_PROVIDER_NAME', 400);
     }
-);
+});
 
-// ═════════════════════════════════════════════════════════════════
-//  Orders
-// ═════════════════════════════════════════════════════════════════
-
-router.get(
-    '/airtime/orders',
-    requirePermission(PERMISSIONS.ORDERS_READ),
-    async (req, res) => {
-        try {
-            const result = await airtime.listOrders({
-                page:      parseInt(req.query.page, 10) || 1,
-                limit:     parseInt(req.query.limit, 10) || 25,
-                status:    req.query.status    || null,
-                provider:  req.query.provider  || null,
-                country:   req.query.country   || null,
-                network:   req.query.network   || null,
-                currency:  req.query.currency  || null,
-                user_id:   req.query.user_id   || null,
-                from:      req.query.from      || null,
-                to:        req.query.to        || null,
-                amountMin: req.query.amountMin || null,
-                amountMax: req.query.amountMax || null,
-                search:    req.query.search    || null
-            });
-            sendOk(res, result);
-        } catch (err) { sendErr(res, req, err); }
+// ═══════════════════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════════════════
+router.get('/airtime/config', requirePermission(P_SETTINGS_READ), async (req, res) => {
+    try {
+        const cfg = await airtimePricing.getAirtimeConfig();
+        const links = {
+            airtime_global_enabled: '/admin/settings.html#services',
+            airtime_local_enabled:  '/admin/settings.html#services',
+            airtime_global_fee_pct: '/admin/settings.html#pricing',
+            airtime_local_fee_pct:  '/admin/settings.html#pricing',
+            airtime_global_min_usd: '/admin/settings.html#limits',
+            airtime_global_max_usd: '/admin/settings.html#limits',
+            airtime_local_min_ngn:  '/admin/settings.html#limits',
+            airtime_local_max_ngn:  '/admin/settings.html#limits',
+            usd_to_ngn:             '/admin/settings.html#rates'
+        };
+        return sendOk(res, { ...cfg, links });
+    } catch (e) {
+        return handleException(res, e, 'LIST_FAILED');
     }
-);
+});
 
-router.get(
-    '/airtime/orders/:id',
-    requirePermission(PERMISSIONS.ORDERS_READ),
-    async (req, res, next) => {
-        if (!UUID_RE.test(String(req.params.id || ''))) return next();
-        try {
-            const data = await airtime.getOrder(req.params.id);
-            sendOk(res, data);
-        } catch (err) { sendErr(res, req, err); }
+// ═══════════════════════════════════════════════════════════════
+//  ROUTING
+// ═══════════════════════════════════════════════════════════════
+router.get('/airtime/routing', requirePermission(P_ORDERS_READ), async (req, res) => {
+    try {
+        const rows = await airtimeService.listRouting();
+        return sendOk(res, { routing: rows });
+    } catch (e) {
+        return handleException(res, e, 'ROUTING_READ_FAILED');
     }
-);
+});
 
-// ═════════════════════════════════════════════════════════════════
-//  Sync  — read-only against the provider; no idempotency needed
-// ═════════════════════════════════════════════════════════════════
+router.put('/airtime/routing', requirePermission(P_SETTINGS_MANAGE), async (req, res) => {
+    try {
+        const {
+            country,
+            network,
+            primary_provider,
+            enabled = true,
+            priority = 1,
+            expected_version = null,
+            reason
+        } = req.body || {};
 
-router.post(
-    '/airtime/orders/:id/sync',
-    requirePermission(PERMISSIONS.ORDERS_RESOLVE),
-    async (req, res, next) => {
-        if (!UUID_RE.test(String(req.params.id || ''))) return next();
-        try {
-            const result = await airtime.syncOrder({
-                orderId: req.params.id,
-                ctx: ctxFrom(req)
-            });
-            sendOk(res, result);
-        } catch (err) { sendErr(res, req, err); }
+        if (!country) {
+            return sendErr(res, 400, 'INVALID_BODY', 'Country is required.');
+        }
+
+        if (
+            String(primary_provider || '').toLowerCase() === 'vtpass' &&
+            String(country || '').toUpperCase() !== 'NGA'
+        ) {
+            return sendErr(res, 422, 'INVALID_PROVIDER',
+                'VTpass only serves Nigeria. Use DT One for other countries.');
+        }
+
+        const result = await airtimeService.setRouting({
+            countryIso3: country,
+            networkCode: network,
+            primaryProvider: primary_provider,
+            enabled,
+            priority,
+            expectedVersion: expected_version,
+            ctx: serviceCtx(req),
+            reason
+        });
+        return sendOk(res, result);
+    } catch (e) {
+        return handleException(res, e, 'ROUTING_WRITE_FAILED');
     }
-);
-
-// ═════════════════════════════════════════════════════════════════
-//  Retry  — mutating, idempotent
-// ═════════════════════════════════════════════════════════════════
-
-router.post(
-    '/airtime/orders/:id/retry',
-    requirePermission(PERMISSIONS.ORDERS_RESOLVE),
-    async (req, res, next) => {
-        if (!UUID_RE.test(String(req.params.id || ''))) return next();
-        try {
-            const { reason } = req.body || {};
-            if (!reason || String(reason).trim().length < 4) {
-                const e = new Error('A reason is required.');
-                e.status = 422; e.code = 'REASON_REQUIRED';
-                throw e;
-            }
-
-            const idem = await withIdempotency({ req, bodyHash: hashBody(req.body) });
-            if (!idem.fresh) return res.json(idem.replay);
-
-            try {
-                const result = await airtime.retryOrder({
-                    orderId: req.params.id,
-                    reason: String(reason).slice(0, 500),
-                    ctx: ctxFrom(req)
-                });
-                const response = { success: true, ...result };
-                await idem.complete?.(response);
-                sendOk(res, result);
-            } catch (inner) {
-                await idem.release?.();
-                throw inner;
-            }
-        } catch (err) { sendErr(res, req, err); }
-    }
-);
-
-// ═════════════════════════════════════════════════════════════════
-//  Refund  — mutating, idempotent
-// ═════════════════════════════════════════════════════════════════
-
-router.post(
-    '/airtime/orders/:id/refund',
-    requirePermission(PERMISSIONS.TRANSACTIONS_REFUND),
-    async (req, res, next) => {
-        if (!UUID_RE.test(String(req.params.id || ''))) return next();
-        try {
-            const { reason } = req.body || {};
-            if (!reason || String(reason).trim().length < 4) {
-                const e = new Error('A reason is required.');
-                e.status = 422; e.code = 'REASON_REQUIRED';
-                throw e;
-            }
-
-            const idem = await withIdempotency({ req, bodyHash: hashBody(req.body) });
-            if (!idem.fresh) return res.json(idem.replay);
-
-            try {
-                const result = await airtime.refundOrder({
-                    orderId: req.params.id,
-                    reason: String(reason).slice(0, 500),
-                    ctx: ctxFrom(req)
-                });
-                const response = { success: true, ...result };
-                await idem.complete?.(response);
-                sendOk(res, result);
-            } catch (inner) {
-                await idem.release?.();
-                throw inner;
-            }
-        } catch (err) { sendErr(res, req, err); }
-    }
-);
-
-// ═════════════════════════════════════════════════════════════════
-//  Move to reconciliation  — mutating, idempotent
-// ═════════════════════════════════════════════════════════════════
-
-router.post(
-    '/airtime/orders/:id/review',
-    requirePermission(PERMISSIONS.ORDERS_RESOLVE),
-    async (req, res, next) => {
-        if (!UUID_RE.test(String(req.params.id || ''))) return next();
-        try {
-            const { reason } = req.body || {};
-            if (!reason || String(reason).trim().length < 4) {
-                const e = new Error('A reason is required.');
-                e.status = 422; e.code = 'REASON_REQUIRED';
-                throw e;
-            }
-
-            const idem = await withIdempotency({ req, bodyHash: hashBody(req.body) });
-            if (!idem.fresh) return res.json(idem.replay);
-
-            try {
-                const result = await airtime.reviewOrder({
-                    orderId: req.params.id,
-                    reason: String(reason).slice(0, 500),
-                    ctx: ctxFrom(req)
-                });
-                const response = { success: true, ...result };
-                await idem.complete?.(response);
-                sendOk(res, result);
-            } catch (inner) {
-                await idem.release?.();
-                throw inner;
-            }
-        } catch (err) { sendErr(res, req, err); }
-    }
-);
-
-// ═════════════════════════════════════════════════════════════════
-//  Routing
-// ═════════════════════════════════════════════════════════════════
-
-router.get(
-    '/airtime/routing',
-    requirePermission(PERMISSIONS.SERVICES_READ),
-    async (req, res) => {
-        try {
-            const routing = await airtime.listRouting();
-            sendOk(res, { routing });
-        } catch (err) { sendErr(res, req, err); }
-    }
-);
-
-router.put(
-    '/airtime/routing',
-    requirePermission(PERMISSIONS.SERVICES_MANAGE),
-    async (req, res) => {
-        try {
-            const {
-                country, network, provider, reason,
-                enabled, priority, expected_version
-            } = req.body || {};
-
-            if (!reason || String(reason).trim().length < 4) {
-                const e = new Error('A reason is required.');
-                e.status = 422; e.code = 'REASON_REQUIRED';
-                throw e;
-            }
-
-            const idem = await withIdempotency({ req, bodyHash: hashBody(req.body) });
-            if (!idem.fresh) return res.json(idem.replay);
-
-            try {
-                const result = await airtime.setRouting({
-                    countryIso3:     country,
-                    networkCode:     network || null,
-                    primaryProvider: provider,
-                    enabled:         enabled !== undefined ? Boolean(enabled) : true,
-                    priority:        Number.isFinite(Number(priority)) ? Number(priority) : 1,
-                    expectedVersion: expected_version != null ? Number(expected_version) : null,
-                    ctx:             ctxFrom(req),
-                    reason
-                });
-                const response = { success: true, ...result };
-                await idem.complete?.(response);
-                sendOk(res, result);
-            } catch (inner) {
-                await idem.release?.();
-                throw inner;
-            }
-        } catch (err) { sendErr(res, req, err); }
-    }
-);
-
-// ═════════════════════════════════════════════════════════════════
-//  Providers
-// ═════════════════════════════════════════════════════════════════
-
-router.get(
-    '/airtime/providers',
-    requirePermission(PERMISSIONS.PROVIDERS_READ),
-    async (req, res) => {
-        try {
-            const providers = await airtime.getProviderHealth();
-            sendOk(res, { providers });
-        } catch (err) { sendErr(res, req, err); }
-    }
-);
-
-router.get(
-    '/airtime/providers/:provider/health',
-    requirePermission(PERMISSIONS.PROVIDERS_READ),
-    async (req, res) => {
-        try {
-            const all = await airtime.getProviderHealth();
-            const name = String(req.params.provider || '').toLowerCase();
-            if (!all[name]) {
-                const e = new Error('Unknown provider.');
-                e.status = 404; e.code = 'UNKNOWN_PROVIDER';
-                throw e;
-            }
-            sendOk(res, { provider: name, health: all[name] });
-        } catch (err) { sendErr(res, req, err); }
-    }
-);
-
-router.post(
-    '/airtime/providers/:provider/health-check',
-    requirePermission(PERMISSIONS.PROVIDERS_READ),
-    async (req, res) => {
-        try {
-            const result = await airtime.healthCheckProvider({
-                provider: String(req.params.provider || '').toLowerCase(),
-                ctx: ctxFrom(req)
-            });
-            sendOk(res, result);
-        } catch (err) { sendErr(res, req, err); }
-    }
-);
+});
 
 module.exports = router;

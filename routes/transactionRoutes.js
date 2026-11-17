@@ -1,34 +1,40 @@
 // routes/transactionRoutes.js
 // ─────────────────────────────────────────────────────────────────
-// GENERAL ACTIVITY history — service orders and purchases.
+// MilesSpace — user-facing activity history.
 //
-// SCOPE — what this file returns:
-//   • Airtime orders (DT One — airtime_transactions)
-//   • Airtime / Data / Electricity / TV / bills (VTpass — bill_payment_transactions)
-//   • eSIM orders (DT One — esim_transactions)
-//   • Gift-card orders (DT One — giftcard_transactions)   ← NEW
-//   • Virtual SMS orders
-//   • Marketplace purchases
-//   • Social-boosting orders
-//   • Any other non-financial service rows already in `transactions`
+// SCOPE:
+//   Service purchases only. Wallet activity (deposits, credits,
+//   debits, refunds, cashback) lives behind /api/wallet/transactions.
+//   Gift-card SALE is gone; only gift-card PURCHASE is listed here.
 //
-// SCOPE — what this file does NOT return:
-//   • Deposits / wallet debits / wallet credits / refunds / withdrawals
-//     → those live behind GET /api/wallet/transactions
+// PERFORMANCE (v2, 2026-11-13):
+//   • Six source queries run in Promise.all, not sequentially.
+//   • No select('*'). Every column list is explicit. Voucher codes
+//     and marketplace delivered_data are never fetched.
+//   • Per-source cap is page-aware: (page * limit) + limit + 20.
+//     Page 1 with limit=20 fetches at most 60 rows per source.
+//   • One batched feedback query attaches my_rating to every row.
+//     No per-row query, ever.
 //
-// ENDPOINTS (paths preserved; behaviour hardened):
-//   GET  /                                  list (paginated)
-//   GET  /stats                             aggregate counters
-//   GET  /purchases                         marketplace orders list
-//   GET  /purchases/:reference/deliverable  ownership-checked secrets
-//   GET  /purchase-map                      reference → status map
-//   POST /download/:reference               atomic download count
-//   GET  /export/csv                        bounded CSV
-//   GET  /:id                               MUST be registered LAST
+// SAFETY:
+//   • Every query filters user_id = req.user.id.
+//   • 5xx responses carry a stable code + request_id. Raw
+//     error.message / detail / SQL text never leaves the server.
+//
+// UNCHANGED response shape:
+//   { success, partial, warnings, truncated, data[], count,
+//     pagination: { page, limit, total, totalPages, hasMore } }
+//   Each row additionally carries `my_rating` (number|null).
+//
+// MOUNT ORDER (server.js):
+//   app.use('/api/transactions', require('./routes/transactionFeedbackRoute'));
+//   app.use('/api/transactions', require('./routes/transactionStatusRoute'));
+//   app.use('/api/transactions', require('./routes/transactionRoutes'));
 // ─────────────────────────────────────────────────────────────────
 
 'use strict';
 
+const crypto = require('crypto');
 const express = require('express');
 const router = express.Router();
 
@@ -38,37 +44,79 @@ const { authMiddleware } = require('../middleware/auth');
 // ═══ CONFIG ═══
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT     = 50;
-const PER_SOURCE_CAP = 200;
 const MERGE_CAP     = 500;
-const EXPORT_MAX_ROWS = 10000;
+const EXPORT_MAX_ROWS = 10_000;
 const EXPORT_MAX_DAYS = 366;
 
-// ─── SERVICE-ONLY TYPES ───────────────────────────────────────────
+// ─── Type allowlist ─────────────────────────────────────────────
+// `type` from the query string is normalized through this map before
+// it reaches any query. Both the merged-view filter and the per-source
+// narrowing use the SAME canonical value, so a `giftcard_buy` request
+// narrows `giftcard_transactions` AND filters the merged rows.
+const TYPE_ALIASES = Object.freeze({
+    // airtime / data
+    'airtime':      'airtime',
+    'data':         'data',
+
+    // bills
+    'bills':        'bills',
+    'bill':         'bills',
+    'electricity':  'electricity',
+    'cable':        'tv',
+    'tv':           'tv',
+    'internet':     'internet',
+    'water':        'water',
+    'education':    'education',
+
+    // esim
+    'esim':         'esim',
+
+    // gift cards (all spellings the app has ever used)
+    'giftcard_buy': 'giftcard',
+    'giftcard':     'giftcard',
+    'gift_card':    'giftcard',
+    'gift':         'giftcard',
+
+    // marketplace
+    'marketplace':  'marketplace',
+    'purchase':     'marketplace',
+
+    // boost
+    'boost':        'boost',
+
+    // virtual sms
+    'virtual':      'virtual',
+    'virtual_sms':  'virtual',
+});
+
+// Source tables whose rows are unioned into the merged list.
+// `transactions` is filtered by SERVICE_TYPES below.
 const SERVICE_TYPES = Object.freeze([
-    'airtime', 'data', 'bundle', 'esim',
+    'airtime', 'data', 'bundle',
+    'esim',
     'gift', 'giftcard', 'gift_card',
     'marketplace', 'purchase',
     'boost', 'virtual', 'virtual_sms',
-    'bills', 'electricity', 'cable', 'internet', 'water', 'education'
+    'bills', 'electricity', 'cable', 'tv', 'internet', 'water', 'education',
 ]);
 
 const CUSTOMER_STATUS_MAP = Object.freeze({
-    completed:  'completed',
-    success:    'completed',
-    successful: 'completed',
-    finished:   'completed',
-    refunded:   'refunded',
-    failed:     'failed',
-    declined:   'failed',
-    cancelled:  'cancelled',
-    canceled:   'cancelled',
-    reversed:   'reversed',
-    pending:    'pending',
-    processing: 'processing',
-    submitted:  'processing',
-    created:    'processing',
-    confirmed:  'processing',
-    manual_review: 'processing'
+    completed:     'completed',
+    success:       'completed',
+    successful:    'completed',
+    finished:      'completed',
+    refunded:      'refunded',
+    failed:        'failed',
+    declined:      'failed',
+    cancelled:     'cancelled',
+    canceled:      'cancelled',
+    reversed:      'reversed',
+    pending:       'pending',
+    processing:    'processing',
+    submitted:     'processing',
+    created:       'processing',
+    confirmed:     'processing',
+    manual_review: 'processing',
 });
 
 // ═══ HELPERS ═══
@@ -93,7 +141,7 @@ function toIso(v) {
     try { return new Date(v).toISOString(); } catch { return null; }
 }
 function newReqId() {
-    return 'tx-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+    return 'tx-' + crypto.randomBytes(4).toString('hex');
 }
 function csvCell(v) {
     const s = String(v == null ? '' : v);
@@ -107,6 +155,14 @@ function sanitizeSearch(value) {
     if (!s) return null;
     if (!SEARCH_RE.test(s)) return null;
     return s;
+}
+
+// Returns the canonical type, or null if the type is not one of the
+// known sources. A null filter means "all types".
+function canonicalType(raw) {
+    const k = lower(raw);
+    if (!k || k === 'all') return null;
+    return TYPE_ALIASES[k] || null;
 }
 
 function amountForCurrency(row, currency) {
@@ -161,7 +217,7 @@ function customerSafeDescription(record, fallback) {
         const meter = record.recipient ? `meter ****${String(record.recipient).slice(-4)}` : '';
         return `Electricity${meter ? ' — ' + meter : ''}`.trim();
     }
-    if (type === 'tv') {
+    if (type === 'tv' || type === 'cable') {
         const sm = record.recipient ? `smartcard ****${String(record.recipient).slice(-4)}` : '';
         return `TV subscription${sm ? ' — ' + sm : ''}`.trim();
     }
@@ -237,12 +293,12 @@ function toCustomer(record) {
         completed_at: record.completed_at,
         failed_at:   record.failed_at,
         cancelled_at: record.cancelled_at,
-        refunded_at: record.refunded_at
+        refunded_at: record.refunded_at,
     };
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  ROW MAPPERS  (internal shape → canonical intermediate)
+//  ROW MAPPERS  (source row → canonical intermediate)
 // ═══════════════════════════════════════════════════════════════════
 
 function mapTransaction(t) {
@@ -269,7 +325,7 @@ function mapTransaction(t) {
         completed_at: t.completed_at || null,
         failed_at: t.failed_at || null,
         cancelled_at: t.cancelled_at || null,
-        refunded_at: t.refunded_at || t.reversed_at || null
+        refunded_at: t.refunded_at || t.reversed_at || null,
     };
 }
 
@@ -301,14 +357,14 @@ function mapAirtimeToTransaction(a) {
             country_code: a.country_code || null,
             phone_number: phone || null,
             destination_amount: a.destination_amount ?? null,
-            destination_currency: a.destination_currency ?? null
+            destination_currency: a.destination_currency ?? null,
         },
         created_at: a.created_at,
         updated_at: a.updated_at,
         completed_at: a.completed_at || null,
         failed_at: a.failed_at || null,
         cancelled_at: null,
-        refunded_at: a.refunded ? a.updated_at : null
+        refunded_at: a.refunded ? a.updated_at : null,
     };
 }
 
@@ -338,14 +394,14 @@ function mapEsimToTransaction(e) {
             country_name: e.country_name || null,
             plan_name: e.plan_name || null,
             data_display: e.data_display || null,
-            validity_days: e.validity_days || null
+            validity_days: e.validity_days || null,
         },
         created_at: e.created_at,
         updated_at: e.updated_at,
         completed_at: e.completed_at || null,
         failed_at: e.failed_at || null,
         cancelled_at: e.cancelled_at || null,
-        refunded_at: e.refunded ? e.updated_at : null
+        refunded_at: e.refunded ? e.updated_at : null,
     };
 }
 
@@ -382,14 +438,14 @@ function mapMarketplace(o, linkedTx = null) {
             product_title: o.product_title || null,
             product_id: o.product_id || null,
             delivered: !!o.delivered,
-            delivered_at: o.delivered_at || null
+            delivered_at: o.delivered_at || null,
         },
         created_at: o.created_at,
         updated_at: o.updated_at,
         completed_at: o.completed_at || o.delivered_at || null,
         failed_at: o.failed_at || null,
         cancelled_at: o.cancelled_at || null,
-        refunded_at: o.refunded_at || null
+        refunded_at: o.refunded_at || null,
     };
 }
 
@@ -408,7 +464,7 @@ function mapBillPaymentToTransaction(b) {
         network: b.network || null,
         recipient: b.recipient || null,
         token: b.token || null,
-        units: b.units || null
+        units: b.units || null,
     };
     if (b.metadata && typeof b.metadata === 'object') {
         if (b.metadata.plan_name) metadata.plan_name = b.metadata.plan_name;
@@ -432,7 +488,7 @@ function mapBillPaymentToTransaction(b) {
                 recipient: b.recipient,
                 phone_number: b.recipient,
                 plan_name: b.metadata?.plan_name,
-                country_code: b.network
+                country_code: b.network,
             },
             `${serviceType} purchase`
         ),
@@ -445,16 +501,10 @@ function mapBillPaymentToTransaction(b) {
         completed_at: b.completed_at || null,
         failed_at: b.failed_at || null,
         cancelled_at: null,
-        refunded_at: b.refunded ? (b.refunded_at || b.updated_at) : null
+        refunded_at: b.refunded ? (b.refunded_at || b.updated_at) : null,
     };
 }
 
-// ── map a DT One giftcard_transactions row to canonical shape ────
-// Provider fields (provider_response, provider_status,
-// provider_transaction_id, voucher_code, voucher_serial,
-// email_message_id) are NOT included here — voucher codes live behind
-// /purchases/:reference/deliverable. Admin/support routes get their
-// own shape from the admin endpoints.
 function mapGiftCardToTransaction(g) {
     const currency = up(g.currency || g.debit_currency || 'USD');
 
@@ -485,22 +535,22 @@ function mapGiftCardToTransaction(g) {
             face_value: g.face_value ?? null,
             face_currency: g.face_currency || null,
             delivered: !!g.email_sent,
-            delivered_at: g.email_sent_at || null
+            delivered_at: g.email_sent_at || null,
         },
         created_at: g.created_at,
         updated_at: g.updated_at,
         completed_at: g.completed_at || null,
         failed_at: g.failed_at || null,
         cancelled_at: null,
-        refunded_at: g.refunded ? (g.refunded_at || g.updated_at) : null
+        refunded_at: g.refunded ? (g.refunded_at || g.updated_at) : null,
     };
 }
 
 async function attachLinkedTransactions(userId, orders) {
     if (!orders || orders.length === 0) return new Map();
 
-    const orderIds = orders.map(o => o.id).filter(Boolean);
-    const orderRefs = orders.map(o => o.order_ref).filter(Boolean);
+    const orderIds = orders.map((o) => o.id).filter(Boolean);
+    const orderRefs = orders.map((o) => o.order_ref).filter(Boolean);
     const linkMap = new Map();
 
     if (orderIds.length > 0) {
@@ -511,7 +561,7 @@ async function attachLinkedTransactions(userId, orders) {
             .eq('source_type', 'marketplace')
             .in('source_id', orderIds);
 
-        (txById || []).forEach(tx => {
+        (txById || []).forEach((tx) => {
             if (tx.source_id) linkMap.set(String(tx.source_id), tx);
         });
     }
@@ -523,7 +573,7 @@ async function attachLinkedTransactions(userId, orders) {
             .eq('user_id', userId)
             .in('reference', orderRefs);
 
-        (txByRef || []).forEach(tx => {
+        (txByRef || []).forEach((tx) => {
             const ref = tx.reference || tx.ref;
             if (ref && !linkMap.has(String(ref))) {
                 linkMap.set(String(ref), tx);
@@ -535,15 +585,16 @@ async function attachLinkedTransactions(userId, orders) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  GET /  — General Activity (paginated, customer-safe)
+//  GET /  — merged history (fast path)
 // ═══════════════════════════════════════════════════════════════════
 router.get('/', authMiddleware, async (req, res) => {
+    const reqId = newReqId();
     try {
         const userId = req.user.id;
         const page = parsePage(req.query.page);
         const limit = parseLimit(req.query.limit);
         const offset = (page - 1) * limit;
-        const type = req.query.type && req.query.type !== 'all' ? lower(req.query.type) : null;
+        const canonical = canonicalType(req.query.type);
         const status = req.query.status && req.query.status !== 'all' ? lower(req.query.status) : null;
         const search = sanitizeSearch(req.query.search);
 
@@ -551,216 +602,247 @@ router.get('/', authMiddleware, async (req, res) => {
             return res.status(400).json({
                 success: false,
                 code: 'INVALID_SEARCH',
-                error: 'Search must be 1-64 characters: letters, numbers, hyphens, underscores, or spaces.'
+                error: 'Search must be 1-64 characters: letters, numbers, hyphens, underscores, or spaces.',
+                request_id: reqId,
             });
         }
 
         const warnings = [];
         const truncated = {};
 
-        // ─── 1. Service rows in `transactions` ────────────────────
-        let mainQ = supabaseAdmin
-            .from('transactions')
-            .select('*')
-            .eq('user_id', userId)
-            .in('type', SERVICE_TYPES)
-            .order('created_at', { ascending: false })
-            .limit(PER_SOURCE_CAP);
+        // ── Per-source narrowing: which sources to include ────────
+        const includeAirtime = !canonical || canonical === 'airtime' || canonical === 'data';
+        const includeEsim    = !canonical || canonical === 'esim';
+        const includeGift    = !canonical || canonical === 'giftcard';
+        const includeMarket  = !canonical || canonical === 'marketplace';
+        const includeBills   = !canonical ||
+            ['airtime', 'data', 'electricity', 'tv', 'bills', 'internet', 'water', 'education'].includes(canonical);
 
-        if (type && SERVICE_TYPES.includes(type)) mainQ = mainQ.eq('type', type);
-        if (status) mainQ = mainQ.eq('status', status);
-        if (search) mainQ = mainQ.or(
-            `ref.ilike.%${search}%,reference.ilike.%${search}%,description.ilike.%${search}%`
-        );
+        // Per-source cap is page-aware. Anything past (page*limit) belongs
+        // to a page we're not rendering, so fetching more is wasted work.
+        const PER_SOURCE_CAP = Math.min(200, (page * limit) + limit + 20);
 
-        const { data: mainTx, error: mainErr } = await mainQ;
-        if (mainErr && mainErr.code !== '42P01') {
-            console.error('[TX] main query error:', mainErr);
+        // Escape the search once for use in .or() ilike patterns.
+        const searchSafe = search ? search.replace(/[%_\\]/g, (m) => '\\' + m) : null;
+
+        // ── 1-6 run in PARALLEL ────────────────────────────────────
+        const mainPromise = (async () => {
+            let q = supabaseAdmin
+                .from('transactions')
+                .select(
+                    'id, ref, reference, type, status, currency, ' +
+                    'amount, amount_ngn, amount_usd, fee, revenue_ngn, revenue_usd, ' +
+                    'description, category, source_type, source_id, ' +
+                    'created_at, updated_at, completed_at, failed_at, cancelled_at, reversed_at'
+                )
+                .eq('user_id', userId)
+                .in('type', SERVICE_TYPES)
+                .order('created_at', { ascending: false })
+                .limit(PER_SOURCE_CAP);
+
+            if (canonical) {
+                // Narrow on the canonical type first; the merged filter
+                // will match aliases like giftcard_buy later.
+                const mainTypes = canonical === 'giftcard' ? ['gift', 'giftcard', 'gift_card']
+                    : canonical === 'marketplace' ? ['marketplace', 'purchase']
+                    : canonical === 'virtual' ? ['virtual', 'virtual_sms']
+                    : canonical === 'tv' ? ['tv', 'cable']
+                    : [canonical];
+                q = q.in('type', mainTypes);
+            }
+            if (status) q = q.eq('status', status);
+            if (searchSafe) {
+                q = q.or(
+                    `ref.ilike.%${searchSafe}%,reference.ilike.%${searchSafe}%,description.ilike.%${searchSafe}%`
+                );
+            }
+            const { data, error } = await q;
+            return { rows: data || [], error };
+        })();
+
+        const airtimePromise = includeAirtime ? (async () => {
+            let q = supabaseAdmin
+                .from('airtime_transactions')
+                .select(
+                    'id, reference, status, currency, amount, total_amount, fee, ' +
+                    'country_code, phone_number, operator_name, ' +
+                    'destination_amount, destination_currency, ' +
+                    'created_at, updated_at, completed_at, failed_at, refunded'
+                )
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false })
+                .limit(PER_SOURCE_CAP);
+            if (status) q = q.eq('status', status);
+            if (searchSafe) {
+                q = q.or(`reference.ilike.%${searchSafe}%,phone_number.ilike.%${searchSafe}%`);
+            }
+            const { data, error } = await q;
+            return { rows: data || [], error };
+        })() : Promise.resolve({ rows: [], error: null });
+
+        const esimPromise = includeEsim ? (async () => {
+            let q = supabaseAdmin
+                .from('esim_transactions')
+                .select(
+                    'id, reference, status, currency, amount, fee, ' +
+                    'country_name, plan_name, data_display, validity_days, ' +
+                    'created_at, updated_at, completed_at, failed_at, cancelled_at, refunded'
+                )
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false })
+                .limit(PER_SOURCE_CAP);
+            if (status) q = q.eq('status', status);
+            if (searchSafe) {
+                q = q.or(`reference.ilike.%${searchSafe}%,country_name.ilike.%${searchSafe}%`);
+            }
+            const { data, error } = await q;
+            return { rows: data || [], error };
+        })() : Promise.resolve({ rows: [], error: null });
+
+        const giftPromise = includeGift ? (async () => {
+            let q = supabaseAdmin
+                .from('giftcard_transactions')
+                .select(
+                    'id, reference, status, currency, amount, fee, debit_currency, ' +
+                    'card_name, face_value, face_currency, email_sent, email_sent_at, ' +
+                    'created_at, updated_at, completed_at, failed_at, refunded, refunded_at'
+                )
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false })
+                .limit(PER_SOURCE_CAP);
+            if (status) q = q.eq('status', status);
+            if (searchSafe) {
+                q = q.or(`reference.ilike.%${searchSafe}%,card_name.ilike.%${searchSafe}%`);
+            }
+            const { data, error } = await q;
+            return { rows: data || [], error };
+        })() : Promise.resolve({ rows: [], error: null });
+
+        const marketPromise = includeMarket ? (async () => {
+            // NOTE: no `delivered_data` — that column holds the actual
+            // delivered credentials and must never leave the DB for a
+            // list endpoint.
+            let q = supabaseAdmin
+                .from('marketplace_orders')
+                .select(
+                    'id, order_ref, status, currency, wallet, wallet_used, ' +
+                    'total, price_usd, price_ngn, product_title, product_id, ' +
+                    'delivered, delivered_at, created_at, updated_at, ' +
+                    'completed_at, failed_at, cancelled_at, refunded_at'
+                )
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false })
+                .limit(PER_SOURCE_CAP);
+            if (status) q = q.eq('status', status);
+            const { data, error } = await q;
+            return { rows: data || [], error };
+        })() : Promise.resolve({ rows: [], error: null });
+
+        const billPromise = includeBills ? (async () => {
+            let q = supabaseAdmin
+                .from('bill_payment_transactions')
+                .select(
+                    'id, reference, service_type, status, currency, ' +
+                    'customer_amount, base_amount, service_fee, network, recipient, ' +
+                    'token, units, created_at, updated_at, completed_at, failed_at, refunded, refunded_at'
+                )
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false })
+                .limit(PER_SOURCE_CAP);
+
+            if (canonical && ['airtime', 'data', 'electricity', 'tv', 'bills', 'internet', 'water', 'education'].includes(canonical)) {
+                // `tv` on the bill table is `cable`; the rest map 1:1.
+                const billType = canonical === 'tv' ? 'cable' : canonical;
+                q = q.eq('service_type', billType);
+            }
+            if (status) q = q.eq('status', status);
+            if (searchSafe) {
+                q = q.or(`reference.ilike.%${searchSafe}%,recipient.ilike.%${searchSafe}%,service_id.ilike.%${searchSafe}%`);
+            }
+            const { data, error } = await q;
+            return { rows: data || [], error };
+        })() : Promise.resolve({ rows: [], error: null });
+
+        // ── Feedback lookup runs alongside the six sources ────────
+        // One query per page, not one per row. The references are
+        // collected AFTER the six sources resolve, so this is a second
+        // round-trip — but it runs in the same tick as the merge below,
+        // not serially after it.
+        const [mainR, airR, esimR, giftR, marketR, billR] = await Promise.all([
+            mainPromise, airtimePromise, esimPromise, giftPromise, marketPromise, billPromise,
+        ]);
+
+        if (mainR.error && mainR.error.code !== '42P01') {
+            console.error('[TX] main query error', { reqId, code: mainR.error.code });
             return res.status(503).json({
                 success: false,
                 code: 'MAIN_SOURCE_UNAVAILABLE',
                 error: 'Could not load transactions from primary source.',
-                detail: mainErr.message
+                request_id: reqId,
             });
         }
-        if (mainErr?.code === '42P01') warnings.push('transactions table missing');
-        if ((mainTx || []).length === PER_SOURCE_CAP) truncated.transactions = true;
+        if (mainR.error?.code === '42P01') warnings.push('transactions table missing');
+        if (airR.error && airR.error.code !== '42P01') warnings.push('airtime source unavailable');
+        if (esimR.error && esimR.error.code !== '42P01') warnings.push('esim source unavailable');
+        if (giftR.error && giftR.error.code !== '42P01') warnings.push('giftcard source unavailable');
+        if (marketR.error && marketR.error.code !== '42P01') warnings.push('marketplace source unavailable');
+        if (billR.error && billR.error.code !== '42P01') warnings.push('bills source unavailable');
 
-        // ─── 2. Airtime rows (DT One international airtime) ───────
-        let airtimeRows = [];
-        const includeAirtime = !type || type === 'airtime';
-        if (includeAirtime) {
-            let airQ = supabaseAdmin
-                .from('airtime_transactions')
-                .select('*')
-                .eq('user_id', userId)
-                .order('created_at', { ascending: false })
-                .limit(PER_SOURCE_CAP);
+        const mainTx = mainR.rows;
+        const airtimeRows = airR.rows;
+        const esimRows = esimR.rows;
+        const giftRows = giftR.rows;
+        const marketRows = marketR.rows;
+        const billRows = billR.rows;
 
-            if (status) airQ = airQ.eq('status', status);
-            if (search) airQ = airQ.or(
-                `reference.ilike.%${search}%,phone_number.ilike.%${search}%`
-            );
+        if (mainTx.length === PER_SOURCE_CAP) truncated.transactions = true;
+        if (airtimeRows.length === PER_SOURCE_CAP) truncated.airtime = true;
+        if (esimRows.length === PER_SOURCE_CAP) truncated.esim = true;
+        if (giftRows.length === PER_SOURCE_CAP) truncated.giftcard = true;
+        if (marketRows.length === PER_SOURCE_CAP) truncated.marketplace = true;
+        if (billRows.length === PER_SOURCE_CAP) truncated.bills = true;
 
-            const { data: rows, error: airErr } = await airQ;
-            if (airErr && airErr.code !== '42P01') {
-                console.error('[TX] airtime query error:', airErr);
-                warnings.push('airtime source unavailable');
-            } else if (!airErr) {
-                airtimeRows = rows || [];
-                if (airtimeRows.length === PER_SOURCE_CAP) truncated.airtime = true;
-            }
-        }
-
-        // ─── 3. eSIM rows ─────────────────────────────────────────
-        let esimRows = [];
-        const includeEsim = !type || type === 'esim';
-        if (includeEsim) {
-            let eQ = supabaseAdmin
-                .from('esim_transactions')
-                .select('*')
-                .eq('user_id', userId)
-                .order('created_at', { ascending: false })
-                .limit(PER_SOURCE_CAP);
-
-            if (status) eQ = eQ.eq('status', status);
-            if (search) eQ = eQ.or(
-                `reference.ilike.%${search}%,country_name.ilike.%${search}%`
-            );
-
-            const { data: rows, error: eErr } = await eQ;
-            if (eErr && eErr.code !== '42P01') {
-                console.warn('[TX] eSIM query error (non-fatal):', eErr.message);
-                warnings.push('esim source unavailable');
-            } else if (!eErr) {
-                esimRows = rows || [];
-                if (esimRows.length === PER_SOURCE_CAP) truncated.esim = true;
-            }
-        }
-
-        // ─── 4. Gift card rows ────────────────────────────────────
-        let giftRows = [];
-        const includeGift = !type || ['gift', 'giftcard', 'gift_card'].includes(type);
-        if (includeGift) {
-            let gQ = supabaseAdmin
-                .from('giftcard_transactions')
-                .select('*')
-                .eq('user_id', userId)
-                .order('created_at', { ascending: false })
-                .limit(PER_SOURCE_CAP);
-
-            if (status) gQ = gQ.eq('status', status);
-            if (search) gQ = gQ.or(
-                `reference.ilike.%${search}%,card_name.ilike.%${search}%`
-            );
-
-            const { data: rows, error: gErr } = await gQ;
-            if (gErr && gErr.code !== '42P01') {
-                console.warn('[TX] giftcard query error (non-fatal):', gErr.message);
-                warnings.push('giftcard source unavailable');
-            } else if (!gErr) {
-                giftRows = rows || [];
-                if (giftRows.length === PER_SOURCE_CAP) truncated.giftcard = true;
-            }
-        }
-
-        // ─── 5. Marketplace orders ────────────────────────────────
-        let marketRows = [];
-        const includeMarket = !type || type === 'marketplace' || type === 'purchase';
-        if (includeMarket) {
-            let mQ = supabaseAdmin
-                .from('marketplace_orders')
-                .select('*')
-                .eq('user_id', userId)
-                .order('created_at', { ascending: false })
-                .limit(PER_SOURCE_CAP);
-
-            if (status) mQ = mQ.eq('status', status);
-
-            const { data: rows, error: mErr } = await mQ;
-            if (mErr && mErr.code !== '42P01') {
-                console.warn('[TX] marketplace query error (non-fatal):', mErr.message);
-                warnings.push('marketplace source unavailable');
-            } else if (!mErr) {
-                marketRows = rows || [];
-                if (marketRows.length === PER_SOURCE_CAP) truncated.marketplace = true;
-            }
-        }
-
-        // ─── 6. VTpass bill payments ──────────────────────────────
-        let billRows = [];
-        const includeBills = !type || ['airtime', 'data', 'electricity', 'tv', 'bills'].includes(type);
-        if (includeBills) {
-            let bQ = supabaseAdmin
-                .from('bill_payment_transactions')
-                .select('*')
-                .eq('user_id', userId)
-                .order('created_at', { ascending: false })
-                .limit(PER_SOURCE_CAP);
-
-            if (type && ['airtime', 'data', 'electricity', 'tv', 'bills'].includes(type)) {
-                bQ = bQ.eq('service_type', type);
-            }
-            if (status) bQ = bQ.eq('status', status);
-            if (search) {
-                bQ = bQ.or(
-                    `reference.ilike.%${search}%,recipient.ilike.%${search}%,service_id.ilike.%${search}%`
-                );
-            }
-
-            const { data: rows, error: bErr } = await bQ;
-            if (bErr && bErr.code !== '42P01') {
-                console.warn('[TX] bills query error (non-fatal):', bErr.message);
-                warnings.push('bills source unavailable');
-            } else if (!bErr) {
-                billRows = rows || [];
-                if (billRows.length === PER_SOURCE_CAP) truncated.bills = true;
-            }
-        }
-
-        // ─── 7. Merge + map ───────────────────────────────────────
+        // ── Merge + map ───────────────────────────────────────────
         const linkMap = await attachLinkedTransactions(userId, marketRows);
 
-        const mainMapped   = (mainTx || []).map(mapTransaction);
+        const mainMapped   = mainTx.map(mapTransaction);
         const airMapped    = airtimeRows.map(mapAirtimeToTransaction);
         const esimMapped   = esimRows.map(mapEsimToTransaction);
         const giftMapped   = giftRows.map(mapGiftCardToTransaction);
-        const marketMapped = marketRows.map(o => {
+        const marketMapped = marketRows.map((o) => {
             const linkedTx = linkMap.get(String(o.id)) || linkMap.get(String(o.order_ref)) || null;
             return mapMarketplace(o, linkedTx);
         });
-        const billMapped   = billRows.map(mapBillPaymentToTransaction);
+        const billMapped = billRows.map(mapBillPaymentToTransaction);
 
-        // De-dupe: marketplace orders win over a `transactions` row
+        // De-dupe: marketplace_orders wins over a transactions row
         // with the same reference.
-        const marketRefs = new Set(marketMapped.map(m => String(m.reference)));
-        const filteredMain = mainMapped.filter(m => {
+        const marketRefs = new Set(marketMapped.map((m) => String(m.reference)));
+        const filteredMain = mainMapped.filter((m) => {
             if (!['marketplace', 'purchase'].includes(lower(m.type))) return true;
             return !marketRefs.has(String(m.reference));
         });
 
-        // De-dupe: bill_payment_transactions win over `transactions`
-        // rows that share the same reference for airtime/data/tv/
-        // electricity/bills types.
-        const billRefs = new Set(billMapped.map(b => String(b.reference)));
-        const filteredMainAfterBills = filteredMain.filter(m => {
+        // De-dupe: bill_payment_transactions wins over transactions for
+        // airtime/data/tv/electricity/bills types.
+        const billRefs = new Set(billMapped.map((b) => String(b.reference)));
+        const filteredMainAfterBills = filteredMain.filter((m) => {
             const t = lower(m.type);
             if (!['airtime', 'data', 'electricity', 'tv', 'bills'].includes(t)) return true;
             return !billRefs.has(String(m.reference));
         });
 
-        // De-dupe: giftcard_transactions win over `transactions` rows
-        // for gift/giftcard/gift_card types.
-        const giftRefs = new Set(giftMapped.map(g => String(g.reference)));
-        const filteredMainAfterGifts = filteredMainAfterBills.filter(m => {
+        // De-dupe: giftcard_transactions wins over transactions for
+        // gift/giftcard/gift_card types.
+        const giftRefs = new Set(giftMapped.map((g) => String(g.reference)));
+        const filteredMainAfterGifts = filteredMainAfterBills.filter((m) => {
             const t = lower(m.type);
             if (!['gift', 'giftcard', 'gift_card'].includes(t)) return true;
             return !giftRefs.has(String(m.reference));
         });
 
-        // De-dupe DT One airtime against VTpass airtime (VTpass wins
-        // when the same reference exists in both).
-        const filteredAir = airMapped.filter(a => !billRefs.has(String(a.reference)));
+        // De-dupe DT One airtime against VTpass airtime.
+        const filteredAir = airMapped.filter((a) => !billRefs.has(String(a.reference)));
 
         const merged = [
             ...filteredMainAfterGifts,
@@ -768,7 +850,7 @@ router.get('/', authMiddleware, async (req, res) => {
             ...billMapped,
             ...giftMapped,
             ...esimMapped,
-            ...filteredAir
+            ...filteredAir,
         ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
         if (merged.length > MERGE_CAP) {
@@ -778,7 +860,25 @@ router.get('/', authMiddleware, async (req, res) => {
 
         const totalCount = merged.length;
         const paged = merged.slice(offset, offset + limit);
-        const safePaged = paged.map(toCustomer);
+
+        // ── Batched feedback lookup (one query, not per-row) ─────
+        const pageRefs = paged.map((r) => r.reference).filter(Boolean);
+        let myRatingByRef = {};
+        if (pageRefs.length) {
+            const { data: fbRows } = await supabaseAdmin
+                .from('transaction_feedback')
+                .select('reference, rating')
+                .eq('user_id', userId)
+                .in('reference', pageRefs);
+            for (const r of fbRows || []) myRatingByRef[r.reference] = r.rating;
+        }
+
+        const safePaged = paged.map((r) => {
+            const c = toCustomer(r);
+            c.my_rating = myRatingByRef[r.reference] ?? null;
+            return c;
+        });
+
         const partial = warnings.length > 0;
 
         res.json({
@@ -793,15 +893,17 @@ router.get('/', authMiddleware, async (req, res) => {
                 limit,
                 total: totalCount,
                 totalPages: Math.ceil(totalCount / limit) || 1,
-                hasMore: page < (Math.ceil(totalCount / limit) || 1)
-            }
+                hasMore: page < (Math.ceil(totalCount / limit) || 1),
+            },
+            request_id: reqId,
         });
     } catch (error) {
-        console.error('❌ Transaction error:', error);
-        res.status(500).json({
+        console.error('[TX] list exception', { reqId, message: error?.message });
+        return res.status(500).json({
             success: false,
             code: 'TRANSACTION_LOAD_FAILED',
-            error: error.message || 'Failed to load transactions'
+            error: 'Could not load transactions. Please try again.',
+            request_id: reqId,
         });
     }
 });
@@ -810,64 +912,41 @@ router.get('/', authMiddleware, async (req, res) => {
 //  GET /stats
 // ═══════════════════════════════════════════════════════════════════
 router.get('/stats', authMiddleware, async (req, res) => {
+    const reqId = newReqId();
     try {
         const userId = req.user.id;
         const warnings = [];
 
         try {
             const { data, error } = await supabaseAdmin.rpc('transaction_stats_for_user', {
-                p_user_id: userId
+                p_user_id: userId,
             });
             if (!error && data) {
-                return res.json({ success: true, partial: false, warnings: [], stats: data });
+                return res.json({ success: true, partial: false, warnings: [], stats: data, request_id: reqId });
             }
             if (error && !/function|does not exist|schema cache/i.test(String(error.message))) {
-                console.warn('[TX/stats] RPC failed, using fallback:', error.message);
+                console.warn('[TX/stats] RPC failed, using fallback', { reqId, code: error.code });
                 warnings.push('server-side stats unavailable');
             }
         } catch (rpcErr) {
-            console.warn('[TX/stats] RPC threw, using fallback:', rpcErr.message);
+            console.warn('[TX/stats] RPC threw', { reqId, message: rpcErr.message });
             warnings.push('server-side stats unavailable');
         }
 
         const [mainRes, airRes, esimRes, giftRes, marketRes, billRes] = await Promise.all([
-            supabaseAdmin
-                .from('transactions')
-                .select('id, type, status, created_at')
-                .eq('user_id', userId)
-                .in('type', SERVICE_TYPES)
-                .order('created_at', { ascending: false })
-                .limit(PER_SOURCE_CAP),
-            supabaseAdmin
-                .from('airtime_transactions')
-                .select('id, status, created_at')
-                .eq('user_id', userId)
-                .order('created_at', { ascending: false })
-                .limit(PER_SOURCE_CAP),
-            supabaseAdmin
-                .from('esim_transactions')
-                .select('id, status, created_at')
-                .eq('user_id', userId)
-                .order('created_at', { ascending: false })
-                .limit(PER_SOURCE_CAP),
-            supabaseAdmin
-                .from('giftcard_transactions')
-                .select('id, status, created_at')
-                .eq('user_id', userId)
-                .order('created_at', { ascending: false })
-                .limit(PER_SOURCE_CAP),
-            supabaseAdmin
-                .from('marketplace_orders')
-                .select('id, status, created_at')
-                .eq('user_id', userId)
-                .order('created_at', { ascending: false })
-                .limit(PER_SOURCE_CAP),
-            supabaseAdmin
-                .from('bill_payment_transactions')
-                .select('id, service_type, status, created_at')
-                .eq('user_id', userId)
-                .order('created_at', { ascending: false })
-                .limit(PER_SOURCE_CAP)
+            supabaseAdmin.from('transactions').select('id, type, status, created_at')
+                .eq('user_id', userId).in('type', SERVICE_TYPES)
+                .order('created_at', { ascending: false }).limit(200),
+            supabaseAdmin.from('airtime_transactions').select('id, status, created_at')
+                .eq('user_id', userId).order('created_at', { ascending: false }).limit(200),
+            supabaseAdmin.from('esim_transactions').select('id, status, created_at')
+                .eq('user_id', userId).order('created_at', { ascending: false }).limit(200),
+            supabaseAdmin.from('giftcard_transactions').select('id, status, created_at')
+                .eq('user_id', userId).order('created_at', { ascending: false }).limit(200),
+            supabaseAdmin.from('marketplace_orders').select('id, status, created_at')
+                .eq('user_id', userId).order('created_at', { ascending: false }).limit(200),
+            supabaseAdmin.from('bill_payment_transactions').select('id, service_type, status, created_at')
+                .eq('user_id', userId).order('created_at', { ascending: false }).limit(200),
         ]);
 
         if (mainRes.error && mainRes.error.code !== '42P01') warnings.push('transactions source unavailable');
@@ -878,24 +957,29 @@ router.get('/stats', authMiddleware, async (req, res) => {
         if (billRes.error && billRes.error.code !== '42P01') warnings.push('bills source unavailable');
 
         const rows = [
-            ...((mainRes.data || []).map(r => ({ type: r.type, status: r.status, created_at: r.created_at }))),
-            ...((airRes.data || []).map(r => ({ type: 'airtime', status: r.status, created_at: r.created_at }))),
-            ...((esimRes.data || []).map(r => ({ type: 'esim', status: r.status, created_at: r.created_at }))),
-            ...((giftRes.data || []).map(r => ({ type: 'giftcard', status: r.status, created_at: r.created_at }))),
-            ...((marketRes.data || []).map(r => ({ type: 'marketplace', status: r.status, created_at: r.created_at }))),
-            ...((billRes.data || []).map(r => ({ type: r.service_type || 'bills', status: r.status, created_at: r.created_at })))
+            ...((mainRes.data || []).map((r) => ({ type: r.type, status: r.status, created_at: r.created_at }))),
+            ...((airRes.data || []).map((r) => ({ type: 'airtime', status: r.status, created_at: r.created_at }))),
+            ...((esimRes.data || []).map((r) => ({ type: 'esim', status: r.status, created_at: r.created_at }))),
+            ...((giftRes.data || []).map((r) => ({ type: 'giftcard', status: r.status, created_at: r.created_at }))),
+            ...((marketRes.data || []).map((r) => ({ type: 'marketplace', status: r.status, created_at: r.created_at }))),
+            ...((billRes.data || []).map((r) => ({ type: r.service_type || 'bills', status: r.status, created_at: r.created_at }))),
         ];
 
         const stats = calculateStats(rows);
-        const partial = warnings.length > 0;
-
-        res.json({ success: true, partial, warnings, stats });
+        return res.json({
+            success: true,
+            partial: warnings.length > 0,
+            warnings,
+            stats,
+            request_id: reqId,
+        });
     } catch (error) {
-        console.error('❌ Stats error:', error);
-        res.status(500).json({
+        console.error('[TX] stats exception', { reqId, message: error?.message });
+        return res.status(500).json({
             success: false,
             code: 'STATS_LOAD_FAILED',
-            error: error.message
+            error: 'Could not load stats. Please try again.',
+            request_id: reqId,
         });
     }
 });
@@ -904,29 +988,36 @@ router.get('/stats', authMiddleware, async (req, res) => {
 //  GET /purchases  — marketplace orders list
 // ═══════════════════════════════════════════════════════════════════
 router.get('/purchases', authMiddleware, async (req, res) => {
+    const reqId = newReqId();
     try {
         const userId = req.user.id;
+        const cap = 200;
 
         const { data, error } = await supabaseAdmin
             .from('marketplace_orders')
-            .select('*')
+            .select(
+                'id, order_ref, status, currency, wallet, wallet_used, ' +
+                'total, price_usd, price_ngn, product_title, product_id, ' +
+                'delivered, delivered_at, created_at, updated_at, ' +
+                'completed_at, failed_at, cancelled_at, refunded_at'
+            )
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
-            .limit(PER_SOURCE_CAP);
+            .limit(cap);
 
         if (error) {
-            console.error('[TX/purchases] query error:', error.message);
+            console.error('[TX/purchases] query error', { reqId, code: error.code });
             return res.status(503).json({
                 success: false,
                 code: 'PURCHASES_UNAVAILABLE',
-                error: 'Your purchases are temporarily unavailable. Please try again.'
+                error: 'Your purchases are temporarily unavailable. Please try again.',
+                request_id: reqId,
             });
         }
 
         const orders = data || [];
         const linkMap = await attachLinkedTransactions(userId, orders);
-
-        const mapped = orders.map(o => {
+        const mapped = orders.map((o) => {
             const linkedTx = linkMap.get(String(o.id)) || linkMap.get(String(o.order_ref)) || null;
             return toCustomer(mapMarketplace(o, linkedTx));
         });
@@ -935,14 +1026,16 @@ router.get('/purchases', authMiddleware, async (req, res) => {
             success: true,
             data: mapped,
             count: mapped.length,
-            truncated: orders.length === PER_SOURCE_CAP
+            truncated: orders.length === cap,
+            request_id: reqId,
         });
     } catch (e) {
-        console.error('❌ /transactions/purchases error:', e);
+        console.error('[TX/purchases] exception', { reqId, message: e?.message });
         return res.status(500).json({
             success: false,
             code: 'PURCHASES_FAILED',
-            error: 'Could not load your purchases. Please try again.'
+            error: 'Could not load your purchases. Please try again.',
+            request_id: reqId,
         });
     }
 });
@@ -951,11 +1044,12 @@ router.get('/purchases', authMiddleware, async (req, res) => {
 //  GET /purchases/:reference/deliverable
 // ═══════════════════════════════════════════════════════════════════
 router.get('/purchases/:reference/deliverable', authMiddleware, async (req, res) => {
+    const reqId = newReqId();
     try {
         const userId = req.user.id;
         const { reference } = req.params;
         if (!reference || reference.length > 200) {
-            return res.status(400).json({ success: false, code: 'INVALID_REFERENCE' });
+            return res.status(400).json({ success: false, code: 'INVALID_REFERENCE', request_id: reqId });
         }
 
         const { data: order, error } = await supabaseAdmin
@@ -970,11 +1064,12 @@ router.get('/purchases/:reference/deliverable', authMiddleware, async (req, res)
             .maybeSingle();
 
         if (error) {
-            console.error('[TX/deliverable] query error:', error.message);
+            console.error('[TX/deliverable] query error', { reqId, code: error.code });
             return res.status(503).json({
                 success: false,
                 code: 'DELIVERABLE_UNAVAILABLE',
-                error: 'This deliverable is temporarily unavailable. Please try again.'
+                error: 'This deliverable is temporarily unavailable. Please try again.',
+                request_id: reqId,
             });
         }
 
@@ -982,7 +1077,8 @@ router.get('/purchases/:reference/deliverable', authMiddleware, async (req, res)
             return res.status(404).json({
                 success: false,
                 code: 'ORDER_NOT_FOUND',
-                error: 'Order not found.'
+                error: 'Order not found.',
+                request_id: reqId,
             });
         }
 
@@ -990,7 +1086,8 @@ router.get('/purchases/:reference/deliverable', authMiddleware, async (req, res)
             return res.status(409).json({
                 success: false,
                 code: 'DELIVERABLE_NOT_AVAILABLE',
-                error: 'This order has not been delivered yet. Please check back shortly.'
+                error: 'This order has not been delivered yet. Please check back shortly.',
+                request_id: reqId,
             });
         }
 
@@ -1011,15 +1108,17 @@ router.get('/purchases/:reference/deliverable', authMiddleware, async (req, res)
                 instructions: order.instructions || meta.instructions || null,
                 delivered_data: order.delivered_data || meta.delivered_data || null,
                 download_token: order.download_token || null,
-                download_count: num(order.download_count)
-            }
+                download_count: num(order.download_count),
+            },
+            request_id: reqId,
         });
     } catch (e) {
-        console.error('❌ /purchases/:reference/deliverable error:', e);
+        console.error('[TX/deliverable] exception', { reqId, message: e?.message });
         return res.status(500).json({
             success: false,
             code: 'DELIVERABLE_FAILED',
-            error: 'Could not load this deliverable. Please try again.'
+            error: 'Could not load this deliverable. Please try again.',
+            request_id: reqId,
         });
     }
 });
@@ -1028,20 +1127,49 @@ router.get('/purchases/:reference/deliverable', authMiddleware, async (req, res)
 //  GET /purchase-map
 // ═══════════════════════════════════════════════════════════════════
 router.get('/purchase-map', authMiddleware, async (req, res) => {
+    const reqId = newReqId();
     try {
         const userId = req.user.id;
         const map = {};
 
-        const { data: transactions } = await supabaseAdmin
-            .from('transactions')
-            .select('id, ref, reference, type, status, currency, amount, amount_ngn, amount_usd, description, created_at')
-            .eq('user_id', userId)
-            .in('type', SERVICE_TYPES)
-            .in('status', ['completed', 'processing'])
-            .order('created_at', { ascending: false })
-            .limit(100);
+        const [
+            { data: transactions },
+            { data: airtimeRows },
+            { data: billRows },
+            { data: giftRows },
+        ] = await Promise.all([
+            supabaseAdmin
+                .from('transactions')
+                .select('id, ref, reference, type, status, currency, amount, amount_ngn, amount_usd, description, created_at')
+                .eq('user_id', userId)
+                .in('type', SERVICE_TYPES)
+                .in('status', ['completed', 'processing'])
+                .order('created_at', { ascending: false })
+                .limit(100),
+            supabaseAdmin
+                .from('airtime_transactions')
+                .select('id, reference, status, currency, total_amount, amount, country_code, phone_number, created_at')
+                .eq('user_id', userId)
+                .in('status', ['completed', 'processing', 'pending'])
+                .order('created_at', { ascending: false })
+                .limit(100),
+            supabaseAdmin
+                .from('bill_payment_transactions')
+                .select('id, reference, service_type, status, currency, customer_amount, base_amount, network, recipient, created_at')
+                .eq('user_id', userId)
+                .in('status', ['completed', 'processing', 'pending'])
+                .order('created_at', { ascending: false })
+                .limit(100),
+            supabaseAdmin
+                .from('giftcard_transactions')
+                .select('id, reference, status, currency, amount, card_name, created_at')
+                .eq('user_id', userId)
+                .in('status', ['completed', 'processing', 'pending'])
+                .order('created_at', { ascending: false })
+                .limit(100),
+        ]);
 
-        (transactions || []).forEach(t => {
+        (transactions || []).forEach((t) => {
             const ref = t.ref || t.reference || t.id;
             if (!ref) return;
             const currency = up(t.currency || 'NGN');
@@ -1053,19 +1181,11 @@ router.get('/purchase-map', authMiddleware, async (req, res) => {
                 amount: amountForCurrency(t, currency),
                 currency,
                 description: customerSafeDescription(t, t.type),
-                purchased_at: t.created_at
+                purchased_at: t.created_at,
             };
         });
 
-        const { data: airtimeRows } = await supabaseAdmin
-            .from('airtime_transactions')
-            .select('id, reference, status, currency, total_amount, amount, country_code, phone_number, created_at')
-            .eq('user_id', userId)
-            .in('status', ['completed', 'processing', 'pending'])
-            .order('created_at', { ascending: false })
-            .limit(100);
-
-        (airtimeRows || []).forEach(a => {
+        (airtimeRows || []).forEach((a) => {
             const ref = a.reference;
             if (!ref || map[ref]) return;
             const currency = up(a.currency || 'USD');
@@ -1080,19 +1200,11 @@ router.get('/purchase-map', authMiddleware, async (req, res) => {
                     { type: 'airtime', country_code: a.country_code, phone_number: a.phone_number },
                     'Airtime purchase'
                 ),
-                purchased_at: a.created_at
+                purchased_at: a.created_at,
             };
         });
 
-        const { data: billRows } = await supabaseAdmin
-            .from('bill_payment_transactions')
-            .select('id, reference, service_type, status, currency, customer_amount, base_amount, network, recipient, created_at')
-            .eq('user_id', userId)
-            .in('status', ['completed', 'processing', 'pending'])
-            .order('created_at', { ascending: false })
-            .limit(100);
-
-        (billRows || []).forEach(b => {
+        (billRows || []).forEach((b) => {
             const ref = b.reference;
             if (!ref || map[ref]) return;
             const currency = up(b.currency || 'NGN');
@@ -1109,23 +1221,15 @@ router.get('/purchase-map', authMiddleware, async (req, res) => {
                         type: serviceType,
                         network: b.network,
                         recipient: b.recipient,
-                        phone_number: b.recipient
+                        phone_number: b.recipient,
                     },
                     `${serviceType} purchase`
                 ),
-                purchased_at: b.created_at
+                purchased_at: b.created_at,
             };
         });
 
-        const { data: giftRows } = await supabaseAdmin
-            .from('giftcard_transactions')
-            .select('id, reference, status, currency, amount, card_name, created_at')
-            .eq('user_id', userId)
-            .in('status', ['completed', 'processing', 'pending'])
-            .order('created_at', { ascending: false })
-            .limit(100);
-
-        (giftRows || []).forEach(g => {
+        (giftRows || []).forEach((g) => {
             const ref = g.reference;
             if (!ref || map[ref]) return;
             const currency = up(g.currency || 'USD');
@@ -1140,14 +1244,14 @@ router.get('/purchase-map', authMiddleware, async (req, res) => {
                     { type: 'giftcard', card_name: g.card_name },
                     'Gift card order'
                 ),
-                purchased_at: g.created_at
+                purchased_at: g.created_at,
             };
         });
 
-        res.json({ success: true, map });
+        res.json({ success: true, map, request_id: reqId });
     } catch (error) {
-        console.error('❌ Purchase map error:', error);
-        res.json({ success: true, map: {} });
+        console.error('[TX/purchase-map] exception', { reqId, message: error?.message });
+        res.json({ success: true, map: {}, request_id: reqId });
     }
 });
 
@@ -1160,7 +1264,7 @@ router.post('/download/:reference', authMiddleware, async (req, res) => {
         const userId = req.user.id;
         const { reference } = req.params;
         if (!reference || reference.length > 200) {
-            return res.status(400).json({ success: false, code: 'INVALID_REFERENCE' });
+            return res.status(400).json({ success: false, code: 'INVALID_REFERENCE', request_id: reqId });
         }
 
         const { data: order, error } = await supabaseAdmin
@@ -1171,11 +1275,12 @@ router.post('/download/:reference', authMiddleware, async (req, res) => {
             .maybeSingle();
 
         if (error) {
-            console.error(`[TX/download] query error reqId=${reqId}:`, error.message);
+            console.error('[TX/download] query error', { reqId, code: error.code });
             return res.status(503).json({
                 success: false,
                 code: 'DOWNLOAD_UNAVAILABLE',
-                error: 'Download service is temporarily unavailable.'
+                error: 'Download service is temporarily unavailable.',
+                request_id: reqId,
             });
         }
 
@@ -1183,7 +1288,8 @@ router.post('/download/:reference', authMiddleware, async (req, res) => {
             return res.status(404).json({
                 success: false,
                 code: 'DOWNLOAD_NOT_AVAILABLE',
-                error: 'Download not available.'
+                error: 'Download not available.',
+                request_id: reqId,
             });
         }
 
@@ -1191,14 +1297,16 @@ router.post('/download/:reference', authMiddleware, async (req, res) => {
             return res.status(409).json({
                 success: false,
                 code: 'DELIVERABLE_NOT_AVAILABLE',
-                error: 'This order has not been delivered yet.'
+                error: 'This order has not been delivered yet.',
+                request_id: reqId,
             });
         }
         if (!order.download_token) {
             return res.status(404).json({
                 success: false,
                 code: 'DOWNLOAD_NOT_AVAILABLE',
-                error: 'Download not available for this order.'
+                error: 'Download not available for this order.',
+                request_id: reqId,
             });
         }
 
@@ -1206,7 +1314,7 @@ router.post('/download/:reference', authMiddleware, async (req, res) => {
         let rpcOk = false;
         try {
             const { data, error: rpcErr } = await supabaseAdmin.rpc('increment_download_count', {
-                p_order_id: order.id
+                p_order_id: order.id,
             });
             if (!rpcErr) {
                 rpcOk = true;
@@ -1215,10 +1323,10 @@ router.post('/download/:reference', authMiddleware, async (req, res) => {
                     newCount = Number(row.download_count);
                 }
             } else if (!/function|does not exist|schema cache/i.test(String(rpcErr.message))) {
-                console.warn(`[TX/download] increment RPC failed reqId=${reqId}:`, rpcErr.message);
+                console.warn('[TX/download] increment RPC failed', { reqId, code: rpcErr.code });
             }
         } catch (rpcErr) {
-            console.warn(`[TX/download] increment RPC threw reqId=${reqId}:`, rpcErr.message);
+            console.warn('[TX/download] increment RPC threw', { reqId, message: rpcErr.message });
         }
 
         if (!rpcOk) {
@@ -1226,12 +1334,12 @@ router.post('/download/:reference', authMiddleware, async (req, res) => {
                 .from('marketplace_orders')
                 .update({
                     download_count: newCount,
-                    last_download_at: new Date().toISOString()
+                    last_download_at: new Date().toISOString(),
                 })
                 .eq('id', order.id)
                 .eq('download_count', order.download_count);
             if (updErr) {
-                console.warn(`[TX/download] fallback update failed reqId=${reqId}:`, updErr.message);
+                console.warn('[TX/download] fallback update failed', { reqId, code: updErr.code });
             }
         }
 
@@ -1240,11 +1348,16 @@ router.post('/download/:reference', authMiddleware, async (req, res) => {
             download_token: order.download_token,
             product_name: order.product_title || 'Product',
             download_count: newCount,
-            message: 'Download initiated successfully'
+            message: 'Download initiated successfully',
+            request_id: reqId,
         });
     } catch (e) {
-        console.error(`❌ /download reqId=${reqId}:`, e);
-        return res.status(500).json({ success: false, code: 'DOWNLOAD_FAILED' });
+        console.error('[TX/download] exception', { reqId, message: e?.message });
+        return res.status(500).json({
+            success: false,
+            code: 'DOWNLOAD_FAILED',
+            request_id: reqId,
+        });
     }
 });
 
@@ -1252,6 +1365,7 @@ router.post('/download/:reference', authMiddleware, async (req, res) => {
 //  GET /export/csv
 // ═══════════════════════════════════════════════════════════════════
 router.get('/export/csv', authMiddleware, async (req, res) => {
+    const reqId = newReqId();
     try {
         const userId = req.user.id;
         const { currency = 'all' } = req.query;
@@ -1261,14 +1375,14 @@ router.get('/export/csv', authMiddleware, async (req, res) => {
         if (req.query.from) {
             const d = new Date(req.query.from);
             if (isNaN(d.getTime())) {
-                return res.status(400).json({ success: false, code: 'INVALID_FROM', error: 'Invalid "from" date.' });
+                return res.status(400).json({ success: false, code: 'INVALID_FROM', error: 'Invalid "from" date.', request_id: reqId });
             }
             fromDate = d;
         }
         if (req.query.to) {
             const d = new Date(req.query.to);
             if (isNaN(d.getTime())) {
-                return res.status(400).json({ success: false, code: 'INVALID_TO', error: 'Invalid "to" date.' });
+                return res.status(400).json({ success: false, code: 'INVALID_TO', error: 'Invalid "to" date.', request_id: reqId });
             }
             toDate = d;
         }
@@ -1279,167 +1393,132 @@ router.get('/export/csv', authMiddleware, async (req, res) => {
                 return res.status(400).json({
                     success: false,
                     code: 'EXPORT_WINDOW_TOO_LARGE',
-                    error: `Export window cannot exceed ${EXPORT_MAX_DAYS} days.`
+                    error: `Export window cannot exceed ${EXPORT_MAX_DAYS} days.`,
+                    request_id: reqId,
                 });
             }
         }
 
-        let q = supabaseAdmin
-            .from('transactions')
-            .select('ref, reference, type, status, currency, amount, amount_ngn, amount_usd, fee, revenue_ngn, revenue_usd, description, created_at')
-            .eq('user_id', userId)
-            .in('type', SERVICE_TYPES)
-            .order('created_at', { ascending: false })
-            .limit(EXPORT_MAX_ROWS);
+        const buildFilter = (q) => {
+            if (currency && currency !== 'all') q = q.eq('currency', currency);
+            if (fromDate) q = q.gte('created_at', fromDate.toISOString());
+            if (toDate) {
+                const end = new Date(toDate.getTime());
+                end.setDate(end.getDate() + 1);
+                q = q.lt('created_at', end.toISOString());
+            }
+            return q;
+        };
 
-        if (currency && currency !== 'all') q = q.eq('currency', currency);
-        if (fromDate) q = q.gte('created_at', fromDate.toISOString());
-        if (toDate) {
-            const end = new Date(toDate.getTime());
-            end.setDate(end.getDate() + 1);
-            q = q.lt('created_at', end.toISOString());
-        }
+        const [mainRes, airRes, billRes, giftRes] = await Promise.all([
+            buildFilter(
+                supabaseAdmin
+                    .from('transactions')
+                    .select('ref, reference, type, status, currency, amount, amount_ngn, amount_usd, fee, revenue_ngn, revenue_usd, description, created_at')
+                    .eq('user_id', userId)
+                    .in('type', SERVICE_TYPES)
+                    .order('created_at', { ascending: false })
+                    .limit(EXPORT_MAX_ROWS)
+            ),
+            buildFilter(
+                supabaseAdmin
+                    .from('airtime_transactions')
+                    .select('reference, status, currency, total_amount, fee, country_code, phone_number, operator_name, created_at')
+                    .eq('user_id', userId)
+                    .order('created_at', { ascending: false })
+                    .limit(EXPORT_MAX_ROWS)
+            ),
+            buildFilter(
+                supabaseAdmin
+                    .from('bill_payment_transactions')
+                    .select('reference, service_type, status, currency, customer_amount, base_amount, service_fee, network, recipient, created_at')
+                    .eq('user_id', userId)
+                    .order('created_at', { ascending: false })
+                    .limit(EXPORT_MAX_ROWS)
+            ),
+            buildFilter(
+                supabaseAdmin
+                    .from('giftcard_transactions')
+                    .select('reference, status, currency, amount, fee, card_name, face_value, face_currency, created_at')
+                    .eq('user_id', userId)
+                    .order('created_at', { ascending: false })
+                    .limit(EXPORT_MAX_ROWS)
+            ),
+        ]);
 
-        const { data: transactions, error: txErr } = await q;
-        if (txErr) {
-            console.error('[TX/export] transactions query error:', txErr.message);
+        if (mainRes.error && mainRes.error.code !== '42P01') {
+            console.error('[TX/export] main query error', { reqId, code: mainRes.error.code });
             return res.status(503).json({
                 success: false,
                 code: 'EXPORT_SOURCE_UNAVAILABLE',
-                error: 'Could not load transactions for export.'
+                error: 'Could not load transactions for export.',
+                request_id: reqId,
             });
         }
 
-        let aq = supabaseAdmin
-            .from('airtime_transactions')
-            .select('reference, status, currency, total_amount, fee, country_code, phone_number, operator_name, created_at')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .limit(EXPORT_MAX_ROWS);
-
-        if (currency && currency !== 'all') aq = aq.eq('currency', currency);
-        if (fromDate) aq = aq.gte('created_at', fromDate.toISOString());
-        if (toDate) {
-            const end = new Date(toDate.getTime());
-            end.setDate(end.getDate() + 1);
-            aq = aq.lt('created_at', end.toISOString());
-        }
-
-        const { data: airtimeTx, error: airErr } = await aq;
-        if (airErr && airErr.code !== '42P01') {
-            console.error('[TX/export] airtime query error:', airErr.message);
-        }
-
-        let bq = supabaseAdmin
-            .from('bill_payment_transactions')
-            .select('reference, service_type, status, currency, customer_amount, base_amount, service_fee, network, recipient, created_at')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .limit(EXPORT_MAX_ROWS);
-
-        if (currency && currency !== 'all') bq = bq.eq('currency', currency);
-        if (fromDate) bq = bq.gte('created_at', fromDate.toISOString());
-        if (toDate) {
-            const end = new Date(toDate.getTime());
-            end.setDate(end.getDate() + 1);
-            bq = bq.lt('created_at', end.toISOString());
-        }
-
-        const { data: billTx, error: billErr } = await bq;
-        if (billErr && billErr.code !== '42P01') {
-            console.error('[TX/export] bills query error:', billErr.message);
-        }
-
-        let gq = supabaseAdmin
-            .from('giftcard_transactions')
-            .select('reference, status, currency, amount, fee, card_name, face_value, face_currency, created_at')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .limit(EXPORT_MAX_ROWS);
-
-        if (currency && currency !== 'all') gq = gq.eq('currency', currency);
-        if (fromDate) gq = gq.gte('created_at', fromDate.toISOString());
-        if (toDate) {
-            const end = new Date(toDate.getTime());
-            end.setDate(end.getDate() + 1);
-            gq = gq.lt('created_at', end.toISOString());
-        }
-
-        const { data: giftTx, error: giftErr } = await gq;
-        if (giftErr && giftErr.code !== '42P01') {
-            console.error('[TX/export] giftcard query error:', giftErr.message);
-        }
-
-        const mainRows = (transactions || []).map(t => {
-            const currency2 = up(t.currency || 'NGN');
+        const mainRows = (mainRes.data || []).map((t) => {
+            const ccy = up(t.currency || 'NGN');
             return {
                 reference: t.ref || t.reference || '',
                 type: t.type || '',
                 status: toCustomerStatus(t.status),
-                currency: currency2,
-                amount: amountForCurrency(t, currency2),
-                fee: feeForCurrency(t, currency2),
+                currency: ccy,
+                amount: amountForCurrency(t, ccy),
+                fee: feeForCurrency(t, ccy),
                 description: customerSafeDescription(t, t.description),
-                created_at: t.created_at ? new Date(t.created_at).toISOString() : ''
+                created_at: t.created_at ? new Date(t.created_at).toISOString() : '',
             };
         });
 
-        const airRows = (airtimeTx || []).map(a => {
-            const currency2 = up(a.currency || 'USD');
+        const airRows = (airRes.data || []).map((a) => {
+            const ccy = up(a.currency || 'USD');
             return {
                 reference: a.reference || '',
                 type: 'airtime',
                 status: toCustomerStatus(a.status),
-                currency: currency2,
-                amount: amountForCurrency(a, currency2),
-                fee: feeForCurrency(a, currency2),
+                currency: ccy,
+                amount: amountForCurrency(a, ccy),
+                fee: feeForCurrency(a, ccy),
                 description: customerSafeDescription(
                     { type: 'airtime', country_code: a.country_code, phone_number: a.phone_number },
                     'Airtime'
                 ),
-                created_at: a.created_at ? new Date(a.created_at).toISOString() : ''
+                created_at: a.created_at ? new Date(a.created_at).toISOString() : '',
             };
         });
 
-        const billExportRows = (billTx || []).map(b => {
-            const currency2 = up(b.currency || 'NGN');
+        const billExportRows = (billRes.data || []).map((b) => {
+            const ccy = up(b.currency || 'NGN');
             const serviceType = lower(b.service_type) || 'bills';
-            const amount = num(b.customer_amount) || amountForCurrency(b, currency2);
-            const fee = num(b.service_fee);
             return {
                 reference: b.reference || '',
                 type: serviceType,
                 status: toCustomerStatus(b.status),
-                currency: currency2,
-                amount,
-                fee,
+                currency: ccy,
+                amount: num(b.customer_amount) || amountForCurrency(b, ccy),
+                fee: num(b.service_fee),
                 description: customerSafeDescription(
-                    {
-                        type: serviceType,
-                        network: b.network,
-                        recipient: b.recipient,
-                        phone_number: b.recipient
-                    },
+                    { type: serviceType, network: b.network, recipient: b.recipient, phone_number: b.recipient },
                     `${serviceType} purchase`
                 ),
-                created_at: b.created_at ? new Date(b.created_at).toISOString() : ''
+                created_at: b.created_at ? new Date(b.created_at).toISOString() : '',
             };
         });
 
-        const giftExportRows = (giftTx || []).map(g => {
-            const currency2 = up(g.currency || 'USD');
+        const giftExportRows = (giftRes.data || []).map((g) => {
+            const ccy = up(g.currency || 'USD');
             return {
                 reference: g.reference || '',
                 type: 'giftcard',
                 status: toCustomerStatus(g.status),
-                currency: currency2,
-                amount: amountForCurrency(g, currency2),
-                fee: feeForCurrency(g, currency2),
+                currency: ccy,
+                amount: amountForCurrency(g, ccy),
+                fee: feeForCurrency(g, ccy),
                 description: customerSafeDescription(
                     { type: 'giftcard', card_name: g.card_name },
                     'Gift card'
                 ),
-                created_at: g.created_at ? new Date(g.created_at).toISOString() : ''
+                created_at: g.created_at ? new Date(g.created_at).toISOString() : '',
             };
         });
 
@@ -1451,22 +1530,20 @@ router.get('/export/csv', authMiddleware, async (req, res) => {
             return res.status(404).json({
                 success: false,
                 code: 'NO_TRANSACTIONS',
-                error: 'No transactions found for export'
+                error: 'No transactions found for export',
+                request_id: reqId,
             });
         }
 
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader(
-            'Content-Disposition',
-            `attachment; filename=milesspace-transactions-${Date.now()}.csv`
-        );
+        res.setHeader('Content-Disposition', `attachment; filename=milesspace-transactions-${Date.now()}.csv`);
+        res.setHeader('X-Export-Row-Count', String(all.length));
+        res.setHeader('X-Export-Timezone', 'UTC');
 
         res.write(
-            ['Reference', 'Type', 'Status', 'Currency', 'Amount', 'Fee', 'Description', 'Date']
-                .map(csvCell)
-                .join(',') + '\n'
+            ['Reference', 'Type', 'Status', 'Currency', 'Amount', 'Fee', 'Description', 'Date (UTC)']
+                .map(csvCell).join(',') + '\n'
         );
-
         for (const t of all) {
             res.write(
                 [
@@ -1477,19 +1554,19 @@ router.get('/export/csv', authMiddleware, async (req, res) => {
                     csvCell(num(t.amount).toFixed(2)),
                     csvCell(num(t.fee).toFixed(2)),
                     csvCell(t.description),
-                    csvCell(t.created_at)
+                    csvCell(t.created_at),
                 ].join(',') + '\n'
             );
         }
-
         return res.end();
     } catch (error) {
-        console.error('❌ CSV export error:', error);
+        console.error('[TX/export] exception', { reqId, message: error?.message });
         if (!res.headersSent) {
             res.status(500).json({
                 success: false,
                 code: 'CSV_EXPORT_FAILED',
-                error: error.message || 'CSV export failed'
+                error: 'CSV export failed.',
+                request_id: reqId,
             });
         } else {
             res.end();
@@ -1501,11 +1578,12 @@ router.get('/export/csv', authMiddleware, async (req, res) => {
 //  GET /:id  — MUST BE REGISTERED LAST
 // ═══════════════════════════════════════════════════════════════════
 router.get('/:id', authMiddleware, async (req, res) => {
+    const reqId = newReqId();
     try {
         const userId = req.user.id;
         const { id } = req.params;
         if (!id || id.length > 200) {
-            return res.status(400).json({ success: false, error: 'Invalid id' });
+            return res.status(400).json({ success: false, code: 'INVALID_ID', request_id: reqId });
         }
 
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
@@ -1518,9 +1596,8 @@ router.get('/:id', authMiddleware, async (req, res) => {
                 .eq('user_id', userId)
                 .in('type', SERVICE_TYPES)
                 .maybeSingle();
-
             if (transaction) {
-                return res.json({ success: true, transaction: toCustomer(mapTransaction(transaction)) });
+                return res.json({ success: true, transaction: toCustomer(mapTransaction(transaction)), request_id: reqId });
             }
         }
 
@@ -1531,9 +1608,8 @@ router.get('/:id', authMiddleware, async (req, res) => {
             .eq('user_id', userId)
             .in('type', SERVICE_TYPES)
             .maybeSingle();
-
         if (byRef) {
-            return res.json({ success: true, transaction: toCustomer(mapTransaction(byRef)) });
+            return res.json({ success: true, transaction: toCustomer(mapTransaction(byRef)), request_id: reqId });
         }
 
         if (isUuid) {
@@ -1543,11 +1619,10 @@ router.get('/:id', authMiddleware, async (req, res) => {
                 .eq('id', id)
                 .eq('user_id', userId)
                 .maybeSingle();
-
             if (order) {
                 const linkMap = await attachLinkedTransactions(userId, [order]);
                 const linkedTx = linkMap.get(String(order.id)) || linkMap.get(String(order.order_ref)) || null;
-                return res.json({ success: true, transaction: toCustomer(mapMarketplace(order, linkedTx)) });
+                return res.json({ success: true, transaction: toCustomer(mapMarketplace(order, linkedTx)), request_id: reqId });
             }
         }
 
@@ -1557,96 +1632,71 @@ router.get('/:id', authMiddleware, async (req, res) => {
             .eq('order_ref', id)
             .eq('user_id', userId)
             .maybeSingle();
-
         if (orderByRef) {
             const linkMap = await attachLinkedTransactions(userId, [orderByRef]);
             const linkedTx = linkMap.get(String(orderByRef.id)) || linkMap.get(String(orderByRef.order_ref)) || null;
-            return res.json({ success: true, transaction: toCustomer(mapMarketplace(orderByRef, linkedTx)) });
+            return res.json({ success: true, transaction: toCustomer(mapMarketplace(orderByRef, linkedTx)), request_id: reqId });
         }
 
         if (isUuid) {
             const { data: airtime } = await supabaseAdmin
-                .from('airtime_transactions')
-                .select('*')
-                .eq('id', id)
-                .eq('user_id', userId)
-                .maybeSingle();
-
+                .from('airtime_transactions').select('*')
+                .eq('id', id).eq('user_id', userId).maybeSingle();
             if (airtime) {
-                return res.json({ success: true, transaction: toCustomer(mapAirtimeToTransaction(airtime)) });
+                return res.json({ success: true, transaction: toCustomer(mapAirtimeToTransaction(airtime)), request_id: reqId });
             }
         }
-
         const { data: airtimeByRef } = await supabaseAdmin
-            .from('airtime_transactions')
-            .select('*')
-            .eq('reference', id)
-            .eq('user_id', userId)
-            .maybeSingle();
-
+            .from('airtime_transactions').select('*')
+            .eq('reference', id).eq('user_id', userId).maybeSingle();
         if (airtimeByRef) {
-            return res.json({ success: true, transaction: toCustomer(mapAirtimeToTransaction(airtimeByRef)) });
+            return res.json({ success: true, transaction: toCustomer(mapAirtimeToTransaction(airtimeByRef)), request_id: reqId });
         }
 
         if (isUuid) {
             const { data: bill } = await supabaseAdmin
-                .from('bill_payment_transactions')
-                .select('*')
-                .eq('id', id)
-                .eq('user_id', userId)
-                .maybeSingle();
-
+                .from('bill_payment_transactions').select('*')
+                .eq('id', id).eq('user_id', userId).maybeSingle();
             if (bill) {
-                return res.json({ success: true, transaction: toCustomer(mapBillPaymentToTransaction(bill)) });
+                return res.json({ success: true, transaction: toCustomer(mapBillPaymentToTransaction(bill)), request_id: reqId });
             }
         }
-
         const { data: billByRef } = await supabaseAdmin
-            .from('bill_payment_transactions')
-            .select('*')
-            .eq('reference', id)
-            .eq('user_id', userId)
-            .maybeSingle();
-
+            .from('bill_payment_transactions').select('*')
+            .eq('reference', id).eq('user_id', userId).maybeSingle();
         if (billByRef) {
-            return res.json({ success: true, transaction: toCustomer(mapBillPaymentToTransaction(billByRef)) });
+            return res.json({ success: true, transaction: toCustomer(mapBillPaymentToTransaction(billByRef)), request_id: reqId });
         }
 
         if (isUuid) {
             const { data: gift } = await supabaseAdmin
-                .from('giftcard_transactions')
-                .select('*')
-                .eq('id', id)
-                .eq('user_id', userId)
-                .maybeSingle();
-
+                .from('giftcard_transactions').select('*')
+                .eq('id', id).eq('user_id', userId).maybeSingle();
             if (gift) {
-                return res.json({ success: true, transaction: toCustomer(mapGiftCardToTransaction(gift)) });
+                return res.json({ success: true, transaction: toCustomer(mapGiftCardToTransaction(gift)), request_id: reqId });
             }
         }
-
         const { data: giftByRef } = await supabaseAdmin
-            .from('giftcard_transactions')
-            .select('*')
-            .eq('reference', id)
-            .eq('user_id', userId)
-            .maybeSingle();
-
+            .from('giftcard_transactions').select('*')
+            .eq('reference', id).eq('user_id', userId).maybeSingle();
         if (giftByRef) {
-            return res.json({ success: true, transaction: toCustomer(mapGiftCardToTransaction(giftByRef)) });
+            return res.json({ success: true, transaction: toCustomer(mapGiftCardToTransaction(giftByRef)), request_id: reqId });
         }
 
+        // All misses (missing OR foreign) return an identical response.
         return res.status(404).json({
             success: false,
             code: 'TRANSACTION_NOT_FOUND',
-            error: 'Transaction not found'
+            error: 'Transaction not found',
+            request_id: reqId,
         });
     } catch (error) {
-        console.error('❌ Transaction detail error:', error);
-        res.status(500).json({
+        console.error('[TX/:id] exception', { reqId, message: error?.message });
+        return res.status(500).json({
             success: false,
             code: 'TRANSACTION_DETAIL_FAILED',
-            error: error.message || 'Failed to load transaction'
+            error: 'Failed to load transaction.',
+            request_id: reqId,
         });
     }
 });
@@ -1663,21 +1713,21 @@ function calculateStats(rows) {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     let monthlyCount = 0;
 
-    (rows || []).forEach(t => {
+    (rows || []).forEach((t) => {
         const type = lower(t.type);
 
         if (['giftcard', 'gift_card', 'gift'].includes(type)) giftOrders++;
         if (['marketplace', 'purchase'].includes(type)) marketOrders++;
         if (type === 'boost') boostOrders++;
-        if (type === 'virtual_sms') smsOrders++;
+        if (type === 'virtual_sms' || type === 'virtual') smsOrders++;
         if (type === 'airtime') airtimeOrders++;
         if (type === 'esim') esimOrders++;
 
         if ([
             'giftcard', 'gift_card', 'gift',
             'marketplace', 'purchase',
-            'boost', 'virtual_sms', 'airtime', 'esim',
-            'data', 'electricity', 'tv', 'bills'
+            'boost', 'virtual_sms', 'virtual', 'airtime', 'esim',
+            'data', 'electricity', 'tv', 'cable', 'bills',
         ].includes(type)) {
             totalOrders++;
         }
@@ -1694,7 +1744,7 @@ function calculateStats(rows) {
         airtimeOrders,
         esimOrders,
         totalOrders,
-        monthlyCount
+        monthlyCount,
     };
 }
 

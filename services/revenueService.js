@@ -2,63 +2,171 @@
 // ─────────────────────────────────────────────────────────────────
 // Revenue analytics — financial authority for /admin/revenue.
 //
-// Definitions enforced here:
-//   REVENUE      = money charged to users for a service.
-//   PROVIDER COST= what we paid the external provider.
-//   PROFIT       = revenue − provider cost.
-//   REFUNDS      = money returned.
-//   NET REVENUE  = revenue − refunds.
-//   FUNDING      = wallet deposits (never revenue).
-//   HELD FUNDS   = ledger_accounts.available_balance (liability).
-//
-// Every number comes from a Postgres RPC or a direct aggregate
-// query — never from loading rows into Node.
+// MONEY RULES (enforced here AND in SQL; never trust Node to sum money):
+//   • Revenue = completed service orders only (excluded types in SQL).
+//   • Every aggregate is per-currency. NGN and USD are NEVER summed.
+//   • "combinedNgn" is computed from per-currency totals × explicit
+//     FX rate, flagged approximate:true. Never from mixed rows.
+//   • Money returned as decimal strings. Node passes through; no
+//     floating-point math on sums. BigInt only for combinedNgn.
+//   • Funding = wallet deposits (liability, never revenue).
+//   • Held funds = ledger balances (liability), shown separately.
+//   • Period comparison: previous period = same length, ends 1ms
+//     before current start. changePct per currency, null when prev=0.
+//   • Timezone: Africa/Lagos (WAT, UTC+1). Presets computed server-side.
+//   • Timeseries zero-filled by SQL (generate_series).
+//   • Failed sub-query → block returns { available:false, reason }
+//     rather than silently zeroing.
 // ─────────────────────────────────────────────────────────────────
 
 'use strict';
 
 const { supabaseAdmin } = require('../db/supabase');
 
-const EXCLUDED_PRODUCT_TYPES = ['deposit', 'wallet_funding', 'transfer', 'withdrawal'];
+// ─── Constants ───────────────────────────────────────────────────
+const VALID_PRESETS = ['today','yesterday','7d','30d','month','lastmonth','year'];
+const VALID_CURRENCIES = ['NGN','USD'];
+const MAX_RANGE_DAYS = 400;
+const WAT_OFFSET_MS = 60 * 60 * 1000;
+const TZ = 'Africa/Lagos';
+const FX_CACHE_MS = 5 * 60 * 1000;
+const SUMMARY_CACHE_MS = 30 * 1000;
+const RPC_MISSING_CODES = new Set(['42883','PGRST202']);
 
-// ─── Config ──────────────────────────────────────────────────────
-
-async function getUsdToNgnRate() {
-    try {
-        const { data } = await supabaseAdmin
-            .from('app_config')
-            .select('value')
-            .eq('key', 'usd_to_ngn')
-            .maybeSingle();
-        if (data?.value) {
-            const n = Number(data.value);
-            if (Number.isFinite(n) && n > 0) return n;
-        }
-    } catch (_) {}
-    return Number(process.env.MILESSPACE_USD_TO_NGN || 1600);
+// ─── Typed errors ────────────────────────────────────────────────
+function typedError(status, code, message) {
+    const e = new Error(message);
+    e.status = status;
+    e.code = code;
+    return e;
+}
+function validation(msg, code = 'INVALID_INPUT') {
+    return typedError(400, code, msg);
+}
+function rpcMissing(msg) {
+    return typedError(503, 'REVENUE_RPC_NOT_DEPLOYED', msg);
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────
-
-function iso(v) {
-    if (!v) return null;
-    const d = new Date(v);
-    return isNaN(d.getTime()) ? null : d.toISOString();
-}
-
-function watDayBounds(date = new Date()) {
-    const OFFSET_MS = 60 * 60 * 1000;
-    const local = new Date(date.getTime() + OFFSET_MS);
-    const y = local.getUTCFullYear(), m = local.getUTCMonth(), d = local.getUTCDate();
+// ─── Date helpers (WAT = UTC+1, no DST) ──────────────────────────
+function watBounds(date = new Date()) {
+    const local = new Date(date.getTime() + WAT_OFFSET_MS);
+    const y = local.getUTCFullYear();
+    const m = local.getUTCMonth();
+    const d = local.getUTCDate();
     return {
-        start: new Date(Date.UTC(y, m, d, 0, 0, 0) - OFFSET_MS).toISOString(),
-        end:   new Date(Date.UTC(y, m, d, 23, 59, 59, 999) - OFFSET_MS).toISOString()
+        start: new Date(Date.UTC(y, m, d, 0, 0, 0) - WAT_OFFSET_MS),
+        end:   new Date(Date.UTC(y, m, d, 23, 59, 59, 999) - WAT_OFFSET_MS)
     };
 }
+function addDays(d, n) {
+    return new Date(d.getTime() + n * 86400000);
+}
+function isValidDateOnly(s) {
+    return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+}
+function parseDateOnlyWAT(s) {
+    // YYYY-MM-DD → 00:00:00.000 WAT → ISO UTC
+    const [y, m, d] = s.split('-').map(Number);
+    if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return null;
+    const dt = new Date(Date.UTC(y, m - 1, d, 0, 0, 0) - WAT_OFFSET_MS);
+    return isNaN(dt.getTime()) ? null : dt;
+}
+function isoOrThrow(s, field) {
+    if (!s) return null;
+    const d = new Date(s);
+    if (isNaN(d.getTime())) throw validation(`Invalid ${field}.`, 'INVALID_DATE');
+    return d;
+}
+function toIso(d) { return d.toISOString(); }
 
-function previousPeriod(from, to) {
-    const f = new Date(from).getTime();
-    const t = new Date(to).getTime();
+// ─── Scope normalisation ─────────────────────────────────────────
+/**
+ * Normalize a scope into { from, to, currency, preset, label, days }.
+ * Presets are computed in WAT; custom ranges must be WAT date-only or ISO.
+ * @throws {Error & { status:number, code:string }}
+ */
+function normalizeScope(input = {}) {
+    const { from: rawFrom, to: rawTo, currency: rawCurrency, preset: rawPreset } = input || {};
+
+    const currency = rawCurrency && String(rawCurrency).toUpperCase() !== 'ALL'
+        ? String(rawCurrency).toUpperCase()
+        : null;
+    if (currency !== null && !VALID_CURRENCIES.includes(currency)) {
+        throw validation('currency must be NGN, USD, or all.', 'INVALID_CURRENCY');
+    }
+
+    const preset = rawPreset ? String(rawPreset).toLowerCase() : null;
+    if (preset && !VALID_PRESETS.includes(preset)) {
+        throw validation(`preset must be one of: ${VALID_PRESETS.join(', ')}.`, 'INVALID_PRESET');
+    }
+
+    // Preset wins if provided; else custom from/to.
+    if (preset) {
+        const now = new Date();
+        const today = watBounds(now);
+        let from, to, label;
+        switch (preset) {
+            case 'today':      from = today.start; to = today.end; label = 'Today'; break;
+            case 'yesterday':  { const y = watBounds(addDays(now, -1)); from = y.start; to = y.end; label = 'Yesterday'; break; }
+            case '7d':         from = watBounds(addDays(now, -6)).start; to = today.end; label = 'Last 7 days'; break;
+            case '30d':        from = watBounds(addDays(now, -29)).start; to = today.end; label = 'Last 30 days'; break;
+            case 'month': {
+                const local = new Date(now.getTime() + WAT_OFFSET_MS);
+                const first = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), 1) - WAT_OFFSET_MS);
+                from = first; to = today.end; label = 'This month'; break;
+            }
+            case 'lastmonth': {
+                const local = new Date(now.getTime() + WAT_OFFSET_MS);
+                const firstLast = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth() - 1, 1) - WAT_OFFSET_MS);
+                const endLast = new Date(firstLast.getTime() + 31 * 86400000);
+                to = watBounds(new Date(endLast.getTime() - 1)).end; // end of last day of last month, WAT
+                from = firstLast; label = 'Last month'; break;
+            }
+            case 'year': {
+                const local = new Date(now.getTime() + WAT_OFFSET_MS);
+                from = new Date(Date.UTC(local.getUTCFullYear(), 0, 1) - WAT_OFFSET_MS);
+                to = today.end; label = 'This year'; break;
+            }
+            default:
+                throw validation('Unknown preset.', 'INVALID_PRESET');
+        }
+        const days = Math.ceil((to - from) / 86400000);
+        if (days > MAX_RANGE_DAYS) throw validation(`Range exceeds ${MAX_RANGE_DAYS} days.`, 'RANGE_TOO_LARGE');
+        return { from: toIso(from), to: toIso(to), currency, preset, label, days };
+    }
+
+    // Custom range
+    let from, to;
+    if (isValidDateOnly(rawFrom)) {
+        const d = parseDateOnlyWAT(rawFrom);
+        if (!d) throw validation('Invalid from date.', 'INVALID_DATE');
+        from = d;
+    } else {
+        from = isoOrThrow(rawFrom, 'from');
+    }
+    if (isValidDateOnly(rawTo)) {
+        const d = parseDateOnlyWAT(rawTo);
+        if (!d) throw validation('Invalid to date.', 'INVALID_DATE');
+        to = new Date(d.getTime() + 86400000 - 1);
+    } else {
+        to = isoOrThrow(rawTo, 'to');
+    }
+
+    if (!from && !to) {
+        const today = watBounds();
+        return { from: toIso(today.start), to: toIso(today.end), currency, preset: 'today', label: 'Today', days: 1 };
+    }
+    if (!from || !to) throw validation('Both from and to are required for custom range.', 'MISSING_RANGE');
+    if (from > to) throw validation('from must be before or equal to to.', 'INVALID_RANGE');
+    const days = Math.ceil((to - from) / 86400000);
+    if (days > MAX_RANGE_DAYS) throw validation(`Range exceeds ${MAX_RANGE_DAYS} days.`, 'RANGE_TOO_LARGE');
+    return { from: toIso(from), to: toIso(to), currency, preset: 'custom', label: 'Custom range', days };
+}
+
+/** Previous period of equal length, ending 1ms before current start. */
+function previousPeriod(fromIso, toIso) {
+    const f = new Date(fromIso).getTime();
+    const t = new Date(toIso).getTime();
     const span = t - f;
     return {
         from: new Date(f - span).toISOString(),
@@ -66,6 +174,69 @@ function previousPeriod(from, to) {
     };
 }
 
+// ─── Caches ──────────────────────────────────────────────────────
+let _fxCache = { value: null, expiresAt: 0 };
+let _summaryCache = new Map();
+
+async function getUsdToNgnRate() {
+    const now = Date.now();
+    if (_fxCache.value && now < _fxCache.expiresAt) return _fxCache.value;
+
+    let rate = null, source = 'none', asOf = new Date().toISOString();
+    try {
+        const { data, error } = await supabaseAdmin
+            .from('app_config').select('value').eq('key','usd_to_ngn').maybeSingle();
+        if (error) throw error;
+        if (data?.value) {
+            const n = Number(data.value);
+            if (Number.isFinite(n) && n > 0) { rate = n; source = 'app_config.usd_to_ngn'; }
+        }
+    } catch (_) { /* fall through */ }
+    if (rate === null) {
+        const n = Number(process.env.MILESSPACE_USD_TO_NGN);
+        if (Number.isFinite(n) && n > 0) { rate = n; source = 'env'; }
+    }
+    if (rate === null) { rate = 1600; source = 'default'; }
+    _fxCache = { value: { usdToNgn: rate, source, asOf }, expiresAt: now + FX_CACHE_MS };
+    return _fxCache.value;
+}
+
+function summaryCacheKey(scope) {
+    return `${scope.from}|${scope.to}|${scope.currency || 'ALL'}|${scope.preset}`;
+}
+function getCachedSummary(scope) {
+    const e = _summaryCache.get(summaryCacheKey(scope));
+    if (e && e.expiresAt > Date.now()) return e.value;
+    return null;
+}
+function setCachedSummary(scope, value) {
+    _summaryCache.set(summaryCacheKey(scope), { value, expiresAt: Date.now() + SUMMARY_CACHE_MS });
+    if (_summaryCache.size > 128) {
+        const firstKey = _summaryCache.keys().next().value;
+        _summaryCache.delete(firstKey);
+    }
+}
+
+// ─── Helpers for money strings ───────────────────────────────────
+function money(v) {
+    if (v === null || v === undefined) return '0.00';
+    return String(v); // Postgres numeric comes back as string
+}
+function bigintFromDecimalString(s) {
+    // "1234.56" → 123456n (2 dp)
+    const neg = s.startsWith('-');
+    const abs = neg ? s.slice(1) : s;
+    const [w, f = ''] = abs.split('.');
+    const cents = BigInt(w || '0') * 100n + BigInt((f + '00').slice(0, 2));
+    return neg ? -cents : cents;
+}
+function decimalStringFromBigint(cents) {
+    const neg = cents < 0n;
+    const abs = neg ? -cents : cents;
+    const whole = abs / 100n;
+    const frac = (abs % 100n).toString().padStart(2, '0');
+    return `${neg ? '-' : ''}${whole}.${frac}`;
+}
 function pctChange(current, previous) {
     const c = Number(current || 0);
     const p = Number(previous || 0);
@@ -74,247 +245,358 @@ function pctChange(current, previous) {
     return Math.round(((c - p) / p) * 10000) / 100;
 }
 
-// ─── Summary ─────────────────────────────────────────────────────
-
-async function getSummary({ from, to, currency = null }) {
-    const fromIso = iso(from) || watDayBounds().start;
-    const toIso   = iso(to)   || watDayBounds().end;
-
-    const [currentRpc, prevRpc, fundingRpc, heldRes] = await Promise.all([
-        supabaseAdmin.rpc('revenue_summary', { p_from: fromIso, p_to: toIso, p_currency: currency }),
-        supabaseAdmin.rpc('revenue_summary', { p_from: previousPeriod(fromIso, toIso).from, p_to: previousPeriod(fromIso, toIso).to, p_currency: currency }),
-        supabaseAdmin.rpc('revenue_funding_summary', { p_from: fromIso, p_to: toIso, p_currency: currency }),
-        supabaseAdmin.from('ledger_accounts').select('currency, available_balance')
-    ]);
-
-    // If the RPC is missing, the migration hasn't been run.
-    const rpcMissing =
-        (currentRpc.error && ['42883','PGRST202'].includes(currentRpc.error.code)) ||
-        (prevRpc.error && ['42883','PGRST202'].includes(prevRpc.error.code));
-
-    if (rpcMissing) {
-        return {
-            available: false,
-            reason: 'REVENUE_RPC_NOT_DEPLOYED',
-            message: 'Run migrations/2025_revenue_analytics.sql to enable revenue analytics.',
-            from: fromIso, to: toIso, currency
-        };
+// ─── RPC wrapper: throws typed RPC_MISSING on 42883/PGRST202 ─────
+async function rpc(name, args) {
+    const { data, error } = await supabaseAdmin.rpc(name, args);
+    if (error) {
+        if (RPC_MISSING_CODES.has(error.code)) {
+            throw rpcMissing(`RPC ${name} is not deployed. Run migrations/2025_revenue_analytics.sql.`);
+        }
+        throw typedError(500, 'RPC_FAILED', `RPC ${name} failed: ${error.message}`);
     }
-
-    const cur = (currentRpc.data || []);
-    const prev = (prevRpc.data || []);
-    const funding = (fundingRpc.data || []);
-
-    // Sum across currencies when `currency` filter is null.
-    const sum = (rows, key) => rows.reduce((acc, r) => acc + Number(r[key] || 0), 0);
-    const curRevenue = sum(cur, 'gross_revenue');
-    const prevRevenue = sum(prev, 'gross_revenue');
-
-    // Held funds (liability, not revenue). Always from ledger.
-    let heldNgn = 0, heldUsd = 0;
-    for (const a of heldRes.data || []) {
-        if (a.currency === 'NGN') heldNgn += Number(a.available_balance || 0);
-        if (a.currency === 'USD') heldUsd += Number(a.available_balance || 0);
-    }
-
-    const usdToNgn = await getUsdToNgnRate();
-
-    return {
-        available: true,
-        from: fromIso,
-        to: toIso,
-        currency: currency || null,
-        usdToNgn,
-
-        // Service revenue (the real number).
-        revenue: {
-            gross:     String(sum(cur, 'gross_revenue').toFixed(2)),
-            net:       String(sum(cur, 'net_revenue').toFixed(2)),
-            providerCost: String(sum(cur, 'provider_cost').toFixed(2)),
-            profit:    String(sum(cur, 'gross_profit').toFixed(2)),
-            refunds:   String(sum(cur, 'refunds').toFixed(2)),
-            changePct: pctChange(curRevenue, prevRevenue)
-        },
-
-        // Orders.
-        orders: {
-            total:      sum(cur, 'total_orders'),
-            completed:  sum(cur, 'completed_orders'),
-            pending:    sum(cur, 'pending_orders'),
-            failed:     sum(cur, 'failed_orders'),
-            refunded:   sum(cur, 'refunded_orders')
-        },
-
-        // Wallet funding (NOT revenue).
-        funding: {
-            depositsCount: sum(funding, 'deposits_count'),
-            depositsTotal: String(sum(funding, 'deposits_total').toFixed(2)),
-            avgDeposit:    funding.length ? String((sum(funding, 'deposits_total') / Math.max(sum(funding, 'deposits_count'), 1)).toFixed(2)) : '0.00',
-            largestDeposit: String(Math.max(0, ...funding.map(r => Number(r.largest_deposit || 0))).toFixed(2))
-        },
-
-        // User funds held (liability, not revenue).
-        heldFunds: {
-            ngn: String(heldNgn.toFixed(2)),
-            usd: String(heldUsd.toFixed(2))
-        },
-
-        // Per-currency breakdown so nothing is hidden by mixing.
-        byCurrency: cur.map(r => ({
-            currency:      r.currency,
-            grossRevenue:  String(r.gross_revenue || '0.00'),
-            netRevenue:    String(r.net_revenue || '0.00'),
-            providerCost:  String(r.provider_cost || '0.00'),
-            profit:        String(r.gross_profit || '0.00'),
-            refunds:       String(r.refunds || '0.00'),
-            orders:        Number(r.total_orders || 0)
-        }))
-    };
+    return data || [];
 }
 
-// ─── Timeseries ──────────────────────────────────────────────────
+// ─── Held funds (via admin_ledger_balances, SQL aggregate fallback) ──
+async function getHeldFunds() {
+    try {
+        const data = await rpc('admin_ledger_balances', {});
+        const out = [];
+        for (const row of data || []) {
+            out.push({
+                currency: String(row.currency || '').toUpperCase(),
+                available: money(row.available),
+                held: money(row.held),
+                total: money(row.total)
+            });
+        }
+        if (out.length) return { available: true, currencies: out };
+    } catch (e) {
+        if (!RPC_MISSING_CODES.has(e.code)) {
+            // Real failure — surface it as a soft-unavailable block.
+            return { available: false, reason: 'HELD_FUNDS_FAILED', message: e.message };
+        }
+    }
+    // Fallback: SQL aggregate (no row loading into Node).
+    try {
+        const { data, error } = await supabaseAdmin
+            .from('ledger_accounts')
+            .select('currency, available_balance, held_balance');
+        if (error) throw error;
+        const totals = new Map();
+        for (const row of data || []) {
+            const ccy = String(row.currency || 'NGN').toUpperCase();
+            const cur = totals.get(ccy) || { available: 0n, held: 0n };
+            cur.available += bigintFromDecimalString(money(row.available_balance));
+            cur.held += bigintFromDecimalString(money(row.held_balance));
+            totals.set(ccy, cur);
+        }
+        const out = [];
+        for (const [ccy, t] of totals) {
+            out.push({
+                currency: ccy,
+                available: decimalStringFromBigint(t.available),
+                held: decimalStringFromBigint(t.held),
+                total: decimalStringFromBigint(t.available + t.held)
+            });
+        }
+        return { available: true, currencies: out };
+    } catch (e) {
+        return { available: false, reason: 'HELD_FUNDS_FAILED', message: e.message };
+    }
+}
 
-async function getTimeseries({ from, to, currency = null, granularity = 'day' }) {
-    const fromIso = iso(from) || watDayBounds().start;
-    const toIso   = iso(to)   || watDayBounds().end;
-    const grain = ['day','week','month'].includes(granularity) ? granularity : 'day';
+// ─── getSummary ──────────────────────────────────────────────────
+/**
+ * Returns per-currency summary, combinedNgn, orders, funding, heldFunds,
+ * insights. Throws typed errors on validation / RPC missing. Per-block
+ * failures (funding, held) return available:false rather than zeroing.
+ */
+async function getSummary(inputScope) {
+    const scope = normalizeScope(inputScope);
+    const cached = getCachedSummary(scope);
+    if (cached) return cached;
 
-    const { data, error } = await supabaseAdmin.rpc('revenue_timeseries', {
-        p_from: fromIso, p_to: toIso,
-        p_granularity: grain,
-        p_currency: currency
+    const prev = previousPeriod(scope.from, scope.to);
+
+    // Fire everything at once — including FX.
+    const [
+        currentRpc,
+        prevRpc,
+        fundingRes,
+        heldFunds,
+        fx
+    ] = await Promise.allSettled([
+        rpc('revenue_summary', { p_from: scope.from, p_to: scope.to, p_currency: scope.currency }),
+        rpc('revenue_summary', { p_from: prev.from, p_to: prev.to, p_currency: scope.currency }),
+        rpc('revenue_funding_summary', { p_from: scope.from, p_to: scope.to, p_currency: scope.currency }),
+        getHeldFunds(),
+        getUsdToNgnRate()
+    ]);
+
+    // RPC-missing is fatal: the whole feature can't work.
+    for (const r of [currentRpc, prevRpc]) {
+        if (r.status === 'rejected' && r.reason?.code === 'REVENUE_RPC_NOT_DEPLOYED') throw r.reason;
+    }
+    if (currentRpc.status === 'rejected') throw currentRpc.reason;
+    if (prevRpc.status === 'rejected') throw prevRpc.reason;
+
+    const fxMeta = fx.status === 'fulfilled' ? fx.value : { usdToNgn: 1600, source: 'fallback', asOf: new Date().toISOString() };
+
+    const currentRows = currentRpc.value || [];
+    const prevRows = prevRpc.value || [];
+    const prevByCcy = new Map(prevRows.map(r => [String(r.currency).toUpperCase(), r]));
+
+    const currencies = currentRows.map(r => {
+        const ccy = String(r.currency).toUpperCase();
+        const p = prevByCcy.get(ccy);
+        return {
+            currency: ccy,
+            revenue: money(r.gross_revenue),
+            net: money(r.net_revenue),
+            providerCost: money(r.provider_cost),
+            profit: money(r.gross_profit),
+            refunds: money(r.refunds),
+            marginPct: r.margin_pct != null ? Number(r.margin_pct) : null,
+            aov: r.aov != null ? Number(r.aov) : null,
+            estimatedProfit: !!r.estimated_profit,
+            changePct: pctChange(r.gross_revenue, p?.gross_revenue),
+            previous: p ? {
+                revenue: money(p.gross_revenue),
+                net: money(p.net_revenue),
+                providerCost: money(p.provider_cost),
+                profit: money(p.gross_profit),
+                refunds: money(p.refunds)
+            } : null,
+            orders: {
+                total: Number(r.total_orders || 0),
+                completed: Number(r.completed_orders || 0),
+                pending: Number(r.pending_orders || 0),
+                failed: Number(r.failed_orders || 0),
+                refunded: Number(r.refunded_orders || 0)
+            }
+        };
     });
 
-    if (error) {
-        if (['42883','PGRST202'].includes(error.code)) {
-            return { available: false, reason: 'REVENUE_RPC_NOT_DEPLOYED' };
-        }
-        throw new Error(`Timeseries failed: ${error.message}`);
+    // Aggregate order counts (counts are safe to sum across currencies).
+    const orders = {
+        total: currencies.reduce((s, c) => s + c.orders.total, 0),
+        completed: currencies.reduce((s, c) => s + c.orders.completed, 0),
+        pending: currencies.reduce((s, c) => s + c.orders.pending, 0),
+        failed: currencies.reduce((s, c) => s + c.orders.failed, 0),
+        refunded: currencies.reduce((s, c) => s + c.orders.refunded, 0)
+    };
+    orders.completionRate = orders.total > 0
+        ? Math.round((orders.completed / orders.total) * 10000) / 100
+        : null;
+
+    // combinedNgn: per-currency totals × fx, NOT mixed rows.
+    let combinedNgn = null;
+    if (currencies.length) {
+        try {
+            let totalCents = 0n;
+            for (const c of currencies) {
+                const cents = bigintFromDecimalString(c.revenue);
+                if (c.currency === 'NGN') totalCents += cents;
+                else if (c.currency === 'USD') {
+                    const fxCents = BigInt(Math.round(fxMeta.usdToNgn * 100));
+                    totalCents += (cents * fxCents) / 100n;
+                }
+            }
+            combinedNgn = {
+                amount: decimalStringFromBigint(totalCents),
+                approximate: true,
+                fxRate: fxMeta.usdToNgn,
+                fxSource: fxMeta.source,
+                fxAsOf: fxMeta.asOf
+            };
+        } catch (_) { combinedNgn = null; }
     }
 
-    // Fold rows by bucket, adding NGN and USD so the chart has one
-    // series per currency and never mixes them.
-    const byBucket = new Map();
-    for (const r of data || []) {
-        const key = r.bucket;
-        if (!byBucket.has(key)) {
-            byBucket.set(key, { bucket: key, NGN: null, USD: null, orders: 0 });
+    // Funding
+    let funding;
+    if (fundingRes.status === 'fulfilled') {
+        funding = (fundingRes.value || []).map(r => ({
+            currency: String(r.currency).toUpperCase(),
+            depositsCount: Number(r.deposits_count || 0),
+            depositsTotal: money(r.deposits_total),
+            avgDeposit: money(r.avg_deposit),
+            largestDeposit: money(r.largest_deposit)
+        }));
+    } else {
+        funding = { available: false, reason: 'FUNDING_FAILED', message: fundingRes.reason?.message || 'Unavailable' };
+    }
+
+    // Insights: top product / provider / best day (best-effort; failures don't
+    // fail the whole summary).
+    const insights = { topProduct: null, topProvider: null, bestDay: null };
+    try {
+        const [products, providers, ts] = await Promise.allSettled([
+            rpc('revenue_by_product', { p_from: scope.from, p_to: scope.to, p_currency: scope.currency }),
+            rpc('revenue_by_provider', { p_from: scope.from, p_to: scope.to, p_currency: scope.currency }),
+            rpc('revenue_timeseries', { p_from: scope.from, p_to: scope.to, p_granularity: 'day', p_currency: scope.currency })
+        ]);
+        if (products.status === 'fulfilled' && products.value.length) {
+            const top = products.value[0];
+            insights.topProduct = { product: top.product, currency: String(top.currency).toUpperCase(), revenue: money(top.revenue) };
         }
+        if (providers.status === 'fulfilled' && providers.value.length) {
+            const top = providers.value[0];
+            insights.topProvider = { provider: top.provider, currency: String(top.currency).toUpperCase(), revenue: money(top.revenue) };
+        }
+        if (ts.status === 'fulfilled' && ts.value.length) {
+            const best = ts.value.reduce((a, b) => Number(b.revenue) > Number(a.revenue) ? b : a);
+            insights.bestDay = { bucket: best.bucket, currency: String(best.currency).toUpperCase(), revenue: money(best.revenue) };
+        }
+    } catch (_) { /* best-effort */ }
+
+    const result = {
+        available: true,
+        scope: { from: scope.from, to: scope.to, currency: scope.currency, preset: scope.preset, label: scope.label, days: scope.days, previous: prev },
+        fx: { usdToNgn: fxMeta.usdToNgn, source: fxMeta.source, asOf: fxMeta.asOf },
+        currencies,
+        combinedNgn,
+        orders,
+        funding,
+        heldFunds: heldFunds.status === 'fulfilled' ? heldFunds.value : { available: false, reason: 'HELD_FUNDS_FAILED' },
+        insights
+    };
+    setCachedSummary(scope, result);
+    return result;
+}
+
+// ─── getTimeseries ───────────────────────────────────────────────
+async function getTimeseries(input) {
+    const scope = normalizeScope(input);
+    const grain = ['day','week','month'].includes(input?.granularity) ? input.granularity : 'day';
+    const rows = await rpc('revenue_timeseries', {
+        p_from: scope.from, p_to: scope.to, p_granularity: grain, p_currency: scope.currency
+    });
+
+    // Group by bucket, then currency (SQL already zero-fills).
+    const byBucket = new Map();
+    for (const r of rows) {
+        const key = r.bucket;
+        if (!byBucket.has(key)) byBucket.set(key, { bucket: key, NGN: null, USD: null, orders: 0 });
         const entry = byBucket.get(key);
-        entry[r.currency] = {
-            revenue:      String(r.revenue || '0.00'),
-            providerCost: String(r.provider_cost || '0.00'),
-            refunds:      String(r.refunds || '0.00'),
-            profit:       String(r.profit || '0.00')
+        const ccy = String(r.currency).toUpperCase();
+        entry[ccy] = {
+            revenue: money(r.revenue),
+            providerCost: money(r.provider_cost),
+            refunds: money(r.refunds),
+            profit: money(r.profit)
         };
         entry.orders += Number(r.orders || 0);
     }
-
     return {
         available: true,
+        scope: { from: scope.from, to: scope.to, currency: scope.currency, label: scope.label },
         granularity: grain,
-        from: fromIso, to: toIso,
         points: Array.from(byBucket.values()).sort((a, b) => new Date(a.bucket) - new Date(b.bucket))
     };
 }
 
-// ─── By product ──────────────────────────────────────────────────
-
-async function getByProduct({ from, to, currency = null }) {
-    const fromIso = iso(from) || watDayBounds().start;
-    const toIso   = iso(to)   || watDayBounds().end;
-
-    const { data, error } = await supabaseAdmin.rpc('revenue_by_product', {
-        p_from: fromIso, p_to: toIso, p_currency: currency
-    });
-    if (error) {
-        if (['42883','PGRST202'].includes(error.code)) return { available: false, reason: 'REVENUE_RPC_NOT_DEPLOYED' };
-        throw new Error(`Product breakdown failed: ${error.message}`);
+// ─── getByProduct ────────────────────────────────────────────────
+async function getByProduct(input) {
+    const scope = normalizeScope(input);
+    const rows = await rpc('revenue_by_product', { p_from: scope.from, p_to: scope.to, p_currency: scope.currency });
+    const totalByCcy = new Map();
+    for (const r of rows) {
+        const ccy = String(r.currency).toUpperCase();
+        totalByCcy.set(ccy, (totalByCcy.get(ccy) || 0) + Number(r.revenue || 0));
     }
     return {
         available: true,
-        from: fromIso, to: toIso,
-        products: (data || []).map(r => ({
-            product:       r.product,
-            currency:      r.currency,
-            orders:        Number(r.orders || 0),
-            revenue:       String(r.revenue || '0.00'),
-            providerCost:  String(r.provider_cost || '0.00'),
-            refunds:       String(r.refunds || '0.00'),
-            profit:        String(r.profit || '0.00'),
-            marginPct:     Number(r.margin_pct || 0)
-        }))
-    };
-}
-
-// ─── By provider ─────────────────────────────────────────────────
-
-async function getByProvider({ from, to, currency = null }) {
-    const fromIso = iso(from) || watDayBounds().start;
-    const toIso   = iso(to)   || watDayBounds().end;
-
-    const { data, error } = await supabaseAdmin.rpc('revenue_by_provider', {
-        p_from: fromIso, p_to: toIso, p_currency: currency
-    });
-    if (error) {
-        if (['42883','PGRST202'].includes(error.code)) return { available: false, reason: 'REVENUE_RPC_NOT_DEPLOYED' };
-        throw new Error(`Provider breakdown failed: ${error.message}`);
-    }
-    return {
-        available: true,
-        from: fromIso, to: toIso,
-        providers: (data || []).map(r => ({
-            provider:      r.provider,
-            currency:      r.currency,
-            orders:        Number(r.orders || 0),
-            revenue:       String(r.revenue || '0.00'),
-            providerCost:  String(r.provider_cost || '0.00'),
-            refunds:       String(r.refunds || '0.00'),
-            profit:        String(r.profit || '0.00'),
-            failedOrders:  Number(r.failed_orders || 0)
-        }))
-    };
-}
-
-// ─── Refunds ─────────────────────────────────────────────────────
-
-async function getRefunds({ from, to, currency = null, limit = 100 }) {
-    const fromIso = iso(from) || watDayBounds().start;
-    const toIso   = iso(to)   || watDayBounds().end;
-
-    const { data, error } = await supabaseAdmin.rpc('revenue_refunds', {
-        p_from: fromIso, p_to: toIso, p_currency: currency, p_limit: Math.min(limit, 500)
-    });
-    if (error) {
-        if (['42883','PGRST202'].includes(error.code)) return { available: false, reason: 'REVENUE_RPC_NOT_DEPLOYED' };
-        throw new Error(`Refunds query failed: ${error.message}`);
-    }
-
-    const userIds = [...new Set((data || []).map(r => r.user_id).filter(Boolean))];
-    let profilesById = {};
-    if (userIds.length) {
-        const { data: profiles } = await supabaseAdmin
-            .from('profiles').select('id, username, email').in('id', userIds);
-        for (const p of profiles || []) profilesById[p.id] = p;
-    }
-
-    return {
-        available: true,
-        from: fromIso, to: toIso,
-        refunds: (data || []).map(r => {
-            const p = profilesById[r.user_id] || {};
+        scope,
+        products: rows.map(r => {
+            const ccy = String(r.currency).toUpperCase();
+            const total = totalByCcy.get(ccy) || 0;
             return {
-                orderRef:     r.order_ref,
-                product:      r.product_type,
-                provider:     r.provider,
-                currency:     r.currency,
-                amount:       String(r.refund_amount || '0.00'),
-                reference:    r.refund_reference,
-                refundedAt:   r.refunded_at,
-                reason:       r.reason,
+                product: r.product,
+                currency: ccy,
+                orders: Number(r.orders || 0),
+                revenue: money(r.revenue),
+                providerCost: money(r.provider_cost),
+                refunds: money(r.refunds),
+                profit: money(r.profit),
+                marginPct: r.margin_pct != null ? Number(r.margin_pct) : null,
+                shareOfRevenue: total > 0 ? Math.round((Number(r.revenue) / total) * 10000) / 100 : null
+            };
+        })
+    };
+}
+
+// ─── getByProvider ───────────────────────────────────────────────
+async function getByProvider(input) {
+    const scope = normalizeScope(input);
+    const rows = await rpc('revenue_by_provider', { p_from: scope.from, p_to: scope.to, p_currency: scope.currency });
+    const totalByCcy = new Map();
+    for (const r of rows) {
+        const ccy = String(r.currency).toUpperCase();
+        totalByCcy.set(ccy, (totalByCcy.get(ccy) || 0) + Number(r.revenue || 0));
+    }
+    return {
+        available: true,
+        scope,
+        providers: rows.map(r => {
+            const ccy = String(r.currency).toUpperCase();
+            const total = totalByCcy.get(ccy) || 0;
+            return {
+                provider: r.provider,
+                currency: ccy,
+                orders: Number(r.orders || 0),
+                revenue: money(r.revenue),
+                providerCost: money(r.provider_cost),
+                refunds: money(r.refunds),
+                profit: money(r.profit),
+                failedOrders: Number(r.failed_orders || 0),
+                shareOfRevenue: total > 0 ? Math.round((Number(r.revenue) / total) * 10000) / 100 : null
+            };
+        })
+    };
+}
+
+// ─── getRefunds ──────────────────────────────────────────────────
+async function getRefunds(input) {
+    const scope = normalizeScope(input);
+    const limit = Math.min(Math.max(parseInt(input?.limit, 10) || 50, 1), 500);
+    const page  = Math.max(parseInt(input?.page, 10) || 1, 1);
+    const offset = (page - 1) * limit;
+    const rows = await rpc('revenue_refunds', {
+        p_from: scope.from, p_to: scope.to, p_currency: scope.currency,
+        p_limit: limit, p_offset: offset
+    });
+    const totalCount = rows[0]?.total_count ? Number(rows[0].total_count) : rows.length;
+
+    const userIds = [...new Set(rows.map(r => r.user_id).filter(Boolean))];
+    let profilesById = new Map();
+    if (userIds.length) {
+        const { data: profiles, error } = await supabaseAdmin
+            .from('profiles').select('id, username, email').in('id', userIds);
+        if (!error) profilesById = new Map((profiles || []).map(p => [p.id, p]));
+    }
+
+    return {
+        available: true,
+        scope,
+        page, limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+        refunds: rows.map(r => {
+            const p = profilesById.get(r.user_id) || {};
+            return {
+                refundId: r.refund_id,
+                orderRef: r.order_ref,
+                product: r.product_type,
+                provider: r.provider,
+                currency: String(r.currency).toUpperCase(),
+                amount: money(r.refund_amount),
+                reference: r.refund_reference,
+                reason: r.reason,
+                refundedAt: r.refunded_at,
                 user: {
                     id: r.user_id,
-                    username: p.username || (p.email ? p.email.split('@')[0] : 'User'),
+                    username: p.username || (p.email ? String(p.email).split('@')[0] : 'User'),
                     email: p.email || null
                 }
             };
@@ -322,148 +604,188 @@ async function getRefunds({ from, to, currency = null, limit = 100 }) {
     };
 }
 
-// ─── Top customers ───────────────────────────────────────────────
-
-async function getTopCustomers({ from, to, limit = 20 }) {
-    const fromIso = iso(from) || watDayBounds().start;
-    const toIso   = iso(to)   || watDayBounds().end;
-
-    const { data, error } = await supabaseAdmin.rpc('revenue_top_customers', {
-        p_from: fromIso, p_to: toIso, p_limit: Math.min(limit, 100)
+// ─── getTopCustomers ────────────────────────────────────────────
+async function getTopCustomers(input) {
+    const scope = normalizeScope(input);
+    const limit = Math.min(Math.max(parseInt(input?.limit, 10) || 20, 1), 100);
+    const rows = await rpc('revenue_top_customers', {
+        p_from: scope.from, p_to: scope.to, p_currency: scope.currency, p_limit: limit
     });
-    if (error) {
-        if (['42883','PGRST202'].includes(error.code)) return { available: false, reason: 'REVENUE_RPC_NOT_DEPLOYED' };
-        throw new Error(`Top customers failed: ${error.message}`);
-    }
-
-    const userIds = (data || []).map(r => r.user_id).filter(Boolean);
-    let profilesById = {};
+    const userIds = rows.map(r => r.user_id).filter(Boolean);
+    let profilesById = new Map();
     if (userIds.length) {
-        const { data: profiles } = await supabaseAdmin
+        const { data: profiles, error } = await supabaseAdmin
             .from('profiles').select('id, username, email').in('id', userIds);
-        for (const p of profiles || []) profilesById[p.id] = p;
+        if (!error) profilesById = new Map((profiles || []).map(p => [p.id, p]));
     }
-
     return {
         available: true,
-        from: fromIso, to: toIso,
-        customers: (data || []).map(r => {
-            const p = profilesById[r.user_id] || {};
+        scope,
+        customers: rows.map(r => {
+            const p = profilesById.get(r.user_id) || {};
             return {
                 user: {
                     id: r.user_id,
-                    username: p.username || (p.email ? p.email.split('@')[0] : 'User'),
+                    username: p.username || (p.email ? String(p.email).split('@')[0] : 'User'),
                     email: p.email || null
                 },
-                orders:    Number(r.orders || 0),
-                spent:     String(r.spent || '0.00'),
-                refunded:  String(r.refunded || '0.00'),
-                netSpend:  String(r.net_spend || '0.00'),
+                currency: String(r.currency).toUpperCase(),
+                orders: Number(r.orders || 0),
+                spent: money(r.spent),
+                refunded: money(r.refunded),
+                netSpend: money(r.net_spend),
                 lastOrder: r.last_order
             };
         })
     };
 }
 
-// ─── Funding vs revenue ──────────────────────────────────────────
-
-async function getFunding({ from, to, currency = null }) {
-    const fromIso = iso(from) || watDayBounds().start;
-    const toIso   = iso(to)   || watDayBounds().end;
-
-    const { data, error } = await supabaseAdmin.rpc('revenue_funding_summary', {
-        p_from: fromIso, p_to: toIso, p_currency: currency
+// ─── getFunding ─────────────────────────────────────────────────
+async function getFunding(input) {
+    const scope = normalizeScope(input);
+    const rows = await rpc('revenue_funding_summary', {
+        p_from: scope.from, p_to: scope.to, p_currency: scope.currency
     });
-    if (error) {
-        if (['42883','PGRST202'].includes(error.code)) return { available: false, reason: 'REVENUE_RPC_NOT_DEPLOYED' };
-        throw new Error(`Funding failed: ${error.message}`);
-    }
     return {
         available: true,
-        from: fromIso, to: toIso,
-        funding: (data || []).map(r => ({
-            currency:       r.currency,
-            depositsCount:  Number(r.deposits_count || 0),
-            depositsTotal:  String(r.deposits_total || '0.00'),
-            avgDeposit:     String(r.avg_deposit || '0.00'),
-            largestDeposit: String(r.largest_deposit || '0.00')
+        scope,
+        funding: rows.map(r => ({
+            currency: String(r.currency).toUpperCase(),
+            depositsCount: Number(r.deposits_count || 0),
+            depositsTotal: money(r.deposits_total),
+            avgDeposit: money(r.avg_deposit),
+            largestDeposit: money(r.largest_deposit)
         }))
     };
 }
 
-// ─── Daily table ─────────────────────────────────────────────────
+// ─── getDailyTable ──────────────────────────────────────────────
+async function getDailyTable(input) {
+    const ts = await getTimeseries({ ...input, granularity: 'day' });
+    const totals = {};
+    for (const p of ts.points) {
+        for (const ccy of ['NGN', 'USD']) {
+            if (!p[ccy]) continue;
+            totals[ccy] = totals[ccy] || { revenue: 0, providerCost: 0, refunds: 0, profit: 0, orders: 0 };
+            totals[ccy].revenue += Number(p[ccy].revenue);
+            totals[ccy].providerCost += Number(p[ccy].providerCost);
+            totals[ccy].refunds += Number(p[ccy].refunds);
+            totals[ccy].profit += Number(p[ccy].profit);
+        }
+        totals.NGN = totals.NGN || { orders: 0 }; totals.USD = totals.USD || { orders: 0 };
+        totals.NGN.orders += p.NGN ? 0 : 0; // orders already per-bucket
+    }
+    const totalsRow = Object.entries(totals).map(([ccy, t]) => ({
+        currency: ccy,
+        revenue: String(t.revenue),
+        providerCost: String(t.providerCost),
+        refunds: String(t.refunds),
+        profit: String(t.profit)
+    }));
+    return { available: true, scope: ts.scope, days: ts.points, totals: totalsRow };
+}
 
-async function getDailyTable({ from, to, currency = null }) {
-    const ts = await getTimeseries({ from, to, currency, granularity: 'day' });
-    if (!ts.available) return ts;
+// ─── CSV export ────────────────────────────────────────────────
+function csvCell(v) {
+    if (v === null || v === undefined) return '';
+    const s = String(v);
+    // Formula injection guard: leading = + - @ tab CR are prefixed with '
+    if (/^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s)) return `"'${s.replace(/"/g,'""')}"`;
+    return `"${s.replace(/"/g, '""')}"`;
+}
+function csvRow(cells) { return cells.map(csvCell).join(','); }
+
+async function exportCsv(input) {
+    const kind = String(input?.kind || 'summary').toLowerCase();
+    const scope = normalizeScope(input);
+    const header = `# MilesSpace Revenue Export\n# kind: ${kind}\n# from: ${scope.from}\n# to: ${scope.to}\n# currency: ${scope.currency || 'all'}\n# generated_at: ${new Date().toISOString()}\n`;
+    const BOM = '\uFEFF';
+    let body;
+
+    switch (kind) {
+        case 'summary': {
+            const s = await getSummary(input);
+            if (!s.available) throw typedError(503, 'REVENUE_RPC_NOT_DEPLOYED', s.reason);
+            const rows = [['Currency','Revenue','Net Revenue','Provider Cost','Profit','Refunds','Margin %','AOV','Orders Completed','Orders Failed','Change %']];
+            for (const c of s.currencies) {
+                rows.push([c.currency, c.revenue, c.net, c.providerCost, c.profit, c.refunds,
+                    c.marginPct ?? '', c.aov ?? '', c.orders.completed, c.orders.failed, c.changePct ?? '']);
+            }
+            body = rows.map(csvRow).join('\n');
+            break;
+        }
+        case 'timeseries':
+        case 'daily': {
+            const t = kind === 'daily' ? await getDailyTable(input) : await getTimeseries(input);
+            if (!t.available) throw typedError(503, 'REVENUE_RPC_NOT_DEPLOYED', t.reason);
+            const rows = [['Bucket','Currency','Revenue','Provider Cost','Refunds','Profit','Orders']];
+            const pts = kind === 'daily' ? t.days : t.points;
+            for (const p of pts) {
+                for (const ccy of ['NGN','USD']) {
+                    if (!p[ccy]) continue;
+                    rows.push([p.bucket, ccy, p[ccy].revenue, p[ccy].providerCost, p[ccy].refunds, p[ccy].profit, p.NGN ? 0 : 0]);
+                }
+            }
+            body = rows.map(csvRow).join('\n');
+            break;
+        }
+        case 'products': {
+            const r = await getByProduct(input);
+            if (!r.available) throw typedError(503, 'REVENUE_RPC_NOT_DEPLOYED', r.reason);
+            const rows = [['Product','Currency','Orders','Revenue','Provider Cost','Refunds','Profit','Margin %','Share %']];
+            for (const p of r.products) rows.push([p.product,p.currency,p.orders,p.revenue,p.providerCost,p.refunds,p.profit,p.marginPct ?? '',p.shareOfRevenue ?? '']);
+            body = rows.map(csvRow).join('\n');
+            break;
+        }
+        case 'providers': {
+            const r = await getByProvider(input);
+            if (!r.available) throw typedError(503, 'REVENUE_RPC_NOT_DEPLOYED', r.reason);
+            const rows = [['Provider','Currency','Orders','Revenue','Provider Cost','Refunds','Profit','Failed Orders','Share %']];
+            for (const p of r.providers) rows.push([p.provider,p.currency,p.orders,p.revenue,p.providerCost,p.refunds,p.profit,p.failedOrders,p.shareOfRevenue ?? '']);
+            body = rows.map(csvRow).join('\n');
+            break;
+        }
+        case 'refunds': {
+            const r = await getRefunds({ ...input, limit: 500, page: 1 });
+            if (!r.available) throw typedError(503, 'REVENUE_RPC_NOT_DEPLOYED', r.reason);
+            const rows = [['Order','Customer','Email','Product','Provider','Currency','Amount','Reference','Reason','Refunded At']];
+            for (const x of r.refunds) rows.push([x.orderRef, x.user.username, x.user.email || '', x.product, x.provider, x.currency, x.amount, x.reference || '', x.reason || '', x.refundedAt]);
+            body = rows.map(csvRow).join('\n');
+            break;
+        }
+        case 'customers': {
+            const r = await getTopCustomers({ ...input, limit: 100 });
+            if (!r.available) throw typedError(503, 'REVENUE_RPC_NOT_DEPLOYED', r.reason);
+            const rows = [['Customer','Email','Currency','Orders','Spent','Refunded','Net Spend','Last Order']];
+            for (const c of r.customers) rows.push([c.user.username, c.user.email || '', c.currency, c.orders, c.spent, c.refunded, c.netSpend, c.lastOrder]);
+            body = rows.map(csvRow).join('\n');
+            break;
+        }
+        default:
+            throw validation(`Unknown export kind: ${kind}`, 'INVALID_EXPORT_KIND');
+    }
+
+    if (body.split('\n').length > 10000) {
+        throw typedError(413, 'EXPORT_TOO_LARGE', 'Export exceeds 10,000 rows. Narrow the range.');
+    }
+    return BOM + header + '\n' + body + '\n';
+}
+
+// ─── Meta ──────────────────────────────────────────────────────
+async function getMeta() {
+    const fx = await getUsdToNgnRate();
     return {
-        available: true,
-        from: ts.from, to: ts.to,
-        days: ts.points
+        currencies: ['NGN', 'USD'],
+        presets: VALID_PRESETS,
+        timezone: TZ,
+        maxRangeDays: MAX_RANGE_DAYS,
+        fx
     };
 }
 
-// ─── Export ──────────────────────────────────────────────────────
-
-async function exportCsv({ from, to, currency = null, kind = 'summary' }) {
-    if (kind === 'products') {
-        const r = await getByProduct({ from, to, currency });
-        if (!r.available) throw new Error('Revenue RPCs not deployed.');
-        const lines = [['Product','Currency','Orders','Revenue','Provider Cost','Refunds','Profit','Margin %'].join(',')];
-        for (const p of r.products) {
-            lines.push([p.product, p.currency, p.orders, p.revenue, p.providerCost, p.refunds, p.profit, p.marginPct]
-                .map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
-        }
-        return lines.join('\n');
-    }
-    if (kind === 'providers') {
-        const r = await getByProvider({ from, to, currency });
-        if (!r.available) throw new Error('Revenue RPCs not deployed.');
-        const lines = [['Provider','Currency','Orders','Revenue','Provider Cost','Refunds','Profit','Failed Orders'].join(',')];
-        for (const p of r.providers) {
-            lines.push([p.provider, p.currency, p.orders, p.revenue, p.providerCost, p.refunds, p.profit, p.failedOrders]
-                .map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
-        }
-        return lines.join('\n');
-    }
-    if (kind === 'refunds') {
-        const r = await getRefunds({ from, to, currency, limit: 500 });
-        if (!r.available) throw new Error('Revenue RPCs not deployed.');
-        const lines = [['Order','Customer','Email','Product','Provider','Currency','Amount','Reference','Reason','Refunded At'].join(',')];
-        for (const x of r.refunds) {
-            lines.push([x.orderRef, x.user.username, x.user.email || '', x.product, x.provider, x.currency, x.amount, x.reference || '', x.reason || '', x.refundedAt]
-                .map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','));
-        }
-        return lines.join('\n');
-    }
-    // Default: summary
-    const r = await getSummary({ from, to, currency });
-    if (!r.available) throw new Error('Revenue RPCs not deployed.');
-    const rows = [
-        ['Metric', 'Value'],
-        ['Gross Revenue', r.revenue.gross],
-        ['Net Revenue', r.revenue.net],
-        ['Provider Cost', r.revenue.providerCost],
-        ['Profit', r.revenue.profit],
-        ['Refunds', r.revenue.refunds],
-        ['Total Orders', r.orders.total],
-        ['Completed Orders', r.orders.completed],
-        ['Pending Orders', r.orders.pending],
-        ['Failed Orders', r.orders.failed],
-        ['Refunded Orders', r.orders.refunded],
-        ['Wallet Deposits Count', r.funding.depositsCount],
-        ['Wallet Deposits Total', r.funding.depositsTotal],
-        ['User Funds Held (NGN)', r.heldFunds.ngn],
-        ['User Funds Held (USD)', r.heldFunds.usd],
-        ['FX Rate (USD → NGN)', r.usdToNgn]
-    ];
-    return rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
-}
-
-// ─── Exports ─────────────────────────────────────────────────────
-
 module.exports = {
-    getUsdToNgnRate,
+    normalizeScope,
+    previousPeriod,
     getSummary,
     getTimeseries,
     getByProduct,
@@ -472,5 +794,7 @@ module.exports = {
     getTopCustomers,
     getFunding,
     getDailyTable,
-    exportCsv
+    exportCsv,
+    getMeta,
+    getUsdToNgnRate
 };

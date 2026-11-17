@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Revenue · MilesSpace Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<script src="/js/admin-session.js?v=2025-admin-dash-v4"></script>
+<script src="/js/admin-session.js"></script>
+<script src="/js/admin-operational-sidebar.js" defer></script>
 <style>
 :root{
   --brand-primary:#0f4c5c; --brand-primary-deep:#0a3542; --brand-primary-light:#14607a;
@@ -22,14 +23,14 @@
   --danger:#dc2626; --danger-bg:#fdecec;
   --warn:#f59e0b; --warn-bg:#fef3d9;
   --info:#2563a8; --info-bg:#e8f1fb;
-  --purple:#8b5cf6; --purple-bg:#ede9fe;
-  --usd:#0891b2; --usd-bg:#e0f6fa;
   --radius-sm:8px; --radius-md:14px; --radius-lg:20px;
   --shadow-sm:0 1px 2px rgba(8,42,51,.06);
   --shadow-md:0 8px 24px -8px rgba(8,42,51,.16);
   --shadow-lg:0 16px 48px -12px rgba(8,42,51,.26);
   --sidebar-w:264px; --sidebar-w-collapsed:78px; --topbar-h:68px;
   --transition:180ms cubic-bezier(.4,0,.2,1);
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
 }
 html.dark{
   --bg:#08151a; --bg-card:rgba(18,38,44,.75);
@@ -37,57 +38,61 @@ html.dark{
   --text-dim:#9db4bb; --text-faint:#5b7480;
   --success-bg:rgba(22,163,74,.15); --danger-bg:rgba(220,38,38,.15);
   --warn-bg:rgba(245,158,11,.15); --info-bg:rgba(37,99,168,.18);
-  --purple-bg:rgba(139,92,246,.18); --usd-bg:rgba(8,145,178,.18);
   --shadow-sm:0 1px 2px rgba(0,0,0,.3); --shadow-md:0 8px 24px -8px rgba(0,0,0,.5);
   --shadow-lg:0 16px 48px -12px rgba(0,0,0,.6);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%} html{overflow-x:hidden}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;transition:background var(--transition),color var(--transition);overflow-x:hidden;width:100%}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden;width:100%}
 ::-webkit-scrollbar{width:9px;height:9px}
 ::-webkit-scrollbar-thumb{background:rgba(15,76,92,.18);border-radius:99px}
 html.dark ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14)}
 .mono{font-family:'JetBrains Mono',monospace}
 
-/* Layout */
-.app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh;transition:grid-template-columns var(--transition)}
+/* Shell — sidebar CSS classes must match admin-operational-sidebar.js contract. */
+.app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100dvh}
 .app.sb-collapsed{grid-template-columns:var(--sidebar-w-collapsed) 1fr}
-.sidebar{background:linear-gradient(180deg,var(--navy-deep),var(--navy) 70%);color:#eaf6f8;padding:20px 14px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;z-index:40;transition:transform var(--transition),width var(--transition);overflow-y:auto;overflow-x:hidden;width:var(--sidebar-w)}
+.sidebar{background:linear-gradient(180deg,var(--navy-deep),var(--navy) 70%);color:#eaf6f8;padding:20px 14px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100dvh;z-index:40;overflow-y:auto;width:var(--sidebar-w)}
 .app.sb-collapsed .sidebar{width:var(--sidebar-w-collapsed)}
 .app.sb-collapsed .sidebar .brand-text,
 .app.sb-collapsed .sidebar .nav-label,
-.app.sb-collapsed .sidebar .nav-item span:not(.ic),
+.app.sb-collapsed .sidebar .nav-item-text,
 .app.sb-collapsed .sidebar .who,
 .app.sb-collapsed .sidebar .chev{display:none}
 .app.sb-collapsed .nav-item{justify-content:center}
 .brand{display:flex;align-items:center;gap:11px;padding:6px 8px 18px;flex-shrink:0}
-.brand img{width:32px;height:32px;border-radius:8px}
+.brand-logo,.brand img{width:32px;height:32px;border-radius:8px}
+.brand-mark{width:32px;height:32px;border-radius:8px;background:var(--gold);color:var(--navy-deep);display:none;align-items:center;justify-content:center;font-weight:800}
 .brand-text{display:flex;flex-direction:column;line-height:1.15}
 .brand-text strong{font-size:15px;font-weight:800}
 .brand-text span{font-size:10.5px;color:#9fd4de;letter-spacing:.06em;text-transform:uppercase}
-.nav-scroll{flex:1;overflow-y:auto;padding-right:2px}
+.nav-scroll{flex:1;overflow-y:auto}
 .nav-group{margin-bottom:2px}
-.nav-group-head{display:flex;align-items:center;justify-content:space-between;padding:12px 10px 5px;cursor:pointer;user-select:none;border:none;background:none;width:100%;color:inherit;font-family:inherit}
+.nav-group[hidden]{display:none}
+.nav-group-head{display:flex;align-items:center;justify-content:space-between;padding:12px 10px 5px;cursor:pointer;border:none;background:none;width:100%;color:inherit;font-family:inherit}
 .nav-label{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:#6fa2ad;font-weight:700}
 .nav-group-head .chev{font-size:9px;color:#6fa2ad;transition:transform var(--transition)}
 .nav-group.collapsed .chev{transform:rotate(-90deg)}
 .nav-group.collapsed .nav-items{display:none}
 .nav-item{display:flex;align-items:center;gap:10px;padding:8.5px 10px;border-radius:9px;color:#cfe7ea;font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:background var(--transition),color var(--transition);white-space:nowrap;text-decoration:none}
+.nav-item[hidden]{display:none}
 .nav-item .ic{width:17px;text-align:center;font-size:13.5px}
 .nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
 .nav-item.active{background:rgba(245,166,35,.16);color:#ffd899;border-color:rgba(245,166,35,.3);font-weight:600}
+.nav-item:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .sidebar-foot{border-top:1px solid rgba(255,255,255,.08);padding-top:12px;margin-top:8px;display:flex;align-items:center;gap:10px;padding-left:4px}
 .sidebar-foot .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#25748a,#0c3d4a);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px;color:#fff}
 .sidebar-foot .who{display:flex;flex-direction:column;line-height:1.2}
 .sidebar-foot .who strong{font-size:12.5px;color:#fff}
 .sidebar-foot .who span{font-size:10.5px;color:#8fbac2}
 .sb-collapse-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#cfe7ea;width:26px;height:26px;border-radius:8px;cursor:pointer;margin-left:auto;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px}
+.sb-collapse-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
 .main{min-width:0;display:flex;flex-direction:column}
-.topbar{height:var(--topbar-h);position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;padding:0 26px;background:var(--bg-card);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
-.hamburger{display:none;width:36px;height:36px;border-radius:9px;border:1px solid var(--border);background:var(--white);align-items:center;justify-content:center;cursor:pointer;color:var(--navy);font-size:18px}
+.topbar{height:var(--topbar-h);position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;padding:0 26px;background:var(--bg-card);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);padding-top:var(--safe-top)}
+.hamburger{display:none;width:44px;height:44px;border-radius:9px;border:1px solid var(--border);background:var(--white);align-items:center;justify-content:center;cursor:pointer;color:var(--navy);font-size:18px}
 html.dark .hamburger{background:rgba(255,255,255,.05)}
-.sb-toggle-desktop{width:34px;height:34px;border-radius:9px;border:1px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--navy);font-size:13px}
-html.dark .sb-toggle-desktop{background:rgba(255,255,255,.05);color:#dff0f2}
+.hamburger:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .topbar-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
 .topbar-right{display:flex;align-items:center;gap:10px;margin-left:auto}
 .page-title{display:flex;flex-direction:column;line-height:1.2;min-width:0}
@@ -95,444 +100,412 @@ html.dark .sb-toggle-desktop{background:rgba(255,255,255,.05);color:#dff0f2}
 .breadcrumb{font-size:11px;color:var(--text-faint);display:flex;align-items:center;gap:6px;margin-bottom:2px}
 .breadcrumb a{color:var(--text-faint);text-decoration:none}
 .crumb{font-size:12px;color:var(--text-dim)}
-.crumb .live-dot{width:6px;height:6px;border-radius:50%;background:var(--success);display:inline-block;margin-right:5px;animation:pulse-dot 1.8s infinite}
-.crumb .live-dot.off{background:var(--danger);animation:none}
-@keyframes pulse-dot{0%{box-shadow:0 0 0 0 rgba(22,163,74,.45)}70%{box-shadow:0 0 0 7px rgba(22,163,74,0)}100%{box-shadow:0 0 0 0 rgba(22,163,74,0)}}
-.icon-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--navy);font-size:15px}
+.crumb .live-dot{width:6px;height:6px;border-radius:50%;background:var(--success);display:inline-block;margin-right:5px}
+.crumb .live-dot.off{background:var(--danger)}
+.icon-btn{width:44px;height:44px;border-radius:10px;border:1px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--navy);font-size:15px}
 html.dark .icon-btn{background:rgba(255,255,255,.04);color:#dff0f2}
+.icon-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .admin-chip{display:flex;align-items:center;gap:9px;padding:5px 10px 5px 5px;border-radius:99px;border:1px solid var(--border);background:var(--white);cursor:pointer}
 html.dark .admin-chip{background:rgba(255,255,255,.04)}
 .admin-chip .av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#d97e06);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--navy-deep)}
 .admin-chip .info{display:flex;flex-direction:column;line-height:1.15}
 .admin-chip .info strong{font-size:12.3px}
 .admin-chip .info span{font-size:10.5px;color:var(--text-dim)}
-.content{padding:clamp(14px,2vw,22px) clamp(14px,2.6vw,26px) 60px;min-width:0}
-@media(min-width:1920px){.content{max-width:1800px;margin:0 auto}}
+.content{padding:clamp(14px,2vw,22px) clamp(14px,2.6vw,26px) calc(60px + var(--safe-bottom));min-width:0}
 
-/* Page header */
 .page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
 .page-header h2{font-size:clamp(18px,2.6vw,23px);font-weight:800}
 .page-header .sub{font-size:13px;color:var(--text-dim);margin-top:3px;max-width:640px}
-.page-header .header-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.header-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 
-/* Buttons */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--border);background:var(--white);border-radius:10px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;color:var(--navy);transition:background var(--transition);font-family:inherit;min-height:38px;text-decoration:none;white-space:nowrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--border);background:var(--white);border-radius:10px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;color:var(--navy);transition:background var(--transition);font-family:inherit;min-height:44px;text-decoration:none;white-space:nowrap}
 html.dark .btn{background:rgba(255,255,255,.04);color:#dff0f2}
 .btn:hover:not(:disabled){background:var(--gold-soft);color:var(--navy-deep)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
+.btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .btn-primary{background:var(--navy);color:#fff;border-color:var(--navy)}
 .btn-primary:hover:not(:disabled){background:var(--navy-light);color:#fff}
-.btn-sm{padding:6px 10px;font-size:11.5px;min-height:32px}
+.btn-sm{padding:6px 10px;font-size:11.5px;min-height:36px}
 
 /* Filters */
 .filters{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:16px;box-shadow:var(--shadow-sm);backdrop-filter:blur(10px)}
 .filter-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .filter-row + .filter-row{margin-top:10px}
-.filter-row input,.filter-row select{border:1px solid var(--border);background:var(--white);border-radius:9px;padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;min-height:38px}
+.filter-row input,.filter-row select{border:1px solid var(--border);background:var(--white);border-radius:9px;padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;min-height:44px}
 html.dark .filter-row input,html.dark .filter-row select{background:rgba(255,255,255,.04);color:var(--text)}
-.range-select{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:3px;flex-wrap:wrap}
-.range-btn{border:none;background:none;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;color:var(--text-dim);cursor:pointer;font-family:inherit}
-.range-btn.active{background:var(--navy);color:#fff}
-.range-btn:hover:not(.active){background:var(--bg-card)}
+.range-chips{display:flex;gap:6px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;padding-bottom:4px}
+.range-chips::-webkit-scrollbar{display:none}
+.range-btn{border:1px solid var(--border);background:var(--white);border-radius:99px;padding:8px 14px;font-size:12px;font-weight:600;color:var(--text-dim);cursor:pointer;font-family:inherit;min-height:40px;white-space:nowrap;flex-shrink:0}
+html.dark .range-btn{background:rgba(255,255,255,.04);color:var(--text-dim)}
+.range-btn[aria-pressed="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
+.range-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .custom-range{display:none;align-items:center;gap:6px;font-size:12px;flex-wrap:wrap}
 .custom-range.show{display:flex}
 .range-label{font-size:11.5px;color:var(--text-faint);margin-left:auto}
 .range-label strong{color:var(--text-dim);font-weight:600}
 
-/* KPI grid */
+/* KPI */
 .kpi-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:16px}
-@media(max-width:1500px){.kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
-@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:380px){.kpi-grid{grid-template-columns:1fr}}
+@media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:640px){.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .kpi{padding:14px 16px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border);box-shadow:var(--shadow-sm);backdrop-filter:blur(10px);min-width:0}
 .kpi .lbl{font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kpi .val{font-size:17px;font-weight:800;margin-top:5px;font-variant-numeric:tabular-nums;word-break:break-word}
-.kpi .sub{font-size:11px;color:var(--text-faint);margin-top:4px;display:flex;align-items:center;gap:6px}
+.kpi .val{font-size:17px;font-weight:800;margin-top:5px;font-variant-numeric:tabular-nums;word-break:break-word;cursor:help}
+.kpi .sub{font-size:11px;color:var(--text-faint);margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .kpi .delta{font-weight:700}
 .kpi .delta.up{color:var(--success)}
 .kpi .delta.down{color:var(--danger)}
 .kpi .delta.neutral{color:var(--text-faint)}
+.kpi .ccy-badge{font-size:9.5px;background:var(--info-bg);color:var(--info);padding:2px 6px;border-radius:99px;font-weight:700;letter-spacing:.05em}
+.kpi.approx{border-style:dashed}
 
-/* Section */
 .section-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin:24px 2px 10px}
-.section-title .hint{font-size:11px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-faint)}
-
-/* Cards */
 .card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow-sm);backdrop-filter:blur(10px);min-width:0}
 .card + .card{margin-top:16px}
 .card h3{margin:0 0 12px;font-size:14px;font-weight:800}
-.card .hint{font-size:11.5px;color:var(--text-faint);margin-bottom:12px;line-height:1.5}
+.card .note{font-size:11px;color:var(--text-faint);margin-top:8px;font-style:italic}
+.chart-wrap{position:relative;width:100%;height:300px}
+@media(max-width:640px){.chart-wrap{height:220px}}
 
-/* Chart */
-.chart-wrap{position:relative;width:100%;height:320px}
+.insights{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 16px}
+.insight-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;background:var(--info-bg);color:var(--info);font-size:11.5px;font-weight:600}
+.insight-chip strong{font-weight:800}
 
-/* Grid layouts */
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:900px){.grid-2{grid-template-columns:1fr}}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;padding-bottom:2px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:10px 14px;font-size:12.5px;font-weight:600;color:var(--text-dim);cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;font-family:inherit;white-space:nowrap;min-height:44px}
+.tab[aria-selected="true"]{color:var(--navy);border-bottom-color:var(--gold)}
+html.dark .tab[aria-selected="true"]{color:#dff0f2}
+.tab:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.tab-panel{display:none}
+.tab-panel[aria-hidden="false"]{display:block}
 
-/* Table */
-.table-scroll{overflow-x:auto;overflow-y:auto;max-height:520px;-webkit-overflow-scrolling:touch;border-radius:var(--radius)}
+.table-scroll{overflow-x:auto;overflow-y:auto;max-height:560px;border-radius:var(--radius-md);-webkit-overflow-scrolling:touch}
 .table-hint{display:none;font-size:11px;color:var(--text-faint);padding:6px 0 0;text-align:center}
-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:640px}
+table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:720px}
 thead th{text-align:left;padding:11px 14px;color:var(--text-dim);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1;white-space:nowrap}
 tbody td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
-tbody td.wrap{white-space:normal;max-width:260px}
 tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(245,166,35,.04)}
+td.wrap{white-space:normal;max-width:240px}
 .cell-mono{font-family:'JetBrains Mono',monospace;font-size:11.5px}
-
-/* Badges */
 .badge{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:99px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;text-transform:capitalize}
 .badge.success{background:var(--success-bg);color:var(--success)}
 .badge.danger{background:var(--danger-bg);color:var(--danger)}
-.badge.warn{background:var(--warn-bg);color:#b3720a}
 .badge.info{background:var(--info-bg);color:var(--info)}
-.badge.purple{background:var(--purple-bg);color:var(--purple)}
 .badge.neutral{background:var(--bg);color:var(--text-dim);border:1px solid var(--border)}
 
-/* States */
-.empty-state{text-align:center;padding:42px 20px;color:var(--text-faint);font-size:13px}
+.empty-state{text-align:center;padding:32px 20px;color:var(--text-faint);font-size:13px}
 .empty-state .ic{font-size:28px;margin-bottom:8px;display:block}
-.unavailable-box{text-align:center;padding:24px 14px;color:var(--text-faint)}
-.unavailable-box button{margin-top:10px;border:1px solid var(--border);background:var(--white);color:var(--navy);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer}
-html.dark .unavailable-box button{background:rgba(255,255,255,.04);color:#dff0f2}
+.empty-state .retry{margin-top:12px}
 .skel{background:linear-gradient(90deg,var(--bg) 25%,var(--border) 50%,var(--bg) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;height:12px;display:block}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.pagination{display:flex;justify-content:space-between;align-items:center;padding:14px 4px 0;font-size:12.5px;color:var(--text-dim);flex-wrap:wrap;gap:10px}
+.pagination button{border:1px solid var(--border);background:var(--white);color:var(--navy);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;min-height:40px}
+html.dark .pagination button{background:rgba(255,255,255,.04);color:#dff0f2}
+.pagination button:disabled{opacity:.45;cursor:not-allowed}
 
-/* Split panel (funding vs revenue) */
-.split-panel{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:900px){.split-panel{grid-template-columns:1fr}}
-.split-card{padding:18px;border-radius:var(--radius-lg);border:1px solid var(--border);background:var(--bg-card)}
-.split-card.revenue{border-color:rgba(22,163,74,.3);background:var(--success-bg)}
-.split-card.funding{border-color:rgba(37,99,168,.3);background:var(--info-bg)}
-.split-card .title{font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
-.split-card.revenue .title{color:var(--success)}
-.split-card.funding .title{color:var(--info)}
-.split-card .amount{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;margin-bottom:6px}
-.split-card .note{font-size:11.5px;line-height:1.55}
+.banner{background:var(--warn-bg);border:1px solid rgba(245,158,11,.4);color:#7a4d04;padding:12px 16px;border-radius:12px;font-size:12.5px;margin-bottom:14px;display:none;align-items:flex-start;gap:8px}
+html.dark .banner{color:#fde3ad}
+.banner.show{display:flex}
+.banner code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:11px}
 
-/* Toasts */
-.toast-stack{position:fixed;bottom:22px;right:14px;left:14px;display:flex;flex-direction:column;gap:10px;z-index:500;pointer-events:none;align-items:flex-end}
+.toast-stack{position:fixed;bottom:calc(22px + var(--safe-bottom));right:14px;left:14px;display:flex;flex-direction:column;gap:10px;z-index:500;pointer-events:none;align-items:flex-end}
 @media(min-width:640px){.toast-stack{left:auto;max-width:380px}}
-.toast{background:var(--navy-deep);color:#fff;padding:12px 16px;border-radius:11px;font-size:12.8px;font-weight:600;box-shadow:var(--shadow-lg);border-left:3px solid var(--gold);pointer-events:auto;max-width:100%;animation:tin .22s ease both}
+.toast{background:var(--navy-deep);color:#fff;padding:12px 16px;border-radius:11px;font-size:12.8px;font-weight:600;box-shadow:var(--shadow-lg);border-left:3px solid var(--gold);pointer-events:auto;max-width:100%}
 .toast.success{border-left-color:var(--success)}
 .toast.error{border-left-color:var(--danger)}
-@keyframes tin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:39;display:none}
 .scrim.show{display:block}
-.mnav{display:none;position:fixed;bottom:10px;left:50%;transform:translateX(-50%);width:calc(100% - 20px);max-width:420px;height:54px;background:rgba(255,255,255,.92);backdrop-filter:blur(22px);border:1px solid rgba(255,255,255,.8);border-radius:17px;box-shadow:0 6px 22px rgba(12,61,74,.12);z-index:450;align-items:center;justify-content:space-around;padding:0 4px}
-html.dark .mnav{background:rgba(18,38,44,.92);border-color:rgba(255,255,255,.1)}
-.mni{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:9px;font-weight:600;color:var(--text-faint);text-decoration:none;flex:1;padding:4px 0}
-.mni i{font-size:16px;padding:2px 4px;border-radius:8px}
-.mni.active{color:var(--navy)}
-html.dark .mni.active{color:#dff0f2}
+body[data-drawer="open"]{overflow:hidden}
 
+/* Responsive: mobile */
 @media(max-width:900px){
   .app{grid-template-columns:1fr!important}
-  .sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);width:290px!important;box-shadow:var(--shadow-lg);z-index:50;height:100vh}
+  .sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);width:290px!important;box-shadow:var(--shadow-lg);z-index:50;height:100dvh;transition:transform var(--transition)}
   .sidebar.open{transform:translateX(0)}
   .hamburger{display:flex}
-  .sb-toggle-desktop{display:none}
 }
-@media(max-width:768px){
+@media(max-width:640px){
   :root{--topbar-h:60px}
   .topbar{padding:0 14px;height:60px;gap:8px}
   .admin-chip .info{display:none}
-  .content{padding:14px 12px 80px}
-  .mnav{display:flex!important}
+  .content{padding:14px 12px calc(80px + var(--safe-bottom))}
   .page-header{flex-direction:column;align-items:stretch}
   .filter-row{flex-direction:column;align-items:stretch}
   .filter-row input,.filter-row select,.filter-row .btn{width:100%}
   .range-label{margin-left:0}
-  .chart-wrap{height:240px}
   .table-hint{display:block}
+  /* Stacked card table layout */
+  table.responsive{min-width:0}
+  table.responsive thead{display:none}
+  table.responsive tbody tr{display:block;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;padding:10px;background:var(--bg-card)}
+  table.responsive tbody td{display:flex;justify-content:space-between;padding:6px 0;border:none;white-space:normal;text-align:right}
+  table.responsive tbody td::before{content:attr(data-label);font-weight:700;color:var(--text-dim);text-align:left;margin-right:12px;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
 }
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
+}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 </style>
 </head>
 <body>
 <div class="app" id="appRoot">
 
-<!-- ═══ Sidebar ═══ -->
-<aside class="sidebar" id="sidebar">
-    <div class="brand">
-        <img src="../images/miles.png" alt="" onerror="this.style.display='none'">
-        <div class="brand-text"><strong>MilesSpace</strong><span>Admin</span></div>
-        <button class="sb-collapse-btn" id="sbCollapseBtn"><i class="fas fa-angles-left"></i></button>
-    </div>
-    <nav class="nav-scroll">
-        <div class="nav-group"><div class="nav-group-head"><span class="nav-label">Overview</span></div>
-            <div class="nav-items"><a href="/admin/dashboard.html" class="nav-item"><span class="ic">📊</span><span>Dashboard</span></a></div></div>
-        <div class="nav-group"><button class="nav-group-head" onclick="toggleNavGroup(this)" aria-expanded="true"><span class="nav-label">Customers</span><span class="chev">▾</span></button>
-            <div class="nav-items">
-                <a href="/admin/users.html" class="nav-item"><span class="ic">👥</span><span>Users</span></a>
-                <a href="/admin/support.html" class="nav-item"><span class="ic">💬</span><span>Support</span></a>
-            </div></div>
-        <div class="nav-group"><button class="nav-group-head" onclick="toggleNavGroup(this)" aria-expanded="true"><span class="nav-label">Money</span><span class="chev">▾</span></button>
-            <div class="nav-items">
-                <a href="/admin/orders.html" class="nav-item"><span class="ic">🧮</span><span>Orders</span></a>
-                <a href="/admin/transactions.html" class="nav-item"><span class="ic">💳</span><span>Transactions</span></a>
-                <a href="/admin/deposits.html" class="nav-item"><span class="ic">📥</span><span>Deposits</span></a>
-                <a href="/admin/ledger.html" class="nav-item"><span class="ic">📒</span><span>Ledger</span></a>
-                <a href="/admin/reconciliation.html" class="nav-item"><span class="ic">🔄</span><span>Reconciliation</span></a>
-            </div></div>
-        <div class="nav-group"><button class="nav-group-head" onclick="toggleNavGroup(this)" aria-expanded="true"><span class="nav-label">Services</span><span class="chev">▾</span></button>
-            <div class="nav-items">
-                <a href="/admin/sellgift.html" class="nav-item"><span class="ic">🎁</span><span>Gift Cards</span></a>
-                <a href="/admin/airtime-data.html" class="nav-item"><span class="ic">📶</span><span>Airtime &amp; Data</span></a>
-                <a href="/admin/bills.html" class="nav-item"><span class="ic">🧾</span><span>Bills</span></a>
-                <a href="/admin/esim.html" class="nav-item"><span class="ic">📡</span><span>eSIM</span></a>
-                <a href="/admin/virtual-sms.html" class="nav-item"><span class="ic">📱</span><span>Virtual SMS</span></a>
-                <a href="/admin/boost.html" class="nav-item"><span class="ic">📈</span><span>Boost</span></a>
-                <a href="/admin/marketplace-products.html" class="nav-item"><span class="ic">📦</span><span>Marketplace</span></a>
-            </div></div>
-        <div class="nav-group"><button class="nav-group-head" onclick="toggleNavGroup(this)" aria-expanded="true"><span class="nav-label">Operations</span><span class="chev">▾</span></button>
-            <div class="nav-items">
-                <a href="/admin/orders?status=failed" class="nav-item"><span class="ic">⚠️</span><span>Failed Orders</span></a>
-                <a href="/admin/providers.html" class="nav-item"><span class="ic">🔌</span><span>Providers</span></a>
-                <a href="/admin/webhooks.html" class="nav-item"><span class="ic">🪝</span><span>Webhooks</span></a>
-            </div></div>
-        <div class="nav-group"><button class="nav-group-head" onclick="toggleNavGroup(this)" aria-expanded="true"><span class="nav-label">Analytics</span><span class="chev">▾</span></button>
-            <div class="nav-items">
-                <a href="/admin/revenue.html" class="nav-item active"><span class="ic">💹</span><span>Revenue</span></a>
-                <a href="/admin/reports.html" class="nav-item"><span class="ic">📄</span><span>Reports</span></a>
-            </div></div>
-        <div class="nav-group collapsed"><button class="nav-group-head" onclick="toggleNavGroup(this)" aria-expanded="false"><span class="nav-label">System</span><span class="chev">▾</span></button>
-            <div class="nav-items">
-                <a href="/admin/notifications.html" class="nav-item"><span class="ic">🔔</span><span>Notifications</span></a>
-                <a href="/admin/settings.html" class="nav-item"><span class="ic">⚙️</span><span>Settings</span></a>
-            </div></div>
-    </nav>
-    <div class="sidebar-foot">
-        <div class="av" id="adminAvatar">DA</div>
-        <div class="who"><strong id="adminName">Admin</strong><span id="adminRole">Admin</span></div>
-    </div>
-</aside>
-<div class="scrim" id="scrim"></div>
+  <!-- Shared sidebar (admin-operational-sidebar.js owns everything inside). -->
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="scrim" id="scrim"></div>
 
-<div class="main">
+  <div class="main">
     <header class="topbar">
-        <button class="hamburger" id="hamburger">☰</button>
-        <button class="sb-toggle-desktop" id="sbToggleDesktop"><i class="fas fa-bars"></i></button>
-        <div class="topbar-left">
-            <div class="page-title">
-                <nav class="breadcrumb"><a href="/admin/dashboard">Home</a><span>/</span><span>Analytics</span><span>/</span><span>Revenue</span></nav>
-                <h1>Revenue</h1>
-                <div class="crumb"><span class="live-dot" id="liveDot"></span><span id="liveDotLabel">Checking…</span> · <span id="lastUpdated">never</span></div>
-            </div>
+      <button class="hamburger" id="hamburger" aria-label="Open navigation">☰</button>
+      <div class="topbar-left">
+        <div class="page-title">
+          <nav class="breadcrumb" aria-label="Breadcrumb"><a href="/admin/dashboard">Home</a><span>/</span><span>Analytics</span><span>/</span><span>Revenue</span></nav>
+          <h1>Revenue</h1>
+          <div class="crumb" aria-live="polite"><span class="live-dot" id="liveDot"></span><span id="liveDotLabel">Loading…</span> · <span id="lastUpdated">—</span></div>
         </div>
-        <div class="topbar-right">
-            <button class="icon-btn" title="Notifications" onclick="window.location.href='/admin/notifications'">🔔</button>
-            <button class="icon-btn" id="darkToggle" title="Toggle dark mode">🌙</button>
-            <div class="admin-chip" id="adminChip">
-                <div class="av" id="chipAvatar">DA</div>
-                <div class="info"><strong id="chipName">Admin</strong><span id="chipRole">Admin</span></div>
-                <span aria-hidden="true" style="font-size:10px;color:var(--text-faint);">▾</span>
-            </div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" id="autoRefreshBtn" title="Auto-refresh (60s)" aria-pressed="false">⏱</button>
+        <button class="icon-btn" id="refreshBtn" title="Refresh">⟳</button>
+        <button class="icon-btn" id="darkToggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
+        <div class="admin-chip" id="adminChip" tabindex="0" role="button" aria-label="Account">
+          <div class="av" id="chipAvatar">A</div>
+          <div class="info"><strong id="chipName">Admin</strong><span id="chipRole">Admin</span></div>
         </div>
+      </div>
     </header>
 
     <div class="content">
-        <div class="page-header">
-            <div>
-                <h2>Revenue</h2>
-                <div class="sub">Service revenue, provider cost, profit and refunds — separated from wallet funding and user funds held.</div>
-            </div>
-            <div class="header-actions">
-                <button class="btn" id="refreshBtn"><i class="fas fa-rotate-right"></i> Refresh</button>
-                <button class="btn" id="exportBtn"><i class="fas fa-download"></i> Export CSV</button>
-            </div>
+      <div class="page-header">
+        <div>
+          <h2>Revenue</h2>
+          <div class="sub">Service revenue, provider cost, profit, and refunds. Wallet funding and held funds are shown separately and are never counted as revenue.</div>
         </div>
-
-        <!-- Filters -->
-        <div class="filters">
-            <div class="filter-row">
-                <div class="range-select" id="rangeSelect" role="group" aria-label="Date range">
-                    <button class="range-btn active" data-range="today">Today</button>
-                    <button class="range-btn" data-range="yesterday">Yesterday</button>
-                    <button class="range-btn" data-range="7d">7D</button>
-                    <button class="range-btn" data-range="30d">30D</button>
-                    <button class="range-btn" data-range="month">This Month</button>
-                    <button class="range-btn" data-range="lastmonth">Last Month</button>
-                    <button class="range-btn" data-range="year">This Year</button>
-                    <button class="range-btn" data-range="custom">Custom</button>
-                </div>
-                <select id="fCurrency" aria-label="Currency">
-                    <option value="all">All currencies</option>
-                    <option value="NGN">NGN</option>
-                    <option value="USD">USD</option>
-                </select>
-                <div class="custom-range" id="customRange">
-                    <input type="date" id="customFrom" aria-label="From">
-                    <span>to</span>
-                    <input type="date" id="customTo" aria-label="To">
-                    <button class="btn btn-sm" id="customApply">Apply</button>
-                </div>
-                <div class="range-label">Showing: <strong id="rangeLabelText">Today</strong> · <span id="rangeLabelDetail">—</span></div>
-            </div>
+        <div class="header-actions" id="headerActions">
+          <button class="btn" id="exportMainBtn" hidden>⤓ Export summary CSV</button>
         </div>
+      </div>
 
-        <!-- KPI grid -->
-        <div class="kpi-grid" id="kpiGrid">
-            <div class="kpi"><div class="lbl">Gross Revenue</div><div class="val" id="kpi-gross"><span class="skel" style="width:70%;height:20px"></span></div><div class="sub" id="kpi-gross-sub">—</div></div>
-            <div class="kpi"><div class="lbl">Net Revenue</div><div class="val" id="kpi-net"><span class="skel" style="width:70%;height:20px"></span></div><div class="sub" id="kpi-net-sub">After refunds</div></div>
-            <div class="kpi"><div class="lbl">Gross Profit</div><div class="val" id="kpi-profit"><span class="skel" style="width:70%;height:20px"></span></div><div class="sub" id="kpi-profit-sub">Revenue − provider cost</div></div>
-            <div class="kpi"><div class="lbl">Provider Cost</div><div class="val" id="kpi-cost"><span class="skel" style="width:70%;height:20px"></span></div><div class="sub">Paid to providers</div></div>
-            <div class="kpi"><div class="lbl">Refunds</div><div class="val" id="kpi-refunds"><span class="skel" style="width:70%;height:20px"></span></div><div class="sub">Returned to customers</div></div>
-            <div class="kpi"><div class="lbl">Orders</div><div class="val" id="kpi-orders"><span class="skel" style="width:70%;height:20px"></span></div><div class="sub" id="kpi-orders-sub">—</div></div>
+      <!-- Persistent RPC-not-deployed banner -->
+      <div class="banner" id="rpcBanner" role="alert">
+        <span>⚠️</span>
+        <div>Revenue analytics is not available yet. Run <code>migrations/2025_revenue_analytics.sql</code> in Supabase, then reload this page. <strong>No numbers below are live.</strong></div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters">
+        <div class="filter-row">
+          <div class="range-chips" id="rangeChips" role="tablist" aria-label="Date range">
+            <button class="range-btn" data-preset="today" aria-pressed="true">Today</button>
+            <button class="range-btn" data-preset="yesterday" aria-pressed="false">Yesterday</button>
+            <button class="range-btn" data-preset="7d" aria-pressed="false">7D</button>
+            <button class="range-btn" data-preset="30d" aria-pressed="false">30D</button>
+            <button class="range-btn" data-preset="month" aria-pressed="false">This month</button>
+            <button class="range-btn" data-preset="lastmonth" aria-pressed="false">Last month</button>
+            <button class="range-btn" data-preset="custom" aria-pressed="false">Custom</button>
+          </div>
         </div>
-
-        <!-- Revenue vs Funding split -->
-        <div class="split-panel" id="splitPanel">
-            <div class="split-card revenue">
-                <div class="title">Service Revenue</div>
-                <div class="amount" id="split-revenue">—</div>
-                <div class="note">What customers were charged for services. This is the real revenue figure.</div>
-            </div>
-            <div class="split-card funding">
-                <div class="title">Wallet Funding</div>
-                <div class="amount" id="split-funding">—</div>
-                <div class="note">Deposits into user wallets. This is <strong>not revenue</strong> — it's money held on behalf of customers.</div>
-            </div>
+        <div class="filter-row">
+          <select id="currencySelect" aria-label="Currency">
+            <option value="all">All currencies</option>
+            <option value="NGN">NGN</option>
+            <option value="USD">USD</option>
+          </select>
+          <div class="custom-range" id="customRange">
+            <label for="customFrom" class="sr-only" style="display:none">From</label>
+            <input type="date" id="customFrom" aria-label="From date">
+            <span>to</span>
+            <input type="date" id="customTo" aria-label="To date">
+            <button class="btn btn-sm" id="customApply">Apply</button>
+          </div>
+          <div class="range-label">Showing: <strong id="rangeLabelText">Today</strong> · <span id="rangeLabelDetail">—</span></div>
         </div>
+      </div>
 
-        <!-- Revenue trend -->
-        <div class="section-title">Revenue Trend</div>
+      <!-- KPI grid (rendered per currency) -->
+      <div class="kpi-grid" id="kpiGrid" aria-live="polite"></div>
+
+      <!-- Insights -->
+      <div class="insights" id="insights"></div>
+
+      <!-- Tabs -->
+      <div class="tabs" role="tablist" aria-label="Revenue sections">
+        <button class="tab" data-tab="overview" role="tab" aria-selected="true" aria-controls="panel-overview">Overview</button>
+        <button class="tab" data-tab="products" role="tab" aria-selected="false" aria-controls="panel-products">Products</button>
+        <button class="tab" data-tab="providers" role="tab" aria-selected="false" aria-controls="panel-providers">Providers</button>
+        <button class="tab" data-tab="customers" role="tab" aria-selected="false" aria-controls="panel-customers">Customers</button>
+        <button class="tab" data-tab="refunds" role="tab" aria-selected="false" aria-controls="panel-refunds">Refunds</button>
+        <button class="tab" data-tab="daily" role="tab" aria-selected="false" aria-controls="panel-daily">Daily</button>
+      </div>
+
+      <!-- OVERVIEW -->
+      <div class="tab-panel" id="panel-overview" role="tabpanel" aria-hidden="false">
         <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
             <h3>Revenue · Profit · Refunds</h3>
-            <div class="chart-wrap"><canvas id="chartTrend"></canvas></div>
-        </div>
-
-        <!-- Product / Provider side by side -->
-        <div class="section-title">Breakdown</div>
-        <div class="grid-2">
-            <div class="card">
-                <h3>Revenue by Product</h3>
-                <div class="table-scroll">
-                    <table>
-                        <thead><tr><th>Product</th><th>Orders</th><th>Revenue</th><th>Provider Cost</th><th>Profit</th><th>Margin</th></tr></thead>
-                        <tbody id="productsBody"></tbody>
-                    </table>
-                </div>
-                <div class="table-hint">↔ Swipe to see more columns</div>
+            <div style="display:flex;gap:6px" id="chartCcyToggle">
+              <button class="range-btn" data-ccy="NGN" aria-pressed="true">NGN</button>
+              <button class="range-btn" data-ccy="USD" aria-pressed="false">USD</button>
             </div>
-            <div class="card">
-                <h3>Revenue by Provider</h3>
-                <div class="table-scroll">
-                    <table>
-                        <thead><tr><th>Provider</th><th>Orders</th><th>Revenue</th><th>Cost</th><th>Profit</th><th>Failed</th></tr></thead>
-                        <tbody id="providersBody"></tbody>
-                    </table>
-                </div>
-                <div class="table-hint">↔ Swipe to see more columns</div>
-            </div>
+          </div>
+          <div class="chart-wrap"><canvas id="chartOverview" aria-label="Revenue chart"></canvas></div>
+          <div class="note">Refunds are attributed by refund completion date, not order date.</div>
         </div>
-
-        <!-- Refunds -->
-        <div class="section-title">Refunds</div>
         <div class="card">
-            <h3>Refunded Orders</h3>
-            <div class="table-scroll">
-                <table>
-                    <thead><tr><th>Order</th><th>Customer</th><th>Product</th><th>Provider</th><th>Amount</th><th>Reason</th><th>Refunded</th></tr></thead>
-                    <tbody id="refundsBody"></tbody>
-                </table>
-            </div>
-            <div class="table-hint">↔ Swipe to see more columns</div>
+          <h3>Revenue vs Wallet Funding <span class="badge info">funding ≠ revenue</span></h3>
+          <div id="fundingBlock"></div>
         </div>
-
-        <!-- Top customers -->
-        <div class="section-title">Top Customers</div>
         <div class="card">
-            <h3>Highest net spend in the selected period</h3>
-            <div class="table-scroll">
-                <table>
-                    <thead><tr><th>Customer</th><th>Orders</th><th>Spent</th><th>Refunded</th><th>Net Spend</th><th>Last Order</th></tr></thead>
-                    <tbody id="customersBody"></tbody>
-                </table>
-            </div>
-            <div class="table-hint">↔ Swipe to see more columns</div>
+          <h3>User funds held (liability)</h3>
+          <div id="heldBlock"></div>
         </div>
-
-        <!-- Daily table -->
-        <div class="section-title">Daily Breakdown</div>
         <div class="card">
-            <h3>Daily Revenue</h3>
-            <div class="table-scroll">
-                <table>
-                    <thead><tr><th>Date</th><th>Orders</th><th>Revenue (NGN)</th><th>Provider Cost</th><th>Refunds</th><th>Profit</th></tr></thead>
-                    <tbody id="dailyBody"></tbody>
-                </table>
-            </div>
-            <div class="table-hint">↔ Swipe to see more columns</div>
+          <h3>Revenue by product</h3>
+          <div class="chart-wrap" style="height:260px"><canvas id="chartProducts" aria-label="Revenue by product"></canvas></div>
         </div>
+        <div class="card">
+          <h3>Profit by provider</h3>
+          <div class="chart-wrap" style="height:260px"><canvas id="chartProviders" aria-label="Profit by provider"></canvas></div>
+        </div>
+      </div>
 
-        <!-- Footer -->
-        <div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center;padding:14px 4px;margin-top:24px;border-top:1px solid var(--border);font-size:11.5px;color:var(--text-faint)">
-            <div>FX: <strong id="fxRate">—</strong> USD → NGN · <strong id="footerRange">—</strong></div>
-            <div>User funds held: <strong id="heldFunds">—</strong></div>
+      <!-- PRODUCTS -->
+      <div class="tab-panel" id="panel-products" role="tabpanel" aria-hidden="true">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <h3>Products</h3>
+            <button class="btn btn-sm export-btn" data-kind="products" hidden>⤓ CSV</button>
+          </div>
+          <div class="table-scroll"><table class="responsive" id="productsTable"><thead><tr><th>Product</th><th>Ccy</th><th>Orders</th><th>Revenue</th><th>Provider cost</th><th>Refunds</th><th>Profit</th><th>Margin</th><th>Share</th></tr></thead><tbody id="productsBody"></tbody></table></div>
+          <div class="table-hint">↔ Swipe to see more columns</div>
         </div>
+      </div>
+
+      <!-- PROVIDERS -->
+      <div class="tab-panel" id="panel-providers" role="tabpanel" aria-hidden="true">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <h3>Providers</h3>
+            <button class="btn btn-sm export-btn" data-kind="providers" hidden>⤓ CSV</button>
+          </div>
+          <div class="table-scroll"><table class="responsive" id="providersTable"><thead><tr><th>Provider</th><th>Ccy</th><th>Orders</th><th>Revenue</th><th>Provider cost</th><th>Refunds</th><th>Profit</th><th>Failed</th><th>Share</th></tr></thead><tbody id="providersBody"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- CUSTOMERS -->
+      <div class="tab-panel" id="panel-customers" role="tabpanel" aria-hidden="true">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <h3>Top customers</h3>
+            <button class="btn btn-sm export-btn" data-kind="customers" hidden>⤓ CSV</button>
+          </div>
+          <div class="table-scroll"><table class="responsive" id="customersTable"><thead><tr><th>Customer</th><th>Ccy</th><th>Orders</th><th>Spent</th><th>Refunded</th><th>Net spend</th><th>Last order</th></tr></thead><tbody id="customersBody"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- REFUNDS -->
+      <div class="tab-panel" id="panel-refunds" role="tabpanel" aria-hidden="true">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <h3>Refunds</h3>
+            <button class="btn btn-sm export-btn" data-kind="refunds" hidden>⤓ CSV</button>
+          </div>
+          <div class="table-scroll"><table class="responsive" id="refundsTable"><thead><tr><th>Order</th><th>Customer</th><th>Ccy</th><th>Amount</th><th>Product</th><th>Provider</th><th>Reason</th><th>Refunded at</th></tr></thead><tbody id="refundsBody"></tbody></table></div>
+          <div class="pagination" id="refundsPager"></div>
+        </div>
+      </div>
+
+      <!-- DAILY -->
+      <div class="tab-panel" id="panel-daily" role="tabpanel" aria-hidden="true">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <h3>Daily breakdown</h3>
+            <button class="btn btn-sm export-btn" data-kind="daily" hidden>⤓ CSV</button>
+          </div>
+          <div class="table-scroll"><table class="responsive" id="dailyTable"><thead><tr><th>Day</th><th>Ccy</th><th>Revenue</th><th>Provider cost</th><th>Refunds</th><th>Profit</th></tr></thead><tbody id="dailyBody"></tbody></table></div>
+        </div>
+      </div>
     </div>
-</div>
+  </div>
 </div>
 
 <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
-<nav class="mnav">
-    <a href="/admin/dashboard" class="mni"><i class="fas fa-home"></i><span>Home</span></a>
-    <a href="/admin/orders" class="mni"><i class="fas fa-receipt"></i><span>Orders</span></a>
-    <a href="/admin/revenue" class="mni active"><i class="fas fa-chart-line"></i><span>Revenue</span></a>
-    <a href="/admin/providers" class="mni"><i class="fas fa-plug"></i><span>Providers</span></a>
-    <a href="/admin/settings" class="mni"><i class="fas fa-cog"></i><span>Settings</span></a>
-</nav>
-
 <script>
 'use strict';
 
+// ─── API base + state ───────────────────────────────────────────
 const API = {
+    meta:       '/api/admin/revenue/meta',
     summary:    '/api/admin/revenue/summary',
     timeseries: '/api/admin/revenue/timeseries',
     products:   '/api/admin/revenue/products',
     providers:  '/api/admin/revenue/providers',
-    refunds:    '/api/admin/revenue/refunds',
     customers:  '/api/admin/revenue/customers',
+    refunds:    '/api/admin/revenue/refunds',
     funding:    '/api/admin/revenue/funding',
     daily:      '/api/admin/revenue/daily',
-    exportCsv:  '/api/admin/revenue/export',
-    me:         '/api/admin/me'
+    export:     '/api/admin/revenue/export'
 };
 
-const CURRENCY_SYMBOLS = { NGN: '₦', USD: '$', GHS: 'GH₵', KES: 'KSh', ZAR: 'R' };
 const State = {
-    range: { key: 'today', from: null, to: null, label: 'Today', detail: '' },
-    currency: 'all',
-    chartRef: null,
-    data: {}
+    scope: { preset: 'today', currency: 'all', from: null, to: null, label: 'Today', detail: '' },
+    charts: { overview: null, products: null, providers: null },
+    refunds: { page: 1, limit: 25, totalPages: 1 },
+    chartCcy: 'NGN',
+    autoRefresh: false,
+    autoRefreshTimer: null,
+    requestToken: 0,
+    abortCtrl: null,
+    permissions: null,
+    lastSuccess: null
 };
 
-/* ─── helpers ─── */
+// ─── Helpers ────────────────────────────────────────────────────
 function escapeHtml(s) {
     if (s === null || s === undefined) return '';
     return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 }
+const CCY_SYMBOLS = { NGN: '₦', USD: '$' };
 function formatMoney(v, ccy) {
-    if (v === null || v === undefined || v === '') return null;
+    if (v === null || v === undefined || v === '') return '—';
     const n = Number(v);
-    if (!Number.isFinite(n)) return null;
+    if (!Number.isFinite(n)) return '—';
     const c = String(ccy || '').toUpperCase();
-    return (CURRENCY_SYMBOLS[c] || (c ? c + ' ' : '')) + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const sym = CCY_SYMBOLS[c] || (c ? c + ' ' : '');
+    return sym + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function formatCompact(v, ccy) {
+    if (v === null || v === undefined || v === '') return '—';
+    const n = Number(v);
+    if (!Number.isFinite(n)) return '—';
+    const c = String(ccy || '').toUpperCase();
+    const sym = CCY_SYMBOLS[c] || '';
+    const abs = Math.abs(n);
+    let out;
+    if (abs >= 1e9) out = (n / 1e9).toFixed(2) + 'B';
+    else if (abs >= 1e6) out = (n / 1e6).toFixed(2) + 'M';
+    else if (abs >= 1e3) out = (n / 1e3).toFixed(2) + 'K';
+    else out = n.toFixed(2);
+    return sym + out;
 }
 function formatNumber(v) {
-    if (v === null || v === undefined || v === '') return null;
+    if (v === null || v === undefined || v === '') return '—';
     const n = Number(v);
-    return Number.isFinite(n) ? n.toLocaleString('en-US') : null;
-}
-function formatDateShort(iso) {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return Number.isFinite(n) ? n.toLocaleString('en-US') : '—';
 }
 function formatDateTime(iso) {
     if (!iso) return '—';
-    return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    try { return new Date(iso).toLocaleString('en-US', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }); }
+    catch (_) { return '—'; }
+}
+function formatDateShort(iso) {
+    if (!iso) return '—';
+    try { return new Date(iso).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); }
+    catch (_) { return '—'; }
 }
 function timeAgo(iso) {
     if (!iso) return '—';
@@ -540,399 +513,580 @@ function timeAgo(iso) {
     if (s < 60) return 'just now';
     if (s < 3600) return Math.floor(s / 60) + 'm ago';
     if (s < 86400) return Math.floor(s / 3600) + 'h ago';
-    if (s < 604800) return Math.floor(s / 86400) + 'd ago';
     return new Date(iso).toLocaleDateString();
 }
 function showToast(msg, type = 'info') {
     const stack = document.getElementById('toastStack');
+    if (!stack) return;
     const el = document.createElement('div');
     el.className = 'toast ' + type;
     el.textContent = msg;
     stack.appendChild(el);
     setTimeout(() => el.remove(), 3400);
 }
-function toggleNavGroup(head) {
-    const g = head.closest('.nav-group');
-    g.classList.toggle('collapsed');
-    head.setAttribute('aria-expanded', String(!g.classList.contains('collapsed')));
-}
-
-async function api(url, opts = {}) {
-    try {
-        const res = await AdminSession.fetch(url, opts);
-        let json = null;
-        try { json = await res.json(); } catch {}
-        if (!res.ok || json?.success === false) {
-            return { ok: false, status: res.status, error: json?.error || json?.message || 'Request failed', code: json?.code };
-        }
-        return { ok: true, data: json };
-    } catch (e) {
-        return { ok: false, status: 0, error: 'Network error' };
-    }
-}
-
-/* ─── date range ─── */
-function rangeFor(key, customFrom, customTo) {
-    const now = new Date();
-    const OFFSET_MS = 60 * 60 * 1000;
-    const startOfWatDay = d => {
-        const local = new Date(d.getTime() + OFFSET_MS);
-        return new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate(), 0, 0, 0) - OFFSET_MS);
-    };
-    const endOfWatDay = d => new Date(startOfWatDay(d).getTime() + 86400_000 - 1);
-    switch (key) {
-        case 'today':      { const f = startOfWatDay(now), t = endOfWatDay(now); return { from: f.toISOString(), to: t.toISOString(), label: 'Today', detail: formatDateShort(f) }; }
-        case 'yesterday':  { const y = new Date(now.getTime() - 86400_000); const f = startOfWatDay(y), t = endOfWatDay(y); return { from: f.toISOString(), to: t.toISOString(), label: 'Yesterday', detail: formatDateShort(f) }; }
-        case '7d':         { const f = startOfWatDay(new Date(now.getTime() - 6 * 86400_000)), t = endOfWatDay(now); return { from: f.toISOString(), to: t.toISOString(), label: 'Last 7 days', detail: `${formatDateShort(f)} – ${formatDateShort(t)}` }; }
-        case '30d':        { const f = startOfWatDay(new Date(now.getTime() - 29 * 86400_000)), t = endOfWatDay(now); return { from: f.toISOString(), to: t.toISOString(), label: 'Last 30 days', detail: `${formatDateShort(f)} – ${formatDateShort(t)}` }; }
-        case 'month':      { const local = new Date(now.getTime() + OFFSET_MS); const f = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), 1, 0, 0, 0) - OFFSET_MS), t = endOfWatDay(now); return { from: f.toISOString(), to: t.toISOString(), label: 'This month', detail: `${formatDateShort(f)} – ${formatDateShort(t)}` }; }
-        case 'lastmonth':  { const local = new Date(now.getTime() + OFFSET_MS); const f = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth() - 1, 1, 0, 0, 0) - OFFSET_MS), t = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), 1, 0, 0, 0) - OFFSET_MS - 1); return { from: f.toISOString(), to: t.toISOString(), label: 'Last month', detail: `${formatDateShort(f)} – ${formatDateShort(t)}` }; }
-        case 'year':       { const local = new Date(now.getTime() + OFFSET_MS); const f = new Date(Date.UTC(local.getUTCFullYear(), 0, 1, 0, 0, 0) - OFFSET_MS), t = endOfWatDay(now); return { from: f.toISOString(), to: t.toISOString(), label: 'This year', detail: `${formatDateShort(f)} – ${formatDateShort(t)}` }; }
-        case 'custom': {
-            if (!customFrom || !customTo) return rangeFor('today');
-            const f = startOfWatDay(new Date(customFrom)), t = endOfWatDay(new Date(customTo));
-            if (f > t) return rangeFor('today');
-            return { from: f.toISOString(), to: t.toISOString(), label: 'Custom', detail: `${formatDateShort(f)} – ${formatDateShort(t)}` };
-        }
-        default: return rangeFor('today');
-    }
-}
-
-function applyRange(key, opts = {}) {
-    const r = rangeFor(key, opts.customFrom, opts.customTo);
-    State.range = { key, ...r };
-    document.getElementById('rangeLabelText').textContent = r.label;
-    document.getElementById('rangeLabelDetail').textContent = r.detail;
-    document.querySelectorAll('#rangeSelect .range-btn').forEach(b => b.classList.toggle('active', b.dataset.range === key));
-    document.getElementById('customRange').classList.toggle('show', key === 'custom');
-}
-
-function scopeQuery() {
-    const q = new URLSearchParams();
-    q.set('from', State.range.from);
-    q.set('to', State.range.to);
-    if (State.currency !== 'all') q.set('currency', State.currency);
-    return q.toString();
-}
-
-/* ─── renderers ─── */
-function setKpi(id, value, subId, subText) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value;
-    if (subId) {
-        const s = document.getElementById(subId);
-        if (s) s.innerHTML = subText || '—';
-    }
-}
-function deltaHtml(pct) {
-    if (pct == null) return '<span class="delta neutral">—</span>';
+function deltaHtml(pct, inverse = false) {
+    if (pct === null || pct === undefined) return '<span class="delta neutral">— vs prev</span>';
     const v = Number(pct);
-    if (!Number.isFinite(v) || v === 0) return '<span class="delta neutral">0.0%</span>';
-    const cls = v > 0 ? 'up' : 'down';
+    if (!Number.isFinite(v) || v === 0) return '<span class="delta neutral">0.0% vs prev</span>';
+    let cls = v > 0 ? 'up' : 'down';
+    if (inverse) cls = v > 0 ? 'down' : 'up';
     return `<span class="delta ${cls}">${v > 0 ? '+' : ''}${v.toFixed(1)}% vs prev</span>`;
 }
 
-async function loadSummary() {
-    const { ok, data, error, code } = await api(API.summary + '?' + scopeQuery());
-    if (!ok) {
-        updateLiveStatus(false);
-        ['kpi-gross','kpi-net','kpi-profit','kpi-cost','kpi-refunds','kpi-orders'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = '—';
-        });
-        if (code === 'REVENUE_RPC_NOT_DEPLOYED') {
-            showToast('Revenue RPCs not deployed. Run the migration.', 'error');
-        } else {
-            showToast(error || 'Failed to load revenue summary', 'error');
+// ─── API wrapper with abort + typed error envelope ─────────────
+async function api(url, opts = {}) {
+    const token = ++State.requestToken;
+    try {
+        const res = await AdminSession.fetch(url, opts);
+        let json = null;
+        try { json = await res.json(); } catch (_) {}
+        if (!res.ok || json?.success === false) {
+            return { ok: false, status: res.status, code: json?.code, error: json?.error || 'Request failed' };
         }
-        return;
+        return { ok: true, data: json };
+    } catch (e) {
+        return { ok: false, status: 0, error: e?.message || 'Network error', aborted: e?.name === 'AbortError' };
     }
-    updateLiveStatus(true);
-    const s = data.summary || {};
-    State.data.summary = s;
-
-    const rev = s.revenue || {};
-    const currency = State.currency === 'all' ? null : State.currency;
-    const fmt = (v) => formatMoney(v, currency || 'NGN') || '—';
-
-    setKpi('kpi-gross', fmt(rev.gross), 'kpi-gross-sub', deltaHtml(rev.changePct));
-    setKpi('kpi-net', fmt(rev.net), 'kpi-net-sub', 'After refunds');
-    setKpi('kpi-profit', fmt(rev.profit), 'kpi-profit-sub', 'Revenue − provider cost');
-    setKpi('kpi-cost', fmt(rev.providerCost));
-    setKpi('kpi-refunds', fmt(rev.refunds));
-    const o = s.orders || {};
-    setKpi('kpi-orders', formatNumber(o.total) || '0', 'kpi-orders-sub',
-        `${formatNumber(o.completed) || 0} completed · ${formatNumber(o.pending) || 0} pending · ${formatNumber(o.failed) || 0} failed`);
-
-    // Split panel
-    document.getElementById('split-revenue').textContent = fmt(rev.gross);
-    const f = s.funding || {};
-    document.getElementById('split-funding').textContent = formatMoney(f.depositsTotal, currency || 'NGN') || '—';
-
-    // Footer
-    document.getElementById('fxRate').textContent = '₦' + Number(s.usdToNgn || 0).toLocaleString();
-    document.getElementById('footerRange').textContent = State.range.detail;
-    const held = s.heldFunds || {};
-    document.getElementById('heldFunds').textContent =
-        `${formatMoney(held.ngn, 'NGN') || '₦0.00'} · ${formatMoney(held.usd, 'USD') || '$0.00'}`;
 }
 
-async function loadTimeseries() {
-    const { ok, data } = await api(API.timeseries + '?' + scopeQuery() + '&granularity=day');
+// ─── Build query from scope ────────────────────────────────────
+function scopeQuery(extra = {}) {
+    const q = new URLSearchParams();
+    if (State.scope.preset && State.scope.preset !== 'custom') q.set('preset', State.scope.preset);
+    if (State.scope.preset === 'custom') {
+        if (State.scope.from) q.set('from', State.scope.from);
+        if (State.scope.to) q.set('to', State.scope.to);
+    }
+    if (State.scope.currency && State.scope.currency !== 'all') q.set('currency', State.scope.currency);
+    for (const [k, v] of Object.entries(extra)) if (v !== null && v !== undefined && v !== '') q.set(k, v);
+    return q.toString();
+}
+
+// ─── Live dot ──────────────────────────────────────────────────
+function setLiveStatus(ok, label) {
+    const dot = document.getElementById('liveDot');
+    const lbl = document.getElementById('liveDotLabel');
+    const upd = document.getElementById('lastUpdated');
+    if (ok) {
+        dot.classList.remove('off');
+        lbl.textContent = label || 'Live data';
+        upd.textContent = new Date().toLocaleTimeString();
+        State.lastSuccess = new Date();
+    } else {
+        dot.classList.add('off');
+        lbl.textContent = label || 'Update failed';
+    }
+}
+
+// ─── KPI rendering (per currency) ──────────────────────────────
+function renderKpis(summary) {
+    const grid = document.getElementById('kpiGrid');
+    grid.innerHTML = '';
+    if (!summary.available) {
+        grid.innerHTML = `<div class="kpi"><div class="lbl">Revenue</div><div class="val">—</div><div class="sub">${escapeHtml(summary.reason || 'Unavailable')}</div></div>`;
+        return;
+    }
+    const currencies = summary.currencies || [];
+    if (!currencies.length) {
+        grid.innerHTML = `<div class="kpi" style="grid-column:1/-1"><div class="lbl">No data</div><div class="val">—</div><div class="sub">No completed orders in this period.</div></div>`;
+        return;
+    }
+    for (const c of currencies) {
+        const ccy = c.currency;
+        const items = [
+            { lbl: 'Revenue', val: formatMoney(c.revenue, ccy), sub: deltaHtml(c.changePct, false), title: formatMoney(c.revenue, ccy) },
+            { lbl: 'Net revenue', val: formatMoney(c.net, ccy), sub: `<span class="delta neutral">after refunds</span>`, title: formatMoney(c.net, ccy) },
+            { lbl: 'Provider cost', val: formatMoney(c.providerCost, ccy), sub: `<span class="delta neutral">—</span>`, title: formatMoney(c.providerCost, ccy) },
+            { lbl: 'Profit', val: formatMoney(c.profit, ccy), sub: c.marginPct != null ? `<span class="delta neutral">${c.marginPct.toFixed(1)}% margin</span>` : '<span class="delta neutral">—</span>', title: formatMoney(c.profit, ccy) },
+            { lbl: 'Refunds', val: formatMoney(c.refunds, ccy), sub: `<span class="delta neutral">${formatNumber(c.orders.refunded)} orders</span>`, title: formatMoney(c.refunds, ccy) },
+            { lbl: 'AOV', val: formatMoney(c.aov, ccy), sub: `<span class="delta neutral">${formatNumber(c.orders.completed)} completed</span>`, title: formatMoney(c.aov, ccy) }
+        ];
+        for (const it of items) {
+            const el = document.createElement('div');
+            el.className = 'kpi';
+            el.innerHTML = `
+              <div class="lbl"><span class="ccy-badge">${escapeHtml(ccy)}</span> ${escapeHtml(it.lbl)}</div>
+              <div class="val" title="${escapeHtml(it.title)}">${escapeHtml(it.val)}</div>
+              <div class="sub">${it.sub}</div>`;
+            grid.appendChild(el);
+        }
+    }
+    if (summary.combinedNgn) {
+        const el = document.createElement('div');
+        el.className = 'kpi approx';
+        el.innerHTML = `
+          <div class="lbl">≈ Combined in NGN</div>
+          <div class="val" title="${escapeHtml(formatMoney(summary.combinedNgn.amount, 'NGN'))}">${escapeHtml(formatCompact(summary.combinedNgn.amount, 'NGN'))}</div>
+          <div class="sub">Approximate · FX ₦${escapeHtml(String(summary.fx.usdToNgn))} (${escapeHtml(summary.fx.source)}, ${escapeHtml(formatDateTime(summary.fx.asOf))})</div>`;
+        grid.appendChild(el);
+    }
+}
+
+// ─── Insights chips ────────────────────────────────────────────
+function renderInsights(summary) {
+    const el = document.getElementById('insights');
+    if (!el || !summary.insights) return;
+    const parts = [];
+    const i = summary.insights;
+    if (i.topProduct) parts.push(`<span class="insight-chip">Top product: <strong>${escapeHtml(i.topProduct.product)}</strong> · ${escapeHtml(formatMoney(i.topProduct.revenue, i.topProduct.currency))}</span>`);
+    if (i.topProvider) parts.push(`<span class="insight-chip">Top provider: <strong>${escapeHtml(i.topProvider.provider)}</strong> · ${escapeHtml(formatMoney(i.topProvider.revenue, i.topProvider.currency))}</span>`);
+    if (i.bestDay) parts.push(`<span class="insight-chip">Best day: <strong>${escapeHtml(formatDateShort(i.bestDay.bucket))}</strong> · ${escapeHtml(formatMoney(i.bestDay.revenue, i.bestDay.currency))}</span>`);
+    el.innerHTML = parts.join('');
+}
+
+// ─── Funding + held blocks ────────────────────────────────────
+function renderFunding(summary) {
+    const el = document.getElementById('fundingBlock');
+    if (!el) return;
+    if (Array.isArray(summary.funding)) {
+        if (!summary.funding.length) { el.innerHTML = '<div class="empty-state">No wallet deposits in this period.</div>'; return; }
+        el.innerHTML = summary.funding.map(f => `
+          <div class="kpi" style="margin-bottom:8px">
+            <div class="lbl"><span class="ccy-badge">${escapeHtml(f.currency)}</span> Deposits</div>
+            <div class="val">${escapeHtml(formatMoney(f.depositsTotal, f.currency))}</div>
+            <div class="sub">${escapeHtml(formatNumber(f.depositsCount))} deposits · avg ${escapeHtml(formatMoney(f.avgDeposit, f.currency))} · largest ${escapeHtml(formatMoney(f.largestDeposit, f.currency))}</div>
+          </div>`).join('') + '<div class="note">Wallet funding is a liability (money users put in), not revenue.</div>';
+    } else {
+        el.innerHTML = `<div class="empty-state">Funding unavailable: ${escapeHtml(summary.funding.reason || '')}</div>`;
+    }
+}
+function renderHeld(summary) {
+    const el = document.getElementById('heldBlock');
+    if (!el) return;
+    const h = summary.heldFunds;
+    if (h && h.available) {
+        const rows = (h.currencies || []).filter(c => c.currency === 'NGN' || c.currency === 'USD');
+        if (!rows.length) { el.innerHTML = '<div class="empty-state">No ledger balances.</div>'; return; }
+        el.innerHTML = rows.map(c => `
+          <div class="kpi" style="margin-bottom:8px">
+            <div class="lbl"><span class="ccy-badge">${escapeHtml(c.currency)}</span> Held funds</div>
+            <div class="val">${escapeHtml(formatMoney(c.total, c.currency))}</div>
+            <div class="sub">Available ${escapeHtml(formatMoney(c.available, c.currency))} · Held ${escapeHtml(formatMoney(c.held, c.currency))}</div>
+          </div>`).join('') + '<div class="note">This is money users have on the platform. It is a liability and is never counted as revenue.</div>';
+    } else {
+        el.innerHTML = `<div class="empty-state">Held funds unavailable: ${escapeHtml(h?.reason || '')}</div>`;
+    }
+}
+// ─── Charts ────────────────────────────────────────────────────
+function destroyChart(name) {
+    if (State.charts[name]) { try { State.charts[name].destroy(); } catch (_) {} State.charts[name] = null; }
+}
+function chartColors() {
+    const dark = document.documentElement.classList.contains('dark');
+    return {
+        text: dark ? '#93aab1' : '#5b7480',
+        grid: dark ? 'rgba(255,255,255,.06)' : 'rgba(15,76,92,.06)'
+    };
+}
+async function loadOverviewChart() {
+    const { ok, data } = await api(API.timeseries + '?' + scopeQuery({ granularity: 'day' }));
     if (!ok || !data?.available) return;
     const points = data.points || [];
-    renderTrendChart(points);
-}
-
-function renderTrendChart(points) {
-    const canvas = document.getElementById('chartTrend');
-    if (!canvas) return;
-    if (State.chartRef) { try { State.chartRef.destroy(); } catch (e) {} State.chartRef = null; }
-
-    const dark = document.documentElement.classList.contains('dark');
-    const textColor = dark ? '#93aab1' : '#5b7480';
-    const gridColor = dark ? 'rgba(255,255,255,.06)' : 'rgba(15,76,92,.06)';
-
-    if (!points.length) {
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        return;
-    }
-
-    const currency = State.currency === 'all' ? 'NGN' : State.currency;
+    const ccy = State.chartCcy;
     const labels = points.map(p => formatDateShort(p.bucket));
-    const revenue = points.map(p => Number(p[currency]?.revenue || 0));
-    const profit  = points.map(p => Number(p[currency]?.profit || 0));
-    const refunds = points.map(p => Number(p[currency]?.refunds || 0));
-
-    State.chartRef = new Chart(canvas.getContext('2d'), {
+    const rev = points.map(p => Number(p[ccy]?.revenue || 0));
+    const prof = points.map(p => Number(p[ccy]?.profit || 0));
+    const refs = points.map(p => Number(p[ccy]?.refunds || 0));
+    const c = chartColors();
+    destroyChart('overview');
+    State.charts.overview = new Chart(document.getElementById('chartOverview').getContext('2d'), {
         type: 'line',
         data: {
             labels,
             datasets: [
-                { label: 'Revenue', data: revenue, borderColor: '#0f4c5c', backgroundColor: 'rgba(15,76,92,.08)', tension: .35, fill: true, borderWidth: 2, pointRadius: 3 },
-                { label: 'Profit',  data: profit,  borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,.08)', tension: .35, fill: false, borderWidth: 2, pointRadius: 3 },
-                { label: 'Refunds', data: refunds, borderColor: '#dc2626', backgroundColor: 'rgba(220,38,38,.08)', tension: .35, fill: false, borderWidth: 2, pointRadius: 3 }
+                { label: 'Revenue', data: rev, borderColor: '#0f4c5c', backgroundColor: 'rgba(15,76,92,.08)', tension: .35, fill: true, borderWidth: 2 },
+                { label: 'Profit',  data: prof, borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,.08)', tension: .35, fill: false, borderWidth: 2 },
+                { label: 'Refunds', data: refs, borderColor: '#dc2626', backgroundColor: 'rgba(220,38,38,.08)', tension: .35, fill: false, borderWidth: 2 }
             ]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
             plugins: {
-                legend: { position: 'top', labels: { color: textColor, usePointStyle: true, boxWidth: 8 } },
-                tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatMoney(ctx.parsed.y, currency) || '—'}` } }
+                legend: { labels: { color: c.text, usePointStyle: true } },
+                tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatMoney(ctx.parsed.y, ccy)}` } }
             },
             scales: {
-                x: { grid: { display: false }, ticks: { color: textColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } },
-                y: { grid: { color: gridColor }, ticks: { color: textColor, callback: v => formatNumber(v) } }
+                x: { grid: { display: false }, ticks: { color: c.text } },
+                y: { grid: { color: c.grid }, ticks: { color: c.text } }
+            }
+        }
+    });
+}
+async function loadProductChart() {
+    const { ok, data } = await api(API.products + '?' + scopeQuery());
+    if (!ok || !data?.available) return;
+    const products = (data.products || []).filter(p => p.currency === State.chartCcy);
+    const labels = products.map(p => String(p.product).replace(/_/g, ' '));
+    const values = products.map(p => Number(p.revenue || 0));
+    const c = chartColors();
+    destroyChart('products');
+    State.charts.products = new Chart(document.getElementById('chartProducts').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels,
+            datasets: [{ data: values, backgroundColor: ['#0f4c5c','#14607a','#f5a623','#16a34a','#dc2626','#2563a8','#8b5cf6'], borderWidth: 1, borderColor: c.grid }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: c.text, usePointStyle: true }, position: 'bottom' },
+                tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatMoney(ctx.parsed, State.chartCcy)}` } }
+            }
+        }
+    });
+}
+async function loadProviderChart() {
+    const { ok, data } = await api(API.providers + '?' + scopeQuery());
+    if (!ok || !data?.available) return;
+    const providers = (data.providers || []).filter(p => p.currency === State.chartCcy);
+    const labels = providers.map(p => p.provider);
+    const values = providers.map(p => Number(p.profit || 0));
+    const c = chartColors();
+    destroyChart('providers');
+    State.charts.providers = new Chart(document.getElementById('chartProviders').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{ label: 'Profit', data: values, backgroundColor: '#0f4c5c', borderRadius: 6 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => `${formatMoney(ctx.parsed.y, State.chartCcy)}` } }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: c.text } },
+                y: { grid: { color: c.grid }, ticks: { color: c.text } }
             }
         }
     });
 }
 
+// ─── Tables ────────────────────────────────────────────────────
+function renderSkeleton(tbody, cols) {
+    tbody.innerHTML = Array.from({length:4}).map(() =>
+        `<tr><td colspan="${cols}"><span class="skel" style="width:70%;display:inline-block"></span></td></tr>`).join('');
+}
 async function loadProducts() {
-    const { ok, data } = await api(API.products + '?' + scopeQuery());
     const tb = document.getElementById('productsBody');
-    if (!ok || !data?.available) { tb.innerHTML = `<tr><td colspan="6"><div class="empty-state">Data unavailable</div></td></tr>`; return; }
+    renderSkeleton(tb, 9);
+    const { ok, data } = await api(API.products + '?' + scopeQuery());
+    if (!ok || !data?.available) { tb.innerHTML = `<tr><td colspan="9"><div class="empty-state">${escapeHtml(data?.reason || 'Unavailable')}</div></td></tr>`; return; }
     const rows = data.products || [];
-    if (!rows.length) { tb.innerHTML = `<tr><td colspan="6"><div class="empty-state">No product revenue in this period</div></td></tr>`; return; }
+    if (!rows.length) { tb.innerHTML = `<tr><td colspan="9"><div class="empty-state">No product revenue in this period.</div></td></tr>`; return; }
     tb.innerHTML = rows.map(p => `
-        <tr>
-            <td><strong>${escapeHtml(String(p.product).replace(/_/g, ' '))}</strong></td>
-            <td>${formatNumber(p.orders) || '0'}</td>
-            <td>${formatMoney(p.revenue, p.currency) || '—'}</td>
-            <td>${formatMoney(p.providerCost, p.currency) || '—'}</td>
-            <td>${formatMoney(p.profit, p.currency) || '—'}</td>
-            <td>${Number(p.marginPct || 0).toFixed(1)}%</td>
-        </tr>`).join('');
+      <tr>
+        <td data-label="Product"><strong>${escapeHtml(String(p.product).replace(/_/g,' '))}</strong></td>
+        <td data-label="Ccy"><span class="badge info">${escapeHtml(p.currency)}</span></td>
+        <td data-label="Orders">${escapeHtml(formatNumber(p.orders))}</td>
+        <td data-label="Revenue">${escapeHtml(formatMoney(p.revenue, p.currency))}</td>
+        <td data-label="Provider cost">${escapeHtml(formatMoney(p.providerCost, p.currency))}</td>
+        <td data-label="Refunds">${escapeHtml(formatMoney(p.refunds, p.currency))}</td>
+        <td data-label="Profit">${escapeHtml(formatMoney(p.profit, p.currency))}</td>
+        <td data-label="Margin">${p.marginPct != null ? p.marginPct.toFixed(1) + '%' : '—'}</td>
+        <td data-label="Share">${p.shareOfRevenue != null ? p.shareOfRevenue.toFixed(1) + '%' : '—'}</td>
+      </tr>`).join('');
 }
-
 async function loadProviders() {
-    const { ok, data } = await api(API.providers + '?' + scopeQuery());
     const tb = document.getElementById('providersBody');
-    if (!ok || !data?.available) { tb.innerHTML = `<tr><td colspan="6"><div class="empty-state">Data unavailable</div></td></tr>`; return; }
+    renderSkeleton(tb, 9);
+    const { ok, data } = await api(API.providers + '?' + scopeQuery());
+    if (!ok || !data?.available) { tb.innerHTML = `<tr><td colspan="9"><div class="empty-state">${escapeHtml(data?.reason || 'Unavailable')}</div></td></tr>`; return; }
     const rows = data.providers || [];
-    if (!rows.length) { tb.innerHTML = `<tr><td colspan="6"><div class="empty-state">No provider revenue in this period</div></td></tr>`; return; }
+    if (!rows.length) { tb.innerHTML = `<tr><td colspan="9"><div class="empty-state">No provider activity in this period.</div></td></tr>`; return; }
     tb.innerHTML = rows.map(p => `
-        <tr>
-            <td><strong style="text-transform:capitalize">${escapeHtml(p.provider)}</strong></td>
-            <td>${formatNumber(p.orders) || '0'}</td>
-            <td>${formatMoney(p.revenue, p.currency) || '—'}</td>
-            <td>${formatMoney(p.providerCost, p.currency) || '—'}</td>
-            <td>${formatMoney(p.profit, p.currency) || '—'}</td>
-            <td>${Number(p.failedOrders || 0)}</td>
-        </tr>`).join('');
+      <tr>
+        <td data-label="Provider"><strong style="text-transform:capitalize">${escapeHtml(p.provider)}</strong></td>
+        <td data-label="Ccy"><span class="badge info">${escapeHtml(p.currency)}</span></td>
+        <td data-label="Orders">${escapeHtml(formatNumber(p.orders))}</td>
+        <td data-label="Revenue">${escapeHtml(formatMoney(p.revenue, p.currency))}</td>
+        <td data-label="Provider cost">${escapeHtml(formatMoney(p.providerCost, p.currency))}</td>
+        <td data-label="Refunds">${escapeHtml(formatMoney(p.refunds, p.currency))}</td>
+        <td data-label="Profit">${escapeHtml(formatMoney(p.profit, p.currency))}</td>
+        <td data-label="Failed">${escapeHtml(formatNumber(p.failedOrders))}</td>
+        <td data-label="Share">${p.shareOfRevenue != null ? p.shareOfRevenue.toFixed(1) + '%' : '—'}</td>
+      </tr>`).join('');
 }
-
-async function loadRefunds() {
-    const { ok, data } = await api(API.refunds + '?' + scopeQuery() + '&limit=100');
-    const tb = document.getElementById('refundsBody');
-    if (!ok || !data?.available) { tb.innerHTML = `<tr><td colspan="7"><div class="empty-state">Data unavailable</div></td></tr>`; return; }
-    const rows = data.refunds || [];
-    if (!rows.length) { tb.innerHTML = `<tr><td colspan="7"><div class="empty-state">No refunds in this period</div></td></tr>`; return; }
-    tb.innerHTML = rows.map(r => `
-        <tr>
-            <td class="cell-mono">${escapeHtml(r.orderRef || '—')}</td>
-            <td><strong>${escapeHtml(r.user.username)}</strong><div style="font-size:11px;color:var(--text-dim)">${escapeHtml(r.user.email || '')}</div></td>
-            <td>${escapeHtml(String(r.product || '—').replace(/_/g, ' '))}</td>
-            <td>${escapeHtml(r.provider || '—')}</td>
-            <td>${formatMoney(r.amount, r.currency) || '—'}</td>
-            <td class="wrap">${escapeHtml(r.reason || '—')}</td>
-            <td title="${escapeHtml(formatDateTime(r.refundedAt))}">${escapeHtml(timeAgo(r.refundedAt))}</td>
-        </tr>`).join('');
-}
-
 async function loadCustomers() {
-    const { ok, data } = await api(API.customers + '?' + scopeQuery() + '&limit=20');
     const tb = document.getElementById('customersBody');
-    if (!ok || !data?.available) { tb.innerHTML = `<tr><td colspan="6"><div class="empty-state">Data unavailable</div></td></tr>`; return; }
+    renderSkeleton(tb, 7);
+    const { ok, data } = await api(API.customers + '?' + scopeQuery({ limit: 30 }));
+    if (!ok || !data?.available) { tb.innerHTML = `<tr><td colspan="7"><div class="empty-state">${escapeHtml(data?.reason || 'Unavailable')}</div></td></tr>`; return; }
     const rows = data.customers || [];
-    if (!rows.length) { tb.innerHTML = `<tr><td colspan="6"><div class="empty-state">No customer spending in this period</div></td></tr>`; return; }
+    if (!rows.length) { tb.innerHTML = `<tr><td colspan="7"><div class="empty-state">No customer activity in this period.</div></td></tr>`; return; }
     tb.innerHTML = rows.map(c => `
-        <tr>
-            <td><strong>${escapeHtml(c.user.username)}</strong><div style="font-size:11px;color:var(--text-dim)">${escapeHtml(c.user.email || '')}</div></td>
-            <td>${formatNumber(c.orders) || '0'}</td>
-            <td>${formatMoney(c.spent, 'NGN') || '—'}</td>
-            <td>${formatMoney(c.refunded, 'NGN') || '—'}</td>
-            <td style="font-weight:700">${formatMoney(c.netSpend, 'NGN') || '—'}</td>
-            <td title="${escapeHtml(formatDateTime(c.lastOrder))}">${escapeHtml(timeAgo(c.lastOrder))}</td>
-        </tr>`).join('');
+      <tr>
+        <td data-label="Customer"><strong>${escapeHtml(c.user.username)}</strong><div style="font-size:11px;color:var(--text-dim)">${escapeHtml(c.user.email || '')}</div></td>
+        <td data-label="Ccy"><span class="badge info">${escapeHtml(c.currency)}</span></td>
+        <td data-label="Orders">${escapeHtml(formatNumber(c.orders))}</td>
+        <td data-label="Spent">${escapeHtml(formatMoney(c.spent, c.currency))}</td>
+        <td data-label="Refunded">${escapeHtml(formatMoney(c.refunded, c.currency))}</td>
+        <td data-label="Net spend"><strong>${escapeHtml(formatMoney(c.netSpend, c.currency))}</strong></td>
+        <td data-label="Last order">${escapeHtml(timeAgo(c.lastOrder))}</td>
+      </tr>`).join('');
 }
-
+async function loadRefunds() {
+    const tb = document.getElementById('refundsBody');
+    renderSkeleton(tb, 8);
+    const { ok, data } = await api(API.refunds + '?' + scopeQuery({ page: State.refunds.page, limit: State.refunds.limit }));
+    if (!ok || !data?.available) {
+        tb.innerHTML = `<tr><td colspan="8"><div class="empty-state">${escapeHtml(data?.reason || 'Unavailable')}</div></td></tr>`;
+        document.getElementById('refundsPager').innerHTML = '';
+        return;
+    }
+    const rows = data.refunds || [];
+    State.refunds.totalPages = data.totalPages || 1;
+    if (!rows.length) {
+        tb.innerHTML = `<tr><td colspan="8"><div class="empty-state">No refunds in this period.</div></td></tr>`;
+        renderRefundsPager();
+        return;
+    }
+    tb.innerHTML = rows.map(r => `
+      <tr>
+        <td data-label="Order" class="cell-mono">${escapeHtml(r.orderRef || '—')}</td>
+        <td data-label="Customer">${escapeHtml(r.user?.username || '—')}</td>
+        <td data-label="Ccy"><span class="badge info">${escapeHtml(r.currency)}</span></td>
+        <td data-label="Amount">${escapeHtml(formatMoney(r.amount, r.currency))}</td>
+        <td data-label="Product">${escapeHtml(String(r.product || '').replace(/_/g, ' '))}</td>
+        <td data-label="Provider">${escapeHtml(r.provider || '—')}</td>
+        <td data-label="Reason" class="wrap">${escapeHtml(r.reason || '—')}</td>
+        <td data-label="Refunded at" title="${escapeHtml(formatDateTime(r.refundedAt))}">${escapeHtml(timeAgo(r.refundedAt))}</td>
+      </tr>`).join('');
+    renderRefundsPager();
+}
+function renderRefundsPager() {
+    const el = document.getElementById('refundsPager');
+    if (!el) return;
+    el.innerHTML = `
+      <div>Page ${State.refunds.page} of ${State.refunds.totalPages}</div>
+      <div>
+        <button ${State.refunds.page <= 1 ? 'disabled' : ''} data-pager="prev">← Previous</button>
+        <button ${State.refunds.page >= State.refunds.totalPages ? 'disabled' : ''} data-pager="next">Next →</button>
+      </div>`;
+    el.querySelector('[data-pager="prev"]')?.addEventListener('click', () => { if (State.refunds.page > 1) { State.refunds.page--; loadRefunds(); } });
+    el.querySelector('[data-pager="next"]')?.addEventListener('click', () => { if (State.refunds.page < State.refunds.totalPages) { State.refunds.page++; loadRefunds(); } });
+}
 async function loadDaily() {
-    const { ok, data } = await api(API.daily + '?' + scopeQuery());
     const tb = document.getElementById('dailyBody');
-    if (!ok || !data?.available) { tb.innerHTML = `<tr><td colspan="6"><div class="empty-state">Data unavailable</div></td></tr>`; return; }
-    const rows = data.days || [];
-    if (!rows.length) { tb.innerHTML = `<tr><td colspan="6"><div class="empty-state">No revenue in this period</div></td></tr>`; return; }
-    const currency = State.currency === 'all' ? 'NGN' : State.currency;
-    tb.innerHTML = rows.map(d => {
-        const bucket = d[currency] || {};
-        return `
-            <tr>
-                <td>${escapeHtml(formatDateShort(d.bucket))}</td>
-                <td>${formatNumber(d.orders) || '0'}</td>
-                <td>${formatMoney(bucket.revenue, currency) || '—'}</td>
-                <td>${formatMoney(bucket.providerCost, currency) || '—'}</td>
-                <td>${formatMoney(bucket.refunds, currency) || '—'}</td>
-                <td style="font-weight:700">${formatMoney(bucket.profit, currency) || '—'}</td>
-            </tr>`;
-    }).join('');
+    renderSkeleton(tb, 6);
+    const { ok, data } = await api(API.daily + '?' + scopeQuery());
+    if (!ok || !data?.available) { tb.innerHTML = `<tr><td colspan="6"><div class="empty-state">${escapeHtml(data?.reason || 'Unavailable')}</div></td></tr>`; return; }
+    const days = data.days || [];
+    if (!days.length) { tb.innerHTML = `<tr><td colspan="6"><div class="empty-state">No activity in this period.</div></td></tr>`; return; }
+    const rows = [];
+    for (const d of days) {
+        for (const ccy of ['NGN','USD']) {
+            if (!d[ccy]) continue;
+            rows.push(`
+              <tr>
+                <td data-label="Day">${escapeHtml(formatDateShort(d.bucket))}</td>
+                <td data-label="Ccy"><span class="badge info">${escapeHtml(ccy)}</span></td>
+                <td data-label="Revenue">${escapeHtml(formatMoney(d[ccy].revenue, ccy))}</td>
+                <td data-label="Provider cost">${escapeHtml(formatMoney(d[ccy].providerCost, ccy))}</td>
+                <td data-label="Refunds">${escapeHtml(formatMoney(d[ccy].refunds, ccy))}</td>
+                <td data-label="Profit">${escapeHtml(formatMoney(d[ccy].profit, ccy))}</td>
+              </tr>`);
+        }
+    }
+    tb.innerHTML = rows.join('');
 }
 
-function updateLiveStatus(ok) {
-    const dot = document.getElementById('liveDot');
-    const lbl = document.getElementById('liveDotLabel');
-    const upd = document.getElementById('lastUpdated');
-    if (ok) {
-        dot.classList.remove('off');
-        lbl.textContent = 'Live data';
-        upd.textContent = new Date().toLocaleTimeString();
-    } else {
-        dot.classList.add('off');
-        lbl.textContent = 'Unable to update';
+// ─── Load orchestration ────────────────────────────────────────
+async function loadAll() {
+    if (State.abortCtrl) State.abortCtrl.abort();
+    State.abortCtrl = new AbortController();
+    setLiveStatus(true, 'Loading…');
+    const results = await Promise.allSettled([
+        loadSummaryAndKpis(),
+        loadOverviewChart(),
+        loadProductChart(),
+        loadProviderChart(),
+        loadProducts(),
+        loadProviders(),
+        loadCustomers(),
+        loadRefunds(),
+        loadDaily()
+    ]);
+    const anyFailed = results.some(r => r.status === 'rejected');
+    setLiveStatus(!anyFailed, anyFailed ? 'Some sections failed' : 'Live data');
+}
+async function loadSummaryAndKpis() {
+    const { ok, data, code, error } = await api(API.summary + '?' + scopeQuery());
+    if (!ok) {
+        if (code === 'REVENUE_RPC_NOT_DEPLOYED') {
+            document.getElementById('rpcBanner').classList.add('show');
+        }
+        showToast(error || 'Failed to load summary', 'error');
+        setLiveStatus(false, 'Summary failed');
+        return;
+    }
+    document.getElementById('rpcBanner').classList.remove('show');
+    // Display server-returned scope label (not client-computed).
+    const s = data.scope || {};
+    document.getElementById('rangeLabelText').textContent = s.label || '—';
+    document.getElementById('rangeLabelDetail').textContent = `${formatDateShort(s.from)} – ${formatDateShort(s.to)}`;
+    renderKpis(data);
+    renderInsights(data);
+    renderFunding(data);
+    renderHeld(data);
+}
+
+// ─── Scope chips ──────────────────────────────────────────────
+function setActiveChip(preset) {
+    document.querySelectorAll('#rangeChips .range-btn').forEach(b => {
+        b.setAttribute('aria-pressed', b.dataset.preset === preset ? 'true' : 'false');
+    });
+}
+function onPresetClick(preset) {
+    if (preset === 'custom') {
+        document.getElementById('customRange').classList.add('show');
+        return;
+    }
+    State.scope = { ...State.scope, preset, from: null, to: null };
+    setActiveChip(preset);
+    document.getElementById('customRange').classList.remove('show');
+    loadAll();
+}
+function onCustomApply() {
+    const f = document.getElementById('customFrom').value;
+    const t = document.getElementById('customTo').value;
+    if (!f || !t) { showToast('Pick both dates', 'error'); return; }
+    if (new Date(f) > new Date(t)) { showToast('From must be before To', 'error'); return; }
+    State.scope = { ...State.scope, preset: 'custom', from: f, to: t };
+    setActiveChip('custom');
+    loadAll();
+}
+
+// ─── Permissions ──────────────────────────────────────────────
+function applyPermissions() {
+    const perms = window.ADMIN_PERMISSIONS;
+    State.permissions = perms;
+    const canRead = !perms || perms.includes('*') || perms.includes('reports.read');
+    const canExport = perms && (perms.includes('*') || perms.includes('reports.export'));
+    if (!canRead && perms) {
+        document.getElementById('kpiGrid').innerHTML = '<div class="kpi" style="grid-column:1/-1"><div class="lbl">No access</div><div class="val">—</div><div class="sub">Your account does not have permission to view revenue.</div></div>';
+        return;
+    }
+    if (canExport) {
+        document.getElementById('exportMainBtn').hidden = false;
+        document.querySelectorAll('.export-btn').forEach(b => b.hidden = false);
     }
 }
 
-/* ─── init ─── */
+// ─── Export ───────────────────────────────────────────────────
+async function exportCsv(kind) {
+    try {
+        const url = API.export + '?' + scopeQuery({ kind });
+        const res = await AdminSession.fetch(url);
+        if (!res.ok) {
+            let j = null; try { j = await res.json(); } catch (_) {}
+            showToast(j?.error || 'Export failed', 'error');
+            return;
+        }
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `revenue_${kind}_${Date.now()}.csv`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        showToast(`Exported ${kind}`, 'success');
+    } catch (e) {
+        showToast('Export failed', 'error');
+    }
+}
+
+// ─── Auto-refresh ─────────────────────────────────────────────
+function toggleAutoRefresh() {
+    State.autoRefresh = !State.autoRefresh;
+    document.getElementById('autoRefreshBtn').setAttribute('aria-pressed', String(State.autoRefresh));
+    if (State.autoRefresh) {
+        State.autoRefreshTimer = setInterval(() => {
+            if (!document.hidden) loadAll();
+        }, 60000);
+        showToast('Auto-refresh every 60s', 'info');
+    } else {
+        clearInterval(State.autoRefreshTimer);
+        State.autoRefreshTimer = null;
+        showToast('Auto-refresh off', 'info');
+    }
+}
+
+// ─── Dark mode ────────────────────────────────────────────────
+function initDarkMode() {
+    const stored = localStorage.getItem('admin.revenue.dark');
+    const prefers = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (stored === '1' || (stored === null && prefers)) {
+        document.documentElement.classList.add('dark');
+        document.getElementById('darkToggle').textContent = '☀️';
+    }
+    document.getElementById('darkToggle').addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        const isDark = document.documentElement.classList.contains('dark');
+        localStorage.setItem('admin.revenue.dark', isDark ? '1' : '0');
+        document.getElementById('darkToggle').textContent = isDark ? '☀️' : '🌙';
+        loadOverviewChart();
+    });
+}
+
+// ─── Init ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     if (!AdminSession.getToken()) return AdminSession.redirectToLogin();
 
-    document.getElementById('hamburger')?.addEventListener('click', () => {
-        document.getElementById('sidebar').classList.toggle('open');
-        document.getElementById('scrim').classList.toggle('show');
+    // Theme first (before any chart renders)
+    initDarkMode();
+
+    // Sidebar ready event — permissions hydrate AFTER sidebar runs.
+    document.addEventListener('admin:ready', (e) => {
+        const detail = e.detail || {};
+        applyPermissions(detail.permissions || window.ADMIN_PERMISSIONS);
     });
-    document.getElementById('scrim')?.addEventListener('click', () => {
-        document.getElementById('sidebar').classList.remove('open');
-        document.getElementById('scrim').classList.remove('show');
+    // If the sidebar already fired before this listener attached,
+    // window.ADMIN_PERMISSIONS is already set; check anyway.
+    setTimeout(() => applyPermissions(), 0);
+
+    // Filter chips
+    document.getElementById('rangeChips').addEventListener('click', (e) => {
+        const b = e.target.closest('.range-btn');
+        if (b) onPresetClick(b.dataset.preset);
     });
-    document.getElementById('sbToggleDesktop')?.addEventListener('click', () => document.getElementById('appRoot').classList.toggle('sb-collapsed'));
-    document.getElementById('sbCollapseBtn')?.addEventListener('click', () => document.getElementById('appRoot').classList.toggle('sb-collapsed'));
-    document.getElementById('darkToggle')?.addEventListener('click', () => {
-        document.documentElement.classList.toggle('dark');
-        document.getElementById('darkToggle').textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
-        loadTimeseries();
+    document.getElementById('customApply').addEventListener('click', onCustomApply);
+    document.getElementById('currencySelect').addEventListener('change', (e) => {
+        State.scope = { ...State.scope, currency: e.target.value };
+        loadAll();
     });
-    document.getElementById('adminChip')?.addEventListener('click', async () => {
-        if (confirm('Are you sure you want to logout?')) await AdminSession.logout();
+    document.getElementById('chartCcyToggle').addEventListener('click', (e) => {
+        const b = e.target.closest('.range-btn');
+        if (!b) return;
+        State.chartCcy = b.dataset.ccy;
+        document.querySelectorAll('#chartCcyToggle .range-btn').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+        loadOverviewChart();
+        loadProductChart();
+        loadProviderChart();
     });
 
-    applyRange('today');
+    // Refresh + auto-refresh
+    document.getElementById('refreshBtn').addEventListener('click', () => loadAll());
+    document.getElementById('autoRefreshBtn').addEventListener('click', toggleAutoRefresh);
 
-    document.getElementById('rangeSelect')?.addEventListener('click', (e) => {
-        const btn = e.target.closest('.range-btn');
-        if (!btn) return;
-        const key = btn.dataset.range;
-        if (key === 'custom') {
-            document.getElementById('customRange').classList.add('show');
-        } else {
-            applyRange(key);
-            loadAll();
-        }
-    });
-    document.getElementById('customApply')?.addEventListener('click', () => {
-        applyRange('custom', {
-            customFrom: document.getElementById('customFrom').value,
-            customTo: document.getElementById('customTo').value
+    // Tabs
+    document.querySelectorAll('.tab').forEach(t => {
+        t.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === t ? 'true' : 'false'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.setAttribute('aria-hidden', p.id === 'panel-' + t.dataset.tab ? 'false' : 'true'));
         });
-        loadAll();
     });
 
-    document.getElementById('fCurrency')?.addEventListener('change', (e) => {
-        State.currency = e.target.value;
-        loadAll();
+    // Export buttons
+    document.querySelectorAll('.export-btn').forEach(b => {
+        b.addEventListener('click', () => exportCsv(b.dataset.kind));
     });
+    document.getElementById('exportMainBtn').addEventListener('click', () => exportCsv('summary'));
 
-    document.getElementById('refreshBtn')?.addEventListener('click', () => {
-        loadAll();
-        showToast('Refreshed', 'success');
-    });
-
-    document.getElementById('exportBtn')?.addEventListener('click', async () => {
-        const q = scopeQuery() + '&kind=summary';
-        try {
-            const res = await AdminSession.fetch(API.exportCsv + '?' + q);
-            const blob = await res.blob();
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `revenue_${Date.now()}.csv`;
-            document.body.appendChild(a); a.click(); a.remove();
-            URL.revokeObjectURL(a.href);
-        } catch (e) {
-            showToast('Export failed', 'error');
-        }
-    });
-
-    loadAdminProfile();
+    // First load
     loadAll();
 });
-
-async function loadAll() {
-    await Promise.allSettled([
-        loadSummary(),
-        loadTimeseries(),
-        loadProducts(),
-        loadProviders(),
-        loadRefunds(),
-        loadCustomers(),
-        loadDaily()
-    ]);
-}
-
-async function loadAdminProfile() {
-    const { ok, data } = await api(API.me);
-    if (!ok || !data?.data?.user) return;
-    const u = data.data.user;
-    const name = u.username || u.email?.split('@')[0] || 'Admin';
-    const role = u.role || 'admin';
-    const initials = name.slice(0, 1).toUpperCase();
-    ['adminName','chipName'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = name; });
-    ['adminRole','chipRole'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = role.charAt(0).toUpperCase() + role.slice(1); });
-    ['adminAvatar','chipAvatar'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = initials; });
-}
-
-window.toggleNavGroup = toggleNavGroup;
-window.loadAll = loadAll;
 </script>
 </body>
 </html>

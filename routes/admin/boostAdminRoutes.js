@@ -1,13 +1,32 @@
 // routes/admin/boostAdminRoutes.js
 // ─────────────────────────────────────────────────────────────────
-// Admin Boost API.
+// Admin Boost API. Permission-guarded. 5xx never leaks internals.
+//
+//   GET  /boost/overview
+//   GET  /boost/orders
+//   GET  /boost/orders/:id
+//   PUT  /boost/orders/:id/status
+//   POST /boost/orders/:id/refund         (verified_at_provider for
+//                                          provider_unknown/manual_review)
+//   POST /boost/orders/:id/note
+//   POST /boost/orders/:id/recheck
+//   POST /boost/sync
+//   GET  /boost/services
+//   POST /boost/services/bulk             (accepts { ids | filters, patch })
+//   POST /boost/services/sync
+//   PUT  /boost/services/:id
+//   GET  /boost/provider                  (configured, dry_run, balance)
+//   GET  /boost/config                    (includes dry_run + smmwiz_configured)
+//   PUT  /boost/config                    (accepts `changes`, reason,
+//                                          expected_version, confirm_large_change)
+//   GET  /boost/alerts                    (task 25)
 // ─────────────────────────────────────────────────────────────────
 
 'use strict';
 
 const express = require('express');
 const router = express.Router();
-const { requirePermission, PERMISSIONS, recordAdminAction } = require('../../middleware/adminAuth');
+const { requirePermission, PERMISSIONS } = require('../../middleware/adminAuth');
 const { supabaseAdmin } = require('../../db/supabase');
 const boostService = require('../../services/boostService');
 const syncService  = require('../../services/boostSyncService');
@@ -15,7 +34,7 @@ const syncService  = require('../../services/boostSyncService');
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const SAFE_MESSAGES = {
-    PROVIDER_NOT_CONFIGURED:   'SMMWiz is not configured on this server. Set SMMWIZ_API_KEY and restart.',
+    PROVIDER_NOT_CONFIGURED:   'SMMWiz is not configured on this server.',
     PROVIDER_NETWORK:          'SMMWiz could not be reached. Try again shortly.',
     PROVIDER_ERROR:            'SMMWiz rejected the request.',
     SERVICE_NOT_FOUND:         'Service not found.',
@@ -27,7 +46,10 @@ const SAFE_MESSAGES = {
     INVALID_ID:                'Invalid identifier.',
     REASON_REQUIRED:           'A reason is required.',
     NOTE_REQUIRED:             'Note text is required.',
-    NOTE_SAVE_FAILED:          'Failed to save note.'
+    NOTE_SAVE_FAILED:          'Failed to save note.',
+    VERIFICATION_REQUIRED:     'This refund requires verified_at_provider=true (provider panel checked).',
+    REFUND_PENDING_RECONCILE:  'Refund recorded; wallet credit will be reconciled automatically.',
+    CONFIG_VERSION_REQUIRED:   'expectedVersion is required. Reload and retry.'
 };
 
 function sendOk(res, payload) { if (!res.headersSent) res.json({ success: true, ...payload }); }
@@ -41,48 +63,63 @@ function sendErr(res, err) {
     }
     const body = { success: false, code, error: message };
     if (err?.missing) body.missing = err.missing;
+    if (err?.required !== undefined) body.required = err.required;
+    if (err?.balance !== undefined) body.balance = err.balance;
+    if (err?.new_amount !== undefined) body.new_amount = err.new_amount;
+    if (err?.current_version !== undefined) body.current_version = err.current_version;
+    if (err?.refund_reference) body.refund_reference = err.refund_reference;
+    if (err?.allowed_transitions) body.allowed_transitions = err.allowed_transitions;
+    if (err?.keys) body.keys = err.keys;
+    if (err?.key) body.key = err.key;
+    if (err?.old_value !== undefined) body.old_value = err.old_value;
+    if (err?.new_value !== undefined) body.new_value = err.new_value;
     res.status(status).json(body);
 }
 function ctxFrom(req) {
     return {
         adminId: req.adminContext?.id || null,
         adminEmail: req.adminContext?.email || null,
+        permissions: req.adminContext?.permissions || [],
         ip: req.ip || req.headers['x-forwarded-for'] || null,
         userAgent: req.headers['user-agent'] || null,
         requestId: req.headers['x-request-id'] || null
     };
 }
 
-// ─── Overview ────────────────────────────────────────────────────
+// ─── Overview ─────────────────────────────────────────────────
 
-router.get(
-    '/boost/overview',
-    requirePermission(PERMISSIONS.SERVICES_READ),
-    async (req, res) => {
-        try {
-            const overview = await boostService.getOverview({
-                from: req.query.from || null,
-                to: req.query.to || null
-            });
-            sendOk(res, { overview });
-        } catch (err) { sendErr(res, err); }
-    }
-);
+router.get('/boost/overview', requirePermission(PERMISSIONS.SERVICES_READ), async (req, res) => {
+    try {
+        const overview = await boostService.getOverview({
+            range: req.query.range || null,
+            from: req.query.from || null,
+            to: req.query.to || null
+        });
+        sendOk(res, { overview });
+    } catch (err) { sendErr(res, err); }
+});
 
-// ─── Orders ──────────────────────────────────────────────────────
+// ─── Orders ───────────────────────────────────────────────────
 
 router.get(
     '/boost/orders',
     requirePermission(PERMISSIONS.ORDERS_READ),
     async (req, res) => {
         try {
+            // The Overview tile only needs rows, not a count. Skip the
+            // expensive exact count when limit is small and the caller
+            // is clearly a "recent orders" panel.
+            const wantsCount =
+                req.query.withCount === 'true' ||
+                parseInt(req.query.limit, 10) > 25 ||
+                Boolean(req.query.page);
             const result = await boostService.listOrders({
                 page: req.query.page, limit: req.query.limit,
                 status: req.query.status, platform: req.query.platform,
                 category: req.query.category, currency: req.query.currency,
                 user_id: req.query.user_id, from: req.query.from,
                 to: req.query.to, search: req.query.search
-            });
+            }, { withCount: wantsCount });
             sendOk(res, result);
         } catch (err) { sendErr(res, err); }
     }
@@ -106,9 +143,11 @@ router.put(
     async (req, res, next) => {
         if (!UUID_RE.test(String(req.params.id || ''))) return next();
         try {
-            const { status, note } = req.body || {};
+            const { status, note, verified_at_provider } = req.body || {};
             const result = await boostService.updateOrderStatus({
-                orderId: req.params.id, status, note, ctx: ctxFrom(req)
+                orderId: req.params.id, status, note,
+                verifiedAtProvider: !!verified_at_provider,
+                ctx: ctxFrom(req)
             });
             sendOk(res, result);
         } catch (err) { sendErr(res, err); }
@@ -121,17 +160,17 @@ router.post(
     async (req, res, next) => {
         if (!UUID_RE.test(String(req.params.id || ''))) return next();
         try {
-            const { reason, allow_non_failed } = req.body || {};
+            const { reason, allow_non_failed, verified_at_provider } = req.body || {};
             if (!reason || String(reason).trim().length < 4) {
                 const e = new Error('A reason is required.');
-                e.status = 422; e.code = 'REASON_REQUIRED';
-                throw e;
+                e.status = 422; e.code = 'REASON_REQUIRED'; throw e;
             }
             const result = await boostService.refundOrder({
                 orderId: req.params.id,
                 reason: String(reason).slice(0, 500),
                 ctx: ctxFrom(req),
-                allowNonFailed: !!allow_non_failed
+                allowNonFailed: !!allow_non_failed,
+                verifiedAtProvider: !!verified_at_provider
             });
             sendOk(res, result);
         } catch (err) { sendErr(res, err); }
@@ -147,8 +186,7 @@ router.post(
             const { note } = req.body || {};
             if (!note || String(note).trim().length < 2) {
                 const e = new Error('Note text is required.');
-                e.status = 422; e.code = 'NOTE_REQUIRED';
-                throw e;
+                e.status = 422; e.code = 'NOTE_REQUIRED'; throw e;
             }
             const { data: updated, error } = await supabaseAdmin
                 .from('boost_orders')
@@ -158,24 +196,45 @@ router.post(
                 .maybeSingle();
             if (error || !updated) {
                 const e = new Error('Failed to save note.');
-                e.status = 500; e.code = 'NOTE_SAVE_FAILED';
-                throw e;
+                e.status = 500; e.code = 'NOTE_SAVE_FAILED'; throw e;
             }
-            await recordAdminAction({
-                adminId: req.adminContext.id,
-                action: 'boost.order_note',
-                targetType: 'boost_order',
-                targetId: req.params.id,
-                reason: String(note).slice(0, 500),
-                req
-            });
+            try {
+                await supabaseAdmin.from('admin_audit_logs').insert({
+                    admin_id: req.adminContext?.id || null,
+                    admin_email: req.adminContext?.email || null,
+                    action: 'boost.order_note',
+                    target_type: 'boost_order',
+                    target_id: req.params.id,
+                    reason: String(note).slice(0, 500),
+                    created_at: new Date().toISOString()
+                });
+            } catch (_) {}
             sendOk(res, { order: boostService.shapeOrder(updated) });
         } catch (err) { sendErr(res, err); }
     }
 );
 
-// ─── Sync ────────────────────────────────────────────────────────
-// Returns honest diagnostics when SMMWiz isn't configured.
+router.post(
+    '/boost/orders/:id/recheck',
+    requirePermission(PERMISSIONS.ORDERS_READ),
+    async (req, res, next) => {
+        if (!UUID_RE.test(String(req.params.id || ''))) return next();
+        try {
+            const { data: order } = await supabaseAdmin
+                .from('boost_orders').select('*').eq('id', req.params.id).maybeSingle();
+            if (!order) {
+                const e = new Error('Order not found.'); e.status = 404; e.code = 'BOOST_NOT_FOUND'; throw e;
+            }
+            const r = await syncService.syncBoostOrder(order)
+                .catch(err => ({ updated: false, error: err.message }));
+            const { data: fresh } = await supabaseAdmin
+                .from('boost_orders').select('*').eq('id', order.id).maybeSingle();
+            sendOk(res, { refreshed: !!r.updated, order: boostService.shapeOrder(fresh || order) });
+        } catch (err) { sendErr(res, err); }
+    }
+);
+
+// ─── Sync (submissions + status) ──────────────────────────────
 
 router.post(
     '/boost/sync',
@@ -184,20 +243,21 @@ router.post(
         try {
             if (!syncService.isProviderConfigured()) {
                 return res.status(503).json({
-                    success: false,
-                    code: 'PROVIDER_NOT_CONFIGURED',
-                    error: 'SMMWiz is not configured on this server. Set SMMWIZ_API_KEY and restart.',
+                    success: false, code: 'PROVIDER_NOT_CONFIGURED',
+                    error: SAFE_MESSAGES.PROVIDER_NOT_CONFIGURED,
                     missing: 'SMMWIZ_API_KEY'
                 });
             }
             const submit = await syncService.submitPendingBoostOrders({ limit: 25 });
             const sweep  = await syncService.syncPendingBoostOrders({ limit: 100 });
-            sendOk(res, { submit, sweep });
+            sendOk(res, { submit, sweep, dry_run: syncService.isDryRun() });
         } catch (err) { sendErr(res, err); }
     }
 );
 
-// ─── Services ────────────────────────────────────────────────────
+// ─── Services ─────────────────────────────────────────────────
+// NOTE: /bulk is declared BEFORE /:id so POST /services/bulk never
+// falls through to PUT /services/:id.
 
 router.get(
     '/boost/services',
@@ -209,7 +269,44 @@ router.get(
                 active: req.query.active, visible: req.query.visible,
                 platform: req.query.platform, category: req.query.category,
                 search: req.query.search
+            }, { withPricing: true });
+            sendOk(res, result);
+        } catch (err) { sendErr(res, err); }
+    }
+);
+
+router.post(
+    '/boost/services/bulk',
+    requirePermission(PERMISSIONS.SERVICES_MANAGE),
+    async (req, res) => {
+        try {
+            // Task 13: accept BOTH `filter` (legacy) and `filters`.
+            const body = req.body || {};
+            const ids = body.ids;
+            const filters = body.filters || body.filter || null;
+            const patch = body.patch || {};
+
+            const result = await boostService.bulkUpdateServices({
+                ids, filters, patch, ctx: ctxFrom(req)
             });
+            sendOk(res, result);
+        } catch (err) { sendErr(res, err); }
+    }
+);
+
+router.post(
+    '/boost/services/sync',
+    requirePermission(PERMISSIONS.SERVICES_MANAGE),
+    async (req, res) => {
+        try {
+            if (!syncService.isProviderConfigured()) {
+                return res.status(503).json({
+                    success: false, code: 'PROVIDER_NOT_CONFIGURED',
+                    error: SAFE_MESSAGES.PROVIDER_NOT_CONFIGURED,
+                    missing: 'SMMWIZ_API_KEY'
+                });
+            }
+            const result = await syncService.syncServiceCatalog();
             sendOk(res, result);
         } catch (err) { sendErr(res, err); }
     }
@@ -231,133 +328,55 @@ router.put(
     }
 );
 
-router.post(
-    '/boost/services/sync',
-    requirePermission(PERMISSIONS.SERVICES_MANAGE),
+// ─── Provider info ────────────────────────────────────────────
+
+router.get(
+    '/boost/provider',
+    requirePermission(PERMISSIONS.SERVICES_READ),
     async (req, res) => {
         try {
-            if (!syncService.isProviderConfigured()) {
-                return res.status(503).json({
-                    success: false,
-                    code: 'PROVIDER_NOT_CONFIGURED',
-                    error: 'SMMWiz is not configured on this server. Set SMMWIZ_API_KEY and restart.',
-                    missing: 'SMMWIZ_API_KEY'
-                });
-            }
-            const raw = await syncService.callSmmWiz({ action: 'services' });
-            const list = Array.isArray(raw) ? raw : (raw?.services || []);
-
-            let created = 0, updated = 0;
-            const errors = [];
-
-            for (const s of list) {
-                try {
-                    const providerServiceId = String(s.service);
-                    const platform = detectPlatform(s.name, s.category);
-                    const category = detectCategory(s.name, s.category);
-
-                    const { data: existing } = await supabaseAdmin
-                        .from('boost_services')
-                        .select('id, active, visible_to_users, markup_percent, custom_price, min_quantity, max_quantity, name, description')
-                        .eq('provider', 'smmwiz')
-                        .eq('provider_service_id', providerServiceId)
-                        .maybeSingle();
-
-                    if (existing) {
-                        await supabaseAdmin
-                            .from('boost_services')
-                            .update({
-                                provider_rate: Number(s.rate) || null,
-                                min_quantity: existing.min_quantity ?? (Number(s.min) || null),
-                                max_quantity: existing.max_quantity ?? (Number(s.max) || null),
-                                updated_at: new Date().toISOString()
-                            })
-                            .eq('id', existing.id);
-                        updated++;
-                    } else {
-                        await supabaseAdmin
-                            .from('boost_services')
-                            .insert({
-                                provider: 'smmwiz',
-                                provider_service_id: providerServiceId,
-                                name: String(s.name || `Service ${providerServiceId}`).slice(0, 200),
-                                description: String(s.name || '').slice(0, 500),
-                                platform,
-                                category,
-                                active: false,
-                                visible_to_users: false,
-                                provider_rate: Number(s.rate) || null,
-                                min_quantity: Number(s.min) || null,
-                                max_quantity: Number(s.max) || null,
-                                refill_allowed: Boolean(s.refill),
-                                sort_order: 100,
-                                created_at: new Date().toISOString(),
-                                updated_at: new Date().toISOString()
-                            });
-                        created++;
-                    }
-                } catch (e) {
-                    errors.push({ service: s.service, message: e.message });
-                }
-            }
-            sendOk(res, { created, updated, errors, total_provider_services: list.length });
+            const balance = await syncService.getProviderBalance();
+            sendOk(res, {
+                configured: syncService.isProviderConfigured(),
+                dry_run: syncService.isDryRun(),
+                balance
+            });
         } catch (err) { sendErr(res, err); }
     }
 );
 
-function detectPlatform(name, category) {
-    const src = `${name || ''} ${category || ''}`.toLowerCase();
-    if (src.includes('instagram')) return 'instagram';
-    if (src.includes('tiktok'))    return 'tiktok';
-    if (src.includes('youtube'))   return 'youtube';
-    if (src.includes('facebook'))  return 'facebook';
-    if (src.includes('twitter') || src.includes(' x ')) return 'twitter';
-    if (src.includes('telegram'))  return 'telegram';
-    if (src.includes('whatsapp'))  return 'whatsapp';
-    if (src.includes('discord'))   return 'discord';
-    if (src.includes('spotify'))   return 'spotify';
-    return 'other';
-}
-function detectCategory(name, category) {
-    const src = `${name || ''} ${category || ''}`.toLowerCase();
-    if (src.includes('follower'))   return 'followers';
-    if (src.includes('like'))       return 'likes';
-    if (src.includes('view') || src.includes('impression')) return 'views';
-    if (src.includes('comment'))    return 'comments';
-    if (src.includes('share'))      return 'shares';
-    if (src.includes('subscriber')) return 'subscribers';
-    if (src.includes('member'))     return 'members';
-    return 'other';
-}
+// ─── Alerts (task 25) ─────────────────────────────────────────
 
-// ─── Config ──────────────────────────────────────────────────────
+router.get(
+    '/boost/alerts',
+    requirePermission(PERMISSIONS.SERVICES_READ),
+    async (req, res) => {
+        try {
+            // Balance first so alerts can flag low-balance.
+            let providerBalanceUsd = null;
+            try {
+                const b = await syncService.getProviderBalance();
+                providerBalanceUsd = (b && typeof b.balance === 'number') ? b.balance : null;
+            } catch (_) {}
+
+            const alerts = await boostService.getAlerts(providerBalanceUsd);
+            sendOk(res, { alerts, provider: { balance_usd: providerBalanceUsd, dry_run: syncService.isDryRun() } });
+        } catch (err) { sendErr(res, err); }
+    }
+);
+
+// ─── Config ───────────────────────────────────────────────────
 
 router.get(
     '/boost/config',
     requirePermission(PERMISSIONS.SERVICES_READ),
     async (req, res) => {
         try {
-            const [usdRate, markup] = await Promise.all([
-                boostService.getUsdToNgnRate(),
-                boostService.getDefaultMarkup()
-            ]);
-            const keys = ['boost_system_enabled', 'boost_allow_ngn', 'boost_allow_usd', 'boost_auto_sync_enabled'];
-            const { data } = await supabaseAdmin.from('app_config').select('key, value').in('key', keys);
-            const flags = {};
-            for (const r of data || []) {
-                flags[r.key] = r.value === 'true' || r.value === true;
-            }
-            sendOk(res, {
-                config: {
-                    usd_to_ngn: usdRate,
-                    markup_percent: markup * 100,
-                    smmwiz_configured: syncService.isProviderConfigured(),
-                    enabled: flags.boost_system_enabled ?? true,
-                    allow_ngn: flags.boost_allow_ngn ?? true,
-                    allow_usd: flags.boost_allow_usd ?? true,
-                    auto_sync_enabled: flags.boost_auto_sync_enabled ?? true
-                }
-            });
+            const config = await boostService.getAdminConfig();
+            // Task 12: add these two so the UI can show banners.
+            config.smmwiz_configured = syncService.isProviderConfigured();
+            config.dry_run = syncService.isDryRun();
+            sendOk(res, { config });
         } catch (err) { sendErr(res, err); }
     }
 );
@@ -367,38 +386,44 @@ router.put(
     requirePermission(PERMISSIONS.SERVICES_MANAGE),
     async (req, res) => {
         try {
-            const b = req.body || {};
-            const now = new Date().toISOString();
-            const rows = [];
-            if (b.usd_to_ngn !== undefined) rows.push({ key: 'usd_to_ngn', value: String(b.usd_to_ngn), updated_at: now });
-            if (b.markup_percent !== undefined) {
-                const pct = Number(b.markup_percent);
-                if (Number.isFinite(pct)) {
-                    const dec = pct > 1 ? pct / 100 : pct;
-                    rows.push({ key: 'boost_markup_pct', value: String(dec), updated_at: now });
-                }
+            // Task 11: UI sends `changes`, not `patch`.
+            const body = req.body || {};
+            const changes = body.changes || body.patch || null;
+            if (!changes || typeof changes !== 'object') {
+                return res.status(422).json({
+                    success: false, code: 'INVALID_PATCH',
+                    error: 'A `changes` object is required.'
+                });
             }
-            if (b.enabled !== undefined) rows.push({ key: 'boost_system_enabled', value: String(!!b.enabled), updated_at: now });
-            if (b.allow_ngn !== undefined) rows.push({ key: 'boost_allow_ngn', value: String(!!b.allow_ngn), updated_at: now });
-            if (b.allow_usd !== undefined) rows.push({ key: 'boost_allow_usd', value: String(!!b.allow_usd), updated_at: now });
-            if (b.auto_sync_enabled !== undefined) rows.push({ key: 'boost_auto_sync_enabled', value: String(!!b.auto_sync_enabled), updated_at: now });
-
-            if (rows.length) {
-                const { error } = await supabaseAdmin.from('app_config').upsert(rows, { onConflict: 'key' });
-                if (error) throw error;
-            }
-
-            await recordAdminAction({
-                adminId: req.adminContext.id,
-                action: 'boost.config_update',
-                targetType: 'boost_config',
-                targetId: 'global',
-                after: b,
-                req
+            const result = await boostService.saveAdminConfig({
+                changes,
+                reason: body.reason || null,
+                expectedVersion: body.expected_version != null ? body.expected_version : null,
+                confirmLargeChange: !!body.confirm_large_change,
+                ctx: ctxFrom(req)
             });
-
-            sendOk(res, { ok: true });
-        } catch (err) { sendErr(res, err); }
+            sendOk(res, { result });
+        } catch (err) {
+            if (err.code === 'LARGE_CHANGE_REQUIRES_CONFIRMATION') {
+                return res.status(422).json({
+                    success: false, code: err.code, error: err.message,
+                    key: err.key, old_value: err.old_value, new_value: err.new_value
+                });
+            }
+            if (err.code === 'CONFIG_VERSION_CONFLICT') {
+                return res.status(409).json({
+                    success: false, code: err.code, error: err.message,
+                    current_version: err.current_version
+                });
+            }
+            if (err.code === 'CONFIG_VERSION_REQUIRED') {
+                return res.status(409).json({
+                    success: false, code: err.code,
+                    error: SAFE_MESSAGES.CONFIG_VERSION_REQUIRED
+                });
+            }
+            sendErr(res, err);
+        }
     }
 );
 

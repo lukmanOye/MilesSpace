@@ -2,16 +2,28 @@
 // ─────────────────────────────────────────────────────────────────
 // Airtime — service layer.
 //
-// The Airtime admin shows a UNION of TWO provider tables:
+// Reads from admin_airtime_orders_v (UNION of DT One + VTpass).
+// Writes dispatch to the correct table by row source.
 //
-//   • airtime_transactions        — DT One (Global Airtime)
-//   • bill_payment_transactions   — VTpass, service_type = 'airtime'
+// Batch 7 changes (2026-11-08):
+//   • getOverview returns byWallet.{USD,NGN} on BOTH the RPC path
+//     and the fallback view path, so the admin UI can render the
+//     wallet split bar and the two "Paid from X wallet" KPIs.
+//   • listOrders accepts a `wallet=USD|NGN|all` query filter (Part C3).
+//   • listOrders response includes the new wallet/payment fields
+//     (wallet_type, payment_amount, payment_currency, send_amount_usd,
+//     fee_usd, fee_percent, fx_usd_ngn, ledger_transaction_id,
+//     refund_reference) — Part C2 (list side).
+//   • normalizeRow exposes the same fields so getOrder's drawer
+//     Payment section renders correctly — Part C2 (detail side).
+//   • getOrder top-level response also carries these fields for
+//     convenience.
 //
-// Read paths merge both. Write paths (sync, retry, refund, review)
-// dispatch to the correct table based on the row's `provider` field.
-//
-// Everything else — the state machine, atomic finalization, safe
-// retry, provider health — is unchanged and provider-agnostic.
+// Batch 5 changes (unchanged):
+//   • getOverview calls the RPC `admin_airtime_overview` (renamed
+//     from `airtime_overview`, and takes p_scope). Falls back to a
+//     view query if the RPC is not yet deployed.
+//   • buildTimeline reads failure_reason on VTpass rows too.
 // ─────────────────────────────────────────────────────────────────
 
 'use strict';
@@ -30,8 +42,6 @@ const MAX_LIMIT = 200;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Airtime order statuses across both providers. DT One + VTpass
-// together produce this set. The admin treats them all as valid.
 const ORDER_STATUSES = new Set([
     'pending', 'processing', 'completed', 'failed', 'refunded',
     'manual_review', 'cancelled', 'reversed', 'provider_unknown',
@@ -45,9 +55,6 @@ const PENDING_STATUSES = new Set([
 ]);
 const FAILED_STATUSES = new Set(['failed', 'cancelled', 'reversed']);
 
-// State machine used only for admin-initiated transitions. The
-// customer flows write their own statuses; we never rewrite them
-// from here unless the admin is explicitly acting.
 const ALLOWED_TRANSITIONS = Object.freeze({
     pending:                 ['processing', 'cancelled', 'failed', 'reconciliation_required'],
     processing:              ['provider_pending', 'reconciliation_required', 'completed', 'failed'],
@@ -182,9 +189,7 @@ function summarizeProviderPayload(raw) {
 }
 
 // ═════════════════════════════════════════════════════════════════
-//  ROUTING — still backed by airtime_provider_routes, but reads
-//  a fallback default so the module works even before that table
-//  is populated.
+//  ROUTING
 // ═════════════════════════════════════════════════════════════════
 
 async function resolveProvider({ countryIso3, networkCode = null }) {
@@ -219,7 +224,6 @@ async function resolveProvider({ countryIso3, networkCode = null }) {
 
     if (data?.provider) return String(data.provider).toLowerCase();
 
-    // Fallback defaults so the module is usable without a routing table.
     if (country === 'NGA') return 'vtpass';
     return 'dtone';
 }
@@ -233,7 +237,6 @@ async function listRouting() {
         .order('priority', { ascending: true });
 
     if (error) {
-        // Table missing — return the hardcoded defaults so the UI still works.
         if (error.code === '42P01') {
             return [
                 { country: 'NGA', network: null, provider: 'vtpass', priority: 1, enabled: true, source: 'default' },
@@ -271,6 +274,12 @@ async function setRouting({ countryIso3, networkCode = null, primaryProvider, en
     }
     if (!reason || String(reason).trim().length < 4) {
         const e = new Error('A reason is required.'); e.status = 422; e.code = 'REASON_REQUIRED'; throw e;
+    }
+
+    // Sanity: VTpass only serves Nigeria.
+    if (provider === 'vtpass' && country !== 'NGA') {
+        const e = new Error('VTpass only serves Nigeria. Use DT One for other countries.');
+        e.status = 422; e.code = 'INVALID_PROVIDER'; throw e;
     }
 
     const network = networkCode ? String(networkCode).toUpperCase() : null;
@@ -349,7 +358,7 @@ async function setRouting({ countryIso3, networkCode = null, primaryProvider, en
 }
 
 // ═════════════════════════════════════════════════════════════════
-//  PROVIDER STATE — three-state classification
+//  PROVIDER STATE
 // ═════════════════════════════════════════════════════════════════
 
 async function resolveProviderState(order) {
@@ -394,18 +403,14 @@ async function resolveProviderState(order) {
 
 // ═════════════════════════════════════════════════════════════════
 //  ROW NORMALIZATION
-//
-//  Both underlying tables are shaped differently. `normalizeRow`
-//  produces a single canonical shape so the rest of the service,
-//  and the admin UI, never have to care where the row came from.
 // ═════════════════════════════════════════════════════════════════
 
 function normalizeRow(raw, source, profile) {
     if (source === 'dtone') {
-        // From airtime_transactions
         return {
             id: raw.id,
             source: 'dtone',
+            scope: 'global',
             order_ref: raw.reference,
             provider: 'dtone',
             provider_transaction_id: raw.provider_transaction_id || null,
@@ -425,10 +430,23 @@ function normalizeRow(raw, source, profile) {
             phone_masked: maskPhone(raw.phone_number),
             amount: raw.destination_amount ?? null,
             currency: raw.destination_currency || null,
-            customer_price_ngn: raw.currency === 'NGN' ? (raw.total_amount ?? null) : null,
-            provider_cost_ngn: raw.provider_currency === 'NGN' ? (raw.provider_cost ?? null) : null,
-            provider_cost_usd: raw.provider_currency === 'USD' ? (raw.provider_cost ?? null) : null,
-            fx_rate: raw.exchange_rate ?? null,
+            customer_price_ngn: raw.customer_total_ngn ?? (raw.currency === 'NGN' ? raw.total_amount ?? null : null),
+            provider_cost_ngn: raw.provider_cost_ngn ?? null,
+            provider_cost_usd: raw.provider_cost_usd ?? null,
+            margin_ngn: raw.margin_ngn ?? null,
+            fx_rate: raw.fx_usd_ngn ?? raw.exchange_rate ?? null,
+            send_amount_usd: raw.send_amount_usd ?? null,
+            fee_amount: raw.fee_usd ?? null,
+            // NEW (Part C2, detail side): expose the wallet/payment fields
+            // so the admin drawer's Payment section renders correctly.
+            fee_usd: raw.fee_usd ?? null,
+            fee_percent: raw.fee_percent ?? null,
+            fx_usd_ngn: raw.fx_usd_ngn ?? null,
+            wallet_type: raw.wallet_type ?? ((raw.currency || '').toUpperCase() || null),
+            payment_amount: raw.payment_amount ?? raw.total_amount ?? null,
+            payment_currency: raw.payment_currency ?? raw.currency ?? null,
+            refund_reference: raw.refund_reference ?? null,
+            idempotency_key: raw.idempotency_key ?? null,
             failure_code: raw.failure_code || null,
             failure_reason: raw.failure_message || null,
             transaction_id: raw.ledger_transaction_id || null,
@@ -443,10 +461,10 @@ function normalizeRow(raw, source, profile) {
         };
     }
 
-    // From bill_payment_transactions (VTpass airtime)
     return {
         id: raw.id,
         source: 'vtpass',
+        scope: 'local',
         order_ref: raw.reference,
         provider: 'vtpass',
         provider_transaction_id: raw.provider_transaction_id || null,
@@ -469,7 +487,19 @@ function normalizeRow(raw, source, profile) {
         customer_price_ngn: raw.customer_amount ?? null,
         provider_cost_ngn: raw.provider_amount ?? null,
         provider_cost_usd: null,
+        margin_ngn: raw.margin_ngn ?? null,
         fx_rate: null,
+        send_amount_usd: null,
+        fee_amount: raw.service_fee ?? null,
+        // NEW (Part C2, detail side): VTpass is always NGN.
+        fee_usd: null,
+        fee_percent: null,
+        fx_usd_ngn: null,
+        wallet_type: 'NGN',
+        payment_amount: raw.customer_amount ?? null,
+        payment_currency: 'NGN',
+        refund_reference: null,
+        idempotency_key: raw.idempotency_key ?? null,
         failure_code: raw.provider_code || null,
         failure_reason: raw.failure_reason || null,
         transaction_id: raw.ledger_transaction_id || null,
@@ -485,7 +515,7 @@ function normalizeRow(raw, source, profile) {
 }
 
 // ═════════════════════════════════════════════════════════════════
-//  ORDERS — list (UNION of both tables)
+//  ORDERS — list (reads admin_airtime_orders_v)
 // ═════════════════════════════════════════════════════════════════
 
 async function listOrders(query = {}) {
@@ -495,113 +525,105 @@ async function listOrders(query = {}) {
 
     const fromIso = isoDate(query.from);
     const toIso = isoDate(query.to);
-    const providerFilter = query.provider && query.provider !== 'all'
-        ? String(query.provider).toLowerCase()
-        : null;
-    const statusFilter = query.status && query.status !== 'all'
-        ? String(query.status).toLowerCase()
-        : null;
+    const scope = query.scope && ['all', 'local', 'global'].includes(String(query.scope).toLowerCase())
+        ? String(query.scope).toLowerCase() : 'all';
 
-    const wantDtone  = !providerFilter || providerFilter === 'dtone';
-    const wantVtpass = !providerFilter || providerFilter === 'vtpass';
-    const isNigerianOnly = query.country && String(query.country).toUpperCase() !== 'NGA';
-    const includeVtpass = wantVtpass && !isNigerianOnly;
+    let q = supabaseAdmin
+        .from('admin_airtime_orders_v')
+        .select('*', { count: 'exact' });
 
-    // ── Query DT One table ──────────────────────────────────────
-    const dtonePromise = wantDtone
-        ? (async () => {
-            let q = supabaseAdmin
-                .from('airtime_transactions')
-                .select('*', { count: 'exact' })
-                .order('created_at', { ascending: false })
-                .limit(Math.min(MAX_LIMIT, limit * 4)); // fetch extra for the merge
+    if (scope === 'local') q = q.eq('scope', 'local');
+    if (scope === 'global') q = q.eq('scope', 'global');
+    if (query.status && query.status !== 'all') q = q.eq('status', String(query.status).toLowerCase());
+    if (query.provider && query.provider !== 'all') q = q.eq('provider', String(query.provider).toLowerCase());
+    // Part C3: wallet filter — 'USD' | 'NGN' | 'all' (default)
+    if (query.wallet && query.wallet !== 'all') {
+        const w = String(query.wallet).toUpperCase();
+        if (w === 'USD' || w === 'NGN') q = q.eq('wallet_type', w);
+    }
+    if (query.country) q = q.eq('country_iso3', String(query.country).toUpperCase());
+    if (query.network) q = q.eq('network_code', query.network);
+    if (query.user_id && UUID_RE.test(query.user_id)) q = q.eq('user_id', query.user_id);
+    if (fromIso) q = q.gte('created_at', fromIso);
+    if (toIso)   q = q.lte('created_at', toIso);
+    if (query.amountMin != null) q = q.gte('customer_total_ngn', query.amountMin);
+    if (query.amountMax != null) q = q.lte('customer_total_ngn', query.amountMax);
 
-            if (statusFilter && ORDER_STATUSES.has(statusFilter)) q = q.eq('status', statusFilter);
-            if (query.country) q = q.eq('country_code', String(query.country).toUpperCase());
-            if (query.network) q = q.eq('operator_id', query.network);
-            if (query.user_id && UUID_RE.test(query.user_id)) q = q.eq('user_id', query.user_id);
-            if (fromIso) q = q.gte('created_at', fromIso);
-            if (toIso) q = q.lte('created_at', toIso);
-            if (query.search) {
-                const safe = String(query.search).trim().replace(/[%_]/g, m => '\\' + m);
-                q = q.or(`reference.ilike.%${safe}%,phone_number.ilike.%${safe}%,provider_transaction_id.ilike.%${safe}%,dtone_external_id.ilike.%${safe}%`);
-            }
-            const { data, error } = await q;
-            if (error) {
-                if (error.code === '42P01') return [];
-                console.warn('[AIRTIME] dtone list error:', error.message);
-                return [];
-            }
-            return (data || []).map(r => normalizeRow(r, 'dtone', null));
-        })()
-        : Promise.resolve([]);
-
-    // ── Query VTpass table ─────────────────────────────────────
-    // VTpass airtime is stored with service_type='airtime'.
-    const vtpassPromise = includeVtpass
-        ? (async () => {
-            let q = supabaseAdmin
-                .from('bill_payment_transactions')
-                .select('*', { count: 'exact' })
-                .eq('service_type', 'airtime')
-                .order('created_at', { ascending: false })
-                .limit(Math.min(MAX_LIMIT, limit * 4));
-
-            if (statusFilter && ORDER_STATUSES.has(statusFilter)) q = q.eq('status', statusFilter);
-            if (query.network) q = q.eq('network', query.network);
-            if (query.user_id && UUID_RE.test(query.user_id)) q = q.eq('user_id', query.user_id);
-            if (fromIso) q = q.gte('created_at', fromIso);
-            if (toIso) q = q.lte('created_at', toIso);
-            if (query.search) {
-                const safe = String(query.search).trim().replace(/[%_]/g, m => '\\' + m);
-                q = q.or(`reference.ilike.%${safe}%,recipient.ilike.%${safe}%,provider_request_id.ilike.%${safe}%,provider_transaction_id.ilike.%${safe}%`);
-            }
-            const { data, error } = await q;
-            if (error) {
-                if (error.code === '42P01') return [];
-                console.warn('[AIRTIME] vtpass list error:', error.message);
-                return [];
-            }
-            return (data || []).map(r => normalizeRow(r, 'vtpass', null));
-        })()
-        : Promise.resolve([]);
-
-    const [dtoneRows, vtpassRows] = await Promise.all([dtonePromise, vtpassPromise]);
-
-    // Merge + sort + paginate in Node.
-    const merged = [...dtoneRows, ...vtpassRows]
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    const total = merged.length;
-    const pageRows = merged.slice(offset, offset + limit);
-
-    // Load profiles once for the page.
-    const userIds = [...new Set(pageRows.map(o => o.user_id).filter(Boolean))];
-    let profilesById = {};
-    if (userIds.length) {
-        const { data: profiles } = await supabaseAdmin
-            .from('profiles')
-            .select('id, username, email')
-            .in('id', userIds);
-        for (const p of profiles || []) profilesById[p.id] = p;
+    if (query.search) {
+        const safe = String(query.search).trim().replace(/[%_,]/g, m => '\\' + m);
+        q = q.or(
+            `order_ref.ilike.%${safe}%,` +
+            `phone.ilike.%${safe}%,` +
+            `provider_reference.ilike.%${safe}%,` +
+            `provider_transaction_id.ilike.%${safe}%,` +
+            `username.ilike.%${safe}%,` +
+            `email.ilike.%${safe}%`
+        );
     }
 
-    const orders = pageRows.map(o => {
-        const profile = profilesById[o.user_id];
-        if (profile) {
-            o.user = {
-                id: profile.id,
-                username: profile.username || (profile.email ? profile.email.split('@')[0] : 'User'),
-                email: profile.email || null
-            };
+    q = q.order('created_at', { ascending: false }).order('id', { ascending: false }).range(offset, offset + limit - 1);
+
+    const { data, error, count } = await q;
+    if (error) {
+        if (error.code === '42P01') {
+            return { orders: [], count: 0, page, limit, totalPages: 0, hasMore: false, available: false, reason: 'VIEW_MISSING' };
         }
-        return o;
-    });
+        const e = new Error('Failed to load airtime orders');
+        e.status = 500; e.code = 'AIRTIME_LIST_ERROR';
+        e.cause = error.message;
+        throw e;
+    }
+
+    const total = count || 0;
+    const orders = (data || []).map(r => ({
+        id:               r.id,
+        source:           r.source,
+        scope:            r.scope,
+        provider:         r.provider,
+        order_ref:        r.order_ref,
+        user_id:          r.user_id,
+        user:             { id: r.user_id, username: r.username || 'Unknown', email: r.email || null },
+        status:           r.status,
+        status_badge:     statusBadge(r.status),
+        country_iso3:     r.country_iso3,
+        country_name:     r.country_name,
+        network_code:     r.network_code,
+        network_name:     r.network_name,
+        phone_masked:     maskPhone(r.phone),
+        recipient_amount: r.recipient_amount,
+        recipient_currency: r.recipient_currency,
+        amount:           r.customer_paid_amount,
+        currency:         r.customer_paid_currency,
+        customer_price_ngn: r.customer_total_ngn,
+        provider_cost_ngn:  r.provider_cost_ngn,
+        margin_ngn:         r.margin_ngn,
+        fee_amount:         r.fee_amount,
+        fx_rate:            r.fx_usd_ngn,
+        failure_code:       r.failure_code,
+        failure_reason:     r.failure_reason,
+        provider_reference: r.provider_reference,
+        provider_transaction_id: r.provider_transaction_id,
+        transaction_id:     r.ledger_transaction_id,
+        refunded:           Boolean(r.refunded),
+        created_at:         r.created_at,
+        updated_at:         r.updated_at,
+        completed_at:       r.completed_at,
+        failed_at:          r.failed_at,
+
+        // ── Part C2: wallet + payment fields the admin UI displays ──
+        wallet_type:        r.wallet_type || (r.customer_paid_currency || r.currency || '').toUpperCase() || null,
+        payment_amount:     r.payment_amount ?? r.customer_paid_amount ?? null,
+        payment_currency:   r.payment_currency || r.customer_paid_currency || r.currency || null,
+        send_amount_usd:    r.send_amount_usd ?? null,
+        fee_usd:            r.fee_usd ?? null,
+        fee_percent:        r.fee_percent ?? null,
+        fx_usd_ngn:         r.fx_usd_ngn ?? null,
+        ledger_transaction_id: r.ledger_transaction_id || null,
+        refund_reference:   r.refund_reference || null
+    }));
 
     return {
-        orders,
-        count: total,
-        page,
-        limit,
+        orders, count: total, page, limit,
         totalPages: Math.ceil(total / limit),
         hasMore: page * limit < total,
         available: true
@@ -609,123 +631,197 @@ async function listOrders(query = {}) {
 }
 
 // ═════════════════════════════════════════════════════════════════
-//  OVERVIEW
+//  OVERVIEW — RPC admin_airtime_overview, fallback to view query
 // ═════════════════════════════════════════════════════════════════
 
 async function getOverview(query = {}) {
     const fromIso = isoDate(query.from) || startOfWatDay();
-    const toIso = isoDate(query.to) || new Date().toISOString();
+    const toIso   = isoDate(query.to)   || new Date().toISOString();
+    const scope = query.scope && ['all', 'local', 'global'].includes(String(query.scope).toLowerCase())
+        ? String(query.scope).toLowerCase() : 'all';
 
-    // Try the RPC first, in case it's deployed against airtime_transactions.
-    const rpc = await supabaseAdmin.rpc('airtime_overview', { p_from: fromIso, p_to: toIso });
-    if (!rpc.error && rpc.data) {
-        const row = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-        return {
-            total: Number(row.total || 0),
-            completed: Number(row.completed || 0),
-            pending: Number(row.pending || 0),
-            failed: Number(row.failed || 0),
-            refunded: Number(row.refunded || 0),
-            salesNgn:  String(row.sales_ngn  || '0.00'),
-            costNgn:   String(row.cost_ngn   || '0.00'),
-            marginNgn: String(row.margin_ngn || '0.00'),
-            providers: {
-                dtone: {
-                    orders: Number(row.dtone_orders || 0),
-                    completed: Number(row.dtone_completed || 0),
-                    pending: Number(row.dtone_pending || 0),
-                    failed: Number(row.dtone_failed || 0),
-                    salesNgn: String(row.dtone_sales_ngn || '0.00'),
-                    costNgn: String(row.dtone_cost_ngn || '0.00'),
-                    marginNgn: String(row.dtone_margin_ngn || '0.00')
+    // ── 1. Try the RPC ─────────────────────────────────────────
+    try {
+        const { data, error } = await supabaseAdmin.rpc('admin_airtime_overview', {
+            p_from: fromIso, p_to: toIso, p_scope: scope
+        });
+        if (!error && data) {
+            const row = typeof data === 'string' ? JSON.parse(data) : data;
+            const num = v => Number(v || 0);
+            const str = v => (v == null ? null : String(v));
+            const norm = (s) => {
+                const src = s || {};
+                return {
+                    orders:        num(src.orders),
+                    completed:     num(src.completed),
+                    pending:       num(src.pending),
+                    failed:        num(src.failed),
+                    refunded:      num(src.refunded),
+                    manual_review: num(src.manual_review),
+                    salesNgn:      str(src.sales_ngn  ?? src.salesNgn)  || '0.00',
+                    costNgn:       str(src.cost_ngn   ?? src.costNgn)   || '0.00',
+                    marginNgn:     str(src.margin_ngn ?? src.marginNgn) || '0.00'
+                };
+            };
+                        const totals = norm(row.totals || row);
+            const global = norm(row.global);
+            const local  = norm(row.local);
+
+            // ── SANITY GUARD ─────────────────────────────────────
+            // The RPC is producing "Orders: 0 / Completed: 4" because
+            // its COUNT(*) is wrong. Fall through to the view query,
+            // which is authoritative, so the admin UI never shows
+            // contradictory numbers.
+            if (totals.completed > 0 && totals.orders === 0) {
+                console.warn('[AIRTIME] RPC totals.orders=0 but completed>0 — falling through to view query.');
+                throw new Error('RPC_INCONSISTENT');
+            }
+            // ─────────────────────────────────────────────────────
+
+            const successRate = totals.orders > 0
+                ? Math.round((totals.completed / totals.orders) * 1000) / 10 : 0;
+
+            // Part C4: wallet split — pass-through the RPC's shape
+            // if present, or derive it defensively from row.byWallet.
+            const byWallet = (() => {
+                const b = row.byWallet || {};
+                const pick = (src) => ({
+                    orders:       num(src?.orders),
+                    completed:    num(src?.completed),
+                    amount:       num(src?.amount),
+                    customer_ngn: num(src?.customer_ngn ?? src?.customerNgn)
+                });
+                return { USD: pick(b.USD), NGN: pick(b.NGN) };
+            })();
+
+            return {
+                total:        totals.orders,
+                completed:    totals.completed,
+                pending:      totals.pending,
+                failed:       totals.failed,
+                refunded:     totals.refunded,
+                manual_review:totals.manual_review,
+                salesNgn:     totals.salesNgn,
+                costNgn:      totals.costNgn,
+                marginNgn:    totals.marginNgn,
+                successRate,
+                byWallet,
+                scopes:       { local, global },
+                providers: {
+                    dtone:  { ...global },
+                    vtpass: { ...local }
                 },
-                vtpass: {
-                    orders: Number(row.vtpass_orders || 0),
-                    completed: Number(row.vtpass_completed || 0),
-                    pending: Number(row.vtpass_pending || 0),
-                    failed: Number(row.vtpass_failed || 0),
-                    salesNgn: String(row.vtpass_sales_ngn || '0.00'),
-                    costNgn: String(row.vtpass_cost_ngn || '0.00'),
-                    marginNgn: String(row.vtpass_margin_ngn || '0.00')
-                }
-            },
-            summaryAvailable: true,
+                series: {
+                    local:  Array.isArray(row.series_local)  ? row.series_local  : [],
+                    global: Array.isArray(row.series_global) ? row.series_global : []
+                },
+                summaryAvailable: true,
+                from: fromIso, to: toIso
+            };
+        }
+        if (error && error.code !== '42883' && error.code !== 'PGRST202') {
+            console.warn('[AIRTIME] RPC admin_airtime_overview failed:', error.message);
+        }
+    } catch (e) {
+        console.warn('[AIRTIME] RPC admin_airtime_overview threw:', e.message);
+    }
+
+    // ── 2. Fallback: query the view ────────────────────────────
+    // Part C4: select the wallet columns too so byWallet can be
+    // computed from the fallback path when the RPC is not deployed.
+    let q = supabaseAdmin
+        .from('admin_airtime_orders_v')
+        .select('scope, status, customer_total_ngn, provider_cost_ngn, margin_ngn, created_at, wallet_type, payment_amount, payment_currency, customer_paid_amount, customer_paid_currency')
+        .gte('created_at', fromIso)
+        .lte('created_at', toIso);
+    if (scope !== 'all') q = q.eq('scope', scope);
+
+    const { data: rows, error } = await q;
+    if (error) {
+        return {
+            total: 0, completed: 0, pending: 0, failed: 0, refunded: 0,
+            manual_review: 0,
+            salesNgn: '0.00', costNgn: '0.00', marginNgn: '0.00',
+            successRate: 0,
+            byWallet: { USD: { orders: 0, completed: 0, amount: 0, customer_ngn: 0 },
+                        NGN: { orders: 0, completed: 0, amount: 0, customer_ngn: 0 } },
+            scopes: { local: {}, global: {} },
+            providers: { dtone: {}, vtpass: {} },
+            series: { local: [], global: [] },
+            summaryAvailable: false,
             from: fromIso, to: toIso
         };
     }
 
-    // Compute the overview by fetching lightweight rows from both
-    // tables and folding them in Node. Acceptable at admin scale; if
-    // the tables grow, migrate to the RPC.
-    const buildFromTable = async (table, source, extraEq = {}) => {
-        let q = supabaseAdmin
-            .from(table)
-            .select('id, status, total_amount, customer_amount, provider_cost, provider_amount, currency, provider_currency, created_at')
-            .gte('created_at', fromIso)
-            .lte('created_at', toIso);
-        for (const [k, v] of Object.entries(extraEq)) q = q.eq(k, v);
-        const { data, error } = await q;
-        if (error) {
-            if (error.code === '42P01') return [];
-            console.warn(`[AIRTIME] overview ${table} error:`, error.message);
-            return [];
-        }
-        return (data || []).map(r => ({
-            source,
-            status: String(r.status || '').toLowerCase(),
-            salesNgn: r.currency === 'NGN' ? Number(r.total_amount ?? r.customer_amount ?? 0) : 0,
-            costNgn:  r.provider_currency === 'NGN'
-                ? Number(r.provider_cost ?? 0)
-                : (r.currency === 'NGN' ? Number(r.provider_amount ?? 0) : 0),
-            createdAt: r.created_at
-        }));
-    };
+    const isFailed   = s => ['failed','cancelled','reversed'].includes(s);
+    const isTerminal = s => ['completed','failed','cancelled','reversed','refunded'].includes(s);
 
-    const [dtoneRows, vtpassRows] = await Promise.all([
-        buildFromTable('airtime_transactions', 'dtone'),
-        buildFromTable('bill_payment_transactions', 'vtpass', { service_type: 'airtime' })
-    ]);
-
-    const all = [...dtoneRows, ...vtpassRows];
-
-    const isCompleted = s => s === 'completed';
-    const isFailed    = s => s === 'failed' || s === 'cancelled' || s === 'reversed';
-    const isRefunded  = s => s === 'refunded';
-    const isPending   = s => !isCompleted(s) && !isFailed(s) && !isRefunded(s);
-
-    const summarize = (rows) => {
-        const completed = rows.filter(r => isCompleted(r.status));
-        const pending   = rows.filter(r => isPending(r.status));
-        const failed    = rows.filter(r => isFailed(r.status));
-        const refunded  = rows.filter(r => isRefunded(r.status));
-        const sales  = completed.reduce((a, r) => a + (r.salesNgn || 0), 0);
-        const cost   = completed.reduce((a, r) => a + (r.costNgn  || 0), 0);
+    const summarize = (arr) => {
+        const completed = arr.filter(r => r.status === 'completed');
+        const sales = completed.reduce((a, r) => a + Number(r.customer_total_ngn || 0), 0);
+        const cost  = completed.reduce((a, r) => a + Number(r.provider_cost_ngn || 0), 0);
+        const margin = completed.reduce((a, r) => a + Number(r.margin_ngn || 0), 0);
         return {
-            orders: rows.length,
-            completed: completed.length,
-            pending: pending.length,
-            failed: failed.length,
-            refunded: refunded.length,
-            salesNgn: sales.toFixed(2),
-            costNgn:  cost.toFixed(2),
-            marginNgn: (sales - cost).toFixed(2)
+            orders:        arr.length,
+            completed:     completed.length,
+            pending:       arr.filter(r => !isTerminal(r.status)).length,
+            failed:        arr.filter(r => isFailed(r.status)).length,
+            refunded:      arr.filter(r => r.status === 'refunded').length,
+            manual_review: arr.filter(r => r.status === 'manual_review').length,
+            salesNgn:      sales.toFixed(2),
+            costNgn:       cost.toFixed(2),
+            marginNgn:     margin.toFixed(2)
         };
     };
 
-    const dtone  = summarize(dtoneRows);
-    const vtpass = summarize(vtpassRows);
-    const total  = summarize(all);
+    const global = summarize((rows || []).filter(r => r.scope === 'global'));
+    const local  = summarize((rows || []).filter(r => r.scope === 'local'));
+    const total  = summarize(rows || []);
+
+    const successRate = total.orders > 0
+        ? Math.round((total.completed / total.orders) * 1000) / 10 : 0;
+
+    // Part C4: wallet split — computed from the view rows.
+    const byWallet = (() => {
+        const empty = () => ({ orders: 0, completed: 0, amount: 0, customer_ngn: 0 });
+        const out = { USD: empty(), NGN: empty() };
+        for (const r of (rows || [])) {
+            const w = String(r.wallet_type || r.customer_paid_currency || r.currency || '').toUpperCase();
+            if (w !== 'USD' && w !== 'NGN') continue;
+            out[w].orders += 1;
+            if (r.status === 'completed') {
+                out[w].completed += 1;
+                const amt = Number(r.payment_amount ?? r.customer_paid_amount ?? 0);
+                if (Number.isFinite(amt)) out[w].amount += amt;
+                const ngn = Number(r.customer_total_ngn ?? 0);
+                if (Number.isFinite(ngn)) out[w].customer_ngn += ngn;
+            }
+        }
+        for (const k of ['USD', 'NGN']) {
+            out[k].amount = Math.round(out[k].amount * 100) / 100;
+            out[k].customer_ngn = Math.round(out[k].customer_ngn * 100) / 100;
+        }
+        return out;
+    })();
 
     return {
-        total: total.orders,
-        completed: total.completed,
-        pending: total.pending,
-        failed: total.failed,
-        refunded: total.refunded,
-        salesNgn: total.salesNgn,
-        costNgn: total.costNgn,
-        marginNgn: total.marginNgn,
-        providers: { dtone, vtpass },
+        total:        total.orders,
+        completed:    total.completed,
+        pending:      total.pending,
+        failed:       total.failed,
+        refunded:     total.refunded,
+        manual_review:total.manual_review,
+        salesNgn:     total.salesNgn,
+        costNgn:      total.costNgn,
+        marginNgn:    total.marginNgn,
+        successRate,
+        byWallet,
+        scopes:       { local, global },
+        providers: {
+            dtone:  { ...global },
+            vtpass: { ...local }
+        },
+        series: { local: [], global: [] },
         summaryAvailable: true,
         from: fromIso, to: toIso
     };
@@ -748,66 +844,49 @@ async function getOrder(id) {
         const e = new Error('Invalid order id'); e.status = 400; e.code = 'INVALID_ID'; throw e;
     }
 
-    // Try DT One first.
     let raw = null, source = null;
     {
         const { data, error } = await supabaseAdmin
-            .from('airtime_transactions')
-            .select('*')
-            .eq('id', id)
-            .maybeSingle();
+            .from('airtime_transactions').select('*').eq('id', id).maybeSingle();
         if (!error && data) { raw = data; source = 'dtone'; }
     }
-
-    // Then VTpass.
     if (!raw) {
         const { data, error } = await supabaseAdmin
-            .from('bill_payment_transactions')
-            .select('*')
-            .eq('id', id)
-            .eq('service_type', 'airtime')
-            .maybeSingle();
+            .from('bill_payment_transactions').select('*')
+            .eq('id', id).eq('service_type', 'airtime').maybeSingle();
         if (!error && data) { raw = data; source = 'vtpass'; }
     }
-
     if (!raw) {
         const e = new Error('Airtime order not found'); e.status = 404; e.code = 'AO_NOT_FOUND'; throw e;
     }
 
-    // User
     let user = null;
     if (raw.user_id) {
         const { data: p } = await supabaseAdmin
             .from('profiles')
             .select('id, username, email, status, created_at')
-            .eq('id', raw.user_id)
-            .maybeSingle();
+            .eq('id', raw.user_id).maybeSingle();
         user = p || null;
     }
 
-    // Transaction record
     let transaction = null;
     if (raw.ledger_transaction_id) {
         const { data: t } = await supabaseAdmin
             .from('transactions')
             .select('id, ref, reference, type, status, currency, amount, fee, description, metadata, created_at, completed_at, failure_reason')
-            .eq('id', raw.ledger_transaction_id)
-            .maybeSingle();
+            .eq('id', raw.ledger_transaction_id).maybeSingle();
         transaction = t || null;
     }
 
-    // Refund
     let refundTransaction = null;
     if (raw.refund_transaction_id) {
         const { data: t } = await supabaseAdmin
             .from('transactions')
             .select('id, ref, reference, type, status, currency, amount, description, created_at, completed_at')
-            .eq('id', raw.refund_transaction_id)
-            .maybeSingle();
+            .eq('id', raw.refund_transaction_id).maybeSingle();
         refundTransaction = t || null;
     }
 
-    // Ledger entries
     let ledgerEntries = [];
     if (raw.ledger_transaction_id) {
         try {
@@ -817,60 +896,76 @@ async function getOrder(id) {
                 .eq('transaction_id', raw.ledger_transaction_id)
                 .order('created_at', { ascending: true });
             ledgerEntries = le || [];
-        } catch (_) { /* optional */ }
+        } catch (_) {}
     }
 
-    // Provider attempts (only DT One has these)
     let attempts = [];
     if (source === 'dtone') {
         try {
             const { data: at } = await supabaseAdmin
                 .from('airtime_order_attempts')
                 .select('id, attempt_no, provider, external_id, provider_transaction_id, provider_status, status, failure_reason, created_at, updated_at, completed_at')
-                .eq('order_id', id)
-                .order('attempt_no', { ascending: true });
+                .eq('order_id', id).order('attempt_no', { ascending: true });
             attempts = at || [];
-        } catch (_) { /* optional */ }
+        } catch (_) {}
     }
 
-    // Provider events
     let providerEvents = [];
     try {
         const { data: pe } = await supabaseAdmin
             .from('airtime_provider_events')
             .select('id, event_type, provider, provider_status, provider_transaction_id, provider_reference, processing_status, received_at')
-            .eq('order_id', id)
-            .order('received_at', { ascending: true })
-            .limit(100);
+            .eq('order_id', id).order('received_at', { ascending: true }).limit(100);
         providerEvents = pe || [];
-    } catch (_) { /* optional */ }
+    } catch (_) {}
 
     const timeline = buildTimeline(raw, source);
-
     const normalized = normalizeRow(raw, source, user);
 
     return {
         order: normalized,
         user,
+        // Part C2: expose the wallet/payment fields directly so the
+        // drawer's Payment section can read them without digging.
+        wallet_type: normalized.wallet_type,
+        payment_amount: normalized.payment_amount,
+        payment_currency: normalized.payment_currency,
+        send_amount_usd: normalized.send_amount_usd,
+        fee_usd: normalized.fee_usd,
+        fee_percent: normalized.fee_percent,
+        fx_usd_ngn: normalized.fx_usd_ngn,
+        idempotency_key: normalized.idempotency_key,
         provider_snapshot: {
             provider: normalized.provider,
             provider_product_id: source === 'dtone' ? (raw.product_id || null) : (raw.variation_code || null),
             provider_transaction_id: normalized.provider_transaction_id,
             provider_reference: normalized.provider_reference,
             provider_status: raw.provider_status || null,
-            last_provider_check_at: source === 'dtone' ? (raw.last_reconciliation_at || null) : (raw.last_reconciliation_at || null),
-            provider_check_attempts: raw.reconciliation_attempts ?? 0
+            last_provider_check_at: raw.last_reconciliation_at || null,
+            provider_check_attempts: raw.reconciliation_attempts ?? 0,
+            reconciliation_attempts: raw.reconciliation_attempts ?? 0
         },
         pricing_snapshot: {
-            amount: raw.amount ?? raw.base_amount ?? null,
-            currency: normalized.currency,
+            send_amount_usd:    raw.send_amount_usd ?? null,
+            fee_usd:            raw.fee_usd ?? null,
+            fee_percent:        raw.fee_percent ?? null,
+            fx_usd_ngn:         raw.fx_usd_ngn ?? raw.exchange_rate ?? null,
+            amount:             raw.amount ?? raw.base_amount ?? null,
+            currency:           normalized.currency,
             customer_price_ngn: normalized.customer_price_ngn,
-            provider_cost_ngn: normalized.provider_cost_ngn,
-            provider_cost_usd: normalized.provider_cost_usd,
-            fx_rate: normalized.fx_rate
+            customer_paid_amount: normalized.amount,
+            customer_paid_currency: normalized.currency,
+            provider_cost_ngn:  normalized.provider_cost_ngn,
+            provider_cost_usd:  normalized.provider_cost_usd,
+            margin_ngn:         normalized.margin_ngn,
+            margin_percent: (() => {
+                const cost = Number(normalized.provider_cost_ngn || 0);
+                const margin = Number(normalized.margin_ngn || 0);
+                return cost > 0 ? Math.round((margin / cost) * 10000) / 100 : null;
+            })()
         },
         failure: {
-            code: normalized.failure_code,
+            code:   normalized.failure_code,
             reason: normalized.failure_reason
         },
         delivery: {
@@ -894,7 +989,8 @@ function buildTimeline(raw, source) {
     if (raw.created_at) events.push({ at: raw.created_at, kind: 'order_created', label: 'Order created' });
     if (raw.processing_at) events.push({ at: raw.processing_at, kind: 'processing', label: 'Processing started' });
     if (raw.completed_at) events.push({ at: raw.completed_at, kind: 'completed', label: 'Order completed' });
-    if (raw.failed_at) events.push({ at: raw.failed_at, kind: 'failed', label: `Order failed${raw.failure_message ? ' — ' + raw.failure_message : ''}` });
+    const reason = raw.failure_message || raw.failure_reason || null;
+    if (raw.failed_at) events.push({ at: raw.failed_at, kind: 'failed', label: `Order failed${reason ? ' — ' + reason : ''}` });
     if (raw.refunded_at) events.push({ at: raw.refunded_at, kind: 'refunded', label: 'Order refunded' });
     events.sort((a, b) => new Date(a.at) - new Date(b.at));
     return events;
@@ -902,22 +998,12 @@ function buildTimeline(raw, source) {
 
 // ═════════════════════════════════════════════════════════════════
 //  MUTATIONS
-//
-//  Every mutation reloads the row from the correct table, determines
-//  its source, and either applies the change directly (if the
-//  provider's own reconciliation is the authority) or routes it
-//  through the admin finalize RPC (if we're applying a human decision).
-//
-//  Note: because the two tables have different shapes, the
-//  finalize RPC in the migration handles BOTH by name. The admin
-//  actions below are thin wrappers over that RPC.
 // ═════════════════════════════════════════════════════════════════
 
 async function loadOrderByAnyId(orderId) {
     if (!UUID_RE.test(String(orderId || ''))) {
         const e = new Error('Invalid order id'); e.status = 400; e.code = 'INVALID_ID'; throw e;
     }
-
     {
         const { data, error } = await supabaseAdmin
             .from('airtime_transactions').select('*').eq('id', orderId).maybeSingle();
@@ -931,10 +1017,6 @@ async function loadOrderByAnyId(orderId) {
     }
     const e = new Error('Airtime order not found'); e.status = 404; e.code = 'AO_NOT_FOUND'; throw e;
 }
-
-// ─── Retry ───────────────────────────────────────────────────────
-// Only proceeds after CONFIRMED_NOT_FULFILLED. Ambiguous outcomes
-// move the order to reconciliation_required.
 
 async function retryOrder({ orderId, ctx, reason }) {
     if (!reason || String(reason).trim().length < 4) {
@@ -965,9 +1047,6 @@ async function retryOrder({ orderId, ctx, reason }) {
         return { outcome: 'reconciliation_required' };
     }
 
-    // CONFIRMED_NOT_FULFILLED — safe to send a new purchase.
-    // The customer flow already sends a fresh request; for the admin
-    // path we call the provider adapter again.
     const adapter = PROVIDERS[normalized.provider];
     if (!adapter) {
         const e = new Error('Unknown provider on order.'); e.status = 422; e.code = 'UNKNOWN_PROVIDER'; throw e;
@@ -978,14 +1057,23 @@ async function retryOrder({ orderId, ctx, reason }) {
 
     let purchaseResult;
     try {
+        const wholesaleAmount =
+            source === 'dtone'
+                ? (order.send_amount_usd || order.provider_cost || order.destination_amount || order.base_amount)
+                : (order.base_amount || order.customer_amount);
+        const wholesaleCurrency =
+            source === 'dtone'
+                ? (order.provider_currency || 'USD')
+                : 'NGN';
+
         purchaseResult = await adapter.purchase({
             order: {
                 phone_number: order.phone_number || order.recipient,
                 network_code: order.operator_id ? String(order.operator_id) : order.network,
-                wholesale_amount: order.destination_amount || order.base_amount,
-                wholesale_currency: order.destination_currency || order.currency,
+                wholesale_amount: wholesaleAmount,
+                wholesale_currency: wholesaleCurrency,
                 provider_product_id: order.product_id || order.variation_code,
-                product_mode: 'RANGED_SOURCE'
+                product_mode: source === 'dtone' ? 'RANGED_SOURCE' : 'FIXED'
             },
             attempt: { provider_reference: externalId },
             callbackUrl: null
@@ -1000,7 +1088,6 @@ async function retryOrder({ orderId, ctx, reason }) {
         return { outcome: 'failed' };
     }
 
-    // Accepted — write new provider ids.
     const patch = source === 'dtone'
         ? {
             provider_transaction_id: purchaseResult.providerTransactionId || order.provider_transaction_id,
@@ -1009,6 +1096,7 @@ async function retryOrder({ orderId, ctx, reason }) {
             status: 'processing',
             failure_code: null,
             failure_message: null,
+            processing_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             reconciliation_attempts: (order.reconciliation_attempts || 0) + 1
         }
@@ -1018,6 +1106,7 @@ async function retryOrder({ orderId, ctx, reason }) {
             provider_status: purchaseResult.providerStatus || null,
             status: 'processing',
             failure_reason: null,
+            processing_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             reconciliation_attempts: (order.reconciliation_attempts || 0) + 1
         };
@@ -1033,7 +1122,6 @@ async function retryOrder({ orderId, ctx, reason }) {
     return { outcome: 'retried' };
 }
 
-// ─── Sync ────────────────────────────────────────────────────────
 async function syncOrder({ orderId, ctx }) {
     const { raw: order, source } = await loadOrderByAnyId(orderId);
     const normalized = normalizeRow(order, source, null);
@@ -1065,7 +1153,6 @@ async function syncOrder({ orderId, ctx }) {
     return { synced: true, resolved: 'unknown' };
 }
 
-// ─── Refund ──────────────────────────────────────────────────────
 async function refundOrder({ orderId, ctx, reason }) {
     if (!reason || String(reason).trim().length < 4) {
         const e = new Error('A reason is required.'); e.status = 422; e.code = 'REASON_REQUIRED'; throw e;
@@ -1086,8 +1173,7 @@ async function refundOrder({ orderId, ctx, reason }) {
     const { data: originalTx } = await supabaseAdmin
         .from('transactions')
         .select('id, user_id, type, status, currency, amount')
-        .eq('id', order.ledger_transaction_id)
-        .maybeSingle();
+        .eq('id', order.ledger_transaction_id).maybeSingle();
     if (!originalTx) { const e = new Error('Original transaction not found.'); e.status = 404; e.code = 'TX_NOT_FOUND'; throw e; }
     if (String(originalTx.status).toLowerCase() !== 'completed') {
         const e = new Error('Original transaction is not completed — cannot refund.'); e.status = 422; e.code = 'TX_NOT_REFUNDABLE'; throw e;
@@ -1096,9 +1182,7 @@ async function refundOrder({ orderId, ctx, reason }) {
     const { data: existingRefund } = await supabaseAdmin
         .from('transactions')
         .select('id, reference, amount, currency')
-        .eq('source_id', originalTx.id)
-        .eq('type', 'refund')
-        .maybeSingle();
+        .eq('source_id', originalTx.id).eq('type', 'refund').maybeSingle();
 
     if (existingRefund) {
         await applyRefundPatch(source, order, existingRefund, ctx, reason, true);
@@ -1132,9 +1216,7 @@ async function refundOrder({ orderId, ctx, reason }) {
             const { data: raceRefund } = await supabaseAdmin
                 .from('transactions')
                 .select('id, reference, amount, currency')
-                .eq('source_id', originalTx.id)
-                .eq('type', 'refund')
-                .maybeSingle();
+                .eq('source_id', originalTx.id).eq('type', 'refund').maybeSingle();
             if (raceRefund) {
                 await applyRefundPatch(source, order, raceRefund, ctx, reason, true);
                 return {
@@ -1174,6 +1256,7 @@ async function applyRefundPatch(source, order, refundResult, ctx, reason, alread
             refunded: true,
             refund_status: 'completed',
             refund_transaction_id: refundResult.transaction_id || null,
+            refund_reference: refundResult.reference || null,
             refunded_at: now,
             updated_at: now
         }
@@ -1181,6 +1264,7 @@ async function applyRefundPatch(source, order, refundResult, ctx, reason, alread
             status: 'refunded',
             refunded: true,
             refund_transaction_id: refundResult.transaction_id || null,
+            refund_reference: refundResult.reference || null,
             refunded_at: now,
             updated_at: now
         };
@@ -1197,7 +1281,6 @@ async function applyRefundPatch(source, order, refundResult, ctx, reason, alread
     });
 }
 
-// ─── Move to reconciliation ──────────────────────────────────────
 async function reviewOrder({ orderId, ctx, reason }) {
     if (!reason || String(reason).trim().length < 4) {
         const e = new Error('A reason is required.'); e.status = 422; e.code = 'REASON_REQUIRED'; throw e;
@@ -1213,8 +1296,6 @@ async function reviewOrder({ orderId, ctx, reason }) {
     await markReconciliation(source, order, ctx, reason);
     return { reviewed: true };
 }
-
-// ─── State writers ───────────────────────────────────────────────
 
 async function completeOrder(source, order, ctx, eventLabel) {
     const table = source === 'dtone' ? 'airtime_transactions' : 'bill_payment_transactions';

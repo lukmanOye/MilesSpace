@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Webhooks · MilesSpace Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -39,17 +38,29 @@ html.dark{
   --shadow-lg:0 16px 48px -12px rgba(0,0,0,.6);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%} html{overflow-x:hidden}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;transition:background var(--transition),color var(--transition);overflow-x:hidden;width:100%}
+html,body{height:100%} html{overflow-x:clip}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;transition:background var(--transition),color var(--transition);width:100%}
 ::-webkit-scrollbar{width:9px;height:9px}
 ::-webkit-scrollbar-thumb{background:rgba(15,76,92,.18);border-radius:99px}
 html.dark ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14)}
 .mono{font-family:'JetBrains Mono',monospace}
 
-/* Layout (same shape as providers/orders) */
+/* Layout */
 .app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh;transition:grid-template-columns var(--transition)}
 .app.sb-collapsed{grid-template-columns:var(--sidebar-w-collapsed) 1fr}
-.sidebar{background:linear-gradient(180deg,var(--navy-deep),var(--navy) 70%);color:#eaf6f8;padding:20px 14px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;z-index:40;transition:transform var(--transition),width var(--transition);overflow-y:auto;overflow-x:hidden;width:var(--sidebar-w)}
+.sidebar{
+  background:linear-gradient(180deg,var(--navy-deep),var(--navy) 70%);
+  color:#eaf6f8;padding:20px 14px 16px;
+  display:flex;flex-direction:column;
+  position:sticky;top:0;height:100dvh;
+  z-index:40;overflow:hidden;
+  transition:transform var(--transition),width var(--transition);
+  width:var(--sidebar-w);
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.25) transparent;
+}
+.sidebar::-webkit-scrollbar{width:8px}
+.sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:99px}
+.sidebar::-webkit-scrollbar-track{background:transparent}
 .app.sb-collapsed .sidebar{width:var(--sidebar-w-collapsed)}
 .app.sb-collapsed .sidebar .brand-text,
 .app.sb-collapsed .sidebar .nav-label,
@@ -59,11 +70,14 @@ html.dark ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14)}
 .app.sb-collapsed .sidebar .badge-count{display:none}
 .app.sb-collapsed .nav-item{justify-content:center}
 .brand{display:flex;align-items:center;gap:11px;padding:6px 8px 18px;flex-shrink:0}
-.brand img{width:32px;height:32px;border-radius:8px}
+.brand .brand-logo{width:32px;height:32px;border-radius:8px;object-fit:cover;flex-shrink:0;background:rgba(255,255,255,.06);display:block}
+.brand .brand-mark{width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;flex-shrink:0}
 .brand-text{display:flex;flex-direction:column;line-height:1.15}
 .brand-text strong{font-size:15px;font-weight:800}
 .brand-text span{font-size:10.5px;color:#9fd4de;letter-spacing:.06em;text-transform:uppercase}
-.nav-scroll{flex:1;overflow-y:auto;padding-right:2px}
+.nav-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-right:2px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.25) transparent}
+.nav-scroll::-webkit-scrollbar{width:6px}
+.nav-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:99px}
 .nav-group{margin-bottom:2px}
 .nav-group-head{display:flex;align-items:center;justify-content:space-between;padding:12px 10px 5px;cursor:pointer;user-select:none;border:none;background:none;width:100%;color:inherit;font-family:inherit}
 .nav-label{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:#6fa2ad;font-weight:700}
@@ -71,16 +85,16 @@ html.dark ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14)}
 .nav-group.collapsed .chev{transform:rotate(-90deg)}
 .nav-group.collapsed .nav-items{display:none}
 .nav-item{display:flex;align-items:center;gap:10px;padding:8.5px 10px;border-radius:9px;color:#cfe7ea;font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:background var(--transition),color var(--transition);white-space:nowrap;text-decoration:none}
-.nav-item .ic{width:17px;text-align:center;font-size:13.5px}
+.nav-item .ic{width:17px;text-align:center;font-size:13.5px;flex-shrink:0}
 .nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
 .nav-item.active{background:rgba(245,166,35,.16);color:#ffd899;border-color:rgba(245,166,35,.3);font-weight:600}
-.sidebar-foot{border-top:1px solid rgba(255,255,255,.08);padding-top:12px;margin-top:8px;display:flex;align-items:center;gap:10px;padding-left:4px}
+.sidebar-foot{border-top:1px solid rgba(255,255,255,.08);padding-top:12px;margin-top:8px;display:flex;align-items:center;gap:10px;padding-left:4px;flex-shrink:0}
 .sidebar-foot .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#25748a,#0c3d4a);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px;color:#fff}
 .sidebar-foot .who{display:flex;flex-direction:column;line-height:1.2}
 .sidebar-foot .who strong{font-size:12.5px;color:#fff}
 .sidebar-foot .who span{font-size:10.5px;color:#8fbac2}
 .sb-collapse-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#cfe7ea;width:26px;height:26px;border-radius:8px;cursor:pointer;margin-left:auto;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px}
-.main{min-width:0;display:flex;flex-direction:column}
+.main{min-width:0;display:flex;flex-direction:column;overflow-x:clip}
 .topbar{height:var(--topbar-h);position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;padding:0 26px;background:var(--bg-card);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
 .hamburger{display:none;width:36px;height:36px;border-radius:9px;border:1px solid var(--border);background:var(--white);align-items:center;justify-content:center;cursor:pointer;color:var(--navy);font-size:18px}
 html.dark .hamburger{background:rgba(255,255,255,.05)}
@@ -120,32 +134,43 @@ html.dark .btn{background:rgba(255,255,255,.04);color:#dff0f2}
 .btn-danger{background:var(--danger);color:#fff;border-color:var(--danger)}
 .btn-sm{padding:6px 10px;font-size:11.5px;min-height:32px}
 
+/* Banners */
+.banner{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:12px;margin-bottom:12px;font-size:12.5px;line-height:1.5;border:1px solid}
+.banner.warn{background:var(--warn-bg);border-color:rgba(245,158,11,.35);color:#7a4b04}
+.banner.danger{background:var(--danger-bg);border-color:rgba(220,38,38,.3);color:#7a1d1d}
+.banner .ic{font-size:15px;flex-shrink:0;margin-top:1px}
+html.dark .banner.warn{color:#f7d089}
+html.dark .banner.danger{color:#f5a5a5}
+
 /* KPI */
-.kpi-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:16px}
-@media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.kpi-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:12px;margin-bottom:16px}
+@media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:640px){.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .kpi{padding:14px 16px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border);box-shadow:var(--shadow-sm)}
 .kpi .lbl{font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
 .kpi .val{font-size:17px;font-weight:800;margin-top:5px;font-variant-numeric:tabular-nums;word-break:break-word}
+.kpi .val.muted{color:var(--text-faint)}
 
 /* Filters */
 .filters{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:16px;box-shadow:var(--shadow-sm);display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .filters input,.filters select{border:1px solid var(--border);background:var(--white);border-radius:9px;padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;min-height:38px}
 html.dark .filters input,html.dark .filters select{background:rgba(255,255,255,.04);color:var(--text)}
 .filters input[type="search"]{flex:1 1 240px;min-width:0}
+.filters .toggle{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-dim);cursor:pointer;user-select:none}
+.filters .toggle input{min-height:0;width:auto}
 
 /* Table */
 .table-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden}
 .table-scroll{overflow-x:auto;overflow-y:auto;max-height:640px;-webkit-overflow-scrolling:touch}
 .table-hint{display:none;font-size:11px;color:var(--text-faint);padding:8px 18px 12px;text-align:center}
-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:960px}
+table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:1080px}
 thead th{text-align:left;padding:11px 14px;color:var(--text-dim);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1;white-space:nowrap}
 tbody td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
 tbody tr{cursor:pointer}
 tbody tr:hover{background:rgba(245,166,35,.05)}
+tbody tr:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
 .cell-mono{font-family:'JetBrains Mono',monospace;font-size:11.5px}
 
-/* Badges */
 .badge{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:99px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;text-transform:capitalize}
 .badge.success{background:var(--success-bg);color:var(--success)}
 .badge.danger{background:var(--danger-bg);color:var(--danger)}
@@ -198,15 +223,18 @@ html.dark .modal{background:#12262c;color:var(--text)}
 .modal .body{padding:16px 20px;overflow-y:auto;flex:1}
 .modal .body .note{font-size:12.5px;color:var(--text-dim);line-height:1.55;margin-bottom:12px;padding:10px 12px;border-radius:8px;background:var(--bg)}
 .modal .body label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px}
+.modal .body .hint{font-size:11px;color:var(--text-faint);margin-top:4px}
 .modal .body textarea{width:100%;border:1px solid var(--border);border-radius:9px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--white);color:var(--text);outline:none;resize:vertical;min-height:80px}
 html.dark .modal .body textarea{background:rgba(255,255,255,.04);color:var(--text)}
+.modal .body .err{color:var(--danger);font-size:11.5px;margin-top:6px;display:none}
+.modal .body .err.show{display:block}
 .modal .foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid var(--border);flex-shrink:0}
 .modal .foot .btn{flex:1}
 
 /* Toasts */
 .toast-stack{position:fixed;bottom:22px;right:14px;left:14px;display:flex;flex-direction:column;gap:10px;z-index:500;pointer-events:none;align-items:flex-end}
 @media(min-width:640px){.toast-stack{left:auto;max-width:380px}}
-.toast{background:var(--navy-deep);color:#fff;padding:12px 16px;border-radius:11px;font-size:12.8px;font-weight:600;box-shadow:var(--shadow-lg);border-left:3px solid var(--gold);pointer-events:auto;max-width:100%;animation:tin .22s ease both}
+.toast{background:var(--navy-deep);color:#fff;padding:12px 16px;border-radius:11px;font-size:12.8px;font-weight:600;box-shadow:var(--shadow-lg);border-left:3px solid var(--gold);pointer-events:auto;max-width:100%;animation:tin .22s ease both;word-break:break-word}
 .toast.success{border-left-color:var(--success)}
 .toast.error{border-left-color:var(--danger)}
 @keyframes tin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
@@ -222,7 +250,7 @@ html.dark .mni.active{color:#dff0f2}
 
 @media(max-width:900px){
   .app{grid-template-columns:1fr!important}
-  .sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);width:290px!important;box-shadow:var(--shadow-lg);z-index:50;height:100vh}
+  .sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);width:290px!important;box-shadow:var(--shadow-lg);z-index:50;height:100dvh}
   .sidebar.open{transform:translateX(0)}
   .hamburger{display:flex}
   .sb-toggle-desktop{display:none}
@@ -236,7 +264,7 @@ html.dark .mni.active{color:#dff0f2}
   .page-header{flex-direction:column;align-items:stretch}
   .table-hint{display:block}
   .filters{flex-direction:column;align-items:stretch}
-  .filters input,.filters select,.filters .btn{width:100%}
+  .filters input,.filters select,.filters .btn,.filters .toggle{width:100%}
   .detail-drawer{width:100vw}
   .dd-field{flex-direction:column;gap:3px}
   .dd-field .k{min-width:0;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint)}
@@ -249,80 +277,28 @@ html.dark .mni.active{color:#dff0f2}
 <body>
 <div class="app" id="appRoot">
 
-<aside class="sidebar" id="sidebar">
-    <div class="brand">
-        <img src="../images/miles.png" alt="" onerror="this.style.display='none'">
-        <div class="brand-text"><strong>MilesSpace</strong><span>Admin</span></div>
-        <button class="sb-collapse-btn" id="sbCollapseBtn"><i class="fas fa-angles-left"></i></button>
-    </div>
-    <nav class="nav-scroll">
-        <div class="nav-group"><div class="nav-group-head"><span class="nav-label">Overview</span></div>
-            <div class="nav-items"><a href="/admin/dashboard.html" class="nav-item"><span class="ic">📊</span><span>Dashboard</span></a></div></div>
-        <div class="nav-group"><button class="nav-group-head" onclick="toggleNavGroup(this)" aria-expanded="true"><span class="nav-label">Customers</span><span class="chev">▾</span></button>
-            <div class="nav-items">
-                <a href="/admin/users.html" class="nav-item"><span class="ic">👥</span><span>Users</span></a>
-                <a href="/admin/support.html" class="nav-item"><span class="ic">💬</span><span>Support</span></a>
-            </div></div>
-        <div class="nav-group"><button class="nav-group-head" onclick="toggleNavGroup(this)" aria-expanded="true"><span class="nav-label">Money</span><span class="chev">▾</span></button>
-            <div class="nav-items">
-                <a href="/admin/transactions.html" class="nav-item"><span class="ic">💳</span><span>Transactions</span></a>
-                <a href="/admin/deposits.html" class="nav-item"><span class="ic">📥</span><span>Deposits</span></a>
-                <a href="/admin/ledger.html" class="nav-item"><span class="ic">📒</span><span>Ledger</span></a>
-                <a href="/admin/reconciliation.html" class="nav-item"><span class="ic">🔄</span><span>Reconciliation</span></a>
-            </div></div>
-        <div class="nav-group"><button class="nav-group-head" onclick="toggleNavGroup(this)" aria-expanded="true"><span class="nav-label">Services</span><span class="chev">▾</span></button>
-            <div class="nav-items">
-                <a href="/admin/sellgift.html" class="nav-item"><span class="ic">🎁</span><span>Gift Cards</span></a>
-                <a href="/admin/airtime-data.html" class="nav-item"><span class="ic">📶</span><span>Airtime &amp; Data</span></a>
-                <a href="/admin/bills.html" class="nav-item"><span class="ic">🧾</span><span>Bills</span></a>
-                <a href="/admin/esim.html" class="nav-item"><span class="ic">📡</span><span>eSIM</span></a>
-                <a href="/admin/virtual-sms.html" class="nav-item"><span class="ic">📱</span><span>Virtual SMS</span></a>
-                <a href="/admin/boost.html" class="nav-item"><span class="ic">📈</span><span>Boost</span></a>
-                <a href="/admin/marketplace-products.html" class="nav-item"><span class="ic">📦</span><span>Marketplace</span></a>
-            </div></div>
-        <div class="nav-group"><button class="nav-group-head" onclick="toggleNavGroup(this)" aria-expanded="true"><span class="nav-label">Operations</span><span class="chev">▾</span></button>
-            <div class="nav-items">
-                <a href="/admin/orders.html" class="nav-item"><span class="ic">🧮</span><span>Orders</span></a>
-                <a href="/admin/orders?status=failed" class="nav-item"><span class="ic">⚠️</span><span>Failed Orders</span></a>
-                <a href="/admin/providers.html" class="nav-item"><span class="ic">🔌</span><span>Providers</span></a>
-                <a href="/admin/webhooks.html" class="nav-item active"><span class="ic">🪝</span><span>Webhooks</span></a>
-            </div></div>
-        <div class="nav-group collapsed"><button class="nav-group-head" onclick="toggleNavGroup(this)" aria-expanded="false"><span class="nav-label">Analytics</span><span class="chev">▾</span></button>
-            <div class="nav-items">
-                <a href="/admin/revenue.html" class="nav-item"><span class="ic">💹</span><span>Revenue</span></a>
-                <a href="/admin/reports.html" class="nav-item"><span class="ic">📄</span><span>Reports</span></a>
-            </div></div>
-        <div class="nav-group collapsed"><button class="nav-group-head" onclick="toggleNavGroup(this)" aria-expanded="false"><span class="nav-label">System</span><span class="chev">▾</span></button>
-            <div class="nav-items">
-                <a href="/admin/notifications.html" class="nav-item"><span class="ic">🔔</span><span>Notifications</span></a>
-                <a href="/admin/settings.html" class="nav-item"><span class="ic">⚙️</span><span>Settings</span></a>
-            </div></div>
-    </nav>
-    <div class="sidebar-foot">
-        <div class="av" id="adminAvatar">DA</div>
-        <div class="who"><strong id="adminName">Admin</strong><span id="adminRole">Admin</span></div>
-    </div>
-</aside>
+<!-- Sidebar is fully rendered by /js/admin-operational-sidebar.js -->
+<aside class="sidebar" id="sidebar" aria-label="Admin navigation"></aside>
 <div class="scrim" id="scrim"></div>
 
 <div class="main">
     <header class="topbar">
-        <button class="hamburger" id="hamburger">☰</button>
-        <button class="sb-toggle-desktop" id="sbToggleDesktop"><i class="fas fa-bars"></i></button>
+        <button class="hamburger" id="hamburger" aria-label="Open menu"><i class="fas fa-bars"></i></button>
+        <button class="sb-toggle-desktop" id="sbToggleDesktop" aria-label="Collapse sidebar"><i class="fas fa-bars"></i></button>
         <div class="topbar-left">
             <div class="page-title">
-                <nav class="breadcrumb"><a href="/admin/dashboard.html">Home</a><span>/</span><span>Operations</span><span>/</span><span>Webhooks</span></nav>
+                <nav class="breadcrumb"><a href="/admin/dashboard.html">Home</a><span>/</span><span>Operational</span><span>/</span><span>Webhooks</span></nav>
                 <h1>Webhooks</h1>
                 <div class="crumb"><span class="live-dot" id="liveDot"></span><span id="liveDotLabel">Checking…</span> · <span id="lastUpdated">never</span></div>
             </div>
         </div>
         <div class="topbar-right">
-            <button class="icon-btn" title="Notifications" onclick="window.location.href='/admin/notifications.html'">🔔</button>
-            <button class="icon-btn" id="darkToggle" title="Toggle dark mode">🌙</button>
-            <div class="admin-chip" id="adminChip">
-                <div class="av" id="chipAvatar">DA</div>
+            <button class="icon-btn" title="Notifications" onclick="window.location.href='/admin/notifications.html'"><i class="fas fa-bell"></i></button>
+            <button class="icon-btn" id="darkToggle" title="Toggle dark mode"><i class="fas fa-moon"></i></button>
+            <div class="admin-chip" id="adminChip" title="Account">
+                <div class="av" id="chipAvatar">A</div>
                 <div class="info"><strong id="chipName">Admin</strong><span id="chipRole">Admin</span></div>
-                <span aria-hidden="true" style="font-size:10px;color:var(--text-faint);">▾</span>
+                <span aria-hidden="true" style="font-size:10px;color:var(--text-faint);"><i class="fas fa-chevron-down"></i></span>
             </div>
         </div>
     </header>
@@ -331,49 +307,46 @@ html.dark .mni.active{color:#dff0f2}
         <div class="page-header">
             <div>
                 <h2>Webhooks</h2>
-                <div class="sub">Every provider callback MilesSpace has received. Signatures are verified where the provider supports them. Failed or duplicate events can be inspected and safely reprocessed.</div>
+                <div class="sub">Every provider callback MilesSpace has received. Signatures are verified where the provider supports them; "Not supported" is shown when the provider does not sign webhooks. Failed or duplicate events can be inspected and safely reprocessed.</div>
             </div>
             <div class="header-actions">
                 <button class="btn" id="refreshBtn"><i class="fas fa-rotate-right"></i> Refresh</button>
             </div>
         </div>
 
-        <!-- KPI grid -->
+        <div id="banners"></div>
+
         <div class="kpi-grid" id="kpiGrid">
-            <div class="kpi"><div class="lbl">Total</div><div class="val" id="kpi-total"><span class="skel" style="width:60%;display:inline-block;height:20px"></span></div></div>
-            <div class="kpi"><div class="lbl">Processed</div><div class="val" id="kpi-processed" style="color:var(--success)"><span class="skel" style="width:60%;display:inline-block;height:20px"></span></div></div>
-            <div class="kpi"><div class="lbl">Failed</div><div class="val" id="kpi-failed" style="color:var(--danger)"><span class="skel" style="width:60%;display:inline-block;height:20px"></span></div></div>
-            <div class="kpi"><div class="lbl">Ignored</div><div class="val" id="kpi-ignored"><span class="skel" style="width:60%;display:inline-block;height:20px"></span></div></div>
-            <div class="kpi"><div class="lbl">Duplicate</div><div class="val" id="kpi-duplicate"><span class="skel" style="width:60%;display:inline-block;height:20px"></span></div></div>
-            <div class="kpi"><div class="lbl">Last 24h</div><div class="val" id="kpi-24h"><span class="skel" style="width:60%;display:inline-block;height:20px"></span></div></div>
+            <div class="kpi"><div class="lbl">Total</div><div class="val" id="kpi-total">—</div></div>
+            <div class="kpi"><div class="lbl">Processed</div><div class="val" id="kpi-processed" style="color:var(--success)">—</div></div>
+            <div class="kpi"><div class="lbl">Failed</div><div class="val" id="kpi-failed" style="color:var(--danger)">—</div></div>
+            <div class="kpi"><div class="lbl">Ignored</div><div class="val" id="kpi-ignored">—</div></div>
+            <div class="kpi"><div class="lbl">Duplicates blocked</div><div class="val" id="kpi-duplicates">—</div></div>
+            <div class="kpi"><div class="lbl">Last 24h</div><div class="val" id="kpi-24h">—</div></div>
+            <div class="kpi"><div class="lbl">Failed 24h</div><div class="val" id="kpi-failed-24h" style="color:var(--danger)">—</div></div>
         </div>
 
-        <!-- Filters -->
         <div class="filters">
-            <select id="fProvider">
+            <select id="fProvider" aria-label="Provider">
                 <option value="all">All providers</option>
-                <option value="smmwiz">SMMWiz</option>
-                <option value="paystack">Paystack</option>
-                <option value="korapay">KoraPay</option>
-                <option value="nowpayments">NowPayments</option>
             </select>
-            <select id="fStatus">
+            <select id="fStatus" aria-label="Status">
                 <option value="all">All statuses</option>
                 <option value="received">Received</option>
                 <option value="processing">Processing</option>
                 <option value="processed">Processed</option>
                 <option value="failed">Failed</option>
                 <option value="ignored">Ignored</option>
-                <option value="duplicate">Duplicate</option>
             </select>
-            <select id="fPageSize">
+            <label class="toggle"><input type="checkbox" id="fDupes"> Has duplicates</label>
+            <select id="fPageSize" aria-label="Page size">
                 <option value="25">25 rows</option>
                 <option value="50">50 rows</option>
                 <option value="100">100 rows</option>
             </select>
+            <input type="search" id="fSearch" placeholder="Search event id, reference, order ref…" aria-label="Search">
         </div>
 
-        <!-- Table -->
         <div class="table-card">
             <div class="table-scroll">
                 <table>
@@ -382,22 +355,23 @@ html.dark .mni.active{color:#dff0f2}
                             <th>Provider</th>
                             <th>Event type</th>
                             <th>Event ID</th>
-                            <th>Order</th>
+                            <th>Reference / Order</th>
                             <th>Signature</th>
                             <th>Status</th>
                             <th>Received</th>
                             <th>Processed</th>
+                            <th>Dupes</th>
                         </tr>
                     </thead>
                     <tbody id="webhooksBody"></tbody>
                 </table>
             </div>
-            <div class="table-hint">↔ Swipe to see more columns</div>
+            <div class="table-hint">Swipe to see more columns</div>
             <div class="pagination">
                 <div id="pageInfo">—</div>
                 <div>
-                    <button id="prevBtn" disabled>← Previous</button>
-                    <button id="nextBtn" disabled>Next →</button>
+                    <button id="prevBtn" disabled><i class="fas fa-chevron-left"></i> Previous</button>
+                    <button id="nextBtn" disabled>Next <i class="fas fa-chevron-right"></i></button>
                 </div>
             </div>
         </div>
@@ -405,20 +379,18 @@ html.dark .mni.active{color:#dff0f2}
 </div>
 </div>
 
-<!-- Drawer -->
 <div class="drawer-scrim" id="drawerScrim"></div>
-<aside class="detail-drawer" id="drawer" role="dialog" aria-modal="true">
+<aside class="detail-drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Webhook detail">
     <div class="dh">
-        <div class="ic" id="dIcon">🪝</div>
+        <div class="ic" id="dIcon"><i class="fas fa-link"></i></div>
         <div class="titles"><h2 id="dTitle">Webhook event</h2><div class="sub" id="dSub"></div></div>
-        <button class="close" id="dClose">✕</button>
+        <button class="close" id="dClose" aria-label="Close"><i class="fas fa-xmark"></i></button>
     </div>
     <div class="db" id="dBody"></div>
 </aside>
 
-<!-- Modal -->
 <div class="modal-scrim" id="modalScrim">
-    <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
         <h3 id="mTitle">Action</h3>
         <div class="body" id="mBody"></div>
         <div class="foot">
@@ -430,38 +402,55 @@ html.dark .mni.active{color:#dff0f2}
 
 <div class="toast-stack" id="toastStack"></div>
 
-<nav class="mnav">
-    <a href="/admin/dashboard.html" class="mni"><i class="fas fa-home"></i><span>Home</span></a>
+<nav class="mnav" aria-label="Mobile navigation">
+    <a href="/admin/dashboard.html" class="mni"><i class="fas fa-house"></i><span>Home</span></a>
     <a href="/admin/orders.html" class="mni"><i class="fas fa-receipt"></i><span>Orders</span></a>
     <a href="/admin/providers.html" class="mni"><i class="fas fa-plug"></i><span>Providers</span></a>
-    <a href="/admin/webhooks.html" class="mni active"><i class="fas fa-hook"></i><span>Webhooks</span></a>
-    <a href="/admin/settings.html" class="mni"><i class="fas fa-cog"></i><span>Settings</span></a>
+    <a href="/admin/webhooks.html" class="mni active"><i class="fas fa-link"></i><span>Webhooks</span></a>
+    <a href="/admin/settings.html" class="mni"><i class="fas fa-gear"></i><span>Settings</span></a>
 </nav>
 
+<script src="/js/admin-session.js?v=2025-admin-dash-v4"></script>
+<script src="/js/admin-operational-sidebar.js?v=2025-webhooks-2"></script>
 <script>
 'use strict';
 
 const API = {
-    webhooks:    '/api/admin/webhooks',
-    stats:       '/api/admin/webhooks/stats',
-    event:       id => `/api/admin/webhooks/${encodeURIComponent(id)}`,
-    reprocess:   id => `/api/admin/webhooks/${encodeURIComponent(id)}/reprocess`,
-    ignore:      id => `/api/admin/webhooks/${encodeURIComponent(id)}/ignore`,
-    me:          '/api/admin/me'
+    webhooks:   '/api/admin/webhooks',
+    stats:      '/api/admin/webhooks/stats',
+    providers:  '/api/admin/webhooks/providers',
+    event:      id => `/api/admin/webhooks/${encodeURIComponent(id)}`,
+    reprocess:  id => `/api/admin/webhooks/${encodeURIComponent(id)}/reprocess`,
+    ignore:     id => `/api/admin/webhooks/${encodeURIComponent(id)}/ignore`,
+    me:         '/api/admin/me'
 };
 
 const State = {
     page: 1,
     limit: 25,
     totalPages: 1,
-    filters: { provider: 'all', status: 'all' },
-    current: null
+    filters: { provider: 'all', status: 'all', hasDupes: false, search: '' },
+    current: null,
+    currentPermissions: [],
+    autoRefreshTimer: null,
+    lastSuccessfulAt: null,
+    providers: []
 };
 
 /* ─── helpers ─── */
 function escapeHtml(s) {
     if (s === null || s === undefined) return '';
     return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+function formatDateTime(iso) {
+    if (!iso) return '—';
+    try {
+        return new Date(iso).toLocaleString('en-GB', {
+            timeZone: 'Africa/Lagos',
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+    } catch { return iso; }
 }
 function timeAgo(iso) {
     if (!iso) return '—';
@@ -472,13 +461,16 @@ function timeAgo(iso) {
     if (s < 604800) return Math.floor(s / 86400) + 'd ago';
     return new Date(iso).toLocaleDateString();
 }
-function formatDateTime(iso) {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
 function formatNumber(v) {
     const n = Number(v);
     return Number.isFinite(n) ? n.toLocaleString('en-US') : '—';
+}
+function debounce(fn, ms) {
+    let t = null;
+    return function (...args) {
+        clearTimeout(t);
+        t = setTimeout(() => fn.apply(this, args), ms);
+    };
 }
 function statusBadge(status) {
     const s = String(status || '').toLowerCase();
@@ -486,49 +478,105 @@ function statusBadge(status) {
     if (s === 'failed') return 'danger';
     if (s === 'received' || s === 'processing') return 'warn';
     if (s === 'ignored') return 'neutral';
-    if (s === 'duplicate') return 'info';
     return 'neutral';
 }
-function showToast(msg, type = 'info') {
+function signatureBadge(sig) {
+    if (sig === 'valid') return '<span class="badge success">valid</span>';
+    if (sig === 'invalid') return '<span class="badge danger">invalid</span>';
+    if (sig === 'not_supported') return '<span class="badge neutral">not supported</span>';
+    return '<span class="badge neutral">unknown</span>';
+}
+function showToast(msg, type = 'info', ms = 3400) {
     const stack = document.getElementById('toastStack');
     const el = document.createElement('div');
     el.className = 'toast ' + type;
     el.textContent = msg;
     stack.appendChild(el);
-    setTimeout(() => el.remove(), 3400);
+    setTimeout(() => el.remove(), ms);
 }
-function toggleNavGroup(head) {
-    const g = head.closest('.nav-group');
-    g.classList.toggle('collapsed');
-    head.setAttribute('aria-expanded', String(!g.classList.contains('collapsed')));
+
+function can(permission) {
+    // Prefer the permissions the sidebar exposed (single source of truth).
+    const perms = Array.isArray(window.ADMIN_PERMISSIONS) ? window.ADMIN_PERMISSIONS : State.currentPermissions;
+    return perms.includes('*') || perms.includes(permission);
 }
 
 async function api(url, opts = {}) {
     try {
-        const res = await AdminSession.fetch(url, opts);
+        const res = await AdminSession.fetch(url, {
+            headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+            ...opts
+        });
         let json = null;
-        try { json = await res.json(); } catch {}
-        if (!res.ok || json?.success === false) {
-            return { ok: false, status: res.status, error: json?.error || json?.message || 'Request failed' };
-        }
-        return { ok: true, data: json };
+        try { json = await res.json(); } catch { /* non-JSON */ }
+        return {
+            ok: res.ok && json?.success !== false,
+            status: res.status,
+            code: json?.code || null,
+            error: json?.error || json?.message || 'Request failed',
+            data: json,
+            detail: json?.detail || null
+        };
     } catch (e) {
-        return { ok: false, status: 0, error: 'Network error' };
+        return { ok: false, status: 0, code: 'NETWORK', error: 'Network error' };
     }
+}
+
+/* ─── provider filter ─── */
+async function loadProviders() {
+    const { ok, data } = await api(API.providers);
+    if (!ok) return;
+    State.providers = data.providers || [];
+    const sel = document.getElementById('fProvider');
+    if (!sel) return;
+    const current = State.filters.provider;
+    sel.innerHTML = '<option value="all">All providers</option>' +
+        State.providers.map(p =>
+            `<option value="${escapeHtml(p.name)}">${escapeHtml(p.label || p.name)}</option>`
+        ).join('');
+    if (current !== 'all') sel.value = current;
 }
 
 /* ─── stats ─── */
 async function loadStats() {
-    const { ok, data } = await api(API.stats);
+    const { ok, data } = await api(API.stats + (State.filters.provider !== 'all'
+        ? '?provider=' + encodeURIComponent(State.filters.provider) : ''));
     if (!ok) return;
     const s = data.stats || {};
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = formatNumber(v ?? 0); };
-    set('kpi-total', (s.processed || 0) + (s.failed || 0) + (s.ignored || 0) + (s.duplicate || 0) + (s.received || 0) + (s.processing || 0));
+    set('kpi-total', s.total);
     set('kpi-processed', s.processed);
     set('kpi-failed', s.failed);
     set('kpi-ignored', s.ignored);
-    set('kpi-duplicate', s.duplicate);
+    set('kpi-duplicates', s.duplicates);
     set('kpi-24h', s.last_24h);
+    set('kpi-failed-24h', s.failed_24h);
+
+    const banners = [];
+    if (s.oldest_unprocessed_at) {
+        const ageMin = (Date.now() - new Date(s.oldest_unprocessed_at).getTime()) / 60000;
+        if (ageMin > 15) {
+            banners.push({
+                type: 'warn',
+                text: `An event has been unprocessed for over ${Math.floor(ageMin)} minutes (since ${formatDateTime(s.oldest_unprocessed_at)}). Check the pipeline.`
+            });
+        }
+    }
+    for (const p of State.providers) {
+        if (!p.critical) continue;
+        if (!p.last_received_at) continue;
+        const ageH = (Date.now() - new Date(p.last_received_at).getTime()) / 3600000;
+        if (ageH > 6) {
+            banners.push({
+                type: 'warn',
+                text: `${p.label || p.name} is critical but has not sent a webhook for ${Math.floor(ageH)}h.`
+            });
+        }
+    }
+    const bannerHtml = banners.map(b =>
+        `<div class="banner ${b.type}"><span class="ic"><i class="fas fa-triangle-exclamation"></i></span><span>${escapeHtml(b.text)}</span></div>`
+    ).join('');
+    document.getElementById('banners').innerHTML = bannerHtml;
 }
 
 /* ─── list ─── */
@@ -538,13 +586,14 @@ function buildQuery() {
     q.set('limit', State.limit);
     if (State.filters.provider !== 'all') q.set('provider', State.filters.provider);
     if (State.filters.status !== 'all') q.set('status', State.filters.status);
+    if (State.filters.search) q.set('search', State.filters.search);
     return q.toString();
 }
 
 function renderSkeleton() {
     const tb = document.getElementById('webhooksBody');
     tb.innerHTML = Array.from({ length: 8 }).map(() =>
-        `<tr><td colspan="8"><span class="skel" style="width:70%;display:inline-block"></span></td></tr>`
+        `<tr><td colspan="9"><span class="skel" style="width:70%;display:inline-block"></span></td></tr>`
     ).join('');
 }
 
@@ -554,7 +603,7 @@ async function loadWebhooks() {
     const tb = document.getElementById('webhooksBody');
 
     if (!ok) {
-        tb.innerHTML = `<tr><td colspan="8"><div class="unavailable-box">Unable to load webhooks: ${escapeHtml(error)}<br><button onclick="loadWebhooks()">Retry</button></div></td></tr>`;
+        tb.innerHTML = `<tr><td colspan="9"><div class="unavailable-box">Unable to load webhooks: ${escapeHtml(error)}<br><button onclick="loadWebhooks()">Retry</button></div></td></tr>`;
         updateLiveStatus(false);
         return;
     }
@@ -563,25 +612,43 @@ async function loadWebhooks() {
     const rows = data.webhooks || [];
     State.totalPages = data.totalPages || 1;
     if (!rows.length) {
-        tb.innerHTML = `<tr><td colspan="8"><div class="empty-state"><span class="ic">🪝</span>No webhook events match your filters</div></td></tr>`;
+        tb.innerHTML = `<tr><td colspan="9"><div class="empty-state"><span class="ic"><i class="fas fa-link"></i></span>No webhook events match your filters</div></td></tr>`;
         document.getElementById('pageInfo').textContent = '—';
         document.getElementById('prevBtn').disabled = true;
         document.getElementById('nextBtn').disabled = true;
         return;
     }
-    tb.innerHTML = rows.map(w => `
-        <tr data-id="${escapeHtml(w.id)}">
+    tb.innerHTML = rows.map(w => {
+        const ref = w.order_id ? `#${w.order_id}` : (w.provider_reference || '—');
+        const orderLink = w.order_id
+            ? `<a href="/admin/orders.html?search=${encodeURIComponent(w.order_id)}" class="cell-mono" data-stop="1">#${escapeHtml(String(w.order_id))}</a>`
+            : `<span class="cell-mono">${escapeHtml(ref)}</span>`;
+        return `
+        <tr data-id="${escapeHtml(w.id)}" tabindex="0" role="button" aria-label="Open webhook event">
             <td><strong style="text-transform:capitalize">${escapeHtml(w.provider || '—')}</strong></td>
             <td>${escapeHtml(w.event_type || '—')}</td>
             <td class="cell-mono">${escapeHtml(w.event_id || '—')}</td>
-            <td class="cell-mono">${w.order_id ? escapeHtml(String(w.order_id).slice(0, 8)) + '…' : '—'}</td>
-            <td><span class="badge ${w.signature_valid ? 'success' : 'warn'}">${w.signature_valid ? '✓ valid' : 'unverified'}</span></td>
+            <td>${orderLink}</td>
+            <td>${signatureBadge(w.signature_status)}</td>
             <td><span class="badge ${statusBadge(w.processing_status)}">${escapeHtml(w.processing_status || '—')}</span></td>
             <td title="${escapeHtml(formatDateTime(w.received_at))}">${escapeHtml(timeAgo(w.received_at))}</td>
             <td title="${escapeHtml(formatDateTime(w.processed_at))}">${w.processed_at ? escapeHtml(timeAgo(w.processed_at)) : '—'}</td>
-        </tr>
-    `).join('');
-    tb.querySelectorAll('tr[data-id]').forEach(tr => tr.addEventListener('click', () => openEvent(tr.dataset.id)));
+            <td>${w.duplicate_count ? `<span class="badge info">${escapeHtml(String(w.duplicate_count))}</span>` : '—'}</td>
+        </tr>`;
+    }).join('');
+
+    tb.querySelectorAll('tr[data-id]').forEach(tr => {
+        tr.addEventListener('click', (e) => {
+            if (e.target.closest('[data-stop]')) return;
+            openEvent(tr.dataset.id);
+        });
+        tr.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openEvent(tr.dataset.id);
+            }
+        });
+    });
 
     const count = data.count || 0;
     document.getElementById('pageInfo').textContent = count
@@ -595,11 +662,13 @@ async function loadWebhooks() {
 function openDrawer() {
     document.getElementById('drawer').classList.add('open');
     document.getElementById('drawerScrim').classList.add('show');
+    pauseAutoRefresh();
 }
 function closeDrawer() {
     document.getElementById('drawer').classList.remove('open');
     document.getElementById('drawerScrim').classList.remove('show');
     State.current = null;
+    resumeAutoRefresh();
 }
 
 async function openEvent(id) {
@@ -619,17 +688,24 @@ async function openEvent(id) {
 
 function renderEvent({ event, order }) {
     document.getElementById('dTitle').textContent = event.event_type || 'Webhook event';
-    document.getElementById('dSub').textContent = `${event.provider} · ${event.id.slice(0, 8)}…`;
+    document.getElementById('dSub').textContent = `${event.provider} · ${String(event.id).slice(0, 8)}…`;
 
+    const canReplay = can('webhooks.replay');
     const actions = [];
-    if (event.processing_status === 'failed' || event.processing_status === 'received' || event.processing_status === 'ignored') {
+    const isStuckProcessing = event.processing_status === 'processing'
+        && event.received_at
+        && (Date.now() - new Date(event.received_at).getTime()) > 5 * 60 * 1000;
+    if (canReplay && (event.processing_status === 'failed'
+        || event.processing_status === 'received'
+        || event.processing_status === 'ignored'
+        || isStuckProcessing)) {
         actions.push(`<button class="btn btn-primary" id="actReprocess"><i class="fas fa-rotate"></i> Reprocess</button>`);
     }
-    if (event.processing_status !== 'ignored' && event.processing_status !== 'processed') {
+    if (canReplay && event.processing_status !== 'processed' && event.processing_status !== 'ignored') {
         actions.push(`<button class="btn btn-danger" id="actIgnore"><i class="fas fa-ban"></i> Ignore</button>`);
     }
     if (order) {
-        actions.push(`<button class="btn" id="actOpenOrder"><i class="fas fa-external-link-alt"></i> Open order</button>`);
+        actions.push(`<button class="btn" id="actOpenOrder"><i class="fas fa-arrow-up-right-from-square"></i> Open order</button>`);
     }
 
     const payload = event.payload ? JSON.stringify(event.payload, null, 2) : null;
@@ -644,15 +720,18 @@ function renderEvent({ event, order }) {
             <div class="dd-field"><span class="k">Event type</span><span class="v">${escapeHtml(event.event_type || '—')}</span></div>
             <div class="dd-field"><span class="k">Event ID</span><span class="v mono">${escapeHtml(event.event_id || '—')}</span></div>
             <div class="dd-field"><span class="k">Fingerprint</span><span class="v mono">${escapeHtml(event.event_fingerprint || '—')}</span></div>
-            <div class="dd-field"><span class="k">Provider order</span><span class="v mono">${escapeHtml(event.provider_order_id || '—')}</span></div>
+            <div class="dd-field"><span class="k">Provider ref</span><span class="v mono">${escapeHtml(event.provider_order_id || '—')}</span></div>
+            <div class="dd-field"><span class="k">Order id</span><span class="v mono">${event.order_id ? '#' + escapeHtml(String(event.order_id)) : '—'}</span></div>
         </div>
 
         <div class="dd-section">
             <h4>Processing</h4>
             <div class="dd-field"><span class="k">Status</span><span class="v"><span class="badge ${statusBadge(event.processing_status)}">${escapeHtml(event.processing_status || '—')}</span></span></div>
-            <div class="dd-field"><span class="k">Signature valid</span><span class="v"><span class="badge ${event.signature_valid ? 'success' : 'warn'}">${event.signature_valid ? '✓ valid' : 'unverified'}</span></span></div>
+            <div class="dd-field"><span class="k">Signature</span><span class="v">${signatureBadge(event.signature_status)}</span></div>
             <div class="dd-field"><span class="k">Received</span><span class="v">${escapeHtml(formatDateTime(event.received_at))}</span></div>
             <div class="dd-field"><span class="k">Processed</span><span class="v">${escapeHtml(formatDateTime(event.processed_at))}</span></div>
+            <div class="dd-field"><span class="k">Duplicates</span><span class="v">${escapeHtml(String(event.duplicate_count || 0))}</span></div>
+            <div class="dd-field"><span class="k">Attempts</span><span class="v">${escapeHtml(String(event.attempts || 0))}</span></div>
             ${event.processing_error ? `<div class="dd-field"><span class="k">Error</span><span class="v" style="color:var(--danger)">${escapeHtml(event.processing_error)}</span></div>` : ''}
         </div>
 
@@ -671,7 +750,12 @@ function renderEvent({ event, order }) {
                 <h4>Payload</h4>
                 <pre class="json-viewer">${escapeHtml(payload)}</pre>
             </div>
-        ` : ''}
+        ` : (event.payload_hidden ? `
+            <div class="dd-section">
+                <h4>Payload</h4>
+                <div class="note" style="font-size:12.5px;color:var(--text-dim)">Payload hidden: requires <code>webhooks:replay</code> permission.</div>
+            </div>
+        ` : '')}
 
         ${headers ? `
             <div class="dd-section">
@@ -682,62 +766,130 @@ function renderEvent({ event, order }) {
     `;
 
     document.getElementById('actReprocess')?.addEventListener('click', () => doReprocess(event));
-    document.getElementById('actIgnore')?.addEventListener('click', () => openIgnoreModal(event));
+    document.getElementById('actIgnore')?.addEventListener('click', () => openReasonModal('ignore', event));
     document.getElementById('actOpenOrder')?.addEventListener('click', () => {
-        if (order) window.location.href = '/admin/orders?search=' + encodeURIComponent(order.order_ref);
+        if (order) window.location.href = '/admin/orders.html?search=' + encodeURIComponent(order.order_ref || order.id);
     });
 }
 
-/* ─── actions ─── */
-async function doReprocess(event) {
-    if (!confirm('Reprocess this webhook event? The pipeline is idempotent, so this is safe even if it was already partially applied.')) return;
-    const { ok, error, data } = await api(API.reprocess(event.id), { method: 'POST' });
-    if (!ok) { showToast(error || 'Reprocess failed', 'error'); return; }
-    showToast(data.already_processed ? 'Event was already processed' : 'Event reprocessed', 'success');
-    openEvent(event.id);
-    loadWebhooks();
-    loadStats();
-}
-
-function openIgnoreModal(event) {
+/* ─── reason modal (reprocess + ignore) ─── */
+function openReasonModal(action, event) {
     const scrim = document.getElementById('modalScrim');
-    document.getElementById('mTitle').textContent = 'Ignore webhook event';
+    const isIgnore = action === 'ignore';
+    document.getElementById('mTitle').textContent = isIgnore ? 'Ignore webhook event' : 'Reprocess webhook event';
     document.getElementById('mBody').innerHTML = `
-        <div class="note">The event will be marked <strong>ignored</strong> and will no longer appear in failed filters. The payload is preserved for audit.</div>
-        <label for="igReason">Reason (optional)</label>
-        <textarea id="igReason" rows="3" placeholder="Why is this being ignored?"></textarea>
+        <div class="note">${isIgnore
+            ? 'The event will be marked <strong>ignored</strong> and will no longer appear in failed filters. The payload is preserved for audit.'
+            : 'The event will re-enter the processing pipeline. This can trigger refunds or status updates. It is safe to repeat; already-applied effects are not re-applied.'
+        }</div>
+        <label for="mReason">Reason (required, min 4 characters)</label>
+        <textarea id="mReason" rows="3" placeholder="Why is this action being taken?"></textarea>
+        <div class="err" id="mErr"></div>
+        <div class="hint">This action is audited with your admin id and request id.</div>
     `;
-    document.getElementById('mConfirm').textContent = 'Ignore';
-    const cancel = () => { scrim.classList.remove('show'); document.getElementById('mConfirm').onclick = null; };
-    document.getElementById('mCancel').onclick = cancel;
-    document.getElementById('mConfirm').onclick = async () => {
-        const reason = document.getElementById('igReason').value.trim();
-        const { ok, error } = await api(API.ignore(event.id), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reason })
-        });
-        if (!ok) { showToast(error || 'Ignore failed', 'error'); return; }
-        showToast('Event ignored', 'success');
-        cancel();
-        openEvent(event.id);
-        loadWebhooks();
-        loadStats();
+    document.getElementById('mConfirm').textContent = isIgnore ? 'Ignore' : 'Reprocess';
+    const close = () => {
+        scrim.classList.remove('show');
+        document.getElementById('mConfirm').onclick = null;
+        document.getElementById('mCancel').onclick = null;
     };
+    document.getElementById('mCancel').onclick = close;
+    document.getElementById('mConfirm').onclick = async () => {
+        const reason = document.getElementById('mReason').value.trim();
+        if (reason.length < 4) {
+            const errEl = document.getElementById('mErr');
+            errEl.textContent = 'Reason must be at least 4 characters.';
+            errEl.classList.add('show');
+            return;
+        }
+        await performAction(action, event, reason, close);
+    };
+    setTimeout(() => document.getElementById('mReason')?.focus(), 30);
     scrim.classList.add('show');
 }
 
-/* ─── admin profile ─── */
+async function performAction(action, event, reason, closeModal) {
+    const btn = document.getElementById('mConfirm');
+    btn.disabled = true;
+    btn.textContent = 'Working…';
+    try {
+        const url = action === 'ignore' ? API.ignore(event.id) : API.reprocess(event.id);
+        const { ok, status, code, error, data, detail } = await api(url, {
+            method: 'POST',
+            body: JSON.stringify({ reason })
+        });
+        if (ok) {
+            const outcome = data?.outcome || 'processed';
+            const map = {
+                processed: ['Event reprocessed', 'success'],
+                already_processed: ['Event was already processed', 'success'],
+                ignored: ['Event ignored', 'success'],
+                failed: ['Event processing failed', 'error']
+            };
+            const [msg, type] = map[outcome] || ['Action completed', 'success'];
+            showToast(msg, type);
+            closeModal();
+            openEvent(event.id);
+            loadWebhooks();
+            loadStats();
+            return;
+        }
+        if (status === 403 && (code === 'MFA_REQUIRED' || code === 'STEP_UP_EXPIRED' || code === 'STEP_UP_REQUIRED')) {
+            btn.disabled = false;
+            btn.textContent = action === 'ignore' ? 'Ignore' : 'Reprocess';
+            showToast('Please re-verify to continue.', 'error', 6000);
+            if (window.AdminSession && typeof window.AdminSession.stepUp === 'function') {
+                try {
+                    const okStep = await window.AdminSession.stepUp();
+                    if (okStep) return performAction(action, event, reason, closeModal);
+                } catch (e) {
+                    showToast('Re-verification failed.', 'error');
+                }
+            } else if (typeof window.startStepUp === 'function') {
+                window.startStepUp().then(okStep => {
+                    if (okStep) performAction(action, event, reason, closeModal);
+                });
+            } else {
+                window.location.href = '/admin/step-up.html';
+            }
+            return;
+        }
+        const msg = (detail || error || 'Action failed') + (code ? ` (${code})` : '');
+        showToast(msg, 'error', 6000);
+        btn.disabled = false;
+        btn.textContent = action === 'ignore' ? 'Ignore' : 'Reprocess';
+    } catch (e) {
+        showToast('Network error', 'error');
+        btn.disabled = false;
+        btn.textContent = action === 'ignore' ? 'Ignore' : 'Reprocess';
+    }
+}
+
+async function doReprocess(event) {
+    openReasonModal('reprocess', event);
+}
+
+/* ─── admin profile + permissions ─── */
+// The sidebar already fetched /api/admin/me and populated window.ADMIN_PERMISSIONS.
+// We still fetch here so this page works standalone if the sidebar hasn't hydrated yet.
 async function loadAdminProfile() {
+    if (Array.isArray(window.ADMIN_PERMISSIONS) && window.ADMIN_PERMISSIONS.length) {
+        State.currentPermissions = window.ADMIN_PERMISSIONS;
+    }
     const { ok, data } = await api(API.me);
-    if (!ok || !data?.data?.user) return;
-    const u = data.data.user;
-    const name = u.username || u.email?.split('@')[0] || 'Admin';
+    if (!ok) return;
+    const u = data?.data?.user || data?.user || {};
+    const perms = data?.data?.permissions || data?.permissions || [];
+    if (Array.isArray(perms) && perms.length) {
+        State.currentPermissions = perms;
+        window.ADMIN_PERMISSIONS = perms;
+    }
+    const name = u.username || (u.email ? u.email.split('@')[0] : 'Admin');
     const role = u.role || 'admin';
     const initials = name.slice(0, 1).toUpperCase();
-    ['adminName','chipName'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = name; });
-    ['adminRole','chipRole'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = role.charAt(0).toUpperCase() + role.slice(1); });
-    ['adminAvatar','chipAvatar'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = initials; });
+    ['chipName'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = name; });
+    ['chipRole'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = role.charAt(0).toUpperCase() + role.slice(1); });
+    ['chipAvatar'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = initials; });
 }
 
 function updateLiveStatus(ok) {
@@ -745,20 +897,39 @@ function updateLiveStatus(ok) {
     const lbl = document.getElementById('liveDotLabel');
     const upd = document.getElementById('lastUpdated');
     if (ok) {
+        State.lastSuccessfulAt = new Date();
         dot.classList.remove('off');
         lbl.textContent = 'Live data';
-        upd.textContent = new Date().toLocaleTimeString();
+        upd.textContent = formatDateTime(State.lastSuccessfulAt.toISOString());
     } else {
         dot.classList.add('off');
         lbl.textContent = 'Unable to update';
     }
 }
 
+/* ─── auto-refresh ─── */
+function startAutoRefresh() {
+    stopAutoRefresh();
+    State.autoRefreshTimer = setInterval(() => {
+        if (document.hidden) return;
+        if (document.getElementById('drawer').classList.contains('open')) return;
+        loadWebhooks();
+        loadStats();
+    }, 30000);
+}
+function stopAutoRefresh() {
+    if (State.autoRefreshTimer) {
+        clearInterval(State.autoRefreshTimer);
+        State.autoRefreshTimer = null;
+    }
+}
+function pauseAutoRefresh() { stopAutoRefresh(); }
+function resumeAutoRefresh() { startAutoRefresh(); }
+
 /* ─── init ─── */
 document.addEventListener('DOMContentLoaded', () => {
     if (!AdminSession.getToken()) return AdminSession.redirectToLogin();
 
-    // Sidebar
     document.getElementById('hamburger')?.addEventListener('click', () => {
         document.getElementById('sidebar').classList.toggle('open');
         document.getElementById('scrim').classList.toggle('show');
@@ -767,25 +938,40 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('sidebar').classList.remove('open');
         document.getElementById('scrim').classList.remove('show');
     });
-    document.getElementById('sbToggleDesktop')?.addEventListener('click', () => document.getElementById('appRoot').classList.toggle('sb-collapsed'));
-    document.getElementById('sbCollapseBtn')?.addEventListener('click', () => document.getElementById('appRoot').classList.toggle('sb-collapsed'));
+    document.getElementById('sbToggleDesktop')?.addEventListener('click', () => {
+        document.getElementById('appRoot').classList.toggle('sb-collapsed');
+    });
 
+    const storedDark = (() => {
+        try { return localStorage.getItem('admin.dark') === '1'; } catch { return false; }
+    })();
+    if (storedDark) {
+        document.documentElement.classList.add('dark');
+        document.getElementById('darkToggle').innerHTML = '<i class="fas fa-sun"></i>';
+    }
     document.getElementById('darkToggle')?.addEventListener('click', () => {
         document.documentElement.classList.toggle('dark');
-        document.getElementById('darkToggle').textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
+        const on = document.documentElement.classList.contains('dark');
+        document.getElementById('darkToggle').innerHTML = on ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        try { localStorage.setItem('admin.dark', on ? '1' : '0'); } catch { /* ignore */ }
     });
+
     document.getElementById('adminChip')?.addEventListener('click', async () => {
         if (confirm('Are you sure you want to logout?')) await AdminSession.logout();
     });
 
-    // Filters
     document.getElementById('fProvider')?.addEventListener('change', (e) => {
         State.filters.provider = e.target.value;
         State.page = 1;
-        loadWebhooks();
+        loadWebhooks(); loadStats();
     });
     document.getElementById('fStatus')?.addEventListener('change', (e) => {
         State.filters.status = e.target.value;
+        State.page = 1;
+        loadWebhooks();
+    });
+    document.getElementById('fDupes')?.addEventListener('change', (e) => {
+        State.filters.status = e.target.checked ? 'duplicate' : (State.filters.status === 'duplicate' ? 'all' : State.filters.status);
         State.page = 1;
         loadWebhooks();
     });
@@ -794,15 +980,20 @@ document.addEventListener('DOMContentLoaded', () => {
         State.page = 1;
         loadWebhooks();
     });
+    const searchInput = document.getElementById('fSearch');
+    searchInput?.addEventListener('input', debounce(() => {
+        State.filters.search = searchInput.value.trim();
+        State.page = 1;
+        loadWebhooks();
+    }, 350));
     document.getElementById('prevBtn')?.addEventListener('click', () => { if (State.page > 1) { State.page--; loadWebhooks(); } });
     document.getElementById('nextBtn')?.addEventListener('click', () => { if (State.page < State.totalPages) { State.page++; loadWebhooks(); } });
 
     document.getElementById('refreshBtn')?.addEventListener('click', () => {
         loadWebhooks(); loadStats();
-        showToast('Refreshed', 'success');
+        showToast('Refreshed', 'success', 1500);
     });
 
-    // Drawer close
     document.getElementById('dClose')?.addEventListener('click', closeDrawer);
     document.getElementById('drawerScrim')?.addEventListener('click', closeDrawer);
     document.addEventListener('keydown', (e) => {
@@ -815,21 +1006,34 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.id === 'modalScrim') document.getElementById('modalScrim').classList.remove('show');
     });
 
-    // URL param — ?provider=korapay pre-filters
     const params = new URLSearchParams(window.location.search);
     const prov = params.get('provider');
-    if (prov) {
-        State.filters.provider = prov;
-        const sel = document.getElementById('fProvider');
-        if (sel) sel.value = prov;
-    }
+    if (prov) State.filters.provider = prov;
+    const orderId = params.get('order_id');
+    if (orderId) State.filters.search = orderId;
 
-    loadAdminProfile();
-    loadStats();
-    loadWebhooks();
+    (async () => {
+        await loadAdminProfile();
+        await loadProviders();
+        if (prov) {
+            const sel = document.getElementById('fProvider');
+            if (sel) sel.value = prov;
+        }
+        if (orderId) {
+            const inp = document.getElementById('fSearch');
+            if (inp) inp.value = orderId;
+        }
+        loadStats();
+        loadWebhooks();
+        startAutoRefresh();
+    })();
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stopAutoRefresh();
+        else startAutoRefresh();
+    });
 });
 
-window.toggleNavGroup = toggleNavGroup;
 window.loadWebhooks = loadWebhooks;
 </script>
 </body>

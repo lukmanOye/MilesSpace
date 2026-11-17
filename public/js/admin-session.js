@@ -538,16 +538,68 @@
         // 401 → try a refresh. If refresh succeeds, retry the request
         // once with the new token. If refresh fails, surface the 401
         // to the caller — do NOT redirect from here.
+                // ── 401 handling ────────────────────────────────────────
+        // A 401 from an admin route can mean TWO things:
+        //
+        //   1. The session is genuinely dead (NO_TOKEN, SESSION_EXPIRED,
+        //      SESSION_REVOKED, INVALID_SESSION, SESSION_NOT_FOUND).
+        //      → refresh + retry once, then log out.
+        //
+        //   2. The route rejected THIS REQUEST for a reason that is
+        //      NOT about the session — e.g. /api/admin/mfa/... returns
+        //      401 INVALID_CODE for a wrong TOTP code, deliberately.
+        //      → keep the session, surface the error to the caller.
+        //
+        // We cannot tell which without reading the error code, so read it.
         if (response.status === 401) {
+            let body = null;
+            try { body = await response.clone().json(); } catch (_) { body = null; }
+            const errorCode = (body && body.code) || 'UNKNOWN';
+
+            const SESSION_FATAL = new Set([
+                'NO_TOKEN',
+                'INVALID_TOKEN',
+                'SESSION_EXPIRED',
+                'SESSION_REVOKED',
+                'SESSION_NOT_FOUND',
+                'NO_ACTIVE_SESSION',
+                'INVALID_SESSION'
+            ]);
+
+            if (!SESSION_FATAL.has(errorCode)) {
+                // Non-session 401 — the caller must see this as an
+                // operation error, not a logout. Do NOT refresh, do
+                // NOT redirect, do NOT clear the session.
+                const err = new Error((body && body.error) || 'Request failed.');
+                err.code = errorCode;
+                err.status = 401;
+                err.body = body;
+                throw err;
+            }
+
+            // Session-fatal 401. Try one refresh + retry first.
             const refreshed = await refreshAdminToken();
             if (refreshed) {
                 const newToken = getAdminToken();
                 const retryHeaders = Object.assign({}, headers, { 'Authorization': `Bearer ${newToken}` });
-                return fetch(url, Object.assign({}, options, { headers: retryHeaders, cache: 'no-store' }));
+                const retry = await fetch(url, Object.assign({}, options, { headers: retryHeaders, cache: 'no-store' }));
+                if (retry.status !== 401) return retry;
+                // Retry also 401 — fall through to logout.
             }
-            const err = new Error('Request failed with 401');
-            err.code = 'REQUEST_UNAUTHORIZED';
+
+            // Refresh failed or retry still 401. Verify once, then
+            // log out if the session is genuinely gone.
+            const stillValid = await verifyAdminSession();
+            if (!stillValid) throw new Error('Admin session expired');
+
+            // verifyAdminSession said the session is alive but the
+            // route still returned 401 — this is the MFA / step-up
+            // path with a bad code, or a route that forgot to use the
+            // right status code. Surface it, keep the session.
+            const err = new Error((body && body.error) || 'Request failed with 401');
+            err.code = errorCode;
             err.status = 401;
+            err.body = body;
             throw err;
         }
 

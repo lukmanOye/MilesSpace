@@ -74,6 +74,44 @@ async function getOrderStatus(order) {
     return { status: String(data?.status || '').toLowerCase() || null, raw: data };
 }
 
+// ── ADDED: batch status — task 17 ──────────────────────────────
+// Returns a map keyed by provider order id, e.g.
+//   { "123": { status, start_count, remains, raw }, "456": {...} }
+// Throws ProviderError({ code: 'BATCH_UNSUPPORTED', definitive: true })
+// when the provider answers with a single-status object instead of
+// a map, so callers can fall back to per-order polling.
+async function getOrderStatusBatch(providerOrderIds) {
+    const ids = (providerOrderIds || []).map(String).filter(Boolean);
+    if (!ids.length) return {};
+    if (ids.length > 100) {
+        throw new ProviderError('Too many orders in one batch (max 100).', {
+            code: 'BATCH_TOO_LARGE', category: 'VALIDATION', definitive: true, httpStatus: 400
+        });
+    }
+    const data = await callApi({ action: 'status', orders: ids.join(',') }, { timeoutMs: TIMEOUTS.WRITE });
+    // SMMWiz answers with { "123": {status,...}, "456": {...} } for
+    // multi-order requests and with a single {status,...} object for
+    // single-order. Detect the wrong shape so we can fall back.
+    if (data && typeof data === 'object' && 'status' in data && !('order' in data) && !ids.every(id => id in data)) {
+        throw new ProviderError('SMMWiz returned a single-order response for a batch request.', {
+            code: 'BATCH_UNSUPPORTED', category: 'PROVIDER_4XX', definitive: true, httpStatus: 422
+        });
+    }
+    const out = {};
+    for (const id of ids) {
+        const row = data && data[id];
+        if (row && typeof row === 'object') {
+            out[id] = {
+                status: String(row.status || '').toLowerCase() || null,
+                start_count: row.start_count ?? null,
+                remains: row.remains ?? null,
+                raw: row
+            };
+        }
+    }
+    return out;
+}
+
 async function createOrder({ serviceId, link, quantity }) {
     const data = await callApi({ action: 'add', service: serviceId, link, quantity });
     const providerOrderId = data?.order || data?.id;
@@ -83,6 +121,20 @@ async function createOrder({ serviceId, link, quantity }) {
 
 async function cancelOrder() { return notSupported('SMMWIZ_CANCEL_NOT_DOCUMENTED'); }
 async function refundOrder() { return notSupported('SMMWIZ_REFUND_NOT_DOCUMENTED'); }
+
+// ── ADDED: refill — task 22 ────────────────────────────────────
+// Requests a refill for a completed order. Returns { refillId, raw }.
+// Propagates ProviderError on rejection so callers can map to 422.
+async function refillOrder(order) {
+    if (!order?.provider_order_id) {
+        throw new ProviderError('Refill needs a provider order id.', {
+            code: 'MISSING_PROVIDER_ORDER_ID', category: 'VALIDATION', definitive: true, httpStatus: 400
+        });
+    }
+    const data = await callApi({ action: 'refill', order: order.provider_order_id }, { timeoutMs: TIMEOUTS.WRITE });
+    const refillId = data?.refill || data?.id || null;
+    return { refillId: refillId ? String(refillId) : null, raw: data };
+}
 
 async function getBalance() {
     try { return { supported: true, raw: await callApi({ action: 'balance' }) }; }
@@ -158,10 +210,26 @@ async function healthCheck() {
         };
     }
 }
+// ── ADDED: services listing — task 8 ───────────────────────────
+// Returns the raw provider services array. Same shape as
+// getBalance: { supported, raw } on success, { supported: false,
+// error } when the provider rejects (not configured, network).
+async function listServices() {
+    const data = await callApi({ action: 'services' }, { timeoutMs: TIMEOUTS.WRITE });
+    const arr = Array.isArray(data) ? data : (data && data.services) || [];
+    return { supported: true, services: arr };
+}
 
 module.exports = {
     name: NAME, label: LABEL, isConfigured, healthCheck,
     healthStrategy: HEALTH_STRATEGY.BALANCE,
-    getOrderStatus, createOrder, cancelOrder, refundOrder, getBalance,
+    listServices,
+    getOrderStatus,
+    getOrderStatusBatch,   // ── ADDED ──
+    createOrder,
+    cancelOrder,
+    refundOrder,
+    refillOrder,           // ── ADDED ──
+    getBalance,
     verifyWebhook, parseWebhook, normalizeStatus, fingerprint
 };

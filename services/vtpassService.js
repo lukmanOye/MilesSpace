@@ -366,33 +366,31 @@ class VTpassService {
     // STATUS NORMALIZATION
     // ═══════════════════════════════════════════════════════════════════
 
-    normalizeTransactionStatus(data) {
-        const code = String(data?.code || '').trim();
-        const providerStatus = String(data?.content?.transactions?.status || '').toLowerCase().trim();
+   normalizeTransactionStatus(data) {
+    const code = String(data?.code || '').trim();
+    const providerStatus = String(data?.content?.transactions?.status || '').toLowerCase().trim();
 
-        if (providerStatus === 'delivered') {
-            return { state: 'completed', providerStatus, code, definitive: true };
-        }
+    // Authoritative provider terminal statuses win regardless of code.
+    if (providerStatus === 'delivered' || providerStatus === 'success' || providerStatus === 'successful') {
+        return { state: 'completed', providerStatus, code, definitive: true };
+    }
+    if (providerStatus === 'failed' || providerStatus === 'reversed' || providerStatus === 'cancelled' || providerStatus === 'canceled') {
+        return { state: 'failed', providerStatus, code, definitive: true };
+    }
+    if (['pending', 'initiated', 'processing', 'in_progress', 'awaiting'].includes(providerStatus)) {
+        return { state: 'processing', providerStatus, code, definitive: false };
+    }
 
-        if (['pending', 'initiated', 'processing'].includes(providerStatus)) {
-            return { state: 'processing', providerStatus, code, definitive: false };
-        }
-
-        const failedCodes = new Set(['010', '011', '013', '014', '015', '016', '017', '018', '091']);
-        if (failedCodes.has(code)) {
-            return { state: 'failed', providerStatus, code, definitive: true };
-        }
-
-        if (code === '099') {
-            return { state: 'processing', providerStatus: providerStatus || 'processing', code, definitive: false };
-        }
-
-        if (code === '000') {
-            return { state: 'processing', providerStatus: providerStatus || 'unknown', code, definitive: false };
-        }
-
+    // No provider status — fall back to codes.
+    const failedCodes = new Set(['010','011','013','014','015','016','017','018','091']);
+    if (failedCodes.has(code)) {
+        return { state: 'failed', providerStatus, code, definitive: true };
+    }
+    if (code === '099' || code === '000') {
         return { state: 'processing', providerStatus: providerStatus || 'unknown', code, definitive: false };
     }
+    return { state: 'processing', providerStatus: providerStatus || 'unknown', code, definitive: false };
+}
 
     getFriendlyError(code) {
         const errorMap = {
@@ -1152,6 +1150,28 @@ class VTpassService {
             catalogTTL: this.CATALOG_CACHE_TTL
         };
     }
+    async getBalance() {
+    if (!this.isConfigured()) {
+        return { success: false, balance: null, error: 'VTpass is not configured' };
+    }
+    try {
+        const res = await this.axiosInstance.get(`${this.baseUrl}/balance`, {
+            headers: this.getGetHeaders(),
+            timeout: 10000
+        });
+        const data = res.data || {};
+        const balance = Number(
+            data?.balance ??
+            data?.content?.balance ??
+            data?.contents?.balance ??
+            0
+        );
+        return { success: true, balance: Number.isFinite(balance) ? balance : null, raw: data };
+    } catch (e) {
+        return { success: false, balance: null, error: e.response?.data?.response_description || e.message };
+    }
 }
+}
+
 
 module.exports = new VTpassService();

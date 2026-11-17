@@ -7,8 +7,10 @@
 // admin module and are NOT touched here.
 //
 // Everything reads/writes bill_payment_transactions. The provider
-// is VTpass, called through services/vtpassService.js. Wallet
-// mutations go through LedgerService.
+// is VTpass, called through services/vtpassService.js (and the
+// vtpassAdapter for the wallet balance, so we share the fallback
+// logic with the Airtime admin module). Wallet mutations go
+// through LedgerService.
 //
 // Behaviours:
 //   • listOrders / getOrder / getStats read only.
@@ -27,6 +29,7 @@
 const { supabaseAdmin } = require('../db/supabase');
 const { LedgerService } = require('./ledgerService');
 const vtpass = require('./vtpassService');
+const vtpassAdapter = require('./airtimeProviders/vtpassAdapter');
 
 const BILL_CATEGORIES = new Set(['electricity', 'tv']);
 
@@ -90,6 +93,30 @@ function categoryLabel(serviceType) {
 }
 function isBillCategory(serviceType) {
     return BILL_CATEGORIES.has(String(serviceType || '').toLowerCase());
+}
+
+// ─── VTpass balance (shared helper) ─────────────────────────────
+// Uses the same adapter fallback the Airtime module relies on,
+// so the Bills & Airtime pages always agree on the same number.
+async function fetchVtpassBalance() {
+    try {
+        const live = await vtpassAdapter.healthCheck();
+        const raw = live?.balance != null
+            ? live.balance
+            : (live?.balances && typeof live.balances === 'object')
+                ? (live.balances.NGN ?? live.balances.USD ?? Object.values(live.balances)[0])
+                : null;
+
+        if (raw != null && Number.isFinite(Number(raw))) {
+            return { balance: Number(raw), error: null };
+        }
+        return {
+            balance: null,
+            error: live?.lastError || 'Balance unavailable on sandbox'
+        };
+    } catch (e) {
+        return { balance: null, error: e.message || 'Balance check failed' };
+    }
 }
 
 // ─── Audit (fail-loud for financial, best-effort otherwise) ──────
@@ -197,32 +224,54 @@ async function getStats(query = {}) {
     const fromIso = isoDate(query.from) || startOfWatDay();
     const toIso = isoDate(query.to) || new Date().toISOString();
 
+    // Fetch the VTpass wallet balance once per stats call so the
+    // admin overview can show it without a second round-trip.
+    const vtpassBal = await fetchVtpassBalance();
+    const vtpassBalance = vtpassBal.balance;
+    const vtpassBalanceError = vtpassBal.error;
+
     // Try RPC first.
     const rpc = await supabaseAdmin.rpc('bills_admin_stats', { p_from: fromIso, p_to: toIso });
     if (!rpc.error && rpc.data) {
         const row = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-        return {
-            total: Number(row.total || 0),
-            pending: Number(row.pending || 0),
-            processing: Number(row.processing || 0),
-            completed: Number(row.completed || 0),
-            failed: Number(row.failed || 0),
-            cancelled: Number(row.cancelled || 0),
-            manual_review: Number(row.manual_review || 0),
-            today_transactions: Number(row.today_transactions || 0),
-            today_revenue: String(row.today_revenue || '0.00'),
-            today_profit: String(row.today_profit || '0.00'),
-            monthly_transactions: Number(row.monthly_transactions || 0),
-            monthly_revenue: String(row.monthly_revenue || '0.00'),
-            monthly_profit: String(row.monthly_profit || '0.00'),
-            electricity_transactions: Number(row.electricity_transactions || 0),
-            cable_transactions: Number(row.cable_transactions || 0),
-            average_transaction_value: String(row.average_transaction_value || '0.00'),
-            success_rate: Number(row.success_rate || 0),
-            summaryAvailable: true,
-            from: fromIso,
-            to: toIso
-        };
+
+        // ── SANITY GUARD ─────────────────────────────────────
+        // If the RPC returns 0 total but there are completed
+        // transactions, it's broken (stale view or bad filter).
+        // Fall through to the JS aggregation below.
+        const rpcTotal = Number(row.total || 0);
+        const rpcCompleted = Number(row.completed || 0);
+
+        if (rpcCompleted > 0 && rpcTotal === 0) {
+            console.warn('[BILLS STATS] RPC returned total=0 but completed>0. Falling back to JS aggregation.');
+            // DO NOT return here. Fall through to the JS logic.
+        } else {
+            return {
+                total: rpcTotal,
+                pending: Number(row.pending || 0),
+                processing: Number(row.processing || 0),
+                completed: rpcCompleted,
+                failed: Number(row.failed || 0),
+                cancelled: Number(row.cancelled || 0),
+                manual_review: Number(row.manual_review || 0),
+                today_transactions: Number(row.today_transactions || 0),
+                today_revenue: String(row.today_revenue || '0.00'),
+                today_profit: String(row.today_profit || '0.00'),
+                monthly_transactions: Number(row.monthly_transactions || 0),
+                monthly_revenue: String(row.monthly_revenue || '0.00'),
+                monthly_profit: String(row.monthly_profit || '0.00'),
+                electricity_transactions: Number(row.electricity_transactions || 0),
+                cable_transactions: Number(row.cable_transactions || 0),
+                average_transaction_value: String(row.average_transaction_value || '0.00'),
+                success_rate: Number(row.success_rate || 0),
+                summaryAvailable: true,
+                from: fromIso,
+                to: toIso,
+                vtpass_balance: vtpassBalance,
+                vtpass_balance_error: vtpassBalanceError,
+                vtpass_low: false
+            };
+        }
     }
 
     if (rpc.error?.code !== '42883' && rpc.error?.code !== 'PGRST202') {
@@ -231,19 +280,27 @@ async function getStats(query = {}) {
         throw e;
     }
 
-    // Fallback: aggregate in Node from a bounded fetch. Admin scale only.
+    // Fallback: aggregate in Node from a bounded fetch.
+    // Because the admin page loads with no filters, we fetch ALL
+    // transactions for the "Total" KPIs and compute "Today" in JS.
+    // If a specific date range was passed, we respect it.
+    const isDefaultRange = !query.from && !query.to;
+
     let q = supabaseAdmin
         .from('bill_payment_transactions')
         .select('id, status, service_type, customer_amount, provider_amount, created_at')
         .in('service_type', ['electricity', 'tv'])
-        .gte('created_at', fromIso)
-        .lte('created_at', toIso)
         .limit(5000);
+
+    if (!isDefaultRange) {
+        if (fromIso) q = q.gte('created_at', fromIso);
+        if (toIso) q = q.lte('created_at', toIso);
+    }
 
     const { data, error } = await q;
     if (error) {
         if (error.code === '42P01') {
-            return emptyStats(fromIso, toIso, 'BILL_TABLE_NOT_FOUND');
+            return emptyStats(fromIso, toIso, 'BILL_TABLE_NOT_FOUND', vtpassBalance, vtpassBalanceError);
         }
         const e = new Error('Failed to read bill transactions');
         e.status = 500; e.code = 'BILLS_STATS_ERROR'; throw e;
@@ -251,10 +308,11 @@ async function getStats(query = {}) {
 
     const rows = data || [];
     const todayIso = startOfWatDay();
+    const monthIso = startOfWatMonth();
 
     const completed = rows.filter(r => r.status === 'completed');
     const today = rows.filter(r => new Date(r.created_at).toISOString() >= todayIso);
-    const monthly = rows.filter(r => new Date(r.created_at).toISOString() >= startOfWatMonth());
+    const monthly = rows.filter(r => new Date(r.created_at).toISOString() >= monthIso);
     const sum = (arr, key) => arr.reduce((a, r) => a + Number(r[key] || 0), 0);
     const profitOf = (arr) => arr.reduce((a, r) => a + (Number(r.customer_amount || 0) - Number(r.provider_amount || 0)), 0);
 
@@ -278,11 +336,14 @@ async function getStats(query = {}) {
         success_rate: rows.length ? +(completed.length / rows.length * 100).toFixed(1) : 0,
         summaryAvailable: true,
         from: fromIso,
-        to: toIso
+        to: toIso,
+        vtpass_balance: vtpassBalance,
+        vtpass_balance_error: vtpassBalanceError,
+        vtpass_low: false
     };
 }
 
-function emptyStats(fromIso, toIso, reason) {
+function emptyStats(fromIso, toIso, reason, vtpassBalance = null, vtpassBalanceError = null) {
     return {
         total: 0, pending: 0, processing: 0, completed: 0, failed: 0,
         cancelled: 0, manual_review: 0, today_transactions: 0,
@@ -290,7 +351,10 @@ function emptyStats(fromIso, toIso, reason) {
         monthly_transactions: 0, monthly_revenue: '0.00', monthly_profit: '0.00',
         electricity_transactions: 0, cable_transactions: 0,
         average_transaction_value: '0.00', success_rate: 0,
-        summaryAvailable: false, reason, from: fromIso, to: toIso
+        summaryAvailable: false, reason, from: fromIso, to: toIso,
+        vtpass_balance: vtpassBalance,
+        vtpass_balance_error: vtpassBalanceError,
+        vtpass_low: false
     };
 }
 
@@ -537,7 +601,6 @@ async function resolveProviderState(order) {
                 raw: result
             };
         }
-        // processing / pending / unknown
         return {
             classification: 'UNKNOWN',
             providerStatus: result.providerStatus || 'processing',
@@ -630,7 +693,6 @@ async function syncOrder({ orderId, ctx }) {
 
     const provider = await resolveProviderState(raw);
 
-    // Always stamp the check.
     const now = new Date().toISOString();
     await supabaseAdmin
         .from('bill_payment_transactions')
@@ -677,15 +739,11 @@ async function syncOrder({ orderId, ctx }) {
         return { synced: true, resolved: 'failed' };
     }
 
-    // UNKNOWN — do not change status, but record the check.
     return { synced: true, resolved: 'unknown', reason: provider.reason || null };
 }
 
 // ═════════════════════════════════════════════════════════════════
 //  RETRY
-//
-//  Only CONFIRMED_NOT_FULFILLED triggers a new provider request.
-//  UNKNOWN moves to manual_review.
 // ═════════════════════════════════════════════════════════════════
 
 async function retryOrder({ orderId, ctx, reason }) {
@@ -737,7 +795,6 @@ async function retryOrder({ orderId, ctx, reason }) {
         return { outcome: 'manual_review' };
     }
 
-    // CONFIRMED_NOT_FULFILLED — safe to send a new purchase.
     let purchase;
     try {
         if (raw.service_type === 'electricity') {
@@ -773,7 +830,6 @@ async function retryOrder({ orderId, ctx, reason }) {
         return { outcome: 'failed', error: e.message };
     }
 
-    // Map result.
     const state = String(purchase.state || '').toLowerCase();
 
     if (state === 'completed') {
@@ -813,7 +869,6 @@ async function retryOrder({ orderId, ctx, reason }) {
         return { outcome: 'retried_processing' };
     }
 
-    // failure
     await transitionBill({
         orderId: raw.id,
         expectedCurrentStatus: current,
@@ -862,7 +917,6 @@ async function refundOrder({ orderId, ctx, reason }) {
         const e = new Error('Original transaction is not completed — cannot refund.'); e.status = 422; e.code = 'TX_NOT_REFUNDABLE'; throw e;
     }
 
-    // Idempotency fast path — unique index in the migration guarantees safety.
     const { data: existingRefund } = await supabaseAdmin
         .from('transactions')
         .select('id, reference, amount, currency')
@@ -952,7 +1006,6 @@ async function refundOrder({ orderId, ctx, reason }) {
             ctx, eventType: 'refund', reason
         });
     } catch (postErr) {
-        // Wallet was credited but order didn't transition. Flag it.
         await supabaseAdmin
             .from('bill_payment_transactions')
             .update({
@@ -1072,6 +1125,17 @@ async function getProviderHealth() {
         live = { configured: vtpass.isConfigured(), connectivity: false, error: e.message };
     }
 
+    const bal = await fetchVtpassBalance();
+
+    let threshold = null;
+    try {
+        const adminSettings = require('./adminSettingsService');
+        const raw = await adminSettings.getRaw('provider_balance_alert_vtpass_ngn');
+        const n = Number(raw);
+        if (Number.isFinite(n) && n > 0) threshold = n;
+    } catch (_) { /* optional */ }
+    if (threshold == null) threshold = 10000;
+
     let lastSuccess = null;
     let lastFailure = null;
     let recentCount = 0;
@@ -1122,7 +1186,11 @@ async function getProviderHealth() {
         lastSuccess,
         lastFailure,
         recentCount,
-        lastError: live.error || null
+        lastError: live.error || bal.error || null,
+        balance: bal.balance,
+        balance_currency: 'NGN',
+        alertThreshold: threshold,
+        low: bal.balance != null && Number.isFinite(threshold) && bal.balance < threshold
     };
 }
 

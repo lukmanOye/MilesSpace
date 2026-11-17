@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<title>Infrastructure · MilesSpace Admin</title>
+<title>Infrastructure · Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -19,13 +19,16 @@
   --text:#0c1f26; --text-dim:#5b7480; --text-faint:#8fa3ab;
   --success:#16a34a; --success-bg:#e9f9ef;
   --danger:#dc2626;  --danger-bg:#fdecec;
-  --warn:#f59e0b;    --warn-bg:#fef3d9;
+  --warn:#b3720a;    --warn-bg:#fef3d9;
   --info:#2563a8;    --info-bg:#e8f1fb;
-  --purple:#8b5cf6;  --purple-bg:#ede9fe;
   --radius-lg:16px;
   --shadow-sm:0 1px 2px rgba(8,42,51,.06);
   --shadow-md:0 8px 24px -8px rgba(8,42,51,.16);
   --sidebar-w:264px; --topbar-h:64px;
+  --safe-t:env(safe-area-inset-top, 0px);
+  --safe-b:env(safe-area-inset-bottom, 0px);
+  --safe-l:env(safe-area-inset-left, 0px);
+  --safe-r:env(safe-area-inset-right, 0px);
 }
 html.dark{
   --bg:#08151a; --surface:#12262c;
@@ -33,134 +36,197 @@ html.dark{
   --text:#eaf3f5; --text-dim:#9db4bb; --text-faint:#5b7480;
   --success-bg:rgba(22,163,74,.15); --danger-bg:rgba(220,38,38,.15);
   --warn-bg:rgba(245,158,11,.15); --info-bg:rgba(37,99,168,.18);
-  --purple-bg:rgba(139,92,246,.18);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;min-width:0;min-height:0}
 html,body{height:100%}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden;min-height:100dvh}
 ::-webkit-scrollbar{width:9px;height:9px}
 ::-webkit-scrollbar-thumb{background:rgba(15,76,92,.18);border-radius:99px}
 html.dark ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14)}
 .mono{font-family:'JetBrains Mono',monospace}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:6px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
 
-.app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh}
-.sidebar{background:linear-gradient(180deg,var(--brand-deep),var(--brand) 70%);color:#eaf6f8;padding:20px 14px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;z-index:60}
+/* ── Shell ──────────────────────────────────────────────────── */
+.app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh;min-height:100dvh}
+.sidebar{
+  background:linear-gradient(180deg,var(--brand-deep),var(--brand) 70%);
+  color:#eaf6f8;padding:calc(20px + var(--safe-t)) 14px 16px;
+  display:flex;flex-direction:column;position:sticky;top:0;height:100vh;height:100dvh;
+  overflow-y:auto;z-index:60;
+}
 .brand{display:flex;align-items:center;gap:11px;padding:6px 8px 18px}
-.brand-mark{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--gold),#d97e06);display:flex;align-items:center;justify-content:center;font-size:15px;color:#0c1d22;font-weight:800}
+.brand-mark{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--gold),#d97e06);display:flex;align-items:center;justify-content:center;font-size:15px;color:#0c1d22;font-weight:800;flex-shrink:0}
 .brand-text strong{font-size:15px;font-weight:800;display:block}
 .brand-text span{font-size:10.5px;color:#9fd4de;text-transform:uppercase;letter-spacing:.06em}
 .nav-scroll{flex:1;overflow-y:auto;margin-top:6px}
 .nav-label{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:#6fa2ad;font-weight:700;padding:14px 10px 6px}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;color:#cfe7ea;font-size:13px;font-weight:500;text-decoration:none;cursor:pointer;transition:background .15s}
+.nav-item{display:flex;align-items:center;gap:10px;padding:11px 10px;border-radius:9px;color:#cfe7ea;font-size:13px;font-weight:500;text-decoration:none;cursor:pointer;transition:background .15s;min-height:44px}
 .nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
 .nav-item.active{background:rgba(245,166,35,.16);color:#ffd899;font-weight:600}
-.nav-item .ic{width:17px;text-align:center}
-.sidebar-foot{border-top:1px solid rgba(255,255,255,.08);padding-top:12px;margin-top:8px;display:flex;align-items:center;gap:10px}
-.sidebar-foot .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#25748a,#0c3d4a);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px;color:#fff}
+.nav-item .ic{width:17px;text-align:center;font-size:13px}
+.sidebar-foot{border-top:1px solid rgba(255,255,255,.08);padding-top:12px;margin-top:8px;padding-bottom:var(--safe-b);display:flex;align-items:center;gap:10px}
+.sidebar-foot .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#25748a,#0c3d4a);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px;color:#fff;flex-shrink:0}
+.sidebar-foot strong{font-size:12.5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sidebar-foot .role{font-size:10.5px;color:#8fbac2}
+.sb-close{display:none;background:transparent;border:1px solid rgba(255,255,255,.18);color:#fff;width:36px;height:36px;border-radius:8px;font-size:15px;cursor:pointer;align-items:center;justify-content:center;margin-left:auto;flex-shrink:0}
 
 .main{display:flex;flex-direction:column;min-width:0;min-height:0}
-.topbar{min-height:var(--topbar-h);position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;padding:10px 22px;background:rgba(255,255,255,.85);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.topbar{
+  min-height:var(--topbar-h);position:sticky;top:0;z-index:40;
+  display:flex;align-items:center;gap:12px;
+  padding:calc(10px + var(--safe-t)) 22px 10px;
+  background:rgba(255,255,255,.85);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);flex-wrap:wrap;
+}
 html.dark .topbar{background:rgba(18,38,44,.85)}
 .topbar h1{margin:0;font-size:17px;font-weight:800}
 .topbar .sub{font-size:11.5px;color:var(--text-dim);margin-top:2px}
 .topbar-actions{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.content{padding:16px 22px 40px;max-width:1560px;width:100%;margin:0 auto}
+.content{
+  padding:16px 22px calc(40px + var(--safe-b));
+  max-width:1560px;width:100%;margin:0 auto;
+  padding-left:max(22px,calc(var(--safe-l) + 12px));
+  padding-right:max(22px,calc(var(--safe-r) + 12px));
+}
 
-.hamburger{display:none;background:transparent;border:1px solid var(--border);color:var(--text);width:38px;height:38px;border-radius:9px;font-size:15px;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0}
+.hamburger{display:none;background:transparent;border:1px solid var(--border);color:var(--text);width:44px;height:44px;border-radius:9px;font-size:15px;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0}
 .scrim{display:none;position:fixed;inset:0;background:rgba(8,21,26,.5);z-index:55}
 .scrim.show{display:block}
 
-/* Hero */
+/* ── Host banner ───────────────────────────────────────────── */
+.host-bar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:10px 14px;margin-bottom:14px;
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  font-size:12.5px;color:var(--text-dim);
+}
+.host-bar .host-name{font-weight:700;color:var(--text)}
+.host-bar .host-link{margin-left:auto}
+.host-bar a{color:var(--brand);text-decoration:none;font-weight:600}
+.host-bar a:hover{text-decoration:underline}
+
+/* ── Hero KPIs ─────────────────────────────────────────────── */
 .hero{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
-.hero-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;display:flex;flex-direction:column;gap:6px}
+.hero-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:14px 16px;
+  box-shadow:var(--shadow-sm);position:relative;overflow:hidden;
+  display:flex;flex-direction:column;gap:6px;min-height:96px;
+}
 .hero-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--brand);opacity:.65}
 .hero-card.good::before{background:var(--success)}
-.hero-card.warn::before{background:var(--warn)}
+.hero-card.warn::before{background:var(--gold)}
 .hero-card.bad::before{background:var(--danger)}
-.hero-card .lbl{font-size:10.5px;color:var(--text-dim);font-weight:700;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hero-card .val{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
-.hero-card .sub{font-size:10.5px;color:var(--text-faint);margin-top:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hero-card .lbl{font-size:11px;color:var(--text-dim);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hero-card .val{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1;overflow-wrap:anywhere}
+.hero-card .sub{font-size:11px;color:var(--text-faint);margin-top:auto;line-height:1.4;overflow-wrap:anywhere}
 
-/* Grid layout */
+/* ── Cards ─────────────────────────────────────────────────── */
 .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
-@media(max-width:1180px){ .grid{grid-template-columns:1fr} }
-
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;min-height:0}
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);overflow:hidden;
+  box-shadow:var(--shadow-sm);display:flex;flex-direction:column;min-height:0;
+}
 .card-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);gap:10px;flex-wrap:wrap}
-.card-head h3{font-size:13.5px;font-weight:800}
-.card-head .sub{font-size:11px;color:var(--text-dim);margin-top:2px}
-.card-body{padding:14px 16px}
+.card-head h3{font-size:13.5px;font-weight:800;display:flex;align-items:center;gap:8px}
+.card-head h3 i{color:var(--brand);font-size:12px;opacity:.85}
+.card-head .sub{font-size:11px;color:var(--text-dim);margin-top:2px;line-height:1.4}
+.card-head .tools{display:flex;gap:6px;align-items:center}
+.card-body{padding:14px 16px;flex:1;min-height:0}
 
-/* Metric rows */
-.metric-row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;font-size:12.8px;border-bottom:1px dashed var(--border)}
+/* ── Metric rows ───────────────────────────────────────────── */
+.metric-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:9px 0;font-size:12.8px;border-bottom:1px dashed var(--border);flex-wrap:wrap}
 .metric-row:last-child{border-bottom:none}
-.metric-row .k{color:var(--text-dim);font-weight:600}
-.metric-row .v{font-weight:700;font-variant-numeric:tabular-nums}
+.metric-row .k{color:var(--text-dim);font-weight:600;min-width:0;flex:1 1 auto}
+.metric-row .v{font-weight:700;font-variant-numeric:tabular-nums;text-align:right;overflow-wrap:anywhere;min-width:0;flex:0 1 auto}
 .metric-row .v.good{color:var(--success)}
-.metric-row .v.warn{color:#b3720a}
+.metric-row .v.warn{color:var(--warn)}
 .metric-row .v.bad{color:var(--danger)}
 
-/* Bar */
+/* ── Progress bar ──────────────────────────────────────────── */
 .bar{height:8px;background:var(--bg);border:1px solid var(--border);border-radius:99px;overflow:hidden;margin-top:6px}
 .bar > span{display:block;height:100%;background:var(--brand);border-radius:99px;transition:width .25s}
 .bar.good > span{background:var(--success)}
-.bar.warn > span{background:var(--warn)}
+.bar.warn > span{background:var(--gold)}
 .bar.bad > span{background:var(--danger)}
 
-/* Provider list */
+/* ── Provider list ─────────────────────────────────────────── */
 .prov-list{list-style:none;display:flex;flex-direction:column;gap:2px}
-.prov-item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--border);font-size:12.8px}
+.prov-item{
+  display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;
+  padding:9px 4px;border-bottom:1px solid var(--border);font-size:12.8px;
+}
 .prov-item:last-child{border-bottom:none}
 .prov-dot{width:9px;height:9px;border-radius:50%;background:var(--text-faint);flex-shrink:0}
 .prov-dot.good{background:var(--success)}
-.prov-dot.warn{background:var(--warn)}
+.prov-dot.warn{background:var(--gold)}
 .prov-dot.bad{background:var(--danger)}
 .prov-dot.neutral{background:var(--text-faint)}
-.prov-name{font-weight:600}
+.prov-name{font-weight:600;overflow-wrap:anywhere;min-width:0}
 .prov-name .env{font-size:10px;color:var(--text-faint);margin-left:6px;text-transform:uppercase;letter-spacing:.06em}
-.prov-meta{font-size:11px;color:var(--text-faint)}
+.prov-meta{font-size:11px;color:var(--text-faint);text-align:right;overflow-wrap:anywhere}
 
-/* Badges */
+/* ── Badges ────────────────────────────────────────────────── */
 .badge{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap}
 .badge.good{background:var(--success-bg);color:var(--success)}
-.badge.warn{background:var(--warn-bg);color:#b3720a}
+.badge.warn{background:var(--warn-bg);color:var(--warn)}
 .badge.bad{background:var(--danger-bg);color:var(--danger)}
 .badge.neutral{background:var(--bg);color:var(--text-dim);border:1px solid var(--border)}
+.badge.stale{background:var(--warn-bg);color:var(--warn);border:1px solid rgba(245,158,11,.35)}
 
-/* Skeleton */
+/* ── Skeletons ─────────────────────────────────────────────── */
 .skel{background:linear-gradient(90deg,var(--bg) 25%,var(--border) 50%,var(--bg) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;height:12px;display:block}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-/* Empty / unavailable */
-.empty{padding:32px 16px;text-align:center;color:var(--text-dim);font-size:12.5px}
-.empty .ic{font-size:24px;margin-bottom:8px;display:block;opacity:.5}
+/* ── Empty / unavailable / error ───────────────────────────── */
+.empty{padding:26px 16px;text-align:center;color:var(--text-dim);font-size:12.5px;line-height:1.6}
+.empty .ic{font-size:22px;margin-bottom:8px;display:block;opacity:.5}
+.empty .reason{font-size:11px;color:var(--text-faint);margin-top:4px;overflow-wrap:anywhere}
 
-/* Buttons */
-.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid transparent;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap;text-decoration:none}
-.btn:active{transform:scale(.97)}
+/* ── Buttons ───────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid transparent;cursor:pointer;font-family:inherit;transition:background .15s;white-space:nowrap;text-decoration:none;min-height:44px}
+.btn:disabled{opacity:.55;cursor:not-allowed}
 .btn-primary{background:var(--brand);color:#fff}
-.btn-primary:hover{background:var(--brand-light)}
+.btn-primary:hover:not(:disabled){background:var(--brand-light)}
 .btn-ghost{background:var(--surface);color:var(--text);border-color:var(--border)}
-.btn-ghost:hover{background:var(--bg)}
-.btn-sm{padding:7px 12px;font-size:11.5px;min-height:34px}
+.btn-ghost:hover:not(:disabled){background:var(--bg)}
+.btn-sm{padding:7px 12px;font-size:11.5px;min-height:36px}
 
-/* Toast */
-.toast-stack{position:fixed;bottom:18px;right:18px;z-index:1200;display:flex;flex-direction:column;gap:10px;max-width:380px}
-.toast{background:#0c1f26;color:#fff;padding:12px 16px;border-radius:11px;font-size:12.7px;font-weight:500;box-shadow:var(--shadow-md);border-left:3px solid var(--gold);animation:toastIn .22s ease}
+/* ── Toast ─────────────────────────────────────────────────── */
+.toast-stack{position:fixed;bottom:calc(18px + var(--safe-b));right:18px;z-index:1200;display:flex;flex-direction:column;gap:10px;max-width:380px;pointer-events:none}
+.toast{
+  background:#0c1f26;color:#fff;padding:12px 16px;border-radius:11px;
+  font-size:12.7px;font-weight:500;box-shadow:var(--shadow-md);
+  border-left:3px solid var(--gold);animation:toastIn .22s ease;
+  pointer-events:auto;overflow-wrap:anywhere;
+}
 .toast.success{border-left-color:var(--success)}
 .toast.error{border-left-color:var(--danger)}
-.toast.warn{border-left-color:#b3720a}
+.toast.warn{border-left-color:var(--gold)}
 @keyframes toastIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
 
-/* Responsive */
+/* ── Responsive ────────────────────────────────────────────── */
+@media(max-width:1180px){
+  .grid{grid-template-columns:1fr}
+}
 @media(max-width:900px){
   .app{grid-template-columns:1fr}
-  .sidebar{position:fixed;left:0;top:0;width:82%;max-width:320px;height:100dvh;transform:translateX(-100%);transition:transform .25s ease;box-shadow:var(--shadow-md)}
+  .sidebar{
+    position:fixed;left:0;top:0;width:82%;max-width:320px;
+    height:100vh;height:100dvh;
+    transform:translateX(-100%);transition:transform .25s ease;
+    box-shadow:var(--shadow-md);padding-top:calc(20px + var(--safe-t));
+  }
   .sidebar.open{transform:translateX(0)}
+  .sb-close{display:inline-flex}
   .hamburger{display:inline-flex}
-  .topbar{padding:10px 12px}
-  .content{padding:12px 12px 60px}
+  .topbar{padding:calc(10px + var(--safe-t)) 12px 10px}
+  .content{padding:12px max(12px, calc(var(--safe-l) + 8px)) calc(40px + var(--safe-b)) max(12px, calc(var(--safe-r) + 8px))}
   .hero{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:560px){
@@ -168,196 +234,254 @@ html.dark .topbar{background:rgba(18,38,44,.85)}
   .topbar-actions .btn{flex:1;justify-content:center}
   .hero{grid-template-columns:1fr}
   .toast-stack{left:12px;right:12px;max-width:none}
+  .card-head{padding:11px 12px}
+  .card-body{padding:12px}
 }
 </style>
 </head>
 <body>
 
-<div class="scrim" id="scrim"></div>
+<div class="scrim" id="scrim" aria-hidden="true"></div>
 
 <div class="app">
-<aside class="sidebar" id="sidebar">
-    <div class="brand">
-        <div class="brand-mark">M</div>
-        <div class="brand-text"><strong>MilesSpace</strong><span>Admin</span></div>
+  <aside class="sidebar" id="sidebar" aria-label="Admin navigation">
+        <div class="brand">
+      <img
+        class="brand-logo"
+        src="/images/miles.png"
+        alt=""
+        width="36"
+        height="36"
+        onerror="this.classList.add('brand-logo-fallback'); this.outerHTML='&lt;div class=&quot;brand-mark&quot; aria-hidden=&quot;true&quot;&gt;M&lt;/div&gt;'"
+      >
+      <div class="brand-text">
+        <strong>MilesSpace</strong>
+        <span>Admin</span>
+      </div>
+      <button class="sb-close" id="sbClose" aria-label="Close menu"><i class="fas fa-times"></i></button>
     </div>
     <nav class="nav-scroll">
-        <div class="nav-label">Overview</div>
-        <a href="/admin/dashboard.html" class="nav-item"><span class="ic">📊</span>Dashboard</a>
-        <a href="/admin/infrastructure.html" class="nav-item active"><span class="ic">🛰️</span>Infrastructure</a>
-        <div class="nav-label">Customers</div>
-        <a href="/admin/users.html" class="nav-item"><span class="ic">👥</span>Users</a>
-        <a href="/admin/support.html" class="nav-item"><span class="ic">💬</span>Support</a>
-        <div class="nav-label">Money</div>
-        <a href="/admin/transactions.html" class="nav-item"><span class="ic">💳</span>Transactions</a>
-        <a href="/admin/deposits.html" class="nav-item"><span class="ic">📥</span>Deposits</a>
-        <a href="/admin/ledger.html" class="nav-item"><span class="ic">📒</span>Ledger</a>
-        <a href="/admin/refunds.html" class="nav-item"><span class="ic">↩️</span>Refunds</a>
-        <a href="/admin/reconciliation.html" class="nav-item"><span class="ic">🔄</span>Reconciliation</a>
-        <div class="nav-label">Operations</div>
-        <a href="/admin/orders.html" class="nav-item"><span class="ic">🧮</span>Orders</a>
-        <a href="/admin/providers.html" class="nav-item"><span class="ic">🔌</span>Providers</a>
-        <a href="/admin/webhooks.html" class="nav-item"><span class="ic">🪝</span>Webhooks</a>
-        <div class="nav-label">System</div>
-        <a href="/admin/audit.html" class="nav-item"><span class="ic">📋</span>Audit Log</a>
-        <a href="/admin/settings.html" class="nav-item"><span class="ic">⚙️</span>Settings</a>
+      <div class="nav-label">Overview</div>
+      <a href="/admin/dashboard.html" class="nav-item"><span class="ic"><i class="fas fa-chart-line"></i></span>Dashboard</a>
+      <a href="/admin/infrastructure.html" class="nav-item active" aria-current="page"><span class="ic"><i class="fas fa-server"></i></span>Infrastructure</a>
+      <div class="nav-label">Customers</div>
+      <a href="/admin/users.html" class="nav-item"><span class="ic"><i class="fas fa-users"></i></span>Users</a>
+      <a href="/admin/support.html" class="nav-item"><span class="ic"><i class="fas fa-headset"></i></span>Support</a>
+      <div class="nav-label">Money</div>
+      <a href="/admin/transactions.html" class="nav-item"><span class="ic"><i class="fas fa-arrow-right-arrow-left"></i></span>Transactions</a>
+      <a href="/admin/deposits.html" class="nav-item"><span class="ic"><i class="fas fa-circle-down"></i></span>Deposits</a>
+      <a href="/admin/ledger.html" class="nav-item"><span class="ic"><i class="fas fa-book"></i></span>Ledger</a>
+      <a href="/admin/refunds.html" class="nav-item"><span class="ic"><i class="fas fa-rotate-left"></i></span>Refunds</a>
+      <a href="/admin/reconciliation.html" class="nav-item"><span class="ic"><i class="fas fa-rotate"></i></span>Reconciliation</a>
+      <div class="nav-label">Operations</div>
+      <a href="/admin/orders.html" class="nav-item"><span class="ic"><i class="fas fa-receipt"></i></span>Orders</a>
+      <a href="/admin/providers.html" class="nav-item"><span class="ic"><i class="fas fa-plug"></i></span>Providers</a>
+      <a href="/admin/webhooks.html" class="nav-item"><span class="ic"><i class="fas fa-anchor"></i></span>Webhooks</a>
+      <div class="nav-label">System</div>
+      <a href="/admin/audit.html" class="nav-item"><span class="ic"><i class="fas fa-scroll"></i></span>Audit Log</a>
+      <a href="/admin/settings.html" class="nav-item"><span class="ic"><i class="fas fa-gear"></i></span>Settings</a>
     </nav>
     <div class="sidebar-foot">
-        <div class="av" id="adminAvatar">DA</div>
-        <div style="min-width:0;overflow:hidden">
-            <strong id="adminName" style="font-size:12.5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Admin</strong>
-            <div id="adminRole" style="font-size:10.5px;color:#8fbac2">Loading…</div>
-        </div>
+      <div class="av" id="adminAvatar" aria-hidden="true">A</div>
+      <div style="min-width:0;overflow:hidden">
+        <strong id="adminName">Admin</strong>
+        <div class="role" id="adminRole">Loading…</div>
+      </div>
     </div>
-</aside>
+  </aside>
 
-<div class="main">
+  <div class="main">
     <header class="topbar">
-        <button class="hamburger" id="hamburger" aria-label="Open menu"><i class="fas fa-bars"></i></button>
-        <div style="min-width:0">
-            <h1>🛰️ Infrastructure</h1>
-            <div class="sub">Read-only view of the MilesSpace platform. Data is cached server-side and refreshed on a schedule.</div>
-        </div>
-        <div class="topbar-actions">
-            <button class="btn btn-ghost btn-sm" id="refreshBtn"><i class="fas fa-rotate-right"></i> Refresh</button>
-            <a class="btn btn-ghost btn-sm" href="https://railway.com/dashboard" target="_blank" rel="noopener"><i class="fas fa-arrow-up-right-from-square"></i> Railway</a>
-        </div>
+      <button class="hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false"><i class="fas fa-bars"></i></button>
+      <div style="min-width:0">
+        <h1>Infrastructure</h1>
+        <div class="sub">Read-only view. Data is cached server-side and refreshed by a scheduler.</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost btn-sm" id="refreshBtn" type="button">
+          <i class="fas fa-rotate-right" aria-hidden="true"></i> Refresh
+        </button>
+      </div>
     </header>
 
     <div class="content">
 
-        <!-- Hero KPIs -->
-        <section class="hero" id="hero">
-            <div class="hero-card"><div class="lbl">Platform</div><div class="val"><span class="skel" style="width:70px;height:20px"></span></div><div class="sub">—</div></div>
-            <div class="hero-card"><div class="lbl">API</div><div class="val"><span class="skel" style="width:70px;height:20px"></span></div><div class="sub">—</div></div>
-            <div class="hero-card"><div class="lbl">Database</div><div class="val"><span class="skel" style="width:70px;height:20px"></span></div><div class="sub">—</div></div>
-            <div class="hero-card"><div class="lbl">Providers</div><div class="val"><span class="skel" style="width:70px;height:20px"></span></div><div class="sub">—</div></div>
-        </section>
+      <!-- Host banner: rendered only when health.host exists -->
+      <div class="host-bar" id="hostBar" hidden></div>
 
-        <div class="grid">
+      <!-- KPIs -->
+      <section class="hero" id="hero" aria-live="polite" aria-label="Key metrics">
+        <div class="hero-card" data-skel>
+          <div class="lbl">Platform</div>
+          <div class="val"><span class="skel" style="width:70px;height:20px"></span></div>
+          <div class="sub">—</div>
+        </div>
+        <div class="hero-card" data-skel>
+          <div class="lbl">API</div>
+          <div class="val"><span class="skel" style="width:70px;height:20px"></span></div>
+          <div class="sub">—</div>
+        </div>
+        <div class="hero-card" data-skel>
+          <div class="lbl">Database</div>
+          <div class="val"><span class="skel" style="width:70px;height:20px"></span></div>
+          <div class="sub">—</div>
+        </div>
+        <div class="hero-card" data-skel>
+          <div class="lbl">Providers</div>
+          <div class="val"><span class="skel" style="width:70px;height:20px"></span></div>
+          <div class="sub">—</div>
+        </div>
+      </section>
 
-            <!-- Cost -->
-            <div class="card" id="costCard">
-                <div class="card-head">
-                    <div>
-                        <h3>Cost & usage</h3>
-                        <div class="sub" id="costSub">Railway billing period</div>
-                    </div>
-                </div>
-                <div class="card-body" id="costBody">
-                    <div class="skel" style="height:18px;width:60%;margin-bottom:10px"></div>
-                    <div class="skel" style="height:18px;width:80%"></div>
-                </div>
+      <div class="grid">
+
+        <div class="card" id="costCard">
+          <div class="card-head">
+            <div>
+              <h3><i class="fas fa-wallet" aria-hidden="true"></i> Cost and usage</h3>
+              <div class="sub" id="costSub">Current billing period</div>
             </div>
-
-            <!-- Server resources -->
-            <div class="card" id="resourceCard">
-                <div class="card-head">
-                    <div>
-                        <h3>Server resources</h3>
-                        <div class="sub" id="resourceSub">Last hour · Railway metrics</div>
-                    </div>
-                </div>
-                <div class="card-body" id="resourceBody">
-                    <div class="skel" style="height:18px;width:60%;margin-bottom:10px"></div>
-                    <div class="skel" style="height:18px;width:80%"></div>
-                </div>
-            </div>
-
-            <!-- API metrics -->
-            <div class="card" id="apiCard">
-                <div class="card-head">
-                    <div>
-                        <h3>API metrics</h3>
-                        <div class="sub">Last 60 minutes · in-process</div>
-                    </div>
-                </div>
-                <div class="card-body" id="apiBody">
-                    <div class="skel" style="height:18px;width:60%;margin-bottom:10px"></div>
-                    <div class="skel" style="height:18px;width:80%"></div>
-                </div>
-            </div>
-
-            <!-- Deployment -->
-            <div class="card" id="deployCard">
-                <div class="card-head">
-                    <div>
-                        <h3>Deployment</h3>
-                        <div class="sub" id="deploySub">Railway · current environment</div>
-                    </div>
-                </div>
-                <div class="card-body" id="deployBody">
-                    <div class="skel" style="height:18px;width:60%;margin-bottom:10px"></div>
-                    <div class="skel" style="height:18px;width:80%"></div>
-                </div>
-            </div>
-
-            <!-- Providers -->
-            <div class="card" id="providersCard" style="grid-column:1 / -1">
-                <div class="card-head">
-                    <div>
-                        <h3>Providers</h3>
-                        <div class="sub" id="providersSub">Snapshot from provider_health</div>
-                    </div>
-                    <a class="btn btn-ghost btn-sm" href="/admin/providers"><i class="fas fa-arrow-up-right-from-square"></i> Open providers</a>
-                </div>
-                <div class="card-body">
-                    <ul class="prov-list" id="providersList">
-                        <li class="prov-item"><span class="skel" style="height:14px;width:50%"></span></li>
-                        <li class="prov-item"><span class="skel" style="height:14px;width:50%"></span></li>
-                        <li class="prov-item"><span class="skel" style="height:14px;width:50%"></span></li>
-                    </ul>
-                </div>
-            </div>
-
+          </div>
+          <div class="card-body" id="costBody">
+            <div class="skel" style="height:18px;width:60%;margin-bottom:10px"></div>
+            <div class="skel" style="height:18px;width:80%"></div>
+          </div>
         </div>
 
+        <div class="card" id="resourceCard">
+          <div class="card-head">
+            <div>
+              <h3><i class="fas fa-microchip" aria-hidden="true"></i> Server resources</h3>
+              <div class="sub" id="resourceSub">Last hour</div>
+            </div>
+          </div>
+          <div class="card-body" id="resourceBody">
+            <div class="skel" style="height:18px;width:60%;margin-bottom:10px"></div>
+            <div class="skel" style="height:18px;width:80%"></div>
+          </div>
+        </div>
+
+        <div class="card" id="apiCard">
+          <div class="card-head">
+            <div>
+              <h3><i class="fas fa-chart-simple" aria-hidden="true"></i> API metrics</h3>
+              <div class="sub">Last 60 minutes · in-process</div>
+            </div>
+          </div>
+          <div class="card-body" id="apiBody">
+            <div class="skel" style="height:18px;width:60%;margin-bottom:10px"></div>
+            <div class="skel" style="height:18px;width:80%"></div>
+          </div>
+        </div>
+
+        <div class="card" id="deployCard">
+          <div class="card-head">
+            <div>
+              <h3><i class="fas fa-rocket" aria-hidden="true"></i> Deployment</h3>
+              <div class="sub" id="deploySub">Current environment</div>
+            </div>
+          </div>
+          <div class="card-body" id="deployBody">
+            <div class="skel" style="height:18px;width:60%;margin-bottom:10px"></div>
+            <div class="skel" style="height:18px;width:80%"></div>
+          </div>
+        </div>
+
+        <div class="card" id="providersCard" style="grid-column:1 / -1">
+          <div class="card-head">
+            <div>
+              <h3><i class="fas fa-plug" aria-hidden="true"></i> Providers</h3>
+              <div class="sub" id="providersSub">Snapshot from provider_health</div>
+            </div>
+            <a class="btn btn-ghost btn-sm" href="/admin/providers.html">
+              <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i> Open providers
+            </a>
+          </div>
+          <div class="card-body">
+            <ul class="prov-list" id="providersList">
+              <li class="prov-item"><span class="skel" style="height:14px;width:50%"></span></li>
+              <li class="prov-item"><span class="skel" style="height:14px;width:50%"></span></li>
+              <li class="prov-item"><span class="skel" style="height:14px;width:50%"></span></li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
     </div>
-</div>
+  </div>
 </div>
 
-<div class="toast-stack" id="toastStack"></div>
+<div class="toast-stack" id="toastStack" role="status" aria-live="polite" aria-atomic="false"></div>
 
 <script>
 'use strict';
 
+/* ─────────────────────────────────────────────────────────────
+   Endpoints. Relative only.
+   ───────────────────────────────────────────────────────────── */
 const API = {
+    health:     '/api/admin/infrastructure/health',
     overview:   '/api/admin/infrastructure/overview',
     usage:      '/api/admin/infrastructure/usage',
     metrics:    '/api/admin/infrastructure/metrics',
     deployment: '/api/admin/infrastructure/deployment',
-    health:     '/api/admin/infrastructure/health',
     me:         '/api/admin/me'
 };
 
-const $ = (s, r = document) => r.querySelector(s);
+const POLL_INTERVAL_MS = 60_000;
+const BACKOFF_MAX_MS   = 10 * 60 * 1000;
+
+const $  = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+
+/* ─────────────────────────────────────────────────────────────
+   Utilities
+   ───────────────────────────────────────────────────────────── */
 
 function esc(s) {
     if (s === null || s === undefined) return '';
-    return String(s).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+    return String(s).replace(/[&<>"']/g, m => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[m]));
 }
-function toast(msg, type='info') {
+function safeUrl(u) {
+    if (!u) return null;
+    const s = String(u).trim();
+    if (!/^https?:\/\//i.test(s)) return null;
+    try { new URL(s); return s; } catch { return null; }
+}
+
+function toast(msg, type = 'info') {
     const stack = $('#toastStack');
+    if (!stack) return;
     const el = document.createElement('div');
     el.className = 'toast ' + type;
-    el.textContent = msg;
+    el.textContent = String(msg || '');
     stack.appendChild(el);
-    setTimeout(() => { el.style.opacity='0'; setTimeout(()=>el.remove(),220); }, 3400);
+    setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transition = 'opacity .2s';
+        setTimeout(() => el.remove(), 220);
+    }, 4200);
 }
+
 function fmtNum(v, digits = 0) {
     const n = Number(v);
     if (!Number.isFinite(n)) return '—';
-    return n.toLocaleString('en-US', { maximumFractionDigits: digits, minimumFractionDigits: digits });
+    return n.toLocaleString('en-US', {
+        maximumFractionDigits: digits,
+        minimumFractionDigits: digits
+    });
 }
 function fmtMoney(v) {
     const n = Number(v);
     if (!Number.isFinite(n)) return '—';
     return '$' + n.toFixed(2);
 }
-function fmtBytesGb(gb) {
+function fmtGb(gb) {
     const n = Number(gb);
     if (!Number.isFinite(n)) return '—';
+    if (n === 0) return '0 B';
     if (n < 0.01) return (n * 1024).toFixed(1) + ' MB';
     return n.toFixed(2) + ' GB';
 }
@@ -367,277 +491,596 @@ function relTime(iso) {
     if (!Number.isFinite(s)) return '—';
     if (s < 0) return 'just now';
     if (s < 60) return s + 's ago';
-    if (s < 3600) return Math.floor(s/60) + 'm ago';
-    if (s < 86400) return Math.floor(s/3600) + 'h ago';
-    return Math.floor(s/86400) + 'd ago';
+    if (s < 3600) return Math.floor(s / 60) + 'm ago';
+    if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+    return Math.floor(s / 86400) + 'd ago';
 }
 
-async function api(url) {
+/* ─────────────────────────────────────────────────────────────
+   API wrapper.
+   Handles 401 / 403 / 404 / network separately and returns a
+   discriminated result the callers can switch on.
+   ───────────────────────────────────────────────────────────── */
+
+async function api(path, { signal } = {}) {
     if (!window.AdminSession || typeof AdminSession.fetch !== 'function') {
-        return { ok:false, reason:'no_session', error:'Authentication layer not loaded.' };
+        return { ok: false, reason: 'no_session' };
     }
     try {
-        const res = await AdminSession.fetch(url);
-        let json = null;
-        try { json = await res.json(); } catch {}
-        if (res.status === 401) return { ok:false, reason:'unauthorized' };
-        if (res.status === 403) return { ok:false, reason:'forbidden', code: json?.code };
-        if (!res.ok || json?.success === false) {
-            return { ok:false, reason:'api_error', error: json?.error || json?.message, code: json?.code };
+        const res = await AdminSession.fetch(path, { signal });
+        let body = null;
+        try { body = await res.json(); } catch { body = null; }
+
+        if (res.status === 401) return { ok: false, status: 401, reason: 'unauthorized' };
+        if (res.status === 403) return { ok: false, status: 403, reason: 'forbidden', code: body && body.code };
+        if (res.status === 404) return { ok: false, status: 404, reason: 'not_found' };
+        if (!res.ok) {
+            return {
+                ok: false,
+                status: res.status,
+                reason: 'api_error',
+                code: body && body.code,
+                error: (body && (body.error || body.message)) || ('HTTP ' + res.status)
+            };
         }
-        return { ok:true, data: json };
+        return { ok: true, data: body || {} };
     } catch (e) {
-        return { ok:false, reason:'network_error', error: e.message };
+        if (e && (e.name === 'AbortError' || e.name === 'CanceledError')) {
+            return { ok: false, reason: 'aborted' };
+        }
+        return { ok: false, reason: 'network_error', error: e && e.message };
     }
 }
 
-// ─── Status helpers ─────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────────────
+   Status helpers
+   ───────────────────────────────────────────────────────────── */
+
 function statusClass(s) {
     const v = String(s || '').toLowerCase();
-    if (['operational','healthy','success','running','configured'].includes(v)) return 'good';
-    if (['degraded','warning','initializing','configured'].includes(v)) return 'warn';
-    if (['unreachable','failed','crashed','auth_failed','circuit_open','rate_limited','major_outage'].includes(v)) return 'bad';
+    if (['operational','healthy','success','running','deployed'].includes(v)) return 'good';
+    if (['degraded','warning','initializing','deploying','building','queued'].includes(v)) return 'warn';
+    if (['unreachable','failed','crashed','auth_failed','circuit_open','rate_limited','major_outage','down'].includes(v)) return 'bad';
     return 'neutral';
 }
 function statusLabel(s) {
-    return String(s || 'unknown').replace(/_/g,' ');
+    const v = String(s || 'unknown').toLowerCase();
+    if (v === 'major_outage') return 'Major outage';
+    if (v === 'operational') return 'Operational';
+    return v.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
-// ─── Render hero ────────────────────────────────────────────────
-function renderHero(health) {
-    const overall = health.overall || 'unknown';
-    const api = health.api || {};
-    const db = health.database || {};
-    const prov = health.providers || { down: 0, criticalDown: 0 };
+/* ─────────────────────────────────────────────────────────────
+   Card renderers.
+   Every renderer accepts a discriminated result:
+     { ok:true, data }
+     { ok:false, reason, error?, status? }
+   and produces a stable DOM. Errors get a Retry button that
+   re-triggers only that card's fetcher.
+   ───────────────────────────────────────────────────────────── */
+
+function renderErrorCard(host, { title, reason, onRetry }) {
+    const messageMap = {
+        unauthorized:     'Your session expired. Signing you back in.',
+        forbidden:        'You do not have permission to view this.',
+        not_found:        'This endpoint is not available on the server.',
+        network_error:    'Network error. Check your connection.',
+        aborted:          'Cancelled.'
+    };
+    const msg = messageMap[reason] || 'Could not load this section.';
+    host.innerHTML = `
+        <div class="empty">
+            <span class="ic" aria-hidden="true"><i class="fas fa-triangle-exclamation"></i></span>
+            <div>${esc(title)}</div>
+            <div class="reason">${esc(msg)}</div>
+            ${onRetry && (reason === 'network_error' || reason === 'api_error')
+                ? '<div style="margin-top:12px"><button class="btn btn-ghost btn-sm" type="button" data-retry>Try again</button></div>'
+                : ''}
+        </div>
+    `;
+    if (onRetry) {
+        host.querySelector('[data-retry]')?.addEventListener('click', onRetry);
+    }
+}
+function renderUnavailableCard(host, { title, reason, footnote }) {
+    const reasonMap = {
+        HOST_API_TOKEN_NOT_CONFIGURED: 'The host API token is not configured on the server.',
+        HOST_API_NOT_AVAILABLE:        'This data is not available on the current host.',
+        HOST_API_NO_USAGE:             'Usage data is not exposed by the current host.',
+        HOST_API_NO_METRICS:           'Server metrics are not exposed by the current host.',
+        HOST_API_NO_DEPLOYMENT:        'Deployment details are not exposed by the current host.',
+        HOST_API_SHAPE_UNKNOWN:        'The host returned a shape this panel does not understand yet.',
+        HOST_API_QUERY_FAILED:         'The host API could not be queried. It will retry on the next refresh.',
+        HOST_NOT_DETECTED:             'No hosting provider was detected from the environment.',
+        NOT_YET_FETCHED:               'Data will appear after the first scheduled refresh.',
+        TABLE_MISSING:                 'The source table is not present on this database.'
+    };
+    const msg = reasonMap[reason] || 'Not available right now.';
+    host.innerHTML = `
+        <div class="empty">
+            <span class="ic" aria-hidden="true"><i class="fas fa-circle-info"></i></span>
+            <div>${esc(title || 'Not available')}</div>
+            <div class="reason">${esc(msg)}</div>
+            ${footnote ? '<div class="reason">' + esc(footnote) + '</div>' : ''}
+        </div>
+    `;
+}
+
+/* ── Health ───────────────────────────────────────────────── */
+
+function renderHealth(res) {
+    const hero = $('#hero');
+    if (!res.ok) {
+        if (res.reason === 'aborted') return;
+        hero.innerHTML = `
+            <div class="hero-card bad" style="grid-column:1 / -1">
+                <div class="lbl">Platform</div>
+                <div class="val">Unavailable</div>
+                <div class="sub">
+                    ${esc(res.reason === 'not_found' ? 'The health endpoint is not available on the server.'
+                        : res.reason === 'forbidden' ? 'You do not have permission to view infrastructure health.'
+                        : res.reason === 'unauthorized' ? 'Signing you back in…'
+                        : 'Could not load. It will retry.')}
+                </div>
+                ${(res.reason === 'network_error' || res.reason === 'api_error')
+                    ? '<div style="margin-top:8px"><button class="btn btn-ghost btn-sm" type="button" data-retry>Try again</button></div>'
+                    : ''}
+            </div>
+        `;
+        hero.querySelector('[data-retry]')?.addEventListener('click', () => loadHealth());
+        renderHostBar(null);
+        return;
+    }
+    const h = (res.data && res.data.health) || {};
+    const overall = h.overall || 'unknown';
+    const api = h.api || {};
+    const db = h.database || {};
+    const prov = h.providers || { down: 0, criticalDown: 0, total: 0 };
 
     const platformClass = overall === 'operational' ? 'good'
-                        : overall === 'degraded' ? 'warn'
-                        : overall === 'major_outage' ? 'bad' : '';
-    const apiClass = (api.serverErrorRatePct ?? 0) > 5 ? 'bad'
-                    : (api.serverErrorRatePct ?? 0) > 1 ? 'warn' : 'good';
+                       : overall === 'degraded'    ? 'warn'
+                       : overall === 'major_outage' ? 'bad' : '';
+    const apiClass = api.serverErrorRatePct != null && api.serverErrorRatePct > 5 ? 'bad'
+                   : api.serverErrorRatePct != null && api.serverErrorRatePct > 1 ? 'warn' : 'good';
     const dbClass = statusClass(db.status);
     const provClass = prov.criticalDown > 0 ? 'bad'
                     : prov.down > 0 ? 'warn' : 'good';
 
-    $('#hero').innerHTML = `
+    hero.innerHTML = `
         <div class="hero-card ${platformClass}">
             <div class="lbl">Platform</div>
             <div class="val">${esc(statusLabel(overall))}</div>
-            <div class="sub">${health.lastSnapshotAt ? 'updated ' + esc(relTime(health.lastSnapshotAt)) : 'no snapshot yet'}</div>
+            <div class="sub">${h.lastSnapshotAt ? 'Updated ' + esc(relTime(h.lastSnapshotAt)) : 'No snapshot yet'}</div>
         </div>
         <div class="hero-card ${apiClass}">
             <div class="lbl">API</div>
             <div class="val">${api.requests != null ? fmtNum(api.requests) : '—'}</div>
-            <div class="sub">${api.serverErrorRatePct != null ? api.serverErrorRatePct + '% 5xx · ' + (api.avgLatencyMs || 0) + ' ms avg' : 'no traffic in window'}</div>
+            <div class="sub">${api.serverErrorRatePct != null ? esc(api.serverErrorRatePct) + '% 5xx · ' + (api.avgLatencyMs || 0) + ' ms avg' : 'No traffic in window'}</div>
         </div>
         <div class="hero-card ${dbClass}">
             <div class="lbl">Database</div>
             <div class="val">${esc(statusLabel(db.status))}</div>
-            <div class="sub">${db.latencyMs != null ? db.latencyMs + ' ms ping' : 'no data'}</div>
+            <div class="sub">${db.latencyMs != null ? db.latencyMs + ' ms ping' : 'No data'}</div>
         </div>
         <div class="hero-card ${provClass}">
             <div class="lbl">Providers</div>
-            <div class="val">${prov.down} down</div>
-            <div class="sub">${prov.criticalDown} critical</div>
+            <div class="val">${fmtNum(prov.down)} down</div>
+            <div class="sub">${fmtNum(prov.criticalDown)} critical · ${fmtNum(prov.total || 0)} total</div>
         </div>
+    `;
+
+    renderHostBar(h.host || null);
+}
+
+function renderHostBar(host) {
+    const bar = $('#hostBar');
+    if (!bar) return;
+    if (!host || !host.name || host.name === 'unknown') {
+        bar.hidden = true;
+        bar.innerHTML = '';
+        return;
+    }
+    const safeDash = safeUrl(host.dashboardUrl);
+    bar.hidden = false;
+    bar.innerHTML = `
+        <i class="fas fa-server" aria-hidden="true"></i>
+        <span>Hosted on <span class="host-name">${esc(host.label || host.name)}</span></span>
+        ${safeDash
+            ? '<span class="host-link"><a href="' + esc(safeDash) + '" target="_blank" rel="noopener noreferrer">Open dashboard</a></span>'
+            : ''}
     `;
 }
 
-// ─── Cost card ──────────────────────────────────────────────────
-function renderCost(usage) {
+/* ── Cost / usage ─────────────────────────────────────────── */
+
+function renderCost(res) {
     const body = $('#costBody');
-    const sub = $('#costSub');
-    if (!usage.available) {
-        body.innerHTML = `<div class="empty"><span class="ic">💳</span>Railway usage not available.<br><span style="font-size:11px">${esc(usage.reason || '')}</span></div>`;
+    const sub  = $('#costSub');
+    if (!res.ok) {
+        if (res.reason === 'aborted') return;
+        renderErrorCard(body, { title: 'Cost and usage', reason: res.reason, onRetry: loadUsage });
         sub.textContent = '—';
         return;
     }
-
-    const current = usage.current ?? 0;
-    const estimated = usage.estimated ?? 0;
-    const included = usage.included ?? 5;
-    const budget = 10; // soft budget for display; actual hard limit is in Railway
-    const pct = Math.min(100, Math.round((estimated / budget) * 100));
-    const barClass = pct >= 90 ? 'bad' : pct >= 70 ? 'warn' : 'good';
-
-    let periodLine = '';
-    if (usage.periodStart && usage.periodEnd) {
-        const s = new Date(usage.periodStart).toISOString().slice(0,10);
-        const e = new Date(usage.periodEnd).toISOString().slice(0,10);
-        periodLine = `${s} → ${e}`;
-    }
-    sub.textContent = periodLine || 'current billing period';
-
-    body.innerHTML = `
-        <div class="metric-row"><span class="k">Current usage</span><span class="v">${esc(fmtMoney(current))}</span></div>
-        <div class="metric-row"><span class="k">Estimated</span><span class="v">${esc(fmtMoney(estimated))}</span></div>
-        <div class="metric-row"><span class="k">Included</span><span class="v">${esc(fmtMoney(included))}</span></div>
-        <div class="metric-row"><span class="k">Overage</span><span class="v">${esc(fmtMoney(usage.overage ?? 0))}</span></div>
-        <div style="margin-top:12px">
-            <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-dim);margin-bottom:4px">
-                <span>Budget $${budget.toFixed(0)}</span>
-                <span>${pct}%</span>
-            </div>
-            <div class="bar ${barClass}"><span style="width:${pct}%"></span></div>
-        </div>
-    `;
-}
-
-// ─── Server resources card ─────────────────────────────────────
-function renderResources(metrics) {
-    const body = $('#resourceBody');
-    const server = metrics.server || {};
-    const hasAny = Object.values(server).some(v => v && Number.isFinite(v.latest));
-    if (!hasAny) {
-        body.innerHTML = `<div class="empty"><span class="ic">📈</span>Server metrics not available.<br><span style="font-size:11px">Railway metrics are fetched every 5 minutes.</span></div>`;
+    const u = (res.data && res.data.usage) || {};
+    if (!u.available) {
+        renderUnavailableCard(body, { title: 'Cost and usage', reason: u.reason });
+        sub.textContent = u.budget != null ? 'Budget: ' + fmtMoney(u.budget) : '—';
         return;
     }
 
-    const row = (label, key, formatter, unit = '') => {
-        const m = server[key];
-        if (!m) return `<div class="metric-row"><span class="k">${label}</span><span class="v">—</span></div>`;
-        const latest = formatter(m.latest);
-        const peak = formatter(m.max);
-        return `<div class="metric-row"><span class="k">${label}</span><span class="v">${latest}${unit} <span style="color:var(--text-faint);font-weight:500;font-size:11px">peak ${peak}${unit}</span></span></div>`;
-    };
+    const current  = u.current;
+    const estimated = u.estimated;
+    const included = u.included;
+    const overage  = u.overage;
+    const budget   = u.budget;
+
+    const pct = (budget && Number.isFinite(Number(estimated)))
+        ? Math.min(100, Math.round((Number(estimated) / Number(budget)) * 100))
+        : null;
+    const barClass = pct == null ? '' : pct >= 90 ? 'bad' : pct >= 70 ? 'warn' : 'good';
+
+    const periodLine = (u.periodStart && u.periodEnd)
+        ? new Date(u.periodStart).toISOString().slice(0, 10) + ' to ' + new Date(u.periodEnd).toISOString().slice(0, 10)
+        : 'Current billing period';
+    sub.textContent = periodLine;
 
     body.innerHTML = `
-        ${row('CPU', 'CPU_USAGE', v => (v * 100).toFixed(1), '%')}
-        ${row('Memory', 'MEMORY_USAGE_GB', v => v.toFixed(3), ' GB')}
-        ${row('Network TX', 'NETWORK_TX_GB', v => fmtBytesGb(v))}
-        ${row('Network RX', 'NETWORK_RX_GB', v => fmtBytesGb(v))}
-        ${row('Disk', 'DISK_USAGE_GB', v => v.toFixed(2), ' GB')}
+        <div class="metric-row"><span class="k">Budget</span><span class="v">${budget != null ? esc(fmtMoney(budget)) : '—'}</span></div>
+        <div class="metric-row"><span class="k">Current usage</span><span class="v">${current != null ? esc(fmtMoney(current)) : '—'}</span></div>
+        <div class="metric-row"><span class="k">Estimated</span><span class="v">${estimated != null ? esc(fmtMoney(estimated)) : '—'}</span></div>
+        <div class="metric-row"><span class="k">Included</span><span class="v">${included != null ? esc(fmtMoney(included)) : '—'}</span></div>
+        <div class="metric-row"><span class="k">Overage</span><span class="v">${overage != null ? esc(fmtMoney(overage)) : '—'}</span></div>
+        ${pct != null ? `
+            <div style="margin-top:12px">
+                <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-dim);margin-bottom:4px">
+                    <span>Budget</span><span>${pct}%</span>
+                </div>
+                <div class="bar ${barClass}"><span style="width:${pct}%"></span></div>
+            </div>
+        ` : ''}
+        ${u.stale ? '<div style="margin-top:10px"><span class="badge stale">Stale</span> <span style="font-size:11px;color:var(--text-faint)">Updated ' + esc(relTime(u.lastUpdatedAt)) + '</span></div>' : ''}
     `;
 }
 
-// ─── API metrics card ──────────────────────────────────────────
-function renderApi(metrics) {
+/* ── Server resources ─────────────────────────────────────── */
+
+function renderResources(res) {
+    const body = $('#resourceBody');
+    const sub  = $('#resourceSub');
+    if (!res.ok) {
+        if (res.reason === 'aborted') return;
+        renderErrorCard(body, { title: 'Server resources', reason: res.reason, onRetry: loadMetrics });
+        sub.textContent = '—';
+        return;
+    }
+    const m = (res.data && res.data.metrics) || {};
+    const server = m.server || null;
+    if (!m.available || !server) {
+        renderUnavailableCard(body, { title: 'Server resources', reason: m.reason || 'HOST_API_NOT_AVAILABLE' });
+        sub.textContent = m.lastUpdatedAt ? 'Updated ' + relTime(m.lastUpdatedAt) : '—';
+        return;
+    }
+    sub.textContent = (m.lastUpdatedAt ? 'Updated ' + relTime(m.lastUpdatedAt) : 'Last hour')
+        + (m.stale ? ' · stale' : '');
+
+    const row = (label, val, unit = '') => `
+        <div class="metric-row"><span class="k">${esc(label)}</span><span class="v">${esc(val)}${unit ? '<span style="color:var(--text-faint);font-weight:500;font-size:11px"> ' + esc(unit) + '</span>' : ''}</span></div>
+    `;
+
+    body.innerHTML = [
+        row('CPU',      server.cpuPct  != null ? Number(server.cpuPct).toFixed(1)  : '—', '%'),
+        row('Memory',   server.memGb   != null ? Number(server.memGb).toFixed(3)   : '—', 'GB'),
+        row('Network TX', server.netTxGb != null ? fmtGb(server.netTxGb)           : '—'),
+        row('Network RX', server.netRxGb != null ? fmtGb(server.netRxGb)           : '—'),
+        row('Disk',     server.diskGb  != null ? Number(server.diskGb).toFixed(2)  : '—', 'GB')
+    ].join('');
+}
+
+/* ── API metrics ──────────────────────────────────────────── */
+
+function renderApi(res) {
     const body = $('#apiBody');
-    const api = metrics.api || {};
-    const rateClass = (api.serverErrorRatePct ?? 0) > 5 ? 'bad'
-                    : (api.serverErrorRatePct ?? 0) > 1 ? 'warn' : 'good';
+    if (!res.ok) {
+        if (res.reason === 'aborted') return;
+        renderErrorCard(body, { title: 'API metrics', reason: res.reason, onRetry: loadMetrics });
+        return;
+    }
+    const api = ((res.data && res.data.metrics) || {}).api || {};
+    const rate = api.serverErrorRatePct;
+    const rateClass = rate != null && rate > 5 ? 'bad'
+                    : rate != null && rate > 1 ? 'warn'
+                    : 'good';
 
     body.innerHTML = `
-        <div class="metric-row"><span class="k">Requests (60m)</span><span class="v">${esc(fmtNum(api.requests || 0))}</span></div>
+        <div class="metric-row"><span class="k">Requests (60 min)</span><span class="v">${esc(fmtNum(api.requests || 0))}</span></div>
         <div class="metric-row"><span class="k">Success</span><span class="v good">${esc(fmtNum(api.success || 0))}</span></div>
         <div class="metric-row"><span class="k">4xx</span><span class="v warn">${esc(fmtNum(api.errors4xx || 0))}</span></div>
         <div class="metric-row"><span class="k">5xx</span><span class="v bad">${esc(fmtNum(api.errors5xx || 0))}</span></div>
-        <div class="metric-row"><span class="k">Slow (&gt;1s)</span><span class="v">${esc(fmtNum(api.slowRequests || 0))}</span></div>
-        <div class="metric-row"><span class="k">Avg latency</span><span class="v">${api.avgLatencyMs != null ? esc(fmtNum(api.avgLatencyMs)) + ' ms' : '—'}</span></div>
-        <div class="metric-row"><span class="k">5xx rate</span><span class="v ${rateClass}">${api.serverErrorRatePct != null ? esc(api.serverErrorRatePct) + '%' : '—'}</span></div>
+        <div class="metric-row"><span class="k">Slow (&gt; 1s)</span><span class="v">${esc(fmtNum(api.slowRequests || 0))}</span></div>
+        <div class="metric-row"><span class="k">Average latency</span><span class="v">${api.avgLatencyMs != null ? esc(fmtNum(api.avgLatencyMs)) + ' ms' : '—'}</span></div>
+        <div class="metric-row"><span class="k">5xx rate</span><span class="v ${rateClass}">${rate != null ? esc(rate) + '%' : '—'}</span></div>
     `;
 }
 
-// ─── Deployment card ───────────────────────────────────────────
-function renderDeployment(dep) {
+/* ── Deployment ───────────────────────────────────────────── */
+
+function renderDeployment(res) {
     const body = $('#deployBody');
-    const sub = $('#deploySub');
-    if (!dep.available) {
-        body.innerHTML = `<div class="empty"><span class="ic">🚀</span>Deployment info not available.<br><span style="font-size:11px">${esc(dep.reason || '')}</span></div>`;
+    const sub  = $('#deploySub');
+    if (!res.ok) {
+        if (res.reason === 'aborted') return;
+        renderErrorCard(body, { title: 'Deployment', reason: res.reason, onRetry: loadDeployment });
         sub.textContent = '—';
         return;
     }
-    const cls = statusClass(dep.status);
-    sub.textContent = `Latest · ${relTime(dep.createdAt)}`;
+    const d = (res.data && res.data.deployment) || {};
+    if (!d.available) {
+        renderUnavailableCard(body, { title: 'Deployment', reason: d.reason });
+        sub.textContent = '—';
+        return;
+    }
+    const cls = statusClass(d.status);
+    const safeHref = safeUrl(d.url);
+    sub.textContent = d.source === 'env'
+        ? 'From environment · ' + (d.commit ? 'commit ' + d.commit : 'no commit')
+        : (d.lastUpdatedAt ? 'Updated ' + relTime(d.lastUpdatedAt) : 'Latest');
 
     body.innerHTML = `
-        <div class="metric-row"><span class="k">Status</span><span class="v"><span class="badge ${cls}">${esc(dep.status)}</span></span></div>
-        <div class="metric-row"><span class="k">Created</span><span class="v">${esc(relTime(dep.createdAt))}</span></div>
-        <div class="metric-row"><span class="k">Updated</span><span class="v">${esc(relTime(dep.updatedAt))}</span></div>
-        <div class="metric-row"><span class="k">Deployment ID</span><span class="v mono" style="font-size:11px">${esc((dep.id || '').slice(0,12))}…</span></div>
-        ${dep.url ? `<div class="metric-row"><span class="k">URL</span><span class="v"><a href="${esc(dep.url)}" target="_blank" rel="noopener" style="color:var(--brand)">${esc(dep.url.replace(/^https?:\/\//,''))}</a></span></div>` : ''}
+        <div class="metric-row"><span class="k">Status</span><span class="v"><span class="badge ${cls}">${esc(statusLabel(d.status))}</span></span></div>
+        ${d.createdAt ? '<div class="metric-row"><span class="k">Created</span><span class="v">' + esc(relTime(d.createdAt)) + '</span></div>' : ''}
+        ${d.updatedAt ? '<div class="metric-row"><span class="k">Updated</span><span class="v">' + esc(relTime(d.updatedAt)) + '</span></div>' : ''}
+        ${d.id ? '<div class="metric-row"><span class="k">Deployment ID</span><span class="v mono" style="font-size:11px">' + esc(String(d.id).slice(0, 12)) + (String(d.id).length > 12 ? '…' : '') + '</span></div>' : ''}
+        ${d.commit ? '<div class="metric-row"><span class="k">Commit</span><span class="v mono" style="font-size:11px">' + esc(d.commit) + '</span></div>' : ''}
+        ${safeHref ? '<div class="metric-row"><span class="k">URL</span><span class="v"><a href="' + esc(safeHref) + '" target="_blank" rel="noopener noreferrer" style="color:var(--brand)">' + esc(safeHref.replace(/^https?:\/\//, '')) + '</a></span></div>' : ''}
+        ${d.stale ? '<div style="margin-top:10px"><span class="badge stale">Stale</span></div>' : ''}
     `;
 }
 
-// ─── Providers card ────────────────────────────────────────────
-function renderProviders(providers) {
+/* ── Providers ────────────────────────────────────────────── */
+
+function renderProviders(res) {
     const list = $('#providersList');
-    const sub = $('#providersSub');
-    const rows = providers?.providers || [];
-    if (!rows.length) {
-        list.innerHTML = `<li class="empty"><span class="ic">🔌</span>No providers registered.</li>`;
+    const sub  = $('#providersSub');
+    if (!res.ok) {
+        if (res.reason === 'aborted') return;
+        list.innerHTML = `<li class="empty"><span class="ic" aria-hidden="true"><i class="fas fa-triangle-exclamation"></i></span>Could not load providers.</li>`;
         sub.textContent = '—';
         return;
     }
-    sub.textContent = `${rows.length} providers · ${providers.down || 0} down · ${providers.criticalDown || 0} critical`;
-    list.innerHTML = rows.map(p => {
-        const cls = statusClass(p.status);
+    const ov = (res.data && res.data.overview) || {};
+    const p = ov.providers || {};
+    const rows = Array.isArray(p.providers) ? p.providers : [];
+    if (!p.available) {
+        list.innerHTML = `<li class="empty"><span class="ic" aria-hidden="true"><i class="fas fa-circle-info"></i></span>Provider snapshot not available. <div class="reason">${esc(p.reason || '')}</div></li>`;
+        sub.textContent = '—';
+        return;
+    }
+    if (!rows.length) {
+        list.innerHTML = `<li class="empty"><span class="ic" aria-hidden="true"><i class="fas fa-plug"></i></span>No providers registered.</li>`;
+        sub.textContent = '0 providers';
+        return;
+    }
+    sub.textContent = rows.length + ' providers · ' + (p.down || 0) + ' down · ' + (p.criticalDown || 0) + ' critical';
+    list.innerHTML = rows.map(pr => {
+        const cls = statusClass(pr.status);
         return `
             <li class="prov-item">
-                <span class="prov-dot ${cls}"></span>
-                <span class="prov-name">${esc(p.label)}${p.environment ? `<span class="env">${esc(p.environment)}</span>` : ''}</span>
-                <span class="prov-meta">${esc(statusLabel(p.status))}${p.latencyMs != null ? ' · ' + esc(fmtNum(p.latencyMs)) + ' ms' : ''}${p.lastCheckedAt ? ' · ' + esc(relTime(p.lastCheckedAt)) : ''}</span>
+                <span class="prov-dot ${cls}" aria-hidden="true"></span>
+                <span class="prov-name">
+                    ${esc(pr.label || pr.provider || 'Unknown')}
+                    ${pr.environment ? '<span class="env">' + esc(pr.environment) + '</span>' : ''}
+                </span>
+                <span class="prov-meta">
+                    ${esc(statusLabel(pr.status))}
+                    ${pr.latencyMs != null ? ' · ' + esc(fmtNum(pr.latencyMs)) + ' ms' : ''}
+                    ${pr.lastCheckedAt ? ' · ' + esc(relTime(pr.lastCheckedAt)) : ''}
+                </span>
             </li>
         `;
     }).join('');
 }
 
-// ─── Loaders ────────────────────────────────────────────────────
-async function loadAll() {
-    // 1. Health first — cheap and gives us the hero + providers.
-    const healthRes = await api(API.health);
-    if (!healthRes.ok) {
-        const msg = healthRes.reason === 'forbidden' ? 'You do not have permission to view infrastructure.'
-                  : healthRes.reason === 'unauthorized' ? 'Your session has expired.'
-                  : healthRes.error || 'Unable to load infrastructure.';
-        toast(msg, 'error');
-        return;
-    }
-    const health = healthRes.data.health || {};
-    renderHero(health);
+/* ─────────────────────────────────────────────────────────────
+   Fetchers with AbortController, per-card.
+   Each fetcher replaces only its own card's contents.
+   ───────────────────────────────────────────────────────────── */
 
-    // 2. Overview second — gives us providers + railway config flag.
-    const overviewRes = await api(API.overview);
-    if (overviewRes.ok) {
-        renderProviders(overviewRes.data.overview?.providers || { providers: [] });
-    }
+const controllers = {
+    health: null, overview: null, usage: null, metrics: null, deployment: null
+};
 
-    // 3. Usage, metrics, deployment — parallel, non-blocking.
-    const [usageRes, metricsRes, deployRes] = await Promise.all([
-        api(API.usage),
-        api(API.metrics),
-        api(API.deployment)
-    ]);
-    if (usageRes.ok)   renderCost(usageRes.data.usage || {});
-    if (metricsRes.ok) { renderResources(metricsRes.data.metrics || {}); renderApi(metricsRes.data.metrics || {}); }
-    if (deployRes.ok)  renderDeployment(deployRes.data.deployment || {});
+function abortAll() {
+    Object.keys(controllers).forEach(k => {
+        if (controllers[k]) {
+            try { controllers[k].abort(); } catch {}
+            controllers[k] = null;
+        }
+    });
 }
+function freshController(name) {
+    if (controllers[name]) {
+        try { controllers[name].abort(); } catch {}
+    }
+    controllers[name] = new AbortController();
+    return controllers[name];
+}
+
+async function loadHealth() {
+    const c = freshController('health');
+    const res = await api(API.health, { signal: c.signal });
+    if (res.reason === 'unauthorized') { AdminSession.redirectToLogin(); return; }
+    renderHealth(res);
+}
+async function loadOverview() {
+    const c = freshController('overview');
+    const res = await api(API.overview, { signal: c.signal });
+    if (res.reason === 'unauthorized') { AdminSession.redirectToLogin(); return; }
+    renderProviders(res);
+}
+async function loadUsage() {
+    const c = freshController('usage');
+    const res = await api(API.usage, { signal: c.signal });
+    if (res.reason === 'unauthorized') { AdminSession.redirectToLogin(); return; }
+    renderCost(res);
+}
+async function loadMetrics() {
+    const c = freshController('metrics');
+    const res = await api(API.metrics, { signal: c.signal });
+    if (res.reason === 'unauthorized') { AdminSession.redirectToLogin(); return; }
+    renderResources(res);
+    renderApi(res);
+}
+async function loadDeployment() {
+    const c = freshController('deployment');
+    const res = await api(API.deployment, { signal: c.signal });
+    if (res.reason === 'unauthorized') { AdminSession.redirectToLogin(); return; }
+    renderDeployment(res);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Orchestrator: parallel load, failure tracking, backoff.
+   ───────────────────────────────────────────────────────────── */
+
+const poll = {
+    timer: null,
+    consecutiveFailures: 0,
+    lastSuccessAt: 0,
+    stopped: false
+};
+
+async function loadAll() {
+    abortAll();
+    const results = await Promise.allSettled([
+        loadHealth(),
+        loadOverview(),
+        loadUsage(),
+        loadMetrics(),
+        loadDeployment()
+    ]);
+    const anyFulfilled = results.some(r => r.status === 'fulfilled');
+    const allRejected = results.every(r => r.status === 'rejected');
+    if (allRejected) {
+        poll.consecutiveFailures++;
+        if (poll.consecutiveFailures === 1) {
+            toast('Could not reach the infrastructure endpoints.', 'error');
+        }
+    } else if (anyFulfilled) {
+        poll.consecutiveFailures = 0;
+        poll.lastSuccessAt = Date.now();
+    }
+}
+
+function nextDelay() {
+    if (poll.consecutiveFailures === 0) return POLL_INTERVAL_MS;
+    const exp = Math.min(
+        BACKOFF_MAX_MS,
+        POLL_INTERVAL_MS * Math.pow(2, poll.consecutiveFailures)
+    );
+    return exp;
+}
+
+function scheduleNext() {
+    if (poll.stopped) return;
+    if (poll.timer) clearTimeout(poll.timer);
+    poll.timer = setTimeout(async () => {
+        if (document.hidden) return;      // paused; visibilitychange reschedules
+        await loadAll();
+        scheduleNext();
+    }, nextDelay());
+}
+
+function pausePolling() {
+    if (poll.timer) { clearTimeout(poll.timer); poll.timer = null; }
+}
+function resumePolling() {
+    if (poll.stopped) return;
+    loadAll().then(scheduleNext);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Sidebar drawer (mobile)
+   ───────────────────────────────────────────────────────────── */
+
+let _drawerOpener = null;
+
+function openDrawer() {
+    const sb = $('#sidebar');
+    const sc = $('#scrim');
+    _drawerOpener = document.activeElement;
+    sb.classList.add('open');
+    sc.classList.add('show');
+    $('#hamburger').setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+    $('#sbClose')?.focus();
+}
+function closeDrawer() {
+    const sb = $('#sidebar');
+    const sc = $('#scrim');
+    if (!sb.classList.contains('open')) return;
+    sb.classList.remove('open');
+    sc.classList.remove('show');
+    $('#hamburger').setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+    if (_drawerOpener && typeof _drawerOpener.focus === 'function') {
+        try { _drawerOpener.focus(); } catch {}
+    }
+    _drawerOpener = null;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Admin identity
+   ───────────────────────────────────────────────────────────── */
 
 async function loadAdmin() {
     const res = await api(API.me);
     if (!res.ok) return;
-    const u = res.data.data?.user || res.data.user;
+    const u = (res.data && res.data.data && res.data.data.user) || (res.data && res.data.user);
     if (!u) return;
-    const name = u.username || u.email?.split('@')[0] || 'Admin';
+    const name = u.username || (u.email ? u.email.split('@')[0] : 'Admin');
     const role = u.role || 'admin';
-    $('#adminName').textContent = name;
-    $('#adminRole').textContent = role.charAt(0).toUpperCase() + role.slice(1);
-    $('#adminAvatar').textContent = name.slice(0,1).toUpperCase();
+    const nameEl = $('#adminName');
+    const roleEl = $('#adminRole');
+    const avEl   = $('#adminAvatar');
+    if (nameEl) nameEl.textContent = name;
+    if (roleEl) roleEl.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+    if (avEl)   avEl.textContent = (name[0] || 'A').toUpperCase();
 }
 
-// ─── Init ──────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-    if (!AdminSession.getToken()) return AdminSession.redirectToLogin();
+/* ─────────────────────────────────────────────────────────────
+   Init
+   ───────────────────────────────────────────────────────────── */
 
-    $('#hamburger')?.addEventListener('click', () => {
-        $('#sidebar').classList.add('open');
-        $('#scrim').classList.add('show');
+document.addEventListener('DOMContentLoaded', () => {
+    if (!window.AdminSession || !AdminSession.getToken()) {
+        return AdminSession.redirectToLogin();
+    }
+
+    $('#hamburger')?.addEventListener('click', openDrawer);
+    $('#sbClose')?.addEventListener('click', closeDrawer);
+    $('#scrim')?.addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeDrawer();
     });
-    $('#scrim')?.addEventListener('click', () => {
-        $('#sidebar').classList.remove('open');
-        $('#scrim').classList.remove('show');
+
+    $('#refreshBtn')?.addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
+        btn.disabled = true;
+        try {
+            await loadAll();
+            toast('Refreshed', 'success');
+        } finally {
+            btn.disabled = false;
+        }
     });
-    $('#refreshBtn')?.addEventListener('click', () => {
-        loadAll();
-        toast('Refreshed', 'success');
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) pausePolling();
+        else resumePolling();
     });
 
     loadAdmin();
-    loadAll();
-
-    // Light refresh — only re-reads from our own API. Safe at 60s
-    // because the scheduler is what touches Railway, not this page.
-    setInterval(() => { loadAll(); }, 60 * 1000);
+    loadAll().then(scheduleNext);
 });
 </script>
 </body>

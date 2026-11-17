@@ -3,6 +3,10 @@
 // routes/admin/refundAdminRoutes.js
 // ─────────────────────────────────────────────────────────────────
 // Admin Refunds — ROUTES.
+//
+// Change in this revision:
+//   GET /refunds now joins user + original transaction in two
+//   batched queries so the UI can show Customer and Original TX.
 // ─────────────────────────────────────────────────────────────────
 
 const express = require('express');
@@ -57,14 +61,6 @@ function requireIdempotencyKey(req) {
     return key;
 }
 
-/**
- * Add two decimal strings without using Number() arithmetic.
- * "1234.56" + "0.44"  →  "1235.00"
- * "999.99"  + "0.02"  →  "1000.01"
- *
- * Both inputs are interpreted as positive. Sign is preserved on the
- * result if either input is negative.
- */
 function addDecimalStrings(a, b) {
     const parse = (s) => {
         const str = String(s ?? '0').trim();
@@ -77,7 +73,6 @@ function addDecimalStrings(a, b) {
         const totalMinor = intNum * 100n + fracNum;
         return neg ? -totalMinor : totalMinor;
     };
-
     const totalMinor = parse(a) + parse(b);
     const neg = totalMinor < 0n;
     const abs = neg ? -totalMinor : totalMinor;
@@ -87,8 +82,6 @@ function addDecimalStrings(a, b) {
 }
 
 router.use('/refunds', attachRequestId);
-console.log('[REFUND ADMIN] Module loaded');
-
 
 // ═════════════════════════════════════════════════════════════════
 //  GET /api/admin/refunds
@@ -108,7 +101,7 @@ router.get(
                 .select(
                     'id, original_transaction_id, refund_transaction_id, user_id, ' +
                     'refund_type, amount, currency, reason, status, ' +
-                    'provider, provider_refund_ref, requested_by, approved_by, ' +
+                    'provider, provider_refund_ref, requested_by, requester_email, approved_by, ' +
                     'rejection_reason, failure_reason, created_at, updated_at, approved_at, ' +
                     'completed_at, failed_at',
                     { count: 'exact' }
@@ -125,17 +118,63 @@ router.get(
             if (req.query.currency && req.query.currency !== 'all') {
                 q = q.eq('currency', String(req.query.currency).toUpperCase());
             }
-            if (req.query.from) q = q.gte('created_at', new Date(req.query.from).toISOString());
+            if (req.query.from) {
+                const d = new Date(req.query.from);
+                if (!isNaN(d.getTime())) q = q.gte('created_at', d.toISOString());
+            }
             if (req.query.to) {
-                const d = new Date(req.query.to); d.setHours(23, 59, 59, 999);
-                q = q.lte('created_at', d.toISOString());
+                const d = new Date(req.query.to);
+                if (!isNaN(d.getTime())) {
+                    d.setUTCHours(23, 59, 59, 999);
+                    q = q.lte('created_at', d.toISOString());
+                }
             }
 
             const { data, error, count } = await q;
             if (error) throw error;
 
+            const rows = data || [];
+
+            // ─── Batched joins for users + original transactions ───
+            const userIds = [...new Set(rows.map(r => r.user_id).filter(Boolean))];
+            const txIds   = [...new Set(rows.map(r => r.original_transaction_id).filter(Boolean))];
+
+            const profilesById = {};
+            const txById = {};
+
+            const [profilesRes, txRes] = await Promise.all([
+                userIds.length
+                    ? supabaseAdmin.from('profiles').select('id, username, email').in('id', userIds)
+                    : Promise.resolve({ data: [] }),
+                txIds.length
+                    ? supabaseAdmin.from('transactions').select('id, reference, ref, type, status, amount, currency, provider, provider_reference').in('id', txIds)
+                    : Promise.resolve({ data: [] })
+            ]);
+
+            for (const p of profilesRes.data || []) profilesById[p.id] = p;
+            for (const t of txRes.data || []) txById[t.id] = t;
+
+            const enriched = rows.map(r => {
+                const p = profilesById[r.user_id] || null;
+                const t = txById[r.original_transaction_id] || null;
+                return {
+                    ...r,
+                    user: p ? { id: p.id, username: p.username, email: p.email } : null,
+                    original_transaction: t ? {
+                        id: t.id,
+                        reference: t.reference || t.ref || null,
+                        type: t.type,
+                        status: t.status,
+                        amount: t.amount != null ? String(t.amount) : null,
+                        currency: t.currency,
+                        provider: t.provider || null,
+                        provider_reference: t.provider_reference || null
+                    } : null
+                };
+            });
+
             sendOk(res, {
-                refunds: data || [],
+                refunds: enriched,
                 count: count || 0,
                 page,
                 limit,
@@ -149,7 +188,6 @@ router.get(
 //  GET /api/admin/refunds/summary
 // ═════════════════════════════════════════════════════════════════
 
-
 router.get(
     '/refunds/summary',
     requirePermission(PERMISSIONS.TRANSACTIONS_READ),
@@ -157,40 +195,22 @@ router.get(
         try {
             const fromIso = req.query.from ? new Date(req.query.from).toISOString() : null;
             const toIso = req.query.to
-                ? (() => { const d = new Date(req.query.to); d.setHours(23, 59, 59, 999); return d.toISOString(); })()
+                ? (() => { const d = new Date(req.query.to); d.setUTCHours(23, 59, 59, 999); return d.toISOString(); })()
                 : null;
 
-            // Empty shell — used both as the fallback's starting point
-            // and to ensure the response always has the same keys,
-            // even on an empty table.
             const emptyShape = {
-                total: 0,
-                requested: 0,
-                pending_approval: 0,
-                approved: 0,
-                processing: 0,
-                completed: 0,
-                failed: 0,
-                rejected: 0,
-                cancelled: 0,
-                expired: 0,
+                total: 0, requested: 0, pending_approval: 0, approved: 0,
+                processing: 0, completed: 0, failed: 0, rejected: 0,
+                cancelled: 0, expired: 0,
                 amounts: { NGN: {}, USD: {} },
-                oldest_pending_seconds: 0,
-                over_sla_count: 0,
-                source: 'rpc',
+                oldest_pending_seconds: 0, over_sla_count: 0, source: 'rpc',
             };
 
-            // ─── Primary path: RPC ───────────────────────────────
             const { data: rpcData, error: rpcErr } = await supabaseAdmin.rpc(
                 'admin_refund_summary',
                 { p_from: fromIso, p_to: toIso }
             );
 
-            // Treat missing-RPC and permission-denied as "fall through
-            // to JS aggregation" rather than surfacing a 500. This
-            // makes the endpoint resilient to pre-migration deploys
-            // and to DB users whose search_path doesn't include the
-            // function.
             const rpcMissing =
                 rpcErr &&
                 (rpcErr.code === 'PGRST202' ||
@@ -198,9 +218,6 @@ router.get(
                  /function .* does not exist/i.test(rpcErr.message || ''));
 
             if (!rpcMissing && rpcErr) {
-                // Real DB error (not "missing function"). Fail closed
-                // — we do not want to report zeros when the DB is
-                // broken.
                 console.error('[REFUND SUMMARY] RPC error:', rpcErr.code, rpcErr.message);
                 throw Object.assign(
                     new Error('Failed to load refund summary.'),
@@ -209,80 +226,43 @@ router.get(
             }
 
             if (!rpcMissing && rpcData) {
-                // RPC returned successfully. It returns a single jsonb
-                // object keyed by STATUS (uppercase, as stored in the
-                // table).
                 const summary = { ...emptyShape, amounts: { NGN: {}, USD: {} } };
-
                 for (const [statusKey, payload] of Object.entries(rpcData || {})) {
                     const lower = String(statusKey).toLowerCase();
                     const count = Number(payload?.count) || 0;
-
-                    // Accumulate the total count across all statuses.
                     summary.total += count;
-
-                    // Map uppercase DB status to the lowercase keys
-                    // the frontend expects.
                     if (Object.prototype.hasOwnProperty.call(summary, lower)) {
                         summary[lower] = count;
                     }
-
-                    // Preserve the raw amounts per currency as decimal
-                    // strings. The RPC returns numbers (jsonb numeric);
-                    // convert to string so JS never does float math.
                     const amounts = payload?.amounts || {};
                     for (const [ccy, amt] of Object.entries(amounts)) {
                         const upperCcy = String(ccy).toUpperCase();
-                        if (!summary.amounts[upperCcy]) {
-                            summary.amounts[upperCcy] = {};
-                        }
+                        if (!summary.amounts[upperCcy]) summary.amounts[upperCcy] = {};
                         summary.amounts[upperCcy][String(statusKey).toUpperCase()] =
                             typeof amt === 'number' ? String(amt) : String(amt ?? '0');
                     }
                 }
-
-                // Compute "oldest pending" and SLA breach in the RPC
-                // path via a dedicated cheap query. We do this
-                // separately so the main RPC stays aggregate-only.
                 try {
                     const { data: oldestRow } = await supabaseAdmin
-                        .from('refunds')
-                        .select('created_at')
+                        .from('refunds').select('created_at')
                         .eq('status', 'PENDING_APPROVAL')
                         .order('created_at', { ascending: true })
-                        .limit(1)
-                        .maybeSingle();
-
+                        .limit(1).maybeSingle();
                     if (oldestRow?.created_at) {
-                        const ageSec = Math.max(
-                            0,
-                            Math.floor((Date.now() - new Date(oldestRow.created_at).getTime()) / 1000)
-                        );
-                        summary.oldest_pending_seconds = ageSec;
+                        summary.oldest_pending_seconds = Math.max(0, Math.floor((Date.now() - new Date(oldestRow.created_at).getTime()) / 1000));
                     }
-
                     const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
                     const { count: overSlaCount } = await supabaseAdmin
-                        .from('refunds')
-                        .select('id', { count: 'exact', head: true })
+                        .from('refunds').select('id', { count: 'exact', head: true })
                         .eq('status', 'PENDING_APPROVAL')
                         .lt('created_at', fourHoursAgo);
                     summary.over_sla_count = overSlaCount || 0;
-                } catch (_) {
-                    // SLA computation failure is non-fatal.
-                }
-
+                } catch (_) {}
                 summary.source = 'rpc';
                 return sendOk(res, { summary });
             }
 
-            // ─── Fallback path: JS aggregation ───────────────────
-            // Only reachable when the RPC is missing.
-            console.warn(
-                '[REFUND SUMMARY] RPC admin_refund_summary missing — falling back to JS aggregation. ' +
-                'Run migrations/20261104_admin_refund_summary.sql to fix.'
-            );
-
+            // Fallback: JS aggregation
             const summary = { ...emptyShape, amounts: { NGN: {}, USD: {} }, source: 'fallback' };
             const CHUNK = 1000;
             const MAX_ROWS = 100_000;
@@ -305,63 +285,36 @@ router.get(
                         { status: 500, code: 'REFUND_SUMMARY_FAILED' }
                     );
                 }
-
                 if (!rows || rows.length === 0) break;
 
                 for (const r of rows) {
                     const lower = String(r.status || '').toLowerCase();
-                    const count = 1;
-                    summary.total += count;
+                    summary.total += 1;
                     if (Object.prototype.hasOwnProperty.call(summary, lower)) {
-                        summary[lower] += count;
+                        summary[lower] += 1;
                     }
-
                     const ccy = String(r.currency || '').toUpperCase();
                     if (!['NGN', 'USD'].includes(ccy)) continue;
-
                     const key = String(r.status || '').toUpperCase();
                     if (!summary.amounts[ccy]) summary.amounts[ccy] = {};
-
-                    // Decimal-string addition. We parse as integers of
-                    // minor units to avoid float drift.
-                    const amtStr = String(r.amount ?? '0');
                     const prevStr = String(summary.amounts[ccy][key] || '0');
-                    summary.amounts[ccy][key] = addDecimalStrings(prevStr, amtStr);
-
+                    summary.amounts[ccy][key] = addDecimalStrings(prevStr, String(r.amount ?? '0'));
                     if (r.status === 'PENDING_APPROVAL') {
-                        const ageSec = Math.max(
-                            0,
-                            Math.floor((Date.now() - new Date(r.created_at).getTime()) / 1000)
-                        );
-                        if (ageSec > summary.oldest_pending_seconds) {
-                            summary.oldest_pending_seconds = ageSec;
-                        }
-                        if (ageSec > 4 * 60 * 60) {
-                            summary.over_sla_count += 1;
-                        }
+                        const ageSec = Math.max(0, Math.floor((Date.now() - new Date(r.created_at).getTime()) / 1000));
+                        if (ageSec > summary.oldest_pending_seconds) summary.oldest_pending_seconds = ageSec;
+                        if (ageSec > 4 * 60 * 60) summary.over_sla_count += 1;
                     }
                 }
-
                 if (rows.length < CHUNK) break;
                 offset += CHUNK;
-
-                if (offset >= MAX_ROWS) {
-                    truncated = true;
-                    break;
-                }
+                if (offset >= MAX_ROWS) { truncated = true; break; }
             }
-
             if (truncated) {
                 summary.truncated = true;
-                summary.note =
-                    `Fallback aggregate capped at ${MAX_ROWS} rows. ` +
-                    `Run migrations/20261104_admin_refund_summary.sql to enable exact aggregation.`;
+                summary.note = `Fallback capped at ${MAX_ROWS} rows.`;
             }
-
             return sendOk(res, { summary });
-        } catch (err) {
-            sendErr(res, err);
-        }
+        } catch (err) { sendErr(res, err); }
     }
 );
 
@@ -384,11 +337,11 @@ router.get(
                 user = data || null;
             }
             if (refund.original_transaction_id) {
-                const { data } = await supabaseAdmin.from('transactions').select('id, reference, type, status, amount, currency, provider, provider_reference').eq('id', refund.original_transaction_id).maybeSingle();
-                originalTx = data || null;
+                const { data } = await supabaseAdmin.from('transactions').select('id, reference, ref, type, status, amount, currency, provider, provider_reference').eq('id', refund.original_transaction_id).maybeSingle();
+                originalTx = data ? { ...data, reference: data.reference || data.ref } : null;
             }
             if (refund.refund_transaction_id) {
-                const { data } = await supabaseAdmin.from('transactions').select('id, reference, type, status, amount, currency').eq('id', refund.refund_transaction_id).maybeSingle();
+                const { data } = await supabaseAdmin.from('transactions').select('id, reference, ref, type, status, amount, currency').eq('id', refund.refund_transaction_id).maybeSingle();
                 refundTx = data || null;
             }
             const { data: apprs } = await supabaseAdmin.from('refund_approvals').select('*').eq('refund_id', refund.id);
@@ -397,7 +350,6 @@ router.get(
             const { data: audits } = await supabaseAdmin.from('admin_audit_logs').select('*').eq('target_type', 'refund').eq('target_id', refund.id).order('created_at', { ascending: false }).limit(50);
             audit = audits || [];
 
-            // Calculate approval state
             const approvalsCount = approvals.filter(a => a.decision === 'approve').length;
             const canApprove = (refund.status === 'PENDING_APPROVAL' && refund.requested_by !== req.adminContext.id);
 
@@ -453,7 +405,7 @@ router.post(
 );
 
 // ═════════════════════════════════════════════════════════════════
-//  POST /api/admin/refunds/:id/approve
+//  POST /api/admin/refunds/:id/approve | reject | cancel | retry
 // ═════════════════════════════════════════════════════════════════
 
 router.post(
@@ -465,24 +417,17 @@ router.post(
         try {
             const reason = String(req.body?.reason || '').trim();
             if (reason.length < 4) throw Object.assign(new Error('Reason required.'), { status: 422, code: 'REASON_REQUIRED' });
-            
             const idem = requireIdempotencyKey(req);
-
             const result = await refundSvc.approveRefund({
                 refundId: req.params.id,
                 ctx: adminCtx(req),
                 reason,
                 idempotencyKey: idem
             });
-
             sendOk(res, result);
         } catch (err) { sendErr(res, err); }
     }
 );
-
-// ═════════════════════════════════════════════════════════════════
-//  POST /api/admin/refunds/:id/reject
-// ═════════════════════════════════════════════════════════════════
 
 router.post(
     '/refunds/:id/reject',
@@ -493,21 +438,15 @@ router.post(
         try {
             const reason = String(req.body?.reason || '').trim();
             if (reason.length < 4) throw Object.assign(new Error('Reason required.'), { status: 422, code: 'REASON_REQUIRED' });
-
             const result = await refundSvc.rejectRefund({
                 refundId: req.params.id,
                 ctx: adminCtx(req),
                 reason
             });
-
             sendOk(res, result);
         } catch (err) { sendErr(res, err); }
     }
 );
-
-// ═════════════════════════════════════════════════════════════════
-//  POST /api/admin/refunds/:id/cancel
-// ═════════════════════════════════════════════════════════════════
 
 router.post(
     '/refunds/:id/cancel',
@@ -518,21 +457,15 @@ router.post(
         try {
             const reason = String(req.body?.reason || '').trim();
             if (reason.length < 4) throw Object.assign(new Error('Reason required.'), { status: 422, code: 'REASON_REQUIRED' });
-
             const result = await refundSvc.cancelRefund({
                 refundId: req.params.id,
                 ctx: adminCtx(req),
                 reason
             });
-
             sendOk(res, result);
         } catch (err) { sendErr(res, err); }
     }
 );
-
-// ═════════════════════════════════════════════════════════════════
-//  POST /api/admin/refunds/:id/retry
-// ═════════════════════════════════════════════════════════════════
 
 router.post(
     '/refunds/:id/retry',
@@ -541,14 +474,7 @@ router.post(
     async (req, res, next) => {
         if (!UUID_RE.test(String(req.params.id || ''))) return next();
         try {
-            const reason = String(req.body?.reason || '').trim();
-            if (reason.length < 4) throw Object.assign(new Error('Reason required.'), { status: 422, code: 'REASON_REQUIRED' });
-            const idem = requireIdempotencyKey(req);
-
-            // Retry is not fully implemented for Phase 1 (provider adapters missing).
-            // It will throw a clean error until an adapter is registered.
             throw Object.assign(new Error('Provider retries are not configured.'), { status: 503, code: 'NOT_IMPLEMENTED' });
-            
         } catch (err) { sendErr(res, err); }
     }
 );

@@ -2,492 +2,60 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<title>MilesSpace — Marketplace</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f4c5c">
+<title>Marketplace — MilesSpace Admin</title>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<script src="/js/admin-session.js?v=2025-admin-dash-v4"></script>
-<style>
-:root{--brand-primary:#0f4c5c;--brand-primary-deep:#0a3542;--brand-primary-light:#14607a;--brand-accent:#f5a623;--brand-accent-soft:#fde3ad;--navy:var(--brand-primary);--navy-light:var(--brand-primary-light);--navy-deep:var(--brand-primary-deep);--gold:var(--brand-accent);--gold-soft:var(--brand-accent-soft);--white:#ffffff;--bg:#f4f7fb;--bg-card:rgba(255,255,255,.72);--border:rgba(15,76,92,.09);--text:#0c1f26;--text-dim:#5b7480;--text-faint:#8fa3ab;--success:#16a34a;--success-bg:#e9f9ef;--danger:#dc2626;--danger-bg:#fdecec;--warn:#f59e0b;--warn-bg:#fef3d9;--info:#2563a8;--info-bg:#e8f1fb;--purple:#8b5cf6;--purple-bg:#ede9fe;--usd:#0891b2;--usd-bg:#e0f6fa;--radius-sm:8px;--radius-md:14px;--radius-lg:20px;--shadow-sm:0 1px 2px rgba(8,42,51,.06);--shadow-md:0 8px 24px -8px rgba(8,42,51,.16);--shadow-lg:0 16px 48px -12px rgba(8,42,51,.26);--sidebar-w:264px;--sidebar-w-collapsed:78px;--topbar-h:68px;--transition:180ms cubic-bezier(.4,0,.2,1)}
-html.dark{--bg:#08151a;--bg-card:rgba(18,38,44,.75);--border:rgba(255,255,255,.08);--text:#eaf3f5;--text-dim:#9db4bb;--text-faint:#5b7480;--success-bg:rgba(22,163,74,.15);--danger-bg:rgba(220,38,38,.15);--warn-bg:rgba(245,158,11,.15);--info-bg:rgba(37,99,168,.18);--purple-bg:rgba(139,92,246,.18);--usd-bg:rgba(8,145,178,.18);--shadow-sm:0 1px 2px rgba(0,0,0,.3);--shadow-md:0 8px 24px -8px rgba(0,0,0,.5);--shadow-lg:0 16px 48px -12px rgba(0,0,0,.6)}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}html{overflow-x:hidden}
-body{margin:0;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;transition:background var(--transition),color var(--transition);overflow-x:hidden;width:100%}
-::-webkit-scrollbar{width:9px;height:9px}
-::-webkit-scrollbar-thumb{background:rgba(15,76,92,.18);border-radius:99px}
-html.dark ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14)}
-.mono{font-family:'JetBrains Mono',monospace}
-:focus-visible{outline:2.5px solid var(--brand-accent);outline-offset:2px;border-radius:6px}
-
-.app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh;transition:grid-template-columns var(--transition)}
-.app.sb-collapsed{grid-template-columns:var(--sidebar-w-collapsed) 1fr}
-.sidebar{background:linear-gradient(180deg,var(--navy-deep),var(--navy) 70%);color:#eaf6f8;padding:20px 14px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;z-index:40;transition:transform var(--transition),width var(--transition);overflow-y:auto;overflow-x:hidden;width:var(--sidebar-w)}
-.app.sb-collapsed .sidebar{width:var(--sidebar-w-collapsed)}
-.app.sb-collapsed .sidebar .brand-text,.app.sb-collapsed .sidebar .nav-label,.app.sb-collapsed .sidebar .nav-item span:not(.ic),.app.sb-collapsed .sidebar .who,.app.sb-collapsed .sidebar .chev{display:none}
-.app.sb-collapsed .nav-item{justify-content:center}
-.brand{display:flex;align-items:center;gap:11px;padding:6px 8px 18px;flex-shrink:0}
-.brand img{width:32px;height:32px;border-radius:8px;flex-shrink:0}
-.brand-text{display:flex;flex-direction:column;line-height:1.15}
-.brand-text strong{font-size:15px;font-weight:800;letter-spacing:-.01em}
-.brand-text span{font-size:10.5px;color:#9fd4de;letter-spacing:.06em;text-transform:uppercase}
-.nav-scroll{flex:1;overflow-y:auto;padding-right:2px}
-.nav-group{margin-bottom:2px}
-.nav-group-head{display:flex;align-items:center;justify-content:space-between;padding:12px 10px 5px;cursor:pointer;user-select:none;border:none;background:none;width:100%;color:inherit}
-.nav-label{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:#6fa2ad;font-weight:700}
-.nav-item{display:flex;align-items:center;gap:10px;padding:8.5px 10px;border-radius:9px;color:#cfe7ea;font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:background var(--transition),color var(--transition);white-space:nowrap;text-decoration:none}
-.nav-item .ic{width:17px;text-align:center;font-size:13.5px;flex-shrink:0}
-.nav-item:hover,.nav-item:focus-visible{background:rgba(255,255,255,.06);color:#fff}
-.nav-item.active{background:rgba(245,166,35,.16);color:#ffd899;border-color:rgba(245,166,35,.3);font-weight:600}
-.sidebar-foot{border-top:1px solid rgba(255,255,255,.08);padding-top:12px;margin-top:8px;display:flex;align-items:center;gap:10px;padding-left:4px;flex-shrink:0}
-.sidebar-foot .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#25748a,#0c3d4a);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px;color:#fff;border:1.5px solid rgba(255,255,255,.18);flex-shrink:0}
-.sidebar-foot .who{display:flex;flex-direction:column;line-height:1.2}
-.sidebar-foot .who strong{font-size:12.5px;color:#fff}
-.sidebar-foot .who span{font-size:10.5px;color:#8fbac2}
-.sb-collapse-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#cfe7ea;width:26px;height:26px;border-radius:8px;cursor:pointer;margin-left:auto;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px}
-
-.main{min-width:0;display:flex;flex-direction:column}
-.topbar{height:var(--topbar-h);position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;padding:0 26px;background:var(--bg-card);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
-.hamburger{display:none;width:36px;height:36px;border-radius:9px;border:1px solid var(--border);background:var(--white);align-items:center;justify-content:center;cursor:pointer;color:var(--navy);font-size:18px}
-.sb-toggle-desktop{width:34px;height:34px;border-radius:9px;border:1px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--navy);font-size:13px;flex-shrink:0}
-html.dark .sb-toggle-desktop{background:rgba(255,255,255,.05);color:#dff0f2}
-.page-title{display:flex;flex-direction:column;line-height:1.2;min-width:0}
-.page-title h1{margin:0;font-size:clamp(16px,2.4vw,19px);font-weight:800;letter-spacing:-.01em}
-.breadcrumb{font-size:11px;color:var(--text-faint);display:flex;align-items:center;gap:6px;margin-bottom:2px}
-.breadcrumb a{color:var(--text-faint);text-decoration:none}
-.icon-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--navy);font-size:15px;transition:transform var(--transition),background var(--transition);margin-left:auto}
-html.dark .icon-btn{background:rgba(255,255,255,.04);color:#dff0f2}
-.icon-btn:hover{transform:translateY(-1px);background:var(--gold-soft);color:var(--navy-deep)}
-.content{padding:clamp(14px,2vw,22px) clamp(14px,2.6vw,26px) 60px;min-width:0}
-@media(min-width:1920px){.content{max-width:1800px;margin:0 auto}}
-
-.page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
-.page-header h2{font-size:clamp(18px,2.6vw,23px);font-weight:800;letter-spacing:-.01em}
-.page-header .sub{font-size:13px;color:var(--text-dim);margin-top:3px;max-width:640px}
-.page-header .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-
-.layout{display:flex;gap:22px;align-items:flex-start}
-@media(max-width:1100px){.layout{flex-direction:column}}
-.side-menu{width:220px;flex-shrink:0;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:10px;position:sticky;top:calc(var(--topbar-h) + 16px)}
-@media(max-width:1100px){.side-menu{width:100%;position:static;display:flex;flex-wrap:wrap;gap:4px}}
-.side-menu .item{padding:9px 12px;font-size:13px;color:var(--text-dim);border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:2px;border:none;background:none;font-family:inherit;text-align:left}
-.side-menu .item:hover{background:var(--bg);color:var(--text)}
-.side-menu .item.active{background:var(--navy);color:#fff}
-@media(max-width:1100px){.side-menu .item{flex:1;min-width:110px;justify-content:center}}
-.panels{flex:1;min-width:0}
-.panel{display:none}
-.panel.active{display:block}
-
-.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow-sm);backdrop-filter:blur(10px)}
-.card + .card{margin-top:16px}
-.card h3{margin:0 0 12px;font-size:14px;font-weight:800}
-.card .hint{font-size:11.5px;color:var(--text-faint);margin-bottom:12px}
-
-.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px}
-@media(max-width:1400px){.kpi-grid{grid-template-columns:repeat(4,1fr)}}
-@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:600px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:420px){.kpi-grid{grid-template-columns:1fr}}
-.kpi{padding:14px 16px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border);box-shadow:var(--shadow-sm)}
-.kpi .lbl{font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
-.kpi .val{font-size:20px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums}
-.kpi .sub{font-size:11px;color:var(--text-faint);margin-top:4px}
-
-.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center}
-.filters input,.filters select{border:1px solid var(--border);background:var(--white);border-radius:9px;padding:8px 12px;font-size:12.5px;color:var(--text);font-family:inherit;outline:none}
-html.dark .filters input,html.dark .filters select{background:rgba(255,255,255,.04);color:var(--text)}
-.filters input[type="search"]{flex:1 1 260px;min-width:220px}
-
-.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--white);border-radius:10px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;color:var(--navy);font-family:inherit;transition:background var(--transition)}
-html.dark .btn{background:rgba(255,255,255,.04);color:#dff0f2}
-.btn:hover:not(:disabled){background:var(--gold-soft);color:var(--navy-deep)}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn-primary{background:var(--navy);color:#fff;border-color:var(--navy)}
-.btn-primary:hover:not(:disabled){background:var(--navy-light);color:#fff}
-.btn-danger{background:var(--danger);color:#fff;border-color:var(--danger)}
-.btn-danger:hover:not(:disabled){background:#b91c1c;color:#fff}
-
-.table-scroll{overflow-x:auto;overflow-y:auto;max-height:640px;border-radius:var(--radius)}
-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:900px}
-thead th{text-align:left;padding:11px 14px;color:var(--text-dim);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1}
-tbody td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
-tbody tr{cursor:pointer;transition:background var(--transition)}
-tbody tr:hover{background:rgba(245,166,35,.05)}
-tbody tr:last-child td{border-bottom:none}
-
-.badge{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;text-transform:capitalize}
-.badge.success{background:var(--success-bg);color:var(--success)}
-.badge.danger{background:var(--danger-bg);color:var(--danger)}
-.badge.warn{background:var(--warn-bg);color:#b3720a}
-.badge.info{background:var(--info-bg);color:var(--info)}
-.badge.purple{background:var(--purple-bg);color:var(--purple)}
-.badge.neutral{background:var(--bg);color:var(--text-dim);border:1px solid var(--border)}
-
-.empty-state{text-align:center;padding:52px 20px;color:var(--text-faint)}
-.empty-state .ic{font-size:28px;margin-bottom:8px;display:block}
-.unavailable-box{text-align:center;padding:24px 14px;color:var(--text-faint)}
-.unavailable-box .ic{font-size:20px;margin-bottom:6px;display:block}
-.unavailable-box button{margin-top:10px;border:1px solid var(--border);background:var(--white);color:var(--navy);border-radius:8px;padding:6px 14px;font-size:11.5px;font-weight:700;cursor:pointer}
-html.dark .unavailable-box button{background:rgba(255,255,255,.04);color:#dff0f2}
-
-.skel{background:linear-gradient(90deg,var(--bg) 25%,var(--border) 50%,var(--bg) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;height:12px;display:block}
-@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-
-.pagination{display:flex;justify-content:space-between;align-items:center;padding:14px 4px 0;font-size:12.5px;color:var(--text-dim);flex-wrap:wrap;gap:8px}
-.pagination button{border:1px solid var(--border);background:var(--white);color:var(--navy);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;margin-left:6px}
-html.dark .pagination button{background:rgba(255,255,255,.04);color:#dff0f2}
-.pagination button:disabled{opacity:.45;cursor:not-allowed}
-
-.product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-bottom:16px}
-.product-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;cursor:pointer;transition:transform var(--transition),box-shadow var(--transition)}
-.product-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
-.product-card .pc-title{font-size:13.5px;font-weight:700;margin-bottom:4px}
-.product-card .pc-meta{font-size:11px;color:var(--text-dim);margin-bottom:8px}
-.product-card .pc-price{font-size:17px;font-weight:800;color:var(--navy)}
-html.dark .product-card .pc-price{color:#dff0f2}
-.product-card .pc-sub{font-size:11px;color:var(--text-faint);margin-top:4px}
-
-.drawer-scrim{position:fixed;inset:0;background:rgba(5,15,20,.5);backdrop-filter:blur(2px);z-index:300;opacity:0;pointer-events:none;transition:opacity 220ms ease}
-.drawer-scrim.show{opacity:1;pointer-events:auto}
-.drawer{position:fixed;top:0;right:0;height:100vh;width:min(760px,96vw);background:var(--bg);z-index:301;box-shadow:var(--shadow-lg);transform:translateX(100%);transition:transform 260ms cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
-.drawer.open{transform:translateX(0)}
-.dd-head{display:flex;align-items:center;gap:14px;padding:20px 22px;background:linear-gradient(135deg,var(--navy),var(--navy-deep));color:#fff;flex-shrink:0}
-.dd-head .dd-ic{width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.dd-head .dd-titles{flex:1;min-width:0}
-.dd-head h2{margin:0;font-size:16.5px;font-weight:800}
-.dd-head .dd-sub{font-size:11.5px;color:rgba(255,255,255,.7);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dd-close{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:14px;flex-shrink:0}
-.dd-body{flex:1;overflow-y:auto;padding:20px 22px 40px}
-.dd-hero{padding:16px 18px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.dd-hero .amt{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
-.dd-hero .meta{font-size:11px;color:var(--text-faint);margin-top:2px}
-.dd-section{margin-bottom:18px}
-.dd-section h4{margin:0 0 8px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);padding-bottom:6px;border-bottom:1px solid var(--border)}
-.dd-field{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:12.5px;border-bottom:1px dashed var(--border)}
-.dd-field:last-child{border-bottom:none}
-.dd-field .k{color:var(--text-dim);font-weight:600;min-width:140px}
-.dd-field .v{font-weight:700;text-align:right;word-break:break-word;overflow-wrap:anywhere}
-.dd-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding:12px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border)}
-.content-preview{font-family:'JetBrains Mono',monospace;font-size:11px;white-space:pre-wrap;word-break:break-word;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;max-width:260px;max-height:60px;overflow:hidden;text-overflow:ellipsis}
-.content-full{font-family:'JetBrains Mono',monospace;font-size:12px;white-space:pre-wrap;word-break:break-word;background:var(--white);border:1px solid var(--border);border-radius:8px;padding:12px;max-height:260px;overflow-y:auto;color:var(--text)}
-html.dark .content-full{background:rgba(255,255,255,.04)}
-
-.modal-scrim{position:fixed;inset:0;background:rgba(5,15,20,.6);backdrop-filter:blur(3px);z-index:400;display:none;align-items:center;justify-content:center;padding:20px}
-.modal-scrim.show{display:flex}
-.modal{background:var(--white);border-radius:16px;max-width:640px;width:100%;box-shadow:var(--shadow-lg);overflow:hidden}
-html.dark .modal{background:#12262c;color:var(--text)}
-.modal.wide{max-width:900px}
-.modal h3{margin:0;padding:18px 22px;font-size:16px;font-weight:800;border-bottom:1px solid var(--border)}
-.modal .body{padding:18px 22px;max-height:65vh;overflow-y:auto}
-.modal .body p.note{font-size:12.5px;color:var(--text-dim);margin-bottom:12px;line-height:1.5}
-.modal .body label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;margin-top:12px}
-.modal .body input,.modal .body textarea,.modal .body select{width:100%;border:1px solid var(--border);border-radius:9px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--white);color:var(--text);outline:none;resize:vertical}
-html.dark .modal .body input,html.dark .modal .body textarea,html.dark .modal .body select{background:rgba(255,255,255,.04);color:var(--text)}
-.modal .foot{display:flex;justify-content:flex-end;gap:8px;padding:14px 22px;border-top:1px solid var(--border);flex-wrap:wrap}
-
-.modal-error{display:none;margin:14px 0 4px;padding:12px 14px;border-radius:10px;background:var(--danger-bg);border:1px solid rgba(220,38,38,.25);font-size:12.5px;line-height:1.5;color:var(--text)}
-.modal-error.show{display:block}
-.modal-error .head{display:flex;align-items:center;gap:8px;font-weight:800;color:var(--danger);margin-bottom:6px}
-.modal-error .code{font-family:'JetBrains Mono',monospace;font-size:11.5px;background:rgba(220,38,38,.12);color:var(--danger);padding:2px 6px;border-radius:6px;display:inline-block;margin-bottom:6px}
-.modal-error .message{color:var(--text);margin-bottom:6px;font-weight:600}
-.modal-error .rid{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);word-break:break-all}
-
-.debug-panel{display:none;margin-top:12px;padding:12px;border-radius:10px;background:#0c1f26;color:#d6e5ea;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.5;max-height:260px;overflow:auto;white-space:pre-wrap;word-break:break-all}
-.debug-panel.show{display:block}
-.debug-toggle{font-size:11px;color:var(--text-faint);cursor:pointer;background:none;border:none;text-decoration:underline;padding:4px 0}
-
-.toast-stack{position:fixed;bottom:22px;right:22px;display:flex;flex-direction:column;gap:10px;z-index:500;max-width:380px}
-.toast{background:#0c1f26;color:#fff;padding:12px 16px;border-radius:11px;font-size:12.8px;font-weight:600;box-shadow:var(--shadow-md);border-left:3px solid var(--gold);animation:toastIn .25s ease}
-.toast.success{border-left-color:var(--success)}
-.toast.error{border-left-color:var(--danger)}
-@keyframes toastIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
-
-.scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:39;display:none}
-.scrim.show{display:block}
-
-@media(max-width:768px){
-    .app{grid-template-columns:1fr!important}
-    .sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);width:290px!important;box-shadow:var(--shadow-lg);z-index:50;height:100vh}
-    .sidebar.open{transform:translateX(0)}
-    .hamburger{display:flex}
-    .sb-toggle-desktop{display:none}
-    .topbar{padding:0 14px;height:60px}
-    .content{padding:12px 10px 60px}
-    .page-header{flex-direction:column;align-items:stretch}
-}
-</style>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+<link rel="stylesheet" href="/css/admin-shell.css">
+<script src="/js/admin-session.js?v=2026-marketplace-v1"></script>
+<script src="/js/admin-shell.js?v=2026-marketplace-v1"></script>
 </head>
 <body>
-<div class="app" id="appRoot">
 
-<aside class="sidebar" id="sidebar">
-    <div class="brand">
-        <img src="../images/miles.png" alt="" onerror="this.style.display='none'">
-        <div class="brand-text"><strong>MilesSpace</strong><span>Admin</span></div>
-        <button class="sb-collapse-btn" id="sbCollapseBtn"><i class="fas fa-angles-left"></i></button>
-    </div>
-    <nav class="nav-scroll">
-        <div class="nav-group"><div class="nav-group-head"><span class="nav-label">Overview</span></div>
-            <div class="nav-items"><a href="/admin/dashboard" class="nav-item"><span class="ic">📊</span><span>Dashboard</span></a></div></div>
-        <div class="nav-group"><div class="nav-group-head"><span class="nav-label">Customers</span></div>
-            <div class="nav-items">
-                <a href="/admin/users.html" class="nav-item"><span class="ic">👥</span><span>Users</span></a>
-                <a href="/admin/support.html" class="nav-item"><span class="ic">💬</span><span>Support</span></a>
-            </div></div>
-        <div class="nav-group"><div class="nav-group-head"><span class="nav-label">Money</span></div>
-            <div class="nav-items">
-                <a href="/admin/transactions.html" class="nav-item"><span class="ic">💳</span><span>Transactions</span></a>
-                <a href="/admin/deposits.html" class="nav-item"><span class="ic">📥</span><span>Deposits</span></a>
-                <a href="/admin/ledger.html" class="nav-item"><span class="ic">📒</span><span>Ledger</span></a>
-                <a href="/admin/reconciliation.html" class="nav-item"><span class="ic">🔄</span><span>Reconciliation</span></a>
-            </div></div>
-        <div class="nav-group"><div class="nav-group-head"><span class="nav-label">Services</span></div>
-            <div class="nav-items">
-                <a href="/admin/sellgift.html" class="nav-item"><span class="ic">🎁</span><span>Gift Cards</span></a>
-                <a href="/admin/airtime-data.html" class="nav-item"><span class="ic">📶</span><span>Airtime &amp; Data</span></a>
-                <a href="/admin/bills.html" class="nav-item"><span class="ic">🧾</span><span>Bills &amp; Utilities</span></a>
-                <a href="/admin/esim.html" class="nav-item"><span class="ic">📡</span><span>eSIM</span></a>
-                <a href="/admin/virtual-sms.html" class="nav-item"><span class="ic">📱</span><span>Virtual SMS</span></a>
-                <a href="/admin/boost.html" class="nav-item"><span class="ic">📈</span><span>Boost</span></a>
-                <a href="/admin/marketplace.html" class="nav-item active"><span class="ic">📦</span><span>Marketplace</span></a>
-            </div></div>
-        <div class="nav-group"><div class="nav-group-head"><span class="nav-label">System</span></div>
-            <div class="nav-items"><a href="/admin/settings.html" class="nav-item"><span class="ic">⚙️</span><span>Settings</span></a></div></div>
-    </nav>
-    <div class="sidebar-foot">
-        <div class="av" id="adminAvatar">DA</div>
-        <div class="who"><strong id="adminName">Admin</strong><span id="adminRole">Admin</span></div>
-    </div>
-</aside>
-<div class="scrim" id="scrim"></div>
+<script>
+(function () {
+  try {
+    if (localStorage.getItem('ms-theme') === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.documentElement.style.colorScheme = 'dark';
+    } else {
+      document.documentElement.classList.add('light');
+      document.documentElement.style.colorScheme = 'light';
+    }
+  } catch (_) {}
+})();
+</script>
 
-<div class="main">
-    <header class="topbar">
-        <button class="hamburger" id="hamburger">☰</button>
-        <button class="sb-toggle-desktop" id="sbToggleDesktop"><i class="fas fa-bars"></i></button>
-        <div class="page-title">
-            <nav class="breadcrumb"><a href="/admin/dashboard.html">Home</a><span>/</span><span>Services</span><span>/</span><span>Marketplace</span></nav>
-            <h1>📦 Marketplace</h1>
-        </div>
-        <button class="icon-btn" id="darkToggle" title="Toggle dark mode">🌙</button>
-    </header>
+<div class="app" id="appRoot"></div>
 
-    <div class="content">
-        <div class="page-header">
-            <div>
-                <h2>Marketplace Operations</h2>
-                <div class="sub">Products, inventory, orders. Every financial action is authoritative server-side.</div>
-            </div>
-            <div class="actions">
-                <button class="btn" id="refreshBtn"><i class="fas fa-rotate-right"></i> Refresh</button>
-            </div>
-        </div>
-
-        <div class="layout">
-            <aside class="side-menu" id="marketMenu">
-                <button class="item active" data-section="overview"><i class="fas fa-chart-pie" style="width:16px"></i> Overview</button>
-                <button class="item" data-section="products"><i class="fas fa-box" style="width:16px"></i> Products</button>
-                <button class="item" data-section="categories"><i class="fas fa-tags" style="width:16px"></i> Categories</button>
-                <button class="item" data-section="inventory"><i class="fas fa-warehouse" style="width:16px"></i> Inventory</button>
-                <button class="item" data-section="orders"><i class="fas fa-shopping-cart" style="width:16px"></i> Orders</button>
-                <button class="item" data-section="search"><i class="fas fa-search" style="width:16px"></i> Search</button>
-            </aside>
-
-            <div class="panels">
-                <!-- OVERVIEW -->
-                <div class="panel active" id="panel-overview">
-                    <div class="kpi-grid">
-                        <div class="kpi"><div class="lbl">Total products</div><div class="val" id="kpi-total-products">—</div></div>
-                        <div class="kpi"><div class="lbl">Active</div><div class="val" id="kpi-active-products" style="color:var(--success)">—</div></div>
-                        <div class="kpi"><div class="lbl">Total stock</div><div class="val" id="kpi-total-stock">—</div></div>
-                        <div class="kpi"><div class="lbl">Sold</div><div class="val" id="kpi-total-sold">—</div></div>
-                        <div class="kpi"><div class="lbl">Low stock</div><div class="val" id="kpi-low-stock" style="color:#b3720a">—</div></div>
-                        <div class="kpi"><div class="lbl">Out of stock</div><div class="val" id="kpi-out-stock" style="color:var(--danger)">—</div></div>
-                        <div class="kpi"><div class="lbl">Total orders</div><div class="val" id="kpi-total-orders">—</div></div>
-                        <div class="kpi"><div class="lbl">Pending</div><div class="val" id="kpi-pending-orders" style="color:#b3720a">—</div></div>
-                        <div class="kpi"><div class="lbl">Completed</div><div class="val" id="kpi-completed-orders" style="color:var(--success)">—</div></div>
-                        <div class="kpi"><div class="lbl">Revenue USD</div><div class="val" id="kpi-rev-usd">—</div></div>
-                        <div class="kpi"><div class="lbl">Revenue NGN</div><div class="val" id="kpi-rev-ngn">—</div></div>
-                        <div class="kpi"><div class="lbl">Available items</div><div class="val" id="kpi-available">—</div></div>
-                    </div>
-
-                    <div class="card">
-                        <h3>Recent orders</h3>
-                        <div class="table-scroll">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Order</th>
-                                        <th>Customer</th>
-                                        <th>Product</th>
-                                        <th>Total</th>
-                                        <th>Status</th>
-                                        <th>Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="recentOrdersBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <h3>Low stock</h3>
-                        <div id="lowStockList"></div>
-                    </div>
-                </div>
-
-                <!-- PRODUCTS -->
-                <div class="panel" id="panel-products">
-                    <div class="card">
-                        <h3>Products</h3>
-                        <div class="filters">
-                            <input type="search" id="productSearch" placeholder="Search by name or ID…">
-                            <button class="btn btn-primary" id="addProductBtn"><i class="fas fa-plus"></i> Add product</button>
-                        </div>
-                        <div class="table-scroll">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Name</th>
-                                        <th>Category</th>
-                                        <th>USD</th>
-                                        <th>NGN</th>
-                                        <th>Stock</th>
-                                        <th>Sold</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="productsBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- CATEGORIES -->
-                <div class="panel" id="panel-categories">
-                    <div class="card">
-                        <h3>Categories</h3>
-                        <div class="filters">
-                            <button class="btn btn-primary" id="addCategoryBtn"><i class="fas fa-plus"></i> Add category</button>
-                        </div>
-                        <div class="table-scroll">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Icon</th>
-                                        <th>Name</th>
-                                        <th>Products</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="categoriesBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- INVENTORY -->
-                <div class="panel" id="panel-inventory">
-                    <div class="card">
-                        <h3>Inventory by product</h3>
-                        <div class="hint">Stock and sold counts are kept consistent by the API.</div>
-                        <div class="table-scroll">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Product</th>
-                                        <th>Stock</th>
-                                        <th>Sold</th>
-                                        <th>Delivery type</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="inventoryBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ORDERS -->
-                <div class="panel" id="panel-orders">
-                    <div class="card">
-                        <h3>Orders</h3>
-                        <div class="filters">
-                            <input type="search" id="orderSearch" placeholder="Search by order ref, customer, email…">
-                            <select id="orderStatus">
-                                <option value="all">All statuses</option>
-                                <option value="pending">Pending</option>
-                                <option value="processing">Processing</option>
-                                <option value="completed">Completed</option>
-                                <option value="failed">Failed</option>
-                                <option value="cancelled">Cancelled</option>
-                                <option value="refunded">Refunded</option>
-                            </select>
-                            <button class="btn btn-primary" id="orderApplyBtn">Apply</button>
-                        </div>
-                        <div class="table-scroll">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Order</th>
-                                        <th>Customer</th>
-                                        <th>Product</th>
-                                        <th>Total</th>
-                                        <th>Wallet</th>
-                                        <th>Status</th>
-                                        <th>Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="ordersBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- SEARCH -->
-                <div class="panel" id="panel-search">
-                    <div class="card">
-                        <h3>Global search</h3>
-                        <div class="filters">
-                            <input type="search" id="globalSearchInput" placeholder="Search products, orders, inventory…">
-                            <button class="btn btn-primary" id="globalSearchBtn">Search</button>
-                        </div>
-                        <div id="globalSearchResults"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-</div>
-
-<!-- DRAWER -->
+<!-- Drawer scaffold (shell CSS; page owns markup) -->
 <div class="drawer-scrim" id="drawerScrim"></div>
-<aside class="drawer" id="drawer" role="dialog" aria-modal="true">
-    <div class="dd-head">
-        <div class="dd-ic" id="dIcon">📦</div>
-        <div class="dd-titles"><h2 id="dTitle">Detail</h2><div class="dd-sub" id="dSub"></div></div>
-        <button class="dd-close" id="dClose">✕</button>
-    </div>
-    <div class="dd-body" id="dBody"></div>
+<aside class="detail-drawer" id="detailDrawer" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="dd-head">
+    <div class="dd-ic" id="ddIcon"><i class="fas fa-box"></i></div>
+    <div class="dd-titles"><h2 id="ddTitle">Detail</h2><div class="dd-sub" id="ddSub"></div></div>
+    <button class="dd-close" id="ddClose" type="button" aria-label="Close"><i class="fas fa-xmark"></i></button>
+  </div>
+  <div class="dd-body" id="ddBody"></div>
 </aside>
 
-<!-- MODAL -->
-<div class="modal-scrim" id="modalScrim">
-    <div class="modal" role="dialog" aria-modal="true" id="modalBox">
-        <h3 id="mTitle">Action</h3>
-        <div class="body" id="mBody"></div>
-        <div class="foot">
-            <button class="btn" id="mCancel">Cancel</button>
-            <button class="btn btn-primary" id="mConfirm">Confirm</button>
-        </div>
+<!-- Modal scaffold (shell CSS; page owns markup) -->
+<div class="modal-scrim" id="modalScrim" aria-hidden="true">
+  <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <div class="modal-head">
+      <h3 id="mTitle">Action</h3>
+      <button class="x" id="mClose" type="button" aria-label="Close"><i class="fas fa-xmark"></i></button>
     </div>
+    <div class="modal-body" id="mBody"></div>
+    <div class="modal-foot" id="mFoot">
+      <button class="btn btn-ghost" id="mCancel" type="button">Cancel</button>
+      <button class="btn btn-primary" id="mConfirm" type="button">Confirm</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast-stack" id="toastStack" aria-live="polite"></div>
@@ -495,813 +63,1741 @@ html.dark .modal .body input,html.dark .modal .body textarea,html.dark .modal .b
 <script>
 'use strict';
 
-const API = {
-    stats:           '/api/admin/marketplace/stats',
-    products:        '/api/admin/marketplace/products',
-    product:         id => `/api/admin/marketplace/products/${encodeURIComponent(id)}`,
-    categories:      '/api/admin/marketplace/categories',
-    category:        id => `/api/admin/marketplace/categories/${encodeURIComponent(id)}`,
-    inventory:       productId => `/api/admin/marketplace/inventory/${encodeURIComponent(productId)}`,
-    inventoryAdd:    '/api/admin/marketplace/inventory',
-    inventoryItem:   id => `/api/admin/marketplace/inventory/${encodeURIComponent(id)}`,
-    orders:          '/api/admin/marketplace/orders',
-    order:           id => `/api/admin/marketplace/orders/${encodeURIComponent(id)}`,
-    refund:          id => `/api/admin/marketplace/orders/${encodeURIComponent(id)}/refund`,
-    complete:        id => `/api/admin/marketplace/orders/${encodeURIComponent(id)}/complete`,
-    fail:            id => `/api/admin/marketplace/orders/${encodeURIComponent(id)}/fail`,
-    search:          q => `/api/admin/marketplace/search?q=${encodeURIComponent(q)}`,
-    me:              '/api/admin/me'
-};
+// ═══════════════════════════════════════════════════════════════════
+// MilesSpace Marketplace — Admin page
+//
+// Uses the shared admin shell:
+//   • Sidebar + topbar injected by admin-shell.js via MS.init().
+//   • Content rendered into #content (which MS.init creates).
+//   • Drawer / modal / toast use the shell's CSS classes.
+//   • No page-level sidebar, hamburger, collapse button, or scrim.
+//
+// Data endpoints (all from the marketplace backend):
+//   GET  /api/admin/marketplace/stats
+//   GET  /api/admin/marketplace/trend?days=30
+//   GET  /api/admin/marketplace/products
+//   GET|POST  /api/admin/marketplace/products
+//   GET|PUT|DELETE /api/admin/marketplace/products/:id
+//   POST /api/admin/marketplace/products/:id/duplicate
+//   POST /api/admin/marketplace/products/bulk-status
+//   GET  /api/admin/marketplace/categories
+//   POST /api/admin/marketplace/categories
+//   PUT|DELETE /api/admin/marketplace/categories/:id
+//   GET  /api/admin/marketplace/inventory/:productId
+//   POST /api/admin/marketplace/inventory
+//   PUT  /api/admin/marketplace/inventory/:id
+//   POST /api/admin/marketplace/inventory/:id/reveal
+//   POST /api/admin/marketplace/inventory/:id/void
+//   GET  /api/admin/marketplace/orders
+//   GET  /api/admin/marketplace/orders/:id
+//   POST /api/admin/marketplace/orders/:id/refund
+//   POST /api/admin/marketplace/orders/:id/fail
+//   POST /api/admin/marketplace/orders/:id/complete
+//   POST /api/admin/marketplace/orders/:id/resend
+//   GET  /api/admin/marketplace/disputes
+//   POST /api/admin/marketplace/disputes/:id/resolve
+//   GET  /api/admin/marketplace/audit
+//   GET  /api/admin/marketplace/search?q=
+//
+// Money: prices are shown from the server. The client-side preview
+// uses the SAME markup math for the editor preview; the server
+// recomputes at charge time and the checkout route answers
+// PRICE_CHANGED if they differ. The client never sends a price
+// that the server trusts.
+//
+// Credentials: masked in lists, reveal requires a reason and is
+// permission-gated (marketplace.inventory_reveal) + audited by the
+// backend. This page never displays content from a list response.
+// ═══════════════════════════════════════════════════════════════════
 
-const CURRENCY_SYMBOLS = { NGN: '₦', USD: '$' };
+const API = {
+  stats:          '/api/admin/marketplace/stats',
+  trend:          (d = 30) => `/api/admin/marketplace/trend?days=${encodeURIComponent(d)}`,
+  products:       '/api/admin/marketplace/products',
+  product:        (id) => `/api/admin/marketplace/products/${encodeURIComponent(id)}`,
+  productDup:     (id) => `/api/admin/marketplace/products/${encodeURIComponent(id)}/duplicate`,
+  productBulk:    '/api/admin/marketplace/products/bulk-status',
+  categories:     '/api/admin/marketplace/categories',
+  category:       (id) => `/api/admin/marketplace/categories/${encodeURIComponent(id)}`,
+  inventory:      (pid) => `/api/admin/marketplace/inventory/${encodeURIComponent(pid)}`,
+  inventoryAdd:   '/api/admin/marketplace/inventory',
+  inventoryItem:  (id) => `/api/admin/marketplace/inventory/${encodeURIComponent(id)}`,
+  inventoryReveal:(id) => `/api/admin/marketplace/inventory/${encodeURIComponent(id)}/reveal`,
+  inventoryVoid:  (id) => `/api/admin/marketplace/inventory/${encodeURIComponent(id)}/void`,
+  orders:         '/api/admin/marketplace/orders',
+  order:          (id) => `/api/admin/marketplace/orders/${encodeURIComponent(id)}`,
+  orderRefund:    (id) => `/api/admin/marketplace/orders/${encodeURIComponent(id)}/refund`,
+  orderFail:      (id) => `/api/admin/marketplace/orders/${encodeURIComponent(id)}/fail`,
+  orderComplete:  (id) => `/api/admin/marketplace/orders/${encodeURIComponent(id)}/complete`,
+  orderResend:    (id) => `/api/admin/marketplace/orders/${encodeURIComponent(id)}/resend`,
+  disputes:       '/api/admin/marketplace/disputes',
+  disputeResolve: (id) => `/api/admin/marketplace/disputes/${encodeURIComponent(id)}/resolve`,
+  audit:          '/api/admin/marketplace/audit',
+  search:         (q) => `/api/admin/marketplace/search?q=${encodeURIComponent(q)}`,
+  me:             '/api/admin/me',
+};
 
 const State = {
-    products: [],
-    categories: [],
-    orders: [],
-    currentOrder: null,
-    currentProduct: null
+  section: 'overview',
+  products: { rows: [], page: 1, totalPages: 1, count: 0, filters: { q: '', status: 'all', category: 'all', stock: 'all', sort: 'created_desc' } },
+  categories: { rows: [] },
+  orders: { rows: [], page: 1, totalPages: 1, count: 0, filters: { status: 'all', currency: 'all', q: '', from: '', to: '' } },
+  disputes: { rows: [], page: 1, totalPages: 1, count: 0, filters: { status: 'all' }, available: true, reason: null },
+  audit: { rows: [], page: 1, totalPages: 1, count: 0, filters: { target_id: '', admin_id: '', from: '', to: '' } },
+  currentProduct: null,
+  currentOrder: null,
+  currentInventoryProduct: null,
+  admin: { id: null, permissions: [], role: null, canReveal: false },
+  charts: { trend: null },
 };
 
-function escapeHtml(s) {
-    if (s === null || s === undefined) return '';
-    return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+// ─── WAT-aware formatters ────────────────────────────────────────
+const WAT_TZ = 'Africa/Lagos';
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleDateString('en-NG', { timeZone: WAT_TZ, day: '2-digit', month: 'short', year: 'numeric' });
+  } catch { return iso; }
 }
-function formatMoney(amount, currency) {
-    if (amount === null || amount === undefined || amount === '') return null;
-    const ccy = String(currency || '').toUpperCase();
-    const n = Number(amount);
-    if (!Number.isFinite(n)) return null;
-    const s = n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    return (CURRENCY_SYMBOLS[ccy] || (ccy ? ccy + ' ' : '')) + s;
+function fmtTime(iso) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleTimeString('en-NG', { timeZone: WAT_TZ, hour: '2-digit', minute: '2-digit', hour12: true });
+  } catch { return iso; }
 }
-function formatNumber(n) {
-    if (n === null || n === undefined || n === '') return null;
-    const num = Number(n);
-    return Number.isFinite(num) ? num.toLocaleString('en-US') : null;
+function fmtDateTime(iso) {
+  if (!iso) return '—';
+  return `${fmtDate(iso)} · ${fmtTime(iso)} WAT`;
 }
-function formatDateTime(iso) {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+function timeAgo(iso) {
+  if (!iso) return '—';
+  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
 }
-function statusBadge(status) {
-    const s = String(status || '').toLowerCase();
-    if (s === 'active' || s === 'completed') return 'success';
-    if (s === 'inactive' || s === 'cancelled') return 'neutral';
-    if (s === 'pending' || s === 'processing') return 'warn';
-    if (s === 'failed' || s === 'expired') return 'danger';
-    if (s === 'refunded') return 'info';
-    if (s === 'sold') return 'info';
-    if (s === 'available') return 'success';
-    return 'neutral';
-}
-function showToast(msg, type = 'info') {
-    const stack = document.getElementById('toastStack');
-    if (!stack) return;
-    const el = document.createElement('div');
-    el.className = 'toast ' + type;
-    el.textContent = msg;
-    stack.appendChild(el);
-    setTimeout(() => el.remove(), 3400);
+function ageMinutes(iso) {
+  if (!iso) return 0;
+  return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
 }
 
-async function api(url, opts = {}) {
-    const startedAt = Date.now();
-    let res;
-    try { res = await AdminSession.fetch(url, opts); }
-    catch (e) { return { ok: false, status: 0, code: 'NETWORK_ERROR', error: 'Network error: ' + e.message, request_id: null, _debug: { url } }; }
-
-    let json = null, text = null;
-    try { text = await res.text(); } catch {}
-    try { json = text ? JSON.parse(text) : null; } catch {}
-
-    if (!res.ok || json?.success === false) {
-        return {
-            ok: false,
-            status: res.status,
-            code: json?.code || `HTTP_${res.status}`,
-            error: json?.error || json?.message || text || 'Request failed',
-            request_id: json?.request_id || res.headers.get('X-Request-ID') || null,
-            extra: json,
-            _debug: { url, status: res.status, durationMs: Date.now() - startedAt, body: json }
-        };
-    }
-    return { ok: true, data: json, _debug: { url, status: res.status, durationMs: Date.now() - startedAt } };
+function money(amount, currency) {
+  const ccy = String(currency || '').toUpperCase();
+  if (amount === null || amount === undefined || amount === '') return null;
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return null;
+  const sym = ccy === 'USD' ? '$' : ccy === 'NGN' ? '₦' : (ccy ? ccy + ' ' : '');
+  return sym + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function num(n) {
+  if (n === null || n === undefined || n === '') return null;
+  const x = Number(n);
+  return Number.isFinite(x) ? x.toLocaleString('en-US') : null;
+}
+function pct(n) {
+  if (n === null || n === undefined || n === '') return null;
+  const x = Number(n);
+  if (!Number.isFinite(x)) return null;
+  return x.toFixed(1) + '%';
+}
+function trunc(s, n) {
+  const t = String(s == null ? '' : s);
+  return t.length > n ? t.slice(0, n - 1) + '…' : t;
 }
 
-// ─── NAV ─────────────────────────────────────────────────────────
-function showSection(section) {
-    document.querySelectorAll('#marketMenu .item').forEach(el => {
-        el.classList.toggle('active', el.dataset.section === section);
+function toast(msg, kind) { MS.toast(msg, kind === 'ok' ? 'success' : kind === 'err' ? 'error' : kind === 'warn' ? 'warn' : 'info'); }
+
+function statusClass(status) {
+  const s = String(status || '').toLowerCase();
+  if (['completed', 'success', 'active', 'available'].includes(s)) return 'success';
+  if (['failed', 'cancelled', 'refunded', 'inactive', 'void', 'deleted', 'rejected'].includes(s)) return 'danger';
+  if (['pending', 'processing', 'open', 'approved', 'manual_review'].includes(s)) return 'warn';
+  if (['sold', 'archived'].includes(s)) return 'info';
+  return 'neutral';
+}
+
+function setSection(sec) {
+  State.section = sec;
+  document.querySelectorAll('#mktNav .side-menu-item').forEach(b => {
+    b.classList.toggle('active', b.dataset.section === sec);
+  });
+  document.querySelectorAll('.section').forEach(s => s.classList.toggle('hidden', s.dataset.section !== sec));
+  if (sec === 'overview')   loadOverview();
+  if (sec === 'products')   loadProducts();
+  if (sec === 'categories') loadCategories();
+  if (sec === 'inventory')  loadInventoryRoot();
+  if (sec === 'orders')     loadOrders();
+  if (sec === 'disputes')   loadDisputes();
+  if (sec === 'audit')      loadAudit();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Shell bootstrap
+// ═══════════════════════════════════════════════════════════════════
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!window.AdminSession?.getToken?.()) {
+    window.AdminSession?.redirectToLogin?.();
+    return window.location.replace('/admin/index.html');
+  }
+
+  MS.init({
+    activeKey: 'marketplace-products',
+    title: 'Marketplace',
+    breadcrumb: [
+      { label: 'Home', href: '/admin/dashboard.html' },
+      { label: 'Services' },
+      { label: 'Marketplace' },
+    ],
+  });
+
+  // Load the admin profile (permissions, role) once.
+  await loadAdminProfile();
+
+  renderContent();
+  setSection('overview');
+});
+
+async function loadAdminProfile() {
+  try {
+    const res = await fetch(API.me, {
+      headers: { 'Authorization': `Bearer ${AdminSession.getToken()}` },
+      credentials: 'include',
     });
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    const target = document.getElementById('panel-' + section);
-    if (target) target.classList.add('active');
-
-    if (section === 'overview')  loadOverview();
-    if (section === 'products')  loadProducts();
-    if (section === 'categories') loadCategories();
-    if (section === 'inventory') loadInventory();
-    if (section === 'orders')    loadOrders();
+    if (!res.ok) return;
+    const j = await res.json().catch(() => null);
+    const user = j?.data?.user || j?.user;
+    if (!user) return;
+    State.admin.id = user.id || null;
+    State.admin.role = user.role || null;
+    State.admin.permissions = Array.isArray(user.permissions) ? user.permissions : [];
+    State.admin.canReveal = State.admin.role === 'super_admin'
+      || State.admin.permissions.includes('*')
+      || State.admin.permissions.includes('marketplace.inventory_reveal');
+  } catch (_) { /* fail closed: canReveal stays false */ }
 }
 
-// ─── OVERVIEW ────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+// Page shell (nav + sections)
+// ═══════════════════════════════════════════════════════════════════
+
+function renderContent() {
+  document.getElementById('content').innerHTML = `
+    <div class="page-header">
+      <div>
+        <h2>Marketplace</h2>
+        <div class="sub">Products, inventory, and orders for digital goods. All prices are recomputed server-side; the numbers here are what the buyer sees at checkout.</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-ghost" id="refreshBtn" type="button"><i class="fas fa-rotate"></i> Refresh</button>
+      </div>
+    </div>
+
+    <nav class="side-menu" id="mktNav" aria-label="Marketplace sections">
+      <button class="side-menu-item active" data-section="overview"   type="button"><i class="fas fa-chart-pie"></i> Overview</button>
+      <button class="side-menu-item"        data-section="products"   type="button"><i class="fas fa-box"></i> Products</button>
+      <button class="side-menu-item"        data-section="categories" type="button"><i class="fas fa-tags"></i> Categories</button>
+      <button class="side-menu-item"        data-section="inventory"  type="button"><i class="fas fa-warehouse"></i> Inventory</button>
+      <button class="side-menu-item"        data-section="orders"     type="button"><i class="fas fa-shopping-cart"></i> Orders</button>
+      <button class="side-menu-item"        data-section="disputes"   type="button"><i class="fas fa-scale-balanced"></i> Disputes</button>
+      <button class="side-menu-item"        data-section="audit"      type="button"><i class="fas fa-clipboard-list"></i> Audit</button>
+    </nav>
+
+    <div id="overviewSection"  class="section" data-section="overview"></div>
+    <div id="productsSection"  class="section hidden" data-section="products"></div>
+    <div id="categoriesSection" class="section hidden" data-section="categories"></div>
+    <div id="inventorySection" class="section hidden" data-section="inventory"></div>
+    <div id="ordersSection"    class="section hidden" data-section="orders"></div>
+    <div id="disputesSection"  class="section hidden" data-section="disputes"></div>
+    <div id="auditSection"     class="section hidden" data-section="audit"></div>
+  `;
+
+  document.querySelectorAll('#mktNav .side-menu-item').forEach(b => {
+    b.addEventListener('click', () => setSection(b.dataset.section));
+  });
+  document.getElementById('refreshBtn').addEventListener('click', () => setSection(State.section));
+  document.getElementById('ddClose').addEventListener('click', closeDrawer);
+  document.getElementById('drawerScrim').addEventListener('click', closeDrawer);
+  document.getElementById('mClose').addEventListener('click', closeModal);
+  document.getElementById('modalScrim').addEventListener('click', (e) => {
+    if (e.target.id === 'modalScrim') closeModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { closeModal(); closeDrawer(); }
+  });
+}
+
+// Minimal side-menu styles — the shell doesn't ship one because
+// most pages use tabs. Kept tiny and consistent with the shell tokens.
+const sideMenuCSS = `
+<style>
+.side-menu{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;padding:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px}
+.side-menu-item{display:inline-flex;align-items:center;gap:7px;padding:9px 13px;border-radius:9px;border:none;background:transparent;color:var(--text-dim);font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;min-height:38px}
+.side-menu-item:hover{background:var(--bg);color:var(--text)}
+.side-menu-item.active{background:var(--navy);color:#fff}
+.side-menu-item i{font-size:12px;opacity:.9}
+.section.hidden{display:none}
+.editor-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.preview-row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:12.5px}
+.preview-row .k{color:var(--text-dim)}
+.preview-row .v{font-weight:700;font-variant-numeric:tabular-nums}
+.content-preview{font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--bg-alt);border:1px solid var(--border);border-radius:8px;padding:8px 10px;word-break:break-word;max-height:140px;overflow:auto}
+.table-actions{display:flex;gap:6px;flex-wrap:wrap}
+.checkbox-cell{width:32px;text-align:center}
+.row-check{accent-color:var(--navy)}
+@media(max-width:640px){
+  .side-menu{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+  .side-menu::-webkit-scrollbar{display:none}
+}
+</style>
+`;
+document.head.insertAdjacentHTML('beforeend', sideMenuCSS);
+
+// ═══════════════════════════════════════════════════════════════════
+// Overview
+// ═══════════════════════════════════════════════════════════════════
+
 async function loadOverview() {
-    const { ok, data } = await api(API.stats);
-    if (!ok) {
-        ['kpi-total-products','kpi-active-products','kpi-total-stock','kpi-total-sold',
-         'kpi-low-stock','kpi-out-stock','kpi-total-orders','kpi-pending-orders',
-         'kpi-completed-orders','kpi-rev-usd','kpi-rev-ngn','kpi-available']
-            .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '—'; });
-        return;
-    }
-    const s = data.stats || {};
-    const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ?? '—'; };
-    setText('kpi-total-products', formatNumber(s.totalProducts));
-    setText('kpi-active-products', formatNumber(s.active));
-    setText('kpi-total-stock', formatNumber(s.totalStock));
-    setText('kpi-total-sold', formatNumber(s.totalSold));
-    setText('kpi-low-stock', formatNumber(s.lowStock));
-    setText('kpi-out-stock', formatNumber(s.outOfStock));
-    setText('kpi-total-orders', formatNumber(s.totalOrders));
-    setText('kpi-pending-orders', formatNumber(s.pending));
-    setText('kpi-completed-orders', formatNumber(s.completed));
-    setText('kpi-rev-usd', formatMoney(s.usdRev, 'USD'));
-    setText('kpi-rev-ngn', formatMoney(s.ngnRev, 'NGN'));
-    setText('kpi-available', formatNumber(s.available));
+  const root = document.getElementById('overviewSection');
+  root.innerHTML = `
+    <div class="kpi-grid" id="ovKpis">
+      ${['Total products','Active','Total stock','Sold','Low stock','Out of stock','Orders','Pending','Completed','Refunded','USD revenue','NGN revenue'].map(l => `
+        <div class="kpi-card"><div class="lbl">${l}</div><div class="val"><span class="skel" style="display:inline-block;width:60px;height:16px"></span></div></div>
+      `).join('')}
+    </div>
+    <div class="card panel" style="margin-bottom:14px">
+      <div class="flex-between" style="margin-bottom:10px">
+        <h3 style="font-size:14px;font-weight:800">30-day sales trend</h3>
+        <span class="badge neutral" id="trendBadge"><i class="fas fa-spinner fa-spin"></i> Loading</span>
+      </div>
+      <div id="trendChartWrap" style="min-height:180px">
+        <div class="unavailable-box"><i class="fas fa-circle-notch fa-spin"></i><div>Loading trend…</div></div>
+      </div>
+    </div>
+    <div class="card panel" id="attentionCard" style="margin-bottom:14px;display:none">
+      <h3 style="font-size:14px;font-weight:800;margin-bottom:10px">Needs attention</h3>
+      <div id="attentionList" class="filters-bar" style="background:transparent;border:none;padding:0"></div>
+    </div>
+  `;
 
-    loadRecentOrders();
-    loadLowStock();
-}
-
-async function loadRecentOrders() {
-    const tb = document.getElementById('recentOrdersBody');
-    tb.innerHTML = `<tr><td colspan="6"><span class="skel" style="width:60%;display:inline-block"></span></td></tr>`;
-    const { ok, data } = await api(API.orders + '?limit=8');
-    if (!ok) {
-        tb.innerHTML = `<tr><td colspan="6"><div class="unavailable-box">Unable to load</div></td></tr>`;
-        return;
-    }
-    const rows = data.orders || [];
-    if (!rows.length) {
-        tb.innerHTML = `<tr><td colspan="6"><div class="empty-state"><span class="ic">📭</span>No orders yet</div></td></tr>`;
-        return;
-    }
-    tb.innerHTML = rows.map(o => `
-        <tr data-id="${escapeHtml(o.id)}">
-            <td class="mono" style="font-size:11px">${escapeHtml(o.order_ref || o.id.slice(0,8))}</td>
-            <td>${escapeHtml(o.user_name || '—')}</td>
-            <td>${escapeHtml(o.product_name || '—')}</td>
-            <td>${formatMoney(o.total, o.currency) || '—'}</td>
-            <td><span class="badge ${statusBadge(o.status)}">${escapeHtml(o.status)}</span></td>
-            <td>${escapeHtml(formatDateTime(o.created_at))}</td>
-        </tr>
+  // KPIs
+  const statsRes = await MS.api(API.stats);
+  if (!statsRes.ok) {
+    document.getElementById('ovKpis').innerHTML = `
+      <div style="grid-column:1/-1" class="unavailable-box">
+        <i class="fas fa-triangle-exclamation"></i>
+        <div>Stats unavailable</div>
+        <div style="font-size:11.5px;margin-top:4px;color:var(--text-faint)">${MS.esc(statsRes.error || 'Server error')}</div>
+        <button class="btn btn-ghost" id="ovRetry" type="button" style="margin-top:10px"><i class="fas fa-rotate"></i> Retry</button>
+      </div>`;
+    document.getElementById('ovRetry').addEventListener('click', loadOverview);
+  } else {
+    const s = (statsRes.data.data || statsRes.data).stats || {};
+    const tiles = [
+      ['Total products', num(s.totalProducts) ?? '—'],
+      ['Active',         num(s.active) ?? '—'],
+      ['Total stock',    num(s.totalStock) ?? '—'],
+      ['Sold',           num(s.totalSold) ?? '—'],
+      ['Low stock',      num(s.lowStock) ?? '—'],
+      ['Out of stock',   num(s.outOfStock) ?? '—'],
+      ['Orders',         num(s.totalOrders) ?? '—'],
+      ['Pending',        num(s.pending) ?? '—'],
+      ['Completed',      num(s.completed) ?? '—'],
+      ['Refunded',       num(s.refunded) ?? '—'],
+      ['USD revenue',    money(s.usdRev, 'USD') ?? '—'],
+      ['NGN revenue',    money(s.ngnRev, 'NGN') ?? '—'],
+    ];
+    document.getElementById('ovKpis').innerHTML = tiles.map(([l, v]) => `
+      <div class="kpi-card"><div class="lbl">${MS.esc(l)}</div><div class="val">${v}</div></div>
     `).join('');
-    tb.querySelectorAll('tr[data-id]').forEach(tr => tr.addEventListener('click', () => openOrder(tr.dataset.id)));
-}
 
-async function loadLowStock() {
-    const el = document.getElementById('lowStockList');
-    const { ok, data } = await api(API.products);
-    if (!ok) { el.innerHTML = `<div class="unavailable-box">Unable to load</div>`; return; }
-    const rows = (data.products || []).filter(p => (p.stock || 0) > 0 && (p.stock || 0) < 10).slice(0, 8);
-    if (!rows.length) {
-        el.innerHTML = `<div class="empty-state">✅ All products have healthy stock</div>`;
-        return;
+    // Attention strip
+    const items = [];
+    if (Number(s.pending) > 0) items.push({ label: `${s.pending} pending order${s.pending === 1 ? '' : 's'}`, kind: 'warn', go: () => setSection('orders') });
+    if (Number(s.failed) > 0)  items.push({ label: `${s.failed} failed order${s.failed === 1 ? '' : 's'}`,  kind: 'danger', go: () => setSection('orders') });
+    if (Number(s.refunded) > 0) items.push({ label: `${s.refunded} refunded order${s.refunded === 1 ? '' : 's'}`, kind: 'info', go: () => setSection('orders') });
+    if (Number(s.lowStock) > 0) items.push({ label: `${s.lowStock} low-stock product${s.lowStock === 1 ? '' : 's'}`, kind: 'warn', go: () => setSection('products') });
+    if (Number(s.outOfStock) > 0) items.push({ label: `${s.outOfStock} out-of-stock product${s.outOfStock === 1 ? '' : 's'}`, kind: 'danger', go: () => setSection('products') });
+    if (items.length) {
+      const card = document.getElementById('attentionCard');
+      card.style.display = '';
+      const list = document.getElementById('attentionList');
+      list.innerHTML = items.map((it, i) => `
+        <button class="btn btn-ghost" data-attn="${i}" type="button">
+          <span class="badge ${it.kind}">${MS.esc(it.label)}</span>
+        </button>
+      `).join('');
+      list.querySelectorAll('[data-attn]').forEach((b, i) => {
+        b.addEventListener('click', () => items[i].go());
+      });
     }
-    el.innerHTML = rows.map(p => `
-        <div class="dd-field">
-            <span class="k">${escapeHtml(p.name)}</span>
-            <span class="v"><span class="badge warn">${p.stock} left</span></span>
-        </div>
-    `).join('');
+  }
+
+  // Trend
+  await loadTrendChart();
 }
 
-// ─── PRODUCTS ────────────────────────────────────────────────────
+async function loadTrendChart() {
+  const wrap = document.getElementById('trendChartWrap');
+  const badge = document.getElementById('trendBadge');
+  if (!wrap) return;
+
+  const res = await MS.api(API.trend(30));
+  if (!res.ok) {
+    wrap.innerHTML = `<div class="unavailable-box"><i class="fas fa-triangle-exclamation"></i><div>Trend unavailable</div><div style="font-size:11.5px;margin-top:4px;color:var(--text-faint)">${MS.esc(res.error || 'Server error')}</div></div>`;
+    if (badge) badge.outerHTML = '<span class="badge danger">Unavailable</span>';
+    return;
+  }
+
+  const d = res.data.data || res.data;
+  if (d.available === false) {
+    wrap.innerHTML = `<div class="unavailable-box"><i class="fas fa-circle-info"></i><div>Trend RPC not deployed</div><div style="font-size:11.5px;margin-top:4px;color:var(--text-faint)">Reason: ${MS.esc(d.reason || 'unknown')}</div></div>`;
+    if (badge) badge.outerHTML = '<span class="badge neutral">Not deployed</span>';
+    return;
+  }
+
+  const usd = Array.isArray(d.USD) ? d.USD : [];
+  const ngn = Array.isArray(d.NGN) ? d.NGN : [];
+
+  if (!usd.length && !ngn.length) {
+    wrap.innerHTML = `<div class="unavailable-box"><i class="fas fa-inbox"></i><div>No sales in the last 30 days</div></div>`;
+    if (badge) badge.outerHTML = '<span class="badge neutral">Empty</span>';
+    return;
+  }
+
+  if (badge) badge.outerHTML = '<span class="badge success"><i class="fas fa-check"></i> Loaded</span>';
+
+  // Render two small tables side by side (per-currency; never summed).
+  const renderSeries = (label, rows, ccy) => {
+    if (!rows.length) return `<div class="unavailable-box" style="padding:14px"><div>No ${ccy} sales</div></div>`;
+    return `
+      <table style="min-width:0;width:100%">
+        <thead><tr><th>${MS.esc(label)}</th><th style="text-align:right">Orders</th><th style="text-align:right">Revenue</th></tr></thead>
+        <tbody>
+          ${rows.slice(0, 15).map(r => `
+            <tr>
+              <td>${MS.esc(r.day || r.date || '—')}</td>
+              <td style="text-align:right">${num(r.orders) ?? 0}</td>
+              <td style="text-align:right;font-weight:700">${money(r.revenue, ccy) ?? '—'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  };
+
+  wrap.innerHTML = `
+    <div class="editor-grid">
+      <div><h4 style="font-size:12px;font-weight:700;color:var(--text-dim);margin-bottom:6px">USD</h4>${renderSeries('Day', usd, 'USD')}</div>
+      <div><h4 style="font-size:12px;font-weight:700;color:var(--text-dim);margin-bottom:6px">NGN</h4>${renderSeries('Day', ngn, 'NGN')}</div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Products
+// ═══════════════════════════════════════════════════════════════════
+
 async function loadProducts() {
-    const tb = document.getElementById('productsBody');
-    tb.innerHTML = `<tr><td colspan="9"><span class="skel" style="width:60%;display:inline-block"></span></td></tr>`;
-    const { ok, data, error } = await api(API.products);
-    if (!ok) {
-        tb.innerHTML = `<tr><td colspan="9"><div class="unavailable-box">${escapeHtml(error)}<button onclick="loadProducts()">Retry</button></div></td></tr>`;
-        return;
-    }
-    State.products = data.products || [];
-    const search = document.getElementById('productSearch').value.trim().toLowerCase();
-    const rows = State.products.filter(p =>
-        !search || (p.name || '').toLowerCase().includes(search) || (p.id || '').toLowerCase().includes(search)
-    );
-    if (!rows.length) {
-        tb.innerHTML = `<tr><td colspan="9"><div class="empty-state"><span class="ic">📭</span>No products</div></td></tr>`;
-        return;
-    }
-    tb.innerHTML = rows.map(p => `
-        <tr data-id="${escapeHtml(p.id)}">
-            <td class="mono" style="font-size:10.5px">${escapeHtml(p.id)}</td>
-            <td>${escapeHtml(p.name)}</td>
-            <td>${escapeHtml(p.category_icon || '📦')} ${escapeHtml(p.category_name || '—')}</td>
-            <td>${formatMoney(p.price_usd, 'USD') || '—'}</td>
-            <td>${formatMoney(p.price_ngn, 'NGN') || '—'}</td>
-            <td>${formatNumber(p.stock) ?? 0}</td>
-            <td>${formatNumber(p.sold) ?? 0}</td>
-            <td><span class="badge ${statusBadge(p.status)}">${escapeHtml(p.status)}</span></td>
-            <td>
-                <button class="btn" data-view="${escapeHtml(p.id)}" style="padding:4px 8px;font-size:11px"><i class="fas fa-eye"></i></button>
-                <button class="btn btn-danger" data-delete="${escapeHtml(p.id)}" style="padding:4px 8px;font-size:11px"><i class="fas fa-trash"></i></button>
-            </td>
-        </tr>
-    `).join('');
-    tb.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openProduct(b.dataset.view);
-    }));
-    tb.querySelectorAll('[data-delete]').forEach(b => b.addEventListener('click', (e) => {
-        e.stopPropagation();
-        confirmDeleteProduct(b.dataset.delete);
-    }));
-}
-
-function confirmDeleteProduct(id) {
-    openModal({
-        title: 'Delete product',
-        confirmLabel: 'Delete',
-        danger: true,
-        bodyHtml: `<p class="note">This deletes the product and all its inventory items. Cannot be undone.</p>`,
-        onConfirm: async () => {
-            const res = await api(API.product(id), { method: 'DELETE' });
-            if (!res.ok) { showModalError(res); return false; }
-            showToast('Product deleted', 'success');
-            loadProducts();
-            return true;
-        }
-    });
-}
-
-async function openProduct(id) {
-    document.getElementById('dIcon').textContent = '📦';
-    document.getElementById('dTitle').textContent = 'Loading…';
-    document.getElementById('dSub').textContent = '';
-    document.getElementById('dBody').innerHTML = '<div class="dd-empty">Loading…</div>';
-    openDrawer();
-    const res = await api(API.product(id));
-    if (!res.ok) {
-        document.getElementById('dBody').innerHTML = `<div class="modal-error show" style="margin:0"><div class="head"><i class="fas fa-circle-exclamation"></i> Failed to load</div><div class="code">${escapeHtml(res.code)}</div><div class="message">${escapeHtml(res.error)}</div></div>`;
-        return;
-    }
-    const p = res.data.product;
-    State.currentProduct = p;
-    document.getElementById('dTitle').textContent = p.name;
-    document.getElementById('dSub').textContent = `${p.category_id || ''} · ${p.country || ''}`;
-
-    document.getElementById('dBody').innerHTML = `
-        <div class="dd-hero">
-            <div>
-                <div class="amt">${escapeHtml(formatMoney(p.price_usd, 'USD') || '—')}</div>
-                <div class="meta">${escapeHtml(formatMoney(p.price_ngn, 'NGN') || '—')} NGN</div>
-            </div>
-            <span class="badge ${statusBadge(p.status)}" style="font-size:12px;padding:4px 12px">${escapeHtml(p.status)}</span>
+  const root = document.getElementById('productsSection');
+  if (!root.dataset.built) {
+    root.dataset.built = '1';
+    root.innerHTML = `
+      <div class="filters-card">
+        <div class="filters-bar">
+          <div class="search-input-wrap">
+            <i class="fas fa-search"></i>
+            <input id="pQ" type="search" class="search-input" placeholder="Search products by name or ID…" autocomplete="off" />
+          </div>
+          <select id="pStatus" class="select-input">
+            <option value="all">All statuses</option>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+            <option value="Archived">Archived</option>
+          </select>
+          <select id="pCategory" class="select-input">
+            <option value="all">All categories</option>
+          </select>
+          <select id="pStock" class="select-input">
+            <option value="all">All stock</option>
+            <option value="out">Out of stock</option>
+            <option value="low">Low stock</option>
+            <option value="healthy">Healthy</option>
+          </select>
+          <select id="pSort" class="select-input">
+            <option value="created_desc">Newest</option>
+            <option value="name_asc">Name A→Z</option>
+            <option value="price_asc">Price ↑</option>
+            <option value="price_desc">Price ↓</option>
+            <option value="stock_asc">Stock ↑</option>
+            <option value="stock_desc">Stock ↓</option>
+          </select>
+          <button class="btn btn-primary" id="pAdd" type="button"><i class="fas fa-plus"></i> New product</button>
+          <button class="btn btn-ghost" id="pBulkOn" type="button" disabled>Bulk activate</button>
+          <button class="btn btn-ghost" id="pBulkOff" type="button" disabled>Bulk deactivate</button>
         </div>
-        <div class="dd-section">
-            <h4>Product</h4>
-            <div class="dd-field"><span class="k">ID</span><span class="v mono">${escapeHtml(p.id)}</span></div>
-            <div class="dd-field"><span class="k">Name</span><span class="v">${escapeHtml(p.name)}</span></div>
-            <div class="dd-field"><span class="k">Country</span><span class="v">${escapeHtml(p.country || '—')}</span></div>
-            <div class="dd-field"><span class="k">Delivery type</span><span class="v">${escapeHtml(p.delivery_type || '—')}</span></div>
-            <div class="dd-field"><span class="k">Stock</span><span class="v">${formatNumber(p.stock) ?? 0}</span></div>
-            <div class="dd-field"><span class="k">Sold</span><span class="v">${formatNumber(p.sold) ?? 0}</span></div>
-            <div class="dd-field"><span class="k">Created</span><span class="v">${escapeHtml(formatDateTime(p.created_at))}</span></div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th class="checkbox-cell"><input type="checkbox" id="pCheckAll" class="row-check" aria-label="Select all" /></th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>USD</th>
+                <th>NGN</th>
+                <th>Stock</th>
+                <th>Sold</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="productsBody"></tbody>
+          </table>
         </div>
-        <div class="dd-section">
-            <h4>Description</h4>
-            <div style="font-size:12.5px;color:var(--text-dim);line-height:1.55">${escapeHtml(p.description || '—')}</div>
+        <div class="table-foot">
+          <div id="productsInfo">—</div>
+          <div class="pagination" id="productsPager"></div>
         </div>
-        <div class="dd-section">
-            <h4>Add inventory</h4>
-            <textarea id="addInvText" rows="4" style="width:100%;border:1px solid var(--border);border-radius:9px;padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--white);color:var(--text);outline:none"></textarea>
-            <div style="font-size:11px;color:var(--text-faint);margin-top:6px">One item per line. Each line becomes a separate inventory record.</div>
-            <button class="btn btn-primary" id="addInvBtn" style="margin-top:10px"><i class="fas fa-plus"></i> Add items</button>
-        </div>
-        <div class="dd-section">
-            <button class="debug-toggle" id="debugToggle"><i class="fas fa-code"></i> Show raw response</button>
-            <pre class="debug-panel" id="debugPanel"></pre>
-        </div>
+      </div>
     `;
 
-    document.getElementById('debugToggle')?.addEventListener('click', () => {
-        const dp = document.getElementById('debugPanel');
-        dp.classList.toggle('show');
-        if (dp.classList.contains('show')) dp.textContent = JSON.stringify(res.data, null, 2);
+    document.getElementById('pQ').addEventListener('input', () => {
+      clearTimeout(State._pDebounce);
+      State._pDebounce = setTimeout(() => { State.products.filters.q = document.getElementById('pQ').value.trim(); State.products.page = 1; fetchProducts(); }, 220);
     });
-    document.getElementById('addInvBtn')?.addEventListener('click', async () => {
-        const text = document.getElementById('addInvText').value || '';
-        const items = text.split('\n').map(s => s.trim()).filter(Boolean);
-        if (!items.length) { showToast('No items to add', 'error'); return; }
-        const addRes = await api(API.inventoryAdd, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ product_id: p.id, items })
-        });
-        if (!addRes.ok) { showToast(addRes.error || 'Failed to add', 'error'); return; }
-        showToast(`Added ${items.length} items`, 'success');
-        openProduct(p.id);
+    ['pStatus','pCategory','pStock','pSort'].forEach((id) => {
+      document.getElementById(id).addEventListener('change', () => {
+        State.products.filters.status   = document.getElementById('pStatus').value;
+        State.products.filters.category = document.getElementById('pCategory').value;
+        State.products.filters.stock    = document.getElementById('pStock').value;
+        State.products.filters.sort     = document.getElementById('pSort').value;
+        State.products.page = 1;
+        fetchProducts();
+      });
     });
+    document.getElementById('pAdd').addEventListener('click', () => openProductEditor(null));
+    document.getElementById('pCheckAll').addEventListener('change', (e) => {
+      document.querySelectorAll('.row-check[data-pid]').forEach((c) => { c.checked = e.target.checked; });
+      updateBulkButtons();
+    });
+    document.getElementById('pBulkOn').addEventListener('click', () => bulkStatus('Active'));
+    document.getElementById('pBulkOff').addEventListener('click', () => bulkStatus('Inactive'));
+  }
+
+  await ensureCategoryFilterOptions();
+  await fetchProducts();
 }
 
-document.getElementById('addProductBtn')?.addEventListener('click', openAddProductModal);
-
-function openAddProductModal() {
-    const catOptions = State.categories.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.icon || '📦')} ${escapeHtml(c.name)}</option>`).join('');
-    openModal({
-        title: 'Add product',
-        confirmLabel: 'Create',
-        wide: true,
-        bodyHtml: `
-            <label>Name *</label>
-            <input type="text" id="npName">
-            <label>Category *</label>
-            <select id="npCat">${catOptions}</select>
-            <label>Price USD *</label>
-            <input type="number" step="0.01" id="npUsd">
-            <label>Price NGN</label>
-            <input type="number" step="1" id="npNgn">
-            <label>Country</label>
-            <input type="text" id="npCountry" placeholder="Global">
-            <label>Description</label>
-            <textarea id="npDesc" rows="2"></textarea>
-            <label>Delivery type</label>
-            <select id="npDelivery">
-                <option value="structured">Structured</option>
-                <option value="plain_text">Plain text</option>
-                <option value="file_upload">File upload</option>
-                <option value="mixed">Mixed</option>
-            </select>
-            <label>Inventory items (one per line)</label>
-            <textarea id="npInv" rows="5" placeholder="user1@example.com:pass1&#10;user2@example.com:pass2"></textarea>
-        `,
-        onConfirm: async () => {
-            const name = document.getElementById('npName').value.trim();
-            const category_id = document.getElementById('npCat').value;
-            const price_usd = parseFloat(document.getElementById('npUsd').value);
-            if (!name || !category_id || !Number.isFinite(price_usd) || price_usd <= 0) {
-                showModalError({ code: 'MISSING_FIELDS', error: 'Name, category, and USD price required.' });
-                return false;
-            }
-            const invText = document.getElementById('npInv').value || '';
-            const inventory_items = invText.split('\n').map(s => s.trim()).filter(Boolean);
-
-            const body = {
-                name, category_id, price_usd,
-                price_ngn: parseFloat(document.getElementById('npNgn').value) || undefined,
-                country: document.getElementById('npCountry').value.trim() || 'Global',
-                description: document.getElementById('npDesc').value.trim(),
-                delivery_type: document.getElementById('npDelivery').value,
-                inventory_items
-            };
-
-            const res = await api(API.products, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-            if (!res.ok) { showModalError(res); return false; }
-            showToast('Product created', 'success');
-            loadProducts();
-            return true;
-        }
-    });
+async function ensureCategoryFilterOptions() {
+  if (State.categories.rows.length) return;
+  const res = await MS.api(API.categories);
+  if (!res.ok) return;
+  State.categories.rows = (res.data.data || res.data).categories || [];
+  const sel = document.getElementById('pCategory');
+  if (!sel) return;
+  sel.innerHTML = `<option value="all">All categories</option>` + State.categories.rows.map(c =>
+    `<option value="${MS.esc(c.id)}">${MS.esc(c.name)}</option>`
+  ).join('');
 }
 
-// ─── CATEGORIES ──────────────────────────────────────────────────
+async function fetchProducts() {
+  const tb = document.getElementById('productsBody');
+  if (!tb) return;
+  tb.innerHTML = `<tr><td colspan="9"><span class="skel" style="display:inline-block;width:50%"></span></td></tr>`;
+
+  const f = State.products.filters;
+  const qs = new URLSearchParams({
+    page: String(State.products.page), limit: '25',
+    q: f.q || '', status: f.status || 'all', category: f.category || 'all',
+    stock: f.stock || 'all', sort: f.sort || 'created_desc',
+  });
+  const res = await MS.api(`${API.products}?${qs.toString()}`);
+  if (!res.ok) {
+    tb.innerHTML = `<tr><td colspan="9"><div class="unavailable-box"><i class="fas fa-triangle-exclamation"></i><div>${MS.esc(res.error || 'Could not load products')}</div><button class="btn btn-ghost" id="pRetry" type="button" style="margin-top:8px">Retry</button></div></td></tr>`;
+    document.getElementById('pRetry')?.addEventListener('click', fetchProducts);
+    return;
+  }
+
+  const d = res.data.data || res.data;
+  State.products.rows = d.products || [];
+  State.products.count = d.count || 0;
+  State.products.totalPages = d.totalPages || 1;
+
+  if (!State.products.rows.length) {
+    tb.innerHTML = `<tr><td colspan="9"><div class="empty-state"><i class="fas fa-box"></i><div class="title">No products</div><div class="sub">Create the first product to get started.</div></div></td></tr>`;
+    document.getElementById('productsInfo').textContent = 'No products';
+    document.getElementById('productsPager').innerHTML = '';
+    return;
+  }
+
+  tb.innerHTML = State.products.rows.map(p => `
+    <tr data-pid="${MS.esc(p.id)}">
+      <td class="checkbox-cell"><input type="checkbox" class="row-check" data-pid="${MS.esc(p.id)}" aria-label="Select ${MS.esc(p.name)}" /></td>
+      <td><strong>${MS.esc(p.name)}</strong><div class="text-xs text-faint mono" style="font-size:10px">${MS.esc(p.id)}</div></td>
+      <td>${p.category_icon ? `<i class="fas ${MS.esc(p.category_icon)}"></i> ` : ''}${MS.esc(p.category_name || p.category_id || '—')}</td>
+      <td>${money(p.price_usd, 'USD') ?? '—'}</td>
+      <td>${p.price_ngn ? (money(p.price_ngn, 'NGN') ?? '—') : '<span class="text-faint text-xs">FX</span>'}</td>
+      <td>${num(p.stock) ?? 0}</td>
+      <td>${num(p.sold) ?? 0}</td>
+      <td><span class="badge ${statusClass(p.status)}">${MS.esc(p.status || '—')}</span></td>
+      <td class="table-actions">
+        <button class="btn btn-ghost btn-sm" data-edit="${MS.esc(p.id)}" type="button"><i class="fas fa-pen"></i> Edit</button>
+        <button class="btn btn-ghost btn-sm" data-dup="${MS.esc(p.id)}" type="button" title="Duplicate"><i class="fas fa-copy"></i></button>
+        <button class="btn btn-ghost btn-sm" data-inv="${MS.esc(p.id)}" type="button" title="Inventory"><i class="fas fa-warehouse"></i></button>
+        <button class="btn btn-danger btn-sm" data-del="${MS.esc(p.id)}" type="button" title="Archive or delete"><i class="fas fa-trash"></i></button>
+      </td>
+    </tr>
+  `).join('');
+
+  tb.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openProductEditor(b.dataset.edit)));
+  tb.querySelectorAll('[data-dup]').forEach(b => b.addEventListener('click', () => duplicateProduct(b.dataset.dup)));
+  tb.querySelectorAll('[data-inv]').forEach(b => b.addEventListener('click', () => { State.currentInventoryProduct = b.dataset.inv; setSection('inventory'); }));
+  tb.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => deleteProduct(b.dataset.del)));
+  tb.querySelectorAll('.row-check[data-pid]').forEach(c => c.addEventListener('change', updateBulkButtons));
+
+  document.getElementById('productsInfo').textContent = State.products.count
+    ? `Showing ${(State.products.page - 1) * 25 + 1}–${Math.min(State.products.page * 25, State.products.count)} of ${State.products.count}`
+    : 'No results';
+  renderPager('productsPager', State.products, (p) => { State.products.page = p; fetchProducts(); });
+  updateBulkButtons();
+}
+
+function updateBulkButtons() {
+  const any = document.querySelectorAll('.row-check[data-pid]:checked').length > 0;
+  document.getElementById('pBulkOn').disabled = !any;
+  document.getElementById('pBulkOff').disabled = !any;
+}
+
+async function bulkStatus(status) {
+  const ids = Array.from(document.querySelectorAll('.row-check[data-pid]:checked')).map(c => c.dataset.pid);
+  if (!ids.length) return;
+  const res = await MS.api(API.productBulk, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids, status }),
+  });
+  if (!res.ok) { toast(res.error || 'Bulk update failed', 'err'); return; }
+  toast(`${status === 'Active' ? 'Activated' : 'Deactivated'} ${ids.length} product(s).`, 'ok');
+  fetchProducts();
+}
+
+async function duplicateProduct(id) {
+  const res = await MS.api(API.productDup(id), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+  if (!res.ok) { toast(res.error || 'Duplicate failed', 'err'); return; }
+  toast('Product duplicated.', 'ok');
+  fetchProducts();
+}
+
+async function deleteProduct(id) {
+  const ok = await confirmDialog({
+    title: 'Archive or delete product?',
+    body: 'Products with existing orders will be archived (retained for history). Products with no orders will be deleted.',
+    confirmText: 'Confirm',
+    kind: 'danger',
+  });
+  if (!ok) return;
+  const res = await MS.api(API.product(id), { method: 'DELETE' });
+  if (!res.ok) { toast(res.error || 'Delete failed', 'err'); return; }
+  const d = res.data.data || res.data;
+  toast(d.archived ? 'Product archived.' : 'Product deleted.', 'ok');
+  fetchProducts();
+}
+
+// ─── Product editor ─────────────────────────────────────────────
+async function openProductEditor(id) {
+  let product = null;
+  if (id) {
+    const res = await MS.api(API.product(id));
+    if (!res.ok) { toast(res.error || 'Could not load product', 'err'); return; }
+    product = (res.data.data || res.data).product;
+  }
+  if (!State.categories.rows.length) await ensureCategoryFilterOptions();
+
+  const p = product || {
+    name: '', category_id: '', description: '', long_description: '',
+    how_to_use: '', features: '', mail_access: '', login_tutorial: '',
+    login_format: '', country: 'Global', price_usd: '', price_ngn: '',
+    delivery_type: 'structured', status: 'Active',
+  };
+
+  const catOpts = State.categories.rows.map(c =>
+    `<option value="${MS.esc(c.id)}" ${p.category_id === c.id ? 'selected' : ''}>${MS.esc(c.name)}</option>`
+  ).join('');
+
+  openModal({
+    title: id ? 'Edit product' : 'New product',
+    body: `
+      <div class="editor-grid">
+        <div class="form-row" style="grid-column:1/-1">
+          <label>Name <span class="req">*</span></label>
+          <input id="pfName" type="text" value="${MS.esc(p.name)}" maxlength="200" />
+        </div>
+        <div class="form-row">
+          <label>Category <span class="req">*</span></label>
+          <select id="pfCat"><option value="">— Select —</option>${catOpts}</select>
+        </div>
+        <div class="form-row">
+          <label>Status</label>
+          <select id="pfStatus">
+            ${['Active','Inactive','Archived'].map(s => `<option value="${s}" ${p.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Price USD <span class="req">*</span></label>
+          <input id="pfUsd" type="number" min="0" step="0.01" value="${p.price_usd ?? ''}" />
+        </div>
+        <div class="form-row">
+          <label>Price NGN</label>
+          <input id="pfNgn" type="number" min="0" step="1" value="${p.price_ngn ?? ''}" placeholder="Blank = derive from live FX" />
+          <div class="help">Leave blank to derive NGN from USD at charge time.</div>
+        </div>
+        <div class="form-row">
+          <label>Country / Region</label>
+          <input id="pfCountry" type="text" value="${MS.esc(p.country || 'Global')}" maxlength="80" />
+        </div>
+        <div class="form-row">
+          <label>Delivery type</label>
+          <select id="pfDelivery">
+            ${['structured','plain_text','file_upload','mixed'].map(v =>
+              `<option value="${v}" ${p.delivery_type === v ? 'selected' : ''}>${v}</option>`
+            ).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Short description</label>
+        <textarea id="pfDesc" rows="2" maxlength="400">${MS.esc(p.description || '')}</textarea>
+      </div>
+      <div class="form-row">
+        <label>Long description</label>
+        <textarea id="pfLongDesc" rows="6">${MS.esc(p.long_description || '')}</textarea>
+      </div>
+      <div class="form-row">
+        <label>Features (one per line)</label>
+        <textarea id="pfFeatures" rows="4">${MS.esc(p.features || '')}</textarea>
+      </div>
+      <div class="form-row">
+        <label>How to use / instructions</label>
+        <textarea id="pfHowToUse" rows="4">${MS.esc(p.how_to_use || '')}</textarea>
+      </div>
+      <div class="editor-grid">
+        <div class="form-row">
+          <label>Login format</label>
+          <input id="pfLoginFormat" type="text" value="${MS.esc(p.login_format || '')}" />
+        </div>
+        <div class="form-row">
+          <label>Mail access link</label>
+          <input id="pfMailAccess" type="text" value="${MS.esc(p.mail_access || '')}" />
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Login tutorial</label>
+        <textarea id="pfLoginTutorial" rows="3">${MS.esc(p.login_tutorial || '')}</textarea>
+      </div>
+      ${!id ? `
+      <div class="form-row">
+        <label>Initial inventory (one item per line)</label>
+        <textarea id="pfInventory" rows="4" placeholder="user1@example.com:password1&#10;user2@example.com:password2"></textarea>
+        <div class="help">Optional. Items are added to the product's inventory on save.</div>
+      </div>
+      ` : ''}
+      <div class="form-summary" id="pfPreview"></div>
+    `,
+    confirmText: id ? 'Save changes' : 'Create product',
+    kind: 'primary',
+    onConfirm: async () => {
+      const name = document.getElementById('pfName').value.trim();
+      const category_id = document.getElementById('pfCat').value;
+      const price_usd = parseFloat(document.getElementById('pfUsd').value);
+      if (!name) { toast('Name is required', 'err'); return false; }
+      if (!category_id) { toast('Category is required', 'err'); return false; }
+      if (!Number.isFinite(price_usd) || price_usd <= 0) { toast('USD price must be positive', 'err'); return false; }
+
+      const body = {
+        name, category_id, price_usd,
+        price_ngn: document.getElementById('pfNgn').value || null,
+        country: document.getElementById('pfCountry').value.trim() || 'Global',
+        description: document.getElementById('pfDesc').value,
+        long_description: document.getElementById('pfLongDesc').value,
+        features: document.getElementById('pfFeatures').value,
+        how_to_use: document.getElementById('pfHowToUse').value,
+        login_format: document.getElementById('pfLoginFormat').value.trim(),
+        mail_access: document.getElementById('pfMailAccess').value.trim(),
+        login_tutorial: document.getElementById('pfLoginTutorial').value,
+        delivery_type: document.getElementById('pfDelivery').value,
+        status: document.getElementById('pfStatus').value,
+      };
+      if (!id) {
+        const raw = (document.getElementById('pfInventory')?.value || '').trim();
+        if (raw) body.inventory_items = raw.split('\n').map(s => s.trim()).filter(Boolean);
+      }
+
+      const res = await MS.api(id ? API.product(id) : API.products, {
+        method: id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) { toast(res.error || 'Save failed', 'err'); return false; }
+      toast(id ? 'Product updated.' : 'Product created.', 'ok');
+      fetchProducts();
+      return true;
+    },
+  });
+
+  // Live price preview
+  const preview = () => {
+    const usd = parseFloat(document.getElementById('pfUsd').value) || 0;
+    const ngn = parseFloat(document.getElementById('pfNgn').value) || null;
+    const markupPct = State._markupPct ?? null;
+    const rate = State._usdToNgn ?? null;
+    const wrap = document.getElementById('pfPreview');
+    if (!wrap) return;
+    if (markupPct == null || rate == null) {
+      wrap.innerHTML = `<div class="preview-row"><span class="k">Final price</span><span class="v text-faint">Markup / FX not loaded</span></div>`;
+      return;
+    }
+    const m = 1 + markupPct / 100;
+    const finalUsd = Math.round((usd * m + Number.EPSILON) * 100) / 100;
+    const finalNgn = ngn != null ? Math.round((ngn * m + Number.EPSILON) * 100) / 100 : Math.round((finalUsd * rate + Number.EPSILON) * 100) / 100;
+    wrap.innerHTML = `
+      <div class="preview-row"><span class="k">Markup</span><span class="v">${markupPct}%</span></div>
+      <div class="preview-row"><span class="k">FX (USD→NGN)</span><span class="v">${rate.toLocaleString('en-US')}</span></div>
+      <div class="preview-row"><span class="k">Final USD</span><span class="v">${money(finalUsd, 'USD')}</span></div>
+      <div class="preview-row"><span class="k">Final NGN</span><span class="v">${money(finalNgn, 'NGN')}</span></div>
+    `;
+  };
+  ['pfUsd','pfNgn'].forEach((idEl) => document.getElementById(idEl)?.addEventListener('input', preview));
+
+  // Load markup + FX once (best-effort — the preview is informational;
+  // server recomputes at charge time and checkout can return PRICE_CHANGED).
+  if (State._markupPct == null) {
+    try {
+      const s = await MS.api(API.stats);
+      if (s.ok) {
+        const meta = (s.data.data || s.data).raw || {};
+        State._markupPct = (s.data.data || s.data).markupPct ?? null;
+        State._usdToNgn = (s.data.data || s.data).usdToNgn ?? null;
+      }
+    } catch (_) {}
+  }
+  preview();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Categories
+// ═══════════════════════════════════════════════════════════════════
+
 async function loadCategories() {
-    const tb = document.getElementById('categoriesBody');
-    tb.innerHTML = `<tr><td colspan="6"><span class="skel" style="width:60%;display:inline-block"></span></td></tr>`;
-    const { ok, data } = await api(API.categories);
-    if (!ok) {
-        tb.innerHTML = `<tr><td colspan="6"><div class="unavailable-box">Unable to load</div></td></tr>`;
-        return;
-    }
-    State.categories = data.categories || [];
-    if (!State.categories.length) {
-        tb.innerHTML = `<tr><td colspan="6"><div class="empty-state"><span class="ic">📭</span>No categories yet</div></td></tr>`;
-        return;
-    }
-    tb.innerHTML = State.categories.map(c => `
-        <tr>
-            <td class="mono" style="font-size:10.5px">${escapeHtml(c.id)}</td>
-            <td style="font-size:18px">${escapeHtml(c.icon || '📦')}</td>
-            <td>${escapeHtml(c.name)}</td>
-            <td>${formatNumber((State.products || []).filter(p => p.category_id === c.id).length) ?? 0}</td>
-            <td><span class="badge ${statusBadge(c.status)}">${escapeHtml(c.status)}</span></td>
-            <td>
-                <button class="btn btn-danger" data-del-cat="${escapeHtml(c.id)}" style="padding:4px 8px;font-size:11px"><i class="fas fa-trash"></i></button>
-            </td>
-        </tr>
-    `).join('');
-    tb.querySelectorAll('[data-del-cat]').forEach(b => b.addEventListener('click', () => {
-        const id = b.dataset.delCat;
-        openModal({
-            title: 'Delete category',
-            confirmLabel: 'Delete',
-            danger: true,
-            bodyHtml: `<p class="note">Products linked to this category will keep their category_id but the name won't resolve.</p>`,
-            onConfirm: async () => {
-                const res = await api(API.category(id), { method: 'DELETE' });
-                if (!res.ok) { showModalError(res); return false; }
-                showToast('Category deleted', 'success');
-                loadCategories();
-                return true;
-            }
-        });
-    }));
-}
-
-document.getElementById('addCategoryBtn')?.addEventListener('click', () => {
-    openModal({
-        title: 'Add category',
-        confirmLabel: 'Create',
-        bodyHtml: `
-            <label>Name *</label>
-            <input type="text" id="ncName">
-            <label>Icon (emoji)</label>
-            <input type="text" id="ncIcon" value="📦">
-        `,
-        onConfirm: async () => {
-            const name = document.getElementById('ncName').value.trim();
-            if (!name) { showModalError({ code: 'MISSING_NAME', error: 'Name is required.' }); return false; }
-            const res = await api(API.categories, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, icon: document.getElementById('ncIcon').value.trim() || '📦' })
-            });
-            if (!res.ok) { showModalError(res); return false; }
-            showToast('Category created', 'success');
-            loadCategories();
-            return true;
-        }
-    });
-});
-
-// ─── INVENTORY ───────────────────────────────────────────────────
-async function loadInventory() {
-    const tb = document.getElementById('inventoryBody');
-    tb.innerHTML = `<tr><td colspan="6"><span class="skel" style="width:60%;display:inline-block"></span></td></tr>`;
-    const prodRes = await api(API.products);
-    if (!prodRes.ok) {
-        tb.innerHTML = `<tr><td colspan="6"><div class="unavailable-box">Unable to load</div></td></tr>`;
-        return;
-    }
-    const products = prodRes.data.products || [];
-    State.products = products;
-    if (!products.length) {
-        tb.innerHTML = `<tr><td colspan="6"><div class="empty-state"><span class="ic">📭</span>No products</div></td></tr>`;
-        return;
-    }
-    tb.innerHTML = products.map(p => `
-        <tr data-id="${escapeHtml(p.id)}">
-            <td>${escapeHtml(p.name)}</td>
-            <td>${formatNumber(p.stock) ?? 0}</td>
-            <td>${formatNumber(p.sold) ?? 0}</td>
-            <td>${escapeHtml(p.delivery_type || 'structured')}</td>
-            <td><span class="badge ${p.stock === 0 ? 'danger' : p.stock < 10 ? 'warn' : 'success'}">${p.stock === 0 ? 'out' : p.stock < 10 ? 'low' : 'ok'}</span></td>
-            <td>
-                <button class="btn" data-open-inv="${escapeHtml(p.id)}" style="padding:4px 8px;font-size:11px"><i class="fas fa-eye"></i> Items</button>
-            </td>
-        </tr>
-    `).join('');
-    tb.querySelectorAll('[data-open-inv]').forEach(b => b.addEventListener('click', () => openInventoryDrawer(b.dataset.openInv)));
-}
-
-async function openInventoryDrawer(productId) {
-    const p = State.products.find(x => x.id === productId);
-    document.getElementById('dIcon').textContent = '📦';
-    document.getElementById('dTitle').textContent = p?.name || 'Inventory';
-    document.getElementById('dSub').textContent = `Product ${productId}`;
-    document.getElementById('dBody').innerHTML = '<div class="dd-empty">Loading…</div>';
-    openDrawer();
-
-    const res = await api(API.inventory(productId));
-    if (!res.ok) {
-        document.getElementById('dBody').innerHTML = `<div class="modal-error show"><div class="code">${escapeHtml(res.code)}</div><div class="message">${escapeHtml(res.error)}</div></div>`;
-        return;
-    }
-    const items = res.data.inventory || [];
-    if (!items.length) {
-        document.getElementById('dBody').innerHTML = `<div class="dd-empty">No inventory items</div>`;
-        return;
-    }
-    document.getElementById('dBody').innerHTML = items.map(it => `
-        <div class="dd-section">
-            <div class="dd-field"><span class="k">ID</span><span class="v mono" style="font-size:11px">${escapeHtml(it.id)}</span></div>
-            <div class="dd-field"><span class="k">Status</span><span class="v"><span class="badge ${statusBadge(it.status)}">${escapeHtml(it.status)}</span></span></div>
-            <div class="content-full" style="margin-top:8px">${escapeHtml(it.content || '')}</div>
+  const root = document.getElementById('categoriesSection');
+  if (!root.dataset.built) {
+    root.dataset.built = '1';
+    root.innerHTML = `
+      <div class="filters-card">
+        <div class="filters-bar">
+          <button class="btn btn-primary" id="cAdd" type="button"><i class="fas fa-plus"></i> New category</button>
         </div>
-    `).join('');
-}
-
-// ─── ORDERS ──────────────────────────────────────────────────────
-async function loadOrders() {
-    const tb = document.getElementById('ordersBody');
-    tb.innerHTML = `<tr><td colspan="7"><span class="skel" style="width:60%;display:inline-block"></span></td></tr>`;
-    const status = document.getElementById('orderStatus').value;
-    const q = new URLSearchParams();
-    q.set('limit', '50');
-    if (status && status !== 'all') q.set('status', status);
-    const res = await api(API.orders + '?' + q.toString());
-    if (!res.ok) {
-        tb.innerHTML = `<tr><td colspan="7"><div class="unavailable-box">${escapeHtml(res.error)}</div></td></tr>`;
-        return;
-    }
-    State.orders = res.data.orders || [];
-    if (!State.orders.length) {
-        tb.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="ic">📭</span>No orders</div></td></tr>`;
-        return;
-    }
-    tb.innerHTML = State.orders.map(o => `
-        <tr data-id="${escapeHtml(o.id)}">
-            <td class="mono" style="font-size:11px">${escapeHtml(o.order_ref || o.id.slice(0,8))}</td>
-            <td>${escapeHtml(o.user_name || '—')}</td>
-            <td>${escapeHtml(o.product_name || '—')}</td>
-            <td>${formatMoney(o.total, o.currency) || '—'}</td>
-            <td><span class="badge ${o.currency === 'USD' ? 'info' : 'neutral'}">${escapeHtml(o.currency || 'NGN')}</span></td>
-            <td><span class="badge ${statusBadge(o.status)}">${escapeHtml(o.status)}</span></td>
-            <td>${escapeHtml(formatDateTime(o.created_at))}</td>
-        </tr>
-    `).join('');
-    tb.querySelectorAll('tr[data-id]').forEach(tr => tr.addEventListener('click', () => openOrder(tr.dataset.id)));
-}
-
-document.getElementById('orderApplyBtn')?.addEventListener('click', loadOrders);
-
-async function openOrder(id) {
-    document.getElementById('dIcon').textContent = '🛒';
-    document.getElementById('dTitle').textContent = 'Loading…';
-    document.getElementById('dSub').textContent = '';
-    document.getElementById('dBody').innerHTML = '<div class="dd-empty">Loading…</div>';
-    openDrawer();
-    const res = await api(API.order(id));
-    if (!res.ok) {
-        document.getElementById('dBody').innerHTML = `<div class="modal-error show"><div class="code">${escapeHtml(res.code)}</div><div class="message">${escapeHtml(res.error)}</div></div>`;
-        return;
-    }
-    const { order: o, transaction: tx } = res.data;
-    State.currentOrder = o;
-
-    document.getElementById('dTitle').textContent = o.order_ref || o.id.slice(0,8);
-    document.getElementById('dSub').textContent = `${o.product_name || ''} · ${o.user_name || ''}`;
-
-    const hero = `
-        <div class="dd-hero">
-            <div>
-                <div class="amt">${escapeHtml(formatMoney(o.total, o.currency) || '—')}</div>
-                <div class="meta">${escapeHtml(o.currency || 'NGN')} · ${escapeHtml(o.product_name || '')}</div>
-            </div>
-            <span class="badge ${statusBadge(o.status)}" style="font-size:12px;padding:4px 12px">${escapeHtml(o.status)}</span>
-        </div>`;
-
-    const actions = [];
-    const st = String(o.status || '').toLowerCase();
-    if (st === 'completed' || st === 'failed' || st === 'cancelled') {
-        actions.push(`<button class="btn btn-danger" id="btnRefund"><i class="fas fa-rotate-left"></i> Refund</button>`);
-    }
-    if (st === 'pending' || st === 'processing') {
-        actions.push(`<button class="btn btn-primary" id="btnComplete"><i class="fas fa-check"></i> Mark completed</button>`);
-        actions.push(`<button class="btn" id="btnFail"><i class="fas fa-xmark"></i> Mark failed</button>`);
-    }
-    const actionsHtml = actions.length ? `<div class="dd-actions">${actions.join('')}</div>` : '';
-
-    document.getElementById('dBody').innerHTML = hero + actionsHtml + `
-        <div class="dd-section">
-            <h4>Order</h4>
-            <div class="dd-field"><span class="k">Order ref</span><span class="v mono">${escapeHtml(o.order_ref || '—')}</span></div>
-            <div class="dd-field"><span class="k">Product</span><span class="v">${escapeHtml(o.product_name || '—')}</span></div>
-            <div class="dd-field"><span class="k">Quantity</span><span class="v">${formatNumber(o.quantity) ?? 1}</span></div>
-            <div class="dd-field"><span class="k">Total</span><span class="v">${formatMoney(o.total, o.currency) || '—'}</span></div>
-            <div class="dd-field"><span class="k">Created</span><span class="v">${escapeHtml(formatDateTime(o.created_at))}</span></div>
-            <div class="dd-field"><span class="k">Completed</span><span class="v">${escapeHtml(formatDateTime(o.completed_at))}</span></div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Icon</th>
+                <th>Products</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="categoriesBody"></tbody>
+          </table>
         </div>
-        <div class="dd-section">
-            <h4>Customer</h4>
-            <div class="dd-field"><span class="k">Name</span><span class="v">${escapeHtml(o.user_name || '—')}</span></div>
-            <div class="dd-field"><span class="k">Email</span><span class="v">${escapeHtml(o.user_email || '—')}</span></div>
-        </div>
-        <div class="dd-section">
-            <h4>Financial</h4>
-            ${tx ? `<div class="dd-field"><span class="k">Ledger tx</span><span class="v mono" style="font-size:11px">${escapeHtml(tx.id)}</span></div>` : ''}
-            <div class="dd-field"><span class="k">Wallet</span><span class="v">${escapeHtml(o.wallet_used || o.wallet || '—')}</span></div>
-        </div>
-        <div class="dd-section">
-            <button class="debug-toggle" id="debugToggle"><i class="fas fa-code"></i> Show raw response</button>
-            <pre class="debug-panel" id="debugPanel"></pre>
-        </div>
+      </div>
     `;
+    document.getElementById('cAdd').addEventListener('click', () => openCategoryEditor(null));
+  }
+  const tb = document.getElementById('categoriesBody');
+  tb.innerHTML = `<tr><td colspan="5"><span class="skel" style="display:inline-block;width:50%"></span></td></tr>`;
 
-    document.getElementById('debugToggle')?.addEventListener('click', () => {
-        const dp = document.getElementById('debugPanel');
-        dp.classList.toggle('show');
-        if (dp.classList.contains('show')) dp.textContent = JSON.stringify(res.data, null, 2);
-    });
-
-    document.getElementById('btnRefund')?.addEventListener('click', () => openRefundModal(o));
-    document.getElementById('btnComplete')?.addEventListener('click', () => openStatusModal(o, 'complete'));
-    document.getElementById('btnFail')?.addEventListener('click', () => openStatusModal(o, 'fail'));
+  const res = await MS.api(API.categories);
+  if (!res.ok) {
+    tb.innerHTML = `<tr><td colspan="5"><div class="unavailable-box"><i class="fas fa-triangle-exclamation"></i><div>${MS.esc(res.error || 'Could not load categories')}</div></div></td></tr>`;
+    return;
+  }
+  State.categories.rows = (res.data.data || res.data).categories || [];
+  if (!State.categories.rows.length) {
+    tb.innerHTML = `<tr><td colspan="5"><div class="empty-state"><i class="fas fa-tags"></i><div class="title">No categories</div><div class="sub">Create a category before adding products.</div></div></td></tr>`;
+    return;
+  }
+  tb.innerHTML = State.categories.rows.map(c => `
+    <tr>
+      <td><strong>${MS.esc(c.name)}</strong></td>
+      <td>${c.icon ? `<span class="mono text-xs">${MS.esc(c.icon)}</span>` : '<span class="text-faint">—</span>'}</td>
+      <td>${num(c.product_count) ?? 0}</td>
+      <td><span class="badge ${statusClass(c.status)}">${MS.esc(c.status || 'Active')}</span></td>
+      <td class="table-actions">
+        <button class="btn btn-ghost btn-sm" data-cedit="${MS.esc(c.id)}" type="button"><i class="fas fa-pen"></i></button>
+        <button class="btn btn-danger btn-sm" data-cdel="${MS.esc(c.id)}" type="button" title="Delete"><i class="fas fa-trash"></i></button>
+      </td>
+    </tr>
+  `).join('');
+  tb.querySelectorAll('[data-cedit]').forEach(b => b.addEventListener('click', () => openCategoryEditor(b.dataset.cedit)));
+  tb.querySelectorAll('[data-cdel]').forEach(b => b.addEventListener('click', () => deleteCategory(b.dataset.cdel)));
 }
 
-function openRefundModal(o) {
-    openModal({
-        title: 'Refund order',
-        confirmLabel: 'Refund',
-        danger: true,
-        bodyHtml: `
-            <p class="note">Credits the customer's wallet for the full order amount. Idempotent — safe to retry if it fails.</p>
-            <label>Reason (required)</label>
-            <textarea id="refundReason" rows="3"></textarea>
-        `,
-        onConfirm: async () => {
-            const reason = document.getElementById('refundReason').value.trim();
-            if (reason.length < 4) { showModalError({ code: 'REASON_REQUIRED', error: 'Reason must be at least 4 characters.' }); return false; }
-            const res = await api(API.refund(o.id), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason })
-            });
-            if (!res.ok) { showModalError(res); return false; }
-            showToast(res.data?.refund?.already_refunded ? 'Already refunded' : 'Refund applied', 'success');
-            openOrder(o.id);
-            loadOrders();
-            return true;
-        }
-    });
+function openCategoryEditor(id) {
+  const editing = id ? State.categories.rows.find(c => c.id === id) : null;
+  const c = editing || { name: '', icon: '', status: 'Active' };
+  openModal({
+    title: id ? 'Edit category' : 'New category',
+    body: `
+      <div class="form-row"><label>Name <span class="req">*</span></label><input id="cfName" type="text" value="${MS.esc(c.name)}" maxlength="80" /></div>
+      <div class="form-row"><label>Icon (Font Awesome class)</label><input id="cfIcon" type="text" value="${MS.esc(c.icon || '')}" placeholder="fa-box" maxlength="40" /><div class="help">Example: fa-box, fa-gift, fa-gamepad</div></div>
+      <div class="form-row"><label>Status</label>
+        <select id="cfStatus">
+          ${['Active','Inactive','Archived'].map(s => `<option value="${s}" ${c.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+        </select>
+      </div>
+    `,
+    confirmText: id ? 'Save' : 'Create',
+    kind: 'primary',
+    onConfirm: async () => {
+      const name = document.getElementById('cfName').value.trim();
+      if (!name) { toast('Name is required', 'err'); return false; }
+      const body = {
+        name,
+        icon: document.getElementById('cfIcon').value.trim() || null,
+        status: document.getElementById('cfStatus').value,
+      };
+      const res = await MS.api(id ? API.category(id) : API.categories, {
+        method: id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) { toast(res.error || 'Save failed', 'err'); return false; }
+      toast(id ? 'Category updated.' : 'Category created.', 'ok');
+      State.categories.rows = [];
+      loadCategories();
+      return true;
+    },
+  });
 }
 
-function openStatusModal(o, action) {
-    const isComplete = action === 'complete';
-    openModal({
-        title: isComplete ? 'Mark order completed' : 'Mark order failed',
-        confirmLabel: isComplete ? 'Complete' : 'Fail',
-        danger: !isComplete,
-        bodyHtml: `
-            <p class="note">${isComplete ? 'Marks the order as successfully fulfilled.' : 'Marks the order as failed. Does not refund automatically.'}</p>
-            <label>Reason (required)</label>
-            <textarea id="statusReason" rows="3"></textarea>
-        `,
-        onConfirm: async () => {
-            const reason = document.getElementById('statusReason').value.trim();
-            if (reason.length < 4) { showModalError({ code: 'REASON_REQUIRED', error: 'Reason must be at least 4 characters.' }); return false; }
-            const url = isComplete ? API.complete(o.id) : API.fail(o.id);
-            const res = await api(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason })
-            });
-            if (!res.ok) { showModalError(res); return false; }
-            showToast(res.data?.message || 'Updated', 'success');
-            openOrder(o.id);
-            loadOrders();
-            return true;
-        }
-    });
+async function deleteCategory(id) {
+  const ok = await confirmDialog({
+    title: 'Delete category?',
+    body: 'Categories that are in use by products cannot be deleted. Reassign products first.',
+    confirmText: 'Delete',
+    kind: 'danger',
+  });
+  if (!ok) return;
+  const res = await MS.api(API.category(id), { method: 'DELETE' });
+  if (!res.ok) { toast(res.error || 'Delete failed', 'err'); return; }
+  toast('Category deleted.', 'ok');
+  loadCategories();
 }
 
-// ─── SEARCH ──────────────────────────────────────────────────────
-async function runGlobalSearch() {
-    const q = document.getElementById('globalSearchInput').value.trim();
-    const el = document.getElementById('globalSearchResults');
-    if (!q || q.length < 2) {
-        el.innerHTML = `<div class="empty-state">Type at least 2 characters</div>`;
-        return;
+// ═══════════════════════════════════════════════════════════════════
+// Inventory
+// ═══════════════════════════════════════════════════════════════════
+
+async function loadInventoryRoot() {
+  const root = document.getElementById('inventorySection');
+
+  if (!State.currentInventoryProduct) {
+    // Ask which product.
+    if (!root.dataset.built) {
+      root.dataset.built = '1';
+      root.innerHTML = `
+        <div class="card panel">
+          <h3 style="font-size:14px;font-weight:800;margin-bottom:8px">Select a product</h3>
+          <div class="form-row" style="max-width:420px">
+            <select id="invProduct" class="select-input" style="width:100%"><option value="">Loading…</option></select>
+          </div>
+          <div id="invRoot"></div>
+        </div>
+      `;
     }
-    el.innerHTML = `<div class="empty-state"><span class="ic">⏳</span>Searching…</div>`;
-    const res = await api(API.search(q));
-    if (!res.ok) {
-        el.innerHTML = `<div class="unavailable-box">${escapeHtml(res.error)}</div>`;
-        return;
+    await ensureCategoryFilterOptions();
+    const prodRes = await MS.api(`${API.products}?limit=200&status=all`);
+    if (!prodRes.ok) {
+      document.getElementById('invRoot').innerHTML = `<div class="unavailable-box"><i class="fas fa-triangle-exclamation"></i><div>${MS.esc(prodRes.error || 'Could not load products')}</div></div>`;
+      return;
     }
-    const r = res.data.results || {};
-    const section = (title, rows, mapper) => rows.length
-        ? `<div class="dd-section"><h4>${escapeHtml(title)} (${rows.length})</h4>${rows.map(mapper).join('')}</div>`
-        : '';
-    el.innerHTML = (
-        section('Products', r.products || [], p => `<div class="dd-field"><span class="k">${escapeHtml(p.name)}</span><span class="v">${formatMoney(p.price_usd, 'USD') || '—'}</span></div>`) +
-        section('Orders', r.orders || [], o => `<div class="dd-field"><span class="k">${escapeHtml(o.order_ref || o.id)}</span><span class="v">${escapeHtml(o.product_name || '')}</span></div>`) +
-        section('Inventory', r.inventory || [], i => `<div class="dd-field"><span class="k">${escapeHtml(i.product_name || '')}</span><span class="v mono" style="font-size:11px">${escapeHtml(i.id)}</span></div>`)
-    ) || `<div class="empty-state">No results</div>`;
+    const list = (prodRes.data.data || prodRes.data).products || [];
+    const sel = document.getElementById('invProduct');
+    sel.innerHTML = `<option value="">— Choose a product —</option>` + list.map(p =>
+      `<option value="${MS.esc(p.id)}">${MS.esc(p.name)} — stock ${p.stock}</option>`
+    ).join('');
+    sel.addEventListener('change', () => {
+      State.currentInventoryProduct = sel.value || null;
+      loadInventoryRoot();
+    });
+    return;
+  }
+
+  root.innerHTML = `
+    <div class="flex-between" style="margin-bottom:12px">
+      <button class="btn btn-ghost" id="invBack" type="button"><i class="fas fa-arrow-left"></i> Choose another product</button>
+      <button class="btn btn-primary" id="invAdd" type="button"><i class="fas fa-plus"></i> Add inventory</button>
+    </div>
+    <div class="filters-card">
+      <div class="filters-bar">
+        <select id="invStatus" class="select-input">
+          <option value="all">All statuses</option>
+          <option value="available">Available</option>
+          <option value="sold">Sold</option>
+          <option value="refunded">Refunded</option>
+          <option value="void">Void</option>
+        </select>
+        <div class="text-xs text-faint">Content is masked by default. Reveal requires permission and a reason.</div>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Status</th>
+              <th>Content</th>
+              <th>Length</th>
+              <th>Sold at</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="invBody"></tbody>
+        </table>
+      </div>
+      <div class="table-foot">
+        <div id="invInfo">—</div>
+        <div class="pagination" id="invPager"></div>
+      </div>
+    </div>
+  `;
+  document.getElementById('invBack').addEventListener('click', () => { State.currentInventoryProduct = null; loadInventoryRoot(); });
+  document.getElementById('invAdd').addEventListener('click', openInventoryAdd);
+  document.getElementById('invStatus').addEventListener('change', () => fetchInventory(1));
+
+  await fetchInventory(1);
 }
 
-document.getElementById('globalSearchBtn')?.addEventListener('click', runGlobalSearch);
-document.getElementById('globalSearchInput')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter') runGlobalSearch();
-});
+async function fetchInventory(page = 1) {
+  const tb = document.getElementById('invBody');
+  if (!tb) return;
+  tb.innerHTML = `<tr><td colspan="6"><span class="skel" style="display:inline-block;width:50%"></span></td></tr>`;
+  const status = document.getElementById('invStatus')?.value || 'all';
+  const qs = new URLSearchParams({ page: String(page), limit: '25', status });
+  const res = await MS.api(`${API.inventory(State.currentInventoryProduct)}?${qs.toString()}`);
+  if (!res.ok) {
+    tb.innerHTML = `<tr><td colspan="6"><div class="unavailable-box"><i class="fas fa-triangle-exclamation"></i><div>${MS.esc(res.error || 'Could not load inventory')}</div></div></td></tr>`;
+    return;
+  }
+  const d = res.data.data || res.data;
+  const items = d.inventory || [];
+  if (!items.length) {
+    tb.innerHTML = `<tr><td colspan="6"><div class="empty-state"><i class="fas fa-inbox"></i><div class="title">No inventory</div><div class="sub">Add items to sell this product.</div></div></td></tr>`;
+    document.getElementById('invInfo').textContent = 'No items';
+    document.getElementById('invPager').innerHTML = '';
+    return;
+  }
+  tb.innerHTML = items.map(it => `
+    <tr>
+      <td class="mono" style="font-size:11px">${MS.esc(it.id)}</td>
+      <td><span class="badge ${statusClass(it.status)}">${MS.esc(it.status)}</span></td>
+      <td><div class="content-preview">${MS.esc(it.content_masked || '')}</div></td>
+      <td>${num(it.content_length) ?? 0}</td>
+      <td>${it.sold_at ? fmtDateTime(it.sold_at) : '<span class="text-faint">—</span>'}</td>
+      <td class="table-actions">
+        ${State.admin.canReveal ? `<button class="btn btn-ghost btn-sm" data-reveal="${MS.esc(it.id)}" type="button"><i class="fas fa-eye"></i></button>` : ''}
+        ${it.status === 'available' ? `<button class="btn btn-danger btn-sm" data-void="${MS.esc(it.id)}" type="button" title="Void"><i class="fas fa-ban"></i></button>` : ''}
+      </td>
+    </tr>
+  `).join('');
+  tb.querySelectorAll('[data-reveal]').forEach(b => b.addEventListener('click', () => revealItem(b.dataset.reveal)));
+  tb.querySelectorAll('[data-void]').forEach(b => b.addEventListener('click', () => voidItem(b.dataset.void)));
+  document.getElementById('invInfo').textContent = d.count
+    ? `Showing ${(d.page - 1) * 25 + 1}–${Math.min(d.page * 25, d.count)} of ${d.count}`
+    : 'No items';
+  renderPager('invPager', { page: d.page || 1, totalPages: d.totalPages || 1, count: d.count || 0 }, (p) => fetchInventory(p));
+}
 
-// ─── DRAWER / MODAL ──────────────────────────────────────────────
-function openDrawer() {
-    document.getElementById('drawer').classList.add('open');
-    document.getElementById('drawerScrim').classList.add('show');
+async function revealItem(id) {
+  const reason = await MS.reasonModal({
+    title: 'Reveal inventory content',
+    message: 'This action is audited. Provide a short reason for the reveal.',
+    confirmText: 'Reveal',
+    kind: 'primary',
+  });
+  if (!reason) return;
+  if (reason.trim().length < 4) { toast('Reason must be at least 4 characters.', 'err'); return; }
+  const res = await MS.api(API.inventoryReveal(id), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason: reason.trim() }),
+  });
+  if (!res.ok) { toast(res.error || 'Reveal failed', 'err'); return; }
+  const d = res.data.data || res.data;
+  openModal({
+    title: 'Inventory content',
+    body: `<div class="content-preview" style="max-height:260px">${MS.esc(d.content || '')}</div>`,
+    confirmText: null,
+    cancelText: 'Close',
+  });
+}
+
+async function voidItem(id) {
+  const ok = await confirmDialog({
+    title: 'Void this item?',
+    body: 'Voided items cannot be sold. This is permanent.',
+    confirmText: 'Void',
+    kind: 'danger',
+  });
+  if (!ok) return;
+  const res = await MS.api(API.inventoryVoid(id), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+  if (!res.ok) { toast(res.error || 'Void failed', 'err'); return; }
+  toast('Item voided.', 'ok');
+  fetchInventory();
+}
+
+function openInventoryAdd() {
+  openModal({
+    title: 'Add inventory',
+    body: `
+      <div class="form-row">
+        <label>Items (one per line)</label>
+        <textarea id="iaItems" rows="8" placeholder="user1@example.com:pass1&#10;user2@example.com:pass2"></textarea>
+        <div class="help">Maximum 500 items per request. Duplicates within this list are dropped; server rejects duplicates against existing stock.</div>
+      </div>
+    `,
+    confirmText: 'Add',
+    kind: 'primary',
+    onConfirm: async () => {
+      const raw = (document.getElementById('iaItems').value || '').trim();
+      const items = [...new Set(raw.split('\n').map(s => s.trim()).filter(Boolean))];
+      if (!items.length) { toast('No items to add.', 'err'); return false; }
+      if (items.length > 500) { toast('Maximum 500 items.', 'err'); return false; }
+      const res = await MS.api(API.inventoryAdd, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id: State.currentInventoryProduct, items }),
+      });
+      if (!res.ok) { toast(res.error || 'Add failed', 'err'); return false; }
+      toast(`Added ${items.length} item(s).`, 'ok');
+      fetchInventory();
+      return true;
+    },
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Orders
+// ═══════════════════════════════════════════════════════════════════
+
+async function loadOrders() {
+  const root = document.getElementById('ordersSection');
+  if (!root.dataset.built) {
+    root.dataset.built = '1';
+    root.innerHTML = `
+      <div class="filters-card">
+        <div class="filters-bar">
+          <div class="search-input-wrap">
+            <i class="fas fa-search"></i>
+            <input id="oQ" type="search" class="search-input" placeholder="Search by order ref or product name…" />
+          </div>
+          <select id="oStatus" class="select-input">
+            <option value="all">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="processing">Processing</option>
+            <option value="completed">Completed</option>
+            <option value="failed">Failed</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="refunded">Refunded</option>
+          </select>
+          <select id="oCurrency" class="select-input">
+            <option value="all">All currencies</option>
+            <option value="NGN">NGN</option>
+            <option value="USD">USD</option>
+          </select>
+          <input id="oFrom" type="date" class="date-input" />
+          <input id="oTo" type="date" class="date-input" />
+          <button class="btn btn-primary" id="oApply" type="button"><i class="fas fa-filter"></i> Apply</button>
+          <button class="btn btn-ghost" id="oClear" type="button">Clear</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Buyer</th>
+                <th>Product</th>
+                <th>Total</th>
+                <th>Currency</th>
+                <th>Status</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody id="ordersBody"></tbody>
+          </table>
+        </div>
+        <div class="table-foot">
+          <div id="ordersInfo">—</div>
+          <div class="pagination" id="ordersPager"></div>
+        </div>
+      </div>
+    `;
+    document.getElementById('oApply').addEventListener('click', () => {
+      State.orders.filters.status = document.getElementById('oStatus').value;
+      State.orders.filters.currency = document.getElementById('oCurrency').value;
+      State.orders.filters.q = document.getElementById('oQ').value.trim();
+      State.orders.filters.from = document.getElementById('oFrom').value;
+      State.orders.filters.to = document.getElementById('oTo').value;
+      State.orders.page = 1;
+      fetchOrders();
+    });
+    document.getElementById('oClear').addEventListener('click', () => {
+      document.getElementById('oQ').value = '';
+      document.getElementById('oStatus').value = 'all';
+      document.getElementById('oCurrency').value = 'all';
+      document.getElementById('oFrom').value = '';
+      document.getElementById('oTo').value = '';
+      State.orders.filters = { status: 'all', currency: 'all', q: '', from: '', to: '' };
+      State.orders.page = 1;
+      fetchOrders();
+    });
+  }
+  fetchOrders();
+}
+
+async function fetchOrders() {
+  const tb = document.getElementById('ordersBody');
+  if (!tb) return;
+  tb.innerHTML = `<tr><td colspan="7"><span class="skel" style="display:inline-block;width:50%"></span></td></tr>`;
+  const f = State.orders.filters;
+  const qs = new URLSearchParams({
+    page: String(State.orders.page), limit: '25',
+    status: f.status || 'all', currency: f.currency || 'all',
+    q: f.q || '',
+  });
+  if (f.from) qs.set('from', f.from);
+  if (f.to)   qs.set('to', f.to);
+  const res = await MS.api(`${API.orders}?${qs.toString()}`);
+  if (!res.ok) {
+    tb.innerHTML = `<tr><td colspan="7"><div class="unavailable-box"><i class="fas fa-triangle-exclamation"></i><div>${MS.esc(res.error || 'Could not load orders')}</div></div></td></tr>`;
+    return;
+  }
+  const d = res.data.data || res.data;
+  State.orders.rows = d.orders || [];
+  State.orders.count = d.count || 0;
+  State.orders.totalPages = d.totalPages || 1;
+  if (!State.orders.rows.length) {
+    tb.innerHTML = `<tr><td colspan="7"><div class="empty-state"><i class="fas fa-inbox"></i><div class="title">No orders</div><div class="sub">Try adjusting filters.</div></div></td></tr>`;
+    document.getElementById('ordersInfo').textContent = 'No results';
+    document.getElementById('ordersPager').innerHTML = '';
+    return;
+  }
+  tb.innerHTML = State.orders.rows.map(o => `
+    <tr data-oid="${MS.esc(o.id)}">
+      <td class="mono" style="font-size:11px">${MS.esc(o.order_ref || o.id.slice(0, 8))}</td>
+      <td>${MS.esc(o.user_name || o.user_email || '—')}</td>
+      <td>${MS.esc(o.product_name || '—')}</td>
+      <td>${money(o.total, o.currency) ?? '—'}</td>
+      <td><span class="badge ${o.currency === 'USD' ? 'info' : 'neutral'}">${MS.esc(o.currency || 'NGN')}</span></td>
+      <td><span class="badge ${statusClass(o.status)}">${MS.esc(o.status)}</span></td>
+      <td title="${MS.esc(fmtDateTime(o.created_at))}">${MS.esc(timeAgo(o.created_at))}</td>
+    </tr>
+  `).join('');
+  tb.querySelectorAll('[data-oid]').forEach(tr => tr.addEventListener('click', () => openOrderDrawer(tr.dataset.oid)));
+  document.getElementById('ordersInfo').textContent = State.orders.count
+    ? `Showing ${(State.orders.page - 1) * 25 + 1}–${Math.min(State.orders.page * 25, State.orders.count)} of ${State.orders.count}`
+    : 'No results';
+  renderPager('ordersPager', State.orders, (p) => { State.orders.page = p; fetchOrders(); });
+}
+
+async function openOrderDrawer(id) {
+  State.currentOrder = null;
+  openDrawer({ title: 'Order', sub: 'Loading…', icon: 'fa-shopping-cart', body: `<div class="dd-empty">Loading order…</div>` });
+  const res = await MS.api(API.order(id));
+  if (!res.ok) {
+    document.getElementById('ddBody').innerHTML = `<div class="unavailable-box"><i class="fas fa-triangle-exclamation"></i><div>${MS.esc(res.error || 'Could not load order')}</div></div>`;
+    return;
+  }
+  const d = res.data.data || res.data;
+  State.currentOrder = d;
+  const { order: o, transaction: tx, user } = d;
+
+  document.getElementById('ddTitle').textContent = o.order_ref || o.id.slice(0, 8);
+  document.getElementById('ddSub').textContent = `${o.product_name || ''} · ${user?.username || user?.email || ''}`;
+
+  const st = String(o.status || '').toLowerCase();
+  const canRefund = ['completed', 'failed', 'cancelled'].includes(st);
+  const canComplete = ['pending', 'processing'].includes(st);
+  const canResend = st === 'completed' && o.delivery_summary && o.delivery_summary.attached;
+
+  document.getElementById('ddBody').innerHTML = `
+    <div class="dd-hero">
+      <div>
+        <div class="amount">${money(o.total, o.currency) ?? '—'}</div>
+        <div class="meta">${MS.esc(o.currency || 'NGN')} · ${MS.esc(o.product_name || '')}</div>
+      </div>
+      <span class="badge ${statusClass(st)}" style="font-size:12px;padding:4px 12px">${MS.esc(o.status)}</span>
+    </div>
+
+    <div class="flex-gap" style="margin-bottom:14px">
+      ${canRefund ? `<button class="btn btn-danger" id="drawerRefund" type="button"><i class="fas fa-rotate-left"></i> Refund</button>` : ''}
+      ${canComplete ? `<button class="btn btn-primary" id="drawerComplete" type="button"><i class="fas fa-check"></i> Complete</button>` : ''}
+      ${canComplete ? `<button class="btn btn-ghost" id="drawerFail" type="button"><i class="fas fa-xmark"></i> Fail</button>` : ''}
+      ${canResend ? `<button class="btn btn-ghost" id="drawerResend" type="button"><i class="fas fa-paper-plane"></i> Resend delivery</button>` : ''}
+    </div>
+
+    <div class="dd-section">
+      <div class="dd-section-title">Order</div>
+      <div class="dd-field"><span class="k">Order ref</span><span class="v mono" style="font-size:11px">${MS.esc(o.order_ref || '—')}</span></div>
+      <div class="dd-field"><span class="k">Order id</span><span class="v mono" style="font-size:11px">${MS.esc(o.id)}</span></div>
+      <div class="dd-field"><span class="k">Product</span><span class="v">${MS.esc(o.product_name || '—')}</span></div>
+      <div class="dd-field"><span class="k">Quantity</span><span class="v">${num(o.quantity) ?? 1}</span></div>
+      <div class="dd-field"><span class="k">Total</span><span class="v">${money(o.total, o.currency) ?? '—'}</span></div>
+      <div class="dd-field"><span class="k">Created</span><span class="v">${MS.esc(fmtDateTime(o.created_at))}</span></div>
+      <div class="dd-field"><span class="k">Completed</span><span class="v">${o.completed_at ? MS.esc(fmtDateTime(o.completed_at)) : '—'}</span></div>
+    </div>
+
+    <div class="dd-section">
+      <div class="dd-section-title">Buyer</div>
+      <div class="dd-field"><span class="k">Username</span><span class="v">${MS.esc(user?.username || '—')}</span></div>
+      <div class="dd-field"><span class="k">Email</span><span class="v">${MS.esc(user?.email || '—')}</span></div>
+      ${user?.id ? `<div class="dd-field"><span class="k">Profile</span><span class="v"><a href="/admin/users.html?id=${encodeURIComponent(user.id)}" style="color:var(--info)">Open user <i class="fas fa-arrow-up-right-from-square" style="font-size:10px"></i></a></span></div>` : ''}
+    </div>
+
+    ${tx ? `
+      <div class="dd-section">
+        <div class="dd-section-title">Ledger</div>
+        <div class="dd-field"><span class="k">Transaction</span><span class="v mono" style="font-size:11px">${MS.esc(tx.reference || tx.id)}</span></div>
+        <div class="dd-field"><span class="k">Type</span><span class="v">${MS.esc(tx.type)}</span></div>
+        <div class="dd-field"><span class="k">Amount</span><span class="v">${money(tx.amount, tx.currency) ?? '—'}</span></div>
+        <div class="dd-field"><span class="k">View in Ledger</span><span class="v"><a href="/admin/transactions.html?id=${encodeURIComponent(tx.id)}" style="color:var(--info)">Open transaction <i class="fas fa-arrow-up-right-from-square" style="font-size:10px"></i></a></span></div>
+      </div>
+    ` : ''}
+
+    <div class="dd-section">
+      <div class="dd-section-title">Delivery</div>
+      ${o.delivery_summary?.attached
+        ? `<div class="dd-field"><span class="k">Attached</span><span class="v">Yes</span></div>
+           <div class="dd-field"><span class="k">Type</span><span class="v">${MS.esc(o.delivery_summary.delivery_type || '—')}</span></div>
+           <div class="dd-field"><span class="k">Format</span><span class="v">${MS.esc(o.delivery_summary.login_format || '—')}</span></div>
+           <div class="dd-field"><span class="k">Delivered</span><span class="v">${o.delivery_summary.delivered_at ? MS.esc(fmtDateTime(o.delivery_summary.delivered_at)) : '—'}</span></div>`
+        : `<div class="dd-empty">No delivery attached.</div>`}
+    </div>
+
+    ${st === 'refunded' ? `
+      <div class="dd-section">
+        <div class="dd-section-title">Refund</div>
+        <div class="dd-field"><span class="k">Status</span><span class="v"><span class="badge danger">Refunded</span></span></div>
+        <div class="dd-field"><span class="k">Refunded at</span><span class="v">${o.updated_at ? MS.esc(fmtDateTime(o.updated_at)) : '—'}</span></div>
+      </div>
+    ` : ''}
+  `;
+
+  document.getElementById('drawerRefund')?.addEventListener('click', () => doOrderAction('refund', o));
+  document.getElementById('drawerComplete')?.addEventListener('click', () => doOrderAction('complete', o));
+  document.getElementById('drawerFail')?.addEventListener('click', () => doOrderAction('fail', o));
+  document.getElementById('drawerResend')?.addEventListener('click', () => doOrderAction('resend', o));
+}
+
+async function doOrderAction(kind, order) {
+  if (kind === 'resend') {
+    const ok = await confirmDialog({
+      title: 'Resend delivery?',
+      body: 'The buyer will be able to re-download from their Purchase History.',
+      confirmText: 'Resend',
+      kind: 'primary',
+    });
+    if (!ok) return;
+    const res = await MS.api(API.orderResend(order.id), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    if (!res.ok) { toast(res.error || 'Resend failed', 'err'); return; }
+    toast('Delivery available to buyer.', 'ok');
+    return;
+  }
+
+  const label = kind === 'refund' ? 'Refund order' : kind === 'complete' ? 'Mark completed' : 'Fail order';
+  const message = kind === 'refund'
+    ? 'Credits the buyer via refundService, burns inventory, and marks the order refunded.'
+    : kind === 'complete'
+      ? 'Marks the order completed. Only use this if you have manually verified delivery.'
+      : 'You can fail with or without refunding. Orders with a ledger debit must be refunded.';
+
+  const reason = await MS.reasonModal({
+    title: label,
+    message,
+    confirmText: kind === 'refund' ? 'Refund' : kind === 'complete' ? 'Complete' : 'Fail',
+    kind: kind === 'complete' ? 'primary' : 'danger',
+  });
+  if (!reason) return;
+  if (reason.trim().length < 4) { toast('Reason must be at least 4 characters.', 'err'); return; }
+
+  const endpoint = kind === 'refund'   ? API.orderRefund(order.id)
+                 : kind === 'complete' ? API.orderComplete(order.id)
+                 :                       API.orderFail(order.id);
+
+  const body = { reason: reason.trim() };
+  const doRefundOnFail = kind === 'fail' ? await confirmDialog({
+    title: 'Refund as well?',
+    body: 'The order was debited. Choose Refund to credit the buyer; Cancel to leave the order pending for manual review.',
+    confirmText: 'Refund',
+    cancelText: 'Leave pending',
+    kind: 'danger',
+  }) : null;
+  if (kind === 'fail' && doRefundOnFail) body.refund = true;
+
+  const res = await MS.api(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    if (res.code === 'ORDER_HAS_DEBIT') {
+      // The fail path detected a debit and requires refund.
+      const wantsRefund = await confirmDialog({
+        title: 'Order was debited',
+        body: 'Fail requires a refund to protect the buyer. Refund now?',
+        confirmText: 'Refund',
+        kind: 'danger',
+      });
+      if (wantsRefund) { doOrderAction('refund', order); }
+      return;
+    }
+    toast(res.error || 'Action failed', 'err');
+    return;
+  }
+  toast('Done.', 'ok');
+  fetchOrders();
+  // Refresh drawer.
+  openOrderDrawer(order.id);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Disputes
+// ═══════════════════════════════════════════════════════════════════
+
+async function loadDisputes() {
+  const root = document.getElementById('disputesSection');
+  if (!root.dataset.built) {
+    root.dataset.built = '1';
+    root.innerHTML = `
+      <div class="filters-card">
+        <div class="filters-bar">
+          <select id="dStatus" class="select-input">
+            <option value="all">All statuses</option>
+            <option value="open">Open</option>
+            <option value="approved_replacement">Approved replacement</option>
+            <option value="approved_refund">Approved refund</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <button class="btn btn-ghost" id="dReload" type="button"><i class="fas fa-rotate"></i> Refresh</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Created</th>
+                <th>Order</th>
+                <th>User</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="disputesBody"></tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    document.getElementById('dStatus').addEventListener('change', fetchDisputes);
+    document.getElementById('dReload').addEventListener('click', fetchDisputes);
+  }
+  fetchDisputes();
+}
+
+async function fetchDisputes() {
+  const tb = document.getElementById('disputesBody');
+  if (!tb) return;
+  tb.innerHTML = `<tr><td colspan="6"><span class="skel" style="display:inline-block;width:50%"></span></td></tr>`;
+  const status = document.getElementById('dStatus')?.value || 'all';
+  const res = await MS.api(`${API.disputes}?status=${encodeURIComponent(status)}`);
+  if (!res.ok) {
+    tb.innerHTML = `<tr><td colspan="6"><div class="unavailable-box"><i class="fas fa-triangle-exclamation"></i><div>${MS.esc(res.error || 'Could not load disputes')}</div></div></td></tr>`;
+    return;
+  }
+  const d = res.data.data || res.data;
+  if (d.available === false) {
+    tb.innerHTML = `<tr><td colspan="6"><div class="unavailable-box"><i class="fas fa-circle-info"></i><div>Disputes not deployed</div><div style="font-size:11.5px;margin-top:4px;color:var(--text-faint)">Reason: ${MS.esc(d.reason || 'unknown')}</div></div></td></tr>`;
+    return;
+  }
+  const rows = d.disputes || [];
+  if (!rows.length) {
+    tb.innerHTML = `<tr><td colspan="6"><div class="empty-state"><i class="fas fa-scale-balanced"></i><div class="title">No disputes</div><div class="sub">Buyer-reported issues appear here.</div></div></td></tr>`;
+    return;
+  }
+  tb.innerHTML = rows.map(r => `
+    <tr data-did="${MS.esc(r.id)}">
+      <td>${MS.esc(timeAgo(r.created_at))}</td>
+      <td class="mono" style="font-size:11px">${MS.esc(r.order_id)}</td>
+      <td>${MS.esc(r.user_id)}</td>
+      <td>${MS.esc(trunc(r.reason || '', 80))}</td>
+      <td><span class="badge ${statusClass(r.status)}">${MS.esc(r.status)}</span></td>
+      <td>
+        ${r.status === 'open' ? `<button class="btn btn-primary btn-sm" data-dopen="${MS.esc(r.id)}" type="button">Resolve</button>` : ''}
+      </td>
+    </tr>
+  `).join('');
+  tb.querySelectorAll('[data-dopen]').forEach(b => b.addEventListener('click', () => openDisputeResolve(b.dataset.dopen)));
+}
+
+async function openDisputeResolve(id) {
+  openModal({
+    title: 'Resolve dispute',
+    body: `
+      <div class="form-row">
+        <label>Resolution</label>
+        <select id="drResolution">
+          <option value="">— Choose —</option>
+          <option value="approved_replacement">Approve replacement (new item allocated)</option>
+          <option value="approved_refund">Approve refund (via refundService)</option>
+          <option value="rejected">Reject</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Notes <span class="req">*</span></label>
+        <textarea id="drNotes" rows="3" placeholder="Explain the resolution"></textarea>
+      </div>
+    `,
+    confirmText: 'Resolve',
+    kind: 'primary',
+    onConfirm: async () => {
+      const resolution = document.getElementById('drResolution').value;
+      const notes = document.getElementById('drNotes').value.trim();
+      if (!resolution) { toast('Choose a resolution', 'err'); return false; }
+      if (notes.length < 4) { toast('Notes must be at least 4 characters', 'err'); return false; }
+      const res = await MS.api(API.disputeResolve(id), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resolution, notes }),
+      });
+      if (!res.ok) { toast(res.error || 'Resolve failed', 'err'); return false; }
+      toast('Dispute resolved.', 'ok');
+      fetchDisputes();
+      return true;
+    },
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Audit
+// ═══════════════════════════════════════════════════════════════════
+
+async function loadAudit() {
+  const root = document.getElementById('auditSection');
+  if (!root.dataset.built) {
+    root.dataset.built = '1';
+    root.innerHTML = `
+      <div class="filters-card">
+        <div class="filters-bar">
+          <input id="aTarget" type="search" class="search-input" placeholder="Target id (order, product, inventory)…" />
+          <input id="aAdmin"  type="search" class="search-input" placeholder="Admin id…" />
+          <input id="aFrom" type="date" class="date-input" />
+          <input id="aTo"   type="date" class="date-input" />
+          <button class="btn btn-primary" id="aApply" type="button"><i class="fas fa-filter"></i> Apply</button>
+          <button class="btn btn-ghost" id="aClear" type="button">Clear</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Admin</th>
+                <th>Action</th>
+                <th>Target</th>
+                <th>Reason</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="auditBody"></tbody>
+          </table>
+        </div>
+        <div class="table-foot">
+          <div id="auditInfo">—</div>
+          <div class="pagination" id="auditPager"></div>
+        </div>
+      </div>
+    `;
+    document.getElementById('aApply').addEventListener('click', () => {
+      State.audit.filters.target_id = document.getElementById('aTarget').value.trim();
+      State.audit.filters.admin_id  = document.getElementById('aAdmin').value.trim();
+      State.audit.filters.from      = document.getElementById('aFrom').value;
+      State.audit.filters.to        = document.getElementById('aTo').value;
+      State.audit.page = 1;
+      fetchAudit();
+    });
+    document.getElementById('aClear').addEventListener('click', () => {
+      document.getElementById('aTarget').value = '';
+      document.getElementById('aAdmin').value = '';
+      document.getElementById('aFrom').value = '';
+      document.getElementById('aTo').value = '';
+      State.audit.filters = { target_id: '', admin_id: '', from: '', to: '' };
+      State.audit.page = 1;
+      fetchAudit();
+    });
+  }
+  fetchAudit();
+}
+
+async function fetchAudit() {
+  const tb = document.getElementById('auditBody');
+  if (!tb) return;
+  tb.innerHTML = `<tr><td colspan="6"><span class="skel" style="display:inline-block;width:50%"></span></td></tr>`;
+  const f = State.audit.filters;
+  const qs = new URLSearchParams({ page: String(State.audit.page), limit: '50', action_prefix: 'marketplace.' });
+  if (f.target_id) qs.set('target_id', f.target_id);
+  if (f.admin_id)  qs.set('admin_id', f.admin_id);
+  if (f.from)      qs.set('from', f.from);
+  if (f.to)        qs.set('to', f.to);
+  const res = await MS.api(`${API.audit}?${qs.toString()}`);
+  if (!res.ok) {
+    tb.innerHTML = `<tr><td colspan="6"><div class="unavailable-box"><i class="fas fa-triangle-exclamation"></i><div>${MS.esc(res.error || 'Could not load audit')}</div></div></td></tr>`;
+    return;
+  }
+  const d = res.data.data || res.data;
+  if (d.available === false) {
+    tb.innerHTML = `<tr><td colspan="6"><div class="unavailable-box"><i class="fas fa-circle-info"></i><div>Audit log unavailable</div><div style="font-size:11.5px;margin-top:4px;color:var(--text-faint)">Reason: ${MS.esc(d.reason || 'unknown')}</div></div></td></tr>`;
+    return;
+  }
+  const rows = d.logs || [];
+  State.audit.count = d.count || 0;
+  State.audit.totalPages = d.totalPages || 1;
+  if (!rows.length) {
+    tb.innerHTML = `<tr><td colspan="6"><div class="empty-state"><i class="fas fa-clipboard-list"></i><div class="title">No audit entries</div><div class="sub">Marketplace admin actions appear here.</div></div></td></tr>`;
+    document.getElementById('auditInfo').textContent = 'No results';
+    document.getElementById('auditPager').innerHTML = '';
+    return;
+  }
+  tb.innerHTML = rows.map(r => `
+    <tr>
+      <td>${MS.esc(fmtDateTime(r.created_at))}</td>
+      <td class="mono" style="font-size:11px">${MS.esc(r.admin_id || '—')}</td>
+      <td>${MS.esc(r.action || '—')}</td>
+      <td class="mono" style="font-size:11px">${MS.esc(r.target_id || '—')}</td>
+      <td>${r.reason ? MS.esc(trunc(r.reason, 80)) : '<span class="text-faint">—</span>'}</td>
+      <td><span class="badge ${r.result === 'success' ? 'success' : 'danger'}">${MS.esc(r.result || '—')}</span></td>
+    </tr>
+  `).join('');
+  document.getElementById('auditInfo').textContent = State.audit.count
+    ? `Showing ${(State.audit.page - 1) * 50 + 1}–${Math.min(State.audit.page * 50, State.audit.count)} of ${State.audit.count}`
+    : 'No results';
+  renderPager('auditPager', State.audit, (p) => { State.audit.page = p; fetchAudit(); });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Pagination + modal + drawer helpers
+// ═══════════════════════════════════════════════════════════════════
+
+function renderPager(elId, state, onChange) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = '';
+  if (!state.totalPages || state.totalPages <= 1) return;
+  const mk = (label, page, disabled, active) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'pg-btn' + (active ? ' active' : '');
+    b.textContent = label;
+    b.disabled = !!disabled;
+    if (!disabled && !active) b.addEventListener('click', () => onChange(page));
+    return b;
+  };
+  el.appendChild(mk('‹', state.page - 1, state.page <= 1, false));
+  el.appendChild(mk(String(state.page), state.page, false, true));
+  el.appendChild(mk('›', state.page + 1, state.page >= state.totalPages, false));
+}
+
+function openDrawer({ title, sub, icon, body }) {
+  document.getElementById('ddIcon').innerHTML = `<i class="fas ${icon || 'fa-file'}"></i>`;
+  document.getElementById('ddTitle').textContent = title || 'Detail';
+  document.getElementById('ddSub').textContent = sub || '';
+  document.getElementById('ddBody').innerHTML = body || '';
+  document.getElementById('detailDrawer').classList.add('open');
+  document.getElementById('detailDrawer').setAttribute('aria-hidden', 'false');
+  document.getElementById('drawerScrim').classList.add('open');
+  try { MS.lockScroll?.(); } catch (_) {}
 }
 function closeDrawer() {
-    document.getElementById('drawer').classList.remove('open');
-    document.getElementById('drawerScrim').classList.remove('show');
+  document.getElementById('detailDrawer').classList.remove('open');
+  document.getElementById('detailDrawer').setAttribute('aria-hidden', 'true');
+  document.getElementById('drawerScrim').classList.remove('open');
+  try { MS.unlockScroll?.(); } catch (_) {}
 }
 
-function openModal({ title, bodyHtml, confirmLabel = 'Confirm', danger = false, wide = false, onConfirm }) {
+function openModal({ title, body, confirmText, cancelText, kind, onConfirm }) {
+  const scrim = document.getElementById('modalScrim');
+  document.getElementById('mTitle').textContent = title || 'Action';
+  document.getElementById('mBody').innerHTML = body || '';
+  const foot = document.getElementById('mFoot');
+  foot.innerHTML = '';
+  const cancel = document.createElement('button');
+  cancel.className = 'btn btn-ghost';
+  cancel.type = 'button';
+  cancel.textContent = cancelText || 'Cancel';
+  cancel.addEventListener('click', () => closeModal());
+  foot.appendChild(cancel);
+
+  if (confirmText) {
+    const ok = document.createElement('button');
+    ok.className = 'btn ' + (kind === 'danger' ? 'btn-danger' : kind === 'success' ? 'btn-success' : 'btn-primary');
+    ok.type = 'button';
+    ok.textContent = confirmText;
+    ok.addEventListener('click', async () => {
+      ok.disabled = true;
+      try {
+        const close = await onConfirm?.();
+        if (close !== false) closeModal();
+      } finally {
+        ok.disabled = false;
+      }
+    });
+    foot.appendChild(ok);
+  }
+
+  scrim.classList.add('open');
+  scrim.setAttribute('aria-hidden', 'false');
+  try { MS.lockScroll?.(); } catch (_) {}
+}
+function closeModal() {
+  const scrim = document.getElementById('modalScrim');
+  scrim.classList.remove('open');
+  scrim.setAttribute('aria-hidden', 'true');
+  try { MS.unlockScroll?.(); } catch (_) {}
+}
+
+function confirmDialog({ title, body, confirmText = 'Confirm', cancelText = 'Cancel', kind = 'danger' }) {
+  return new Promise((resolve) => {
     const scrim = document.getElementById('modalScrim');
-    const box = document.getElementById('modalBox');
-    box.classList.toggle('wide', !!wide);
-    document.getElementById('mTitle').textContent = title;
-    document.getElementById('mBody').innerHTML = bodyHtml +
-        `<div class="modal-error" id="modalError">
-            <div class="head"><i class="fas fa-circle-exclamation"></i> Request failed</div>
-            <div class="code" id="modalErrorCode"></div>
-            <div class="message" id="modalErrorMessage"></div>
-            <div class="rid" id="modalErrorRid"></div>
-        </div>`;
-    const confirmBtn = document.getElementById('mConfirm');
-    confirmBtn.textContent = confirmLabel;
-    confirmBtn.className = danger ? 'btn btn-danger' : 'btn btn-primary';
-    confirmBtn.disabled = false;
-    const cancel = () => {
-        scrim.classList.remove('show');
-        confirmBtn.onclick = null;
-    };
-    document.getElementById('mCancel').onclick = cancel;
-    confirmBtn.onclick = async () => {
-        confirmBtn.disabled = true;
-        try { const ok = await onConfirm(); if (ok) cancel(); }
-        finally { confirmBtn.disabled = false; }
-    };
-    scrim.classList.add('show');
+    document.getElementById('mTitle').textContent = title || 'Confirm';
+    document.getElementById('mBody').innerHTML = `<p style="font-size:13px;color:var(--text-dim);line-height:1.55">${MS.esc(body || '')}</p>`;
+    const foot = document.getElementById('mFoot');
+    foot.innerHTML = '';
+    const cancel = document.createElement('button');
+    cancel.className = 'btn btn-ghost';
+    cancel.type = 'button';
+    cancel.textContent = cancelText;
+    cancel.addEventListener('click', () => { closeModal(); resolve(false); });
+    foot.appendChild(cancel);
+    const ok = document.createElement('button');
+    ok.className = 'btn ' + (kind === 'danger' ? 'btn-danger' : 'btn-primary');
+    ok.type = 'button';
+    ok.textContent = confirmText;
+    ok.addEventListener('click', () => { closeModal(); resolve(true); });
+    foot.appendChild(ok);
+    scrim.classList.add('open');
+    scrim.setAttribute('aria-hidden', 'false');
+    try { MS.lockScroll?.(); } catch (_) {}
+  });
 }
-
-function showModalError(res) {
-    const el = document.getElementById('modalError');
-    if (!el) return;
-    el.classList.add('show');
-    document.getElementById('modalErrorCode').textContent = res.code || 'UNKNOWN';
-    document.getElementById('modalErrorMessage').textContent = res.error || 'Request failed';
-    const rid = document.getElementById('modalErrorRid');
-    if (res.request_id) { rid.textContent = 'request_id: ' + res.request_id; rid.style.display = 'block'; }
-    else rid.style.display = 'none';
-}
-
-// ─── ADMIN PROFILE ───────────────────────────────────────────────
-async function loadAdminProfile() {
-    const res = await api(API.me);
-    if (!res.ok || !res.data?.data?.user) return;
-    const user = res.data.data.user;
-    const name = user.username || user.email?.split('@')[0] || 'Admin';
-    const role = user.role || 'admin';
-    document.getElementById('adminName').textContent = name;
-    document.getElementById('adminRole').textContent = role.charAt(0).toUpperCase() + role.slice(1);
-    document.getElementById('adminAvatar').textContent = name.slice(0, 1).toUpperCase();
-}
-
-// ─── INIT ────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', async () => {
-    if (!AdminSession.getToken()) return AdminSession.redirectToLogin();
-
-    document.getElementById('hamburger')?.addEventListener('click', () => {
-        document.getElementById('sidebar').classList.toggle('open');
-        document.getElementById('scrim').classList.toggle('show');
-    });
-    document.getElementById('scrim')?.addEventListener('click', () => {
-        document.getElementById('sidebar').classList.remove('open');
-        document.getElementById('scrim').classList.remove('show');
-    });
-    document.getElementById('sbToggleDesktop')?.addEventListener('click', () => document.getElementById('appRoot').classList.toggle('sb-collapsed'));
-    document.getElementById('sbCollapseBtn')?.addEventListener('click', () => document.getElementById('appRoot').classList.toggle('sb-collapsed'));
-
-    document.getElementById('darkToggle')?.addEventListener('click', () => {
-        document.documentElement.classList.toggle('dark');
-        document.getElementById('darkToggle').textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
-    });
-
-    document.querySelectorAll('#marketMenu .item').forEach(el => {
-        el.addEventListener('click', () => showSection(el.dataset.section));
-    });
-
-    document.getElementById('refreshBtn')?.addEventListener('click', () => {
-        const active = document.querySelector('#marketMenu .item.active')?.dataset.section || 'overview';
-        showSection(active);
-        showToast('Refreshed', 'success');
-    });
-
-    document.getElementById('productSearch')?.addEventListener('input', () => loadProducts());
-
-    document.getElementById('dClose')?.addEventListener('click', closeDrawer);
-    document.getElementById('drawerScrim')?.addEventListener('click', closeDrawer);
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
-            closeDrawer();
-            document.getElementById('modalScrim').classList.remove('show');
-        }
-    });
-    document.getElementById('modalScrim')?.addEventListener('click', e => {
-        if (e.target.id === 'modalScrim') document.getElementById('modalScrim').classList.remove('show');
-    });
-
-    loadAdminProfile();
-    await loadCategories();
-    loadOverview();
-});
 </script>
 </body>
 </html>

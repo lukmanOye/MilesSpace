@@ -153,9 +153,7 @@ function renderContent() {
   document.getElementById('drawerScrim').addEventListener('click', closeDrawer);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
 }
-
-function $(id) { return document.getElementById(id); }
-
+function $(id) { return document.getElementById(String(id).replace(/^#/, '')); }
 function readFilters() {
   State.filters = {
     status: $('#fStatus').value || 'all',

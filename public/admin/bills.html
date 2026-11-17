@@ -2,103 +2,258 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<title>MilesSpace — Bills &amp; Utilities</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bills &amp; Utilities — MilesSpace Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<script src="/js/admin-session.js?v=2025-admin-dash-v4"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="/js/admin-session.js?v=2025-admin-v5"></script>
 <style>
-:root{--brand-primary:#0f4c5c;--brand-primary-deep:#0a3542;--brand-primary-light:#14607a;--brand-accent:#f5a623;--brand-accent-soft:#fde3ad;--navy:var(--brand-primary);--navy-light:var(--brand-primary-light);--navy-deep:var(--brand-primary-deep);--gold:var(--brand-accent);--gold-soft:var(--brand-accent-soft);--white:#ffffff;--bg:#f4f7fb;--bg-card:rgba(255,255,255,.72);--border:rgba(15,76,92,.09);--text:#0c1f26;--text-dim:#5b7480;--text-faint:#8fa3ab;--success:#16a34a;--success-bg:#e9f9ef;--danger:#dc2626;--danger-bg:#fdecec;--warn:#f59e0b;--warn-bg:#fef3d9;--info:#2563a8;--info-bg:#e8f1fb;--purple:#8b5cf6;--purple-bg:#ede9fe;--usd:#0891b2;--usd-bg:#e0f6fa;--radius-sm:8px;--radius-md:14px;--radius-lg:20px;--shadow-sm:0 1px 2px rgba(8,42,51,.06);--shadow-md:0 8px 24px -8px rgba(8,42,51,.16);--shadow-lg:0 16px 48px -12px rgba(8,42,51,.26);--sidebar-w:264px;--sidebar-w-collapsed:78px;--topbar-h:68px;--transition:180ms cubic-bezier(.4,0,.2,1)}
-html.dark{--bg:#08151a;--bg-card:rgba(18,38,44,.75);--border:rgba(255,255,255,.08);--text:#eaf3f5;--text-dim:#9db4bb;--text-faint:#5b7480;--success-bg:rgba(22,163,74,.15);--danger-bg:rgba(220,38,38,.15);--warn-bg:rgba(245,158,11,.15);--info-bg:rgba(37,99,168,.18);--purple-bg:rgba(139,92,246,.18);--usd-bg:rgba(8,145,178,.18);--shadow-sm:0 1px 2px rgba(0,0,0,.3);--shadow-md:0 8px 24px -8px rgba(0,0,0,.5);--shadow-lg:0 16px 48px -12px rgba(0,0,0,.6)}
+:root{
+  --brand-primary:#0f4c5c; --brand-primary-deep:#0a3542; --brand-primary-light:#14607a;
+  --brand-accent:#f5a623;  --brand-accent-soft:#fde3ad;
+  --navy:#0f4c5c; --navy-deep:#0a3542; --navy-light:#14607a;
+  --gold:#f5a623; --gold-soft:#fde3ad;
+  --white:#fff; --bg:#f4f7fb; --bg-card:rgba(255,255,255,.72);
+  --border:rgba(15,76,92,.09);
+  --text:#0c1f26; --text-dim:#5b7480; --text-faint:#8fa3ab;
+  --success:#16a34a; --success-bg:#e9f9ef;
+  --danger:#dc2626;  --danger-bg:#fdecec;
+  --warn:#f59e0b;    --warn-bg:#fef3d9;
+  --info:#2563a8;    --info-bg:#e8f1fb;
+  --purple:#8b5cf6;  --purple-bg:#ede9fe;
+  --radius-sm:8px; --radius-md:14px; --radius-lg:20px;
+  --shadow-sm:0 1px 2px rgba(8,42,51,.06);
+  --shadow-md:0 8px 24px -8px rgba(8,42,51,.16);
+  --shadow-lg:0 16px 48px -12px rgba(8,42,51,.26);
+  --sidebar-w:264px; --sidebar-w-collapsed:78px; --topbar-h:68px;
+  --transition:180ms cubic-bezier(.4,0,.2,1);
+}
+html.dark{
+  --bg:#08151a; --bg-card:rgba(18,38,44,.75); --border:rgba(255,255,255,.08);
+  --text:#eaf3f5; --text-dim:#9db4bb; --text-faint:#5b7480;
+  --success-bg:rgba(22,163,74,.15); --danger-bg:rgba(220,38,38,.15);
+  --warn-bg:rgba(245,158,11,.15); --info-bg:rgba(37,99,168,.18);
+  --purple-bg:rgba(139,92,246,.18);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.3);
+  --shadow-md:0 8px 24px -8px rgba(0,0,0,.5);
+  --shadow-lg:0 16px 48px -12px rgba(0,0,0,.6);
+}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}html{overflow-x:hidden}
-body{margin:0;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;transition:background var(--transition),color var(--transition);overflow-x:hidden;width:100%}
+html,body{height:100%}
+html{overflow-x:hidden;width:100%;-webkit-text-size-adjust:100%}
+body{
+  font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  transition:background var(--transition),color var(--transition);
+  overflow-x:hidden;width:100%;min-width:0;
+}
 ::-webkit-scrollbar{width:9px;height:9px}
 ::-webkit-scrollbar-thumb{background:rgba(15,76,92,.18);border-radius:99px}
 html.dark ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14)}
 .mono{font-family:'JetBrains Mono',monospace}
-:focus-visible{outline:2.5px solid var(--brand-accent);outline-offset:2px;border-radius:6px}
+:focus-visible{outline:2.5px solid var(--gold);outline-offset:2px;border-radius:6px}
+input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
 
+/* App shell */
 .app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh;transition:grid-template-columns var(--transition)}
 .app.sb-collapsed{grid-template-columns:var(--sidebar-w-collapsed) 1fr}
-.sidebar{background:linear-gradient(180deg,var(--navy-deep),var(--navy) 70%);color:#eaf6f8;padding:20px 14px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;z-index:40;transition:transform var(--transition),width var(--transition);overflow-y:auto;overflow-x:hidden;width:var(--sidebar-w)}
+
+/* Sidebar */
+.sidebar{
+  background:linear-gradient(180deg,var(--navy-deep),var(--navy) 70%);
+  color:#eaf6f8;padding:20px 14px 16px;
+  display:flex;flex-direction:column;
+  position:sticky;top:0;height:100vh;height:100dvh;z-index:40;
+  transition:transform var(--transition),width var(--transition);
+  overflow-y:auto;overflow-x:hidden;width:var(--sidebar-w);
+  -webkit-overflow-scrolling:touch;
+}
 .app.sb-collapsed .sidebar{width:var(--sidebar-w-collapsed)}
-.app.sb-collapsed .sidebar .brand-text,.app.sb-collapsed .sidebar .nav-label,.app.sb-collapsed .sidebar .nav-item span:not(.ic),.app.sb-collapsed .sidebar .who,.app.sb-collapsed .sidebar .chev{display:none}
+.app.sb-collapsed .sidebar .brand-text,
+.app.sb-collapsed .sidebar .nav-label,
+.app.sb-collapsed .sidebar .nav-item span:not(.ic),
+.app.sb-collapsed .sidebar .who{display:none}
 .app.sb-collapsed .nav-item{justify-content:center}
+
 .brand{display:flex;align-items:center;gap:11px;padding:6px 8px 18px;flex-shrink:0}
 .brand img{width:32px;height:32px;border-radius:8px;flex-shrink:0}
-.brand-text{display:flex;flex-direction:column;line-height:1.15}
+.brand-text{display:flex;flex-direction:column;line-height:1.15;min-width:0}
 .brand-text strong{font-size:15px;font-weight:800;letter-spacing:-.01em}
 .brand-text span{font-size:10.5px;color:#9fd4de;letter-spacing:.06em;text-transform:uppercase}
 .nav-scroll{flex:1;overflow-y:auto;padding-right:2px}
-.nav-group{margin-bottom:2px}
-.nav-group-head{display:flex;align-items:center;justify-content:space-between;padding:12px 10px 5px;cursor:pointer;user-select:none;border:none;background:none;width:100%;color:inherit}
-.nav-label{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:#6fa2ad;font-weight:700}
-.nav-item{display:flex;align-items:center;gap:10px;padding:8.5px 10px;border-radius:9px;color:#cfe7ea;font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:background var(--transition),color var(--transition);white-space:nowrap;text-decoration:none}
+.nav-label{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:#6fa2ad;font-weight:700;display:block;padding:12px 10px 5px}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:8.5px 10px;border-radius:9px;
+  color:#cfe7ea;font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;
+  transition:background var(--transition),color var(--transition);
+  white-space:nowrap;text-decoration:none;min-height:38px;
+}
 .nav-item .ic{width:17px;text-align:center;font-size:13.5px;flex-shrink:0}
 .nav-item:hover,.nav-item:focus-visible{background:rgba(255,255,255,.06);color:#fff}
 .nav-item.active{background:rgba(245,166,35,.16);color:#ffd899;border-color:rgba(245,166,35,.3);font-weight:600}
-.sidebar-foot{border-top:1px solid rgba(255,255,255,.08);padding-top:12px;margin-top:8px;display:flex;align-items:center;gap:10px;padding-left:4px;flex-shrink:0}
-.sidebar-foot .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#25748a,#0c3d4a);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px;color:#fff;border:1.5px solid rgba(255,255,255,.18);flex-shrink:0}
-.sidebar-foot .who{display:flex;flex-direction:column;line-height:1.2}
-.sidebar-foot .who strong{font-size:12.5px;color:#fff}
-.sidebar-foot .who span{font-size:10.5px;color:#8fbac2}
-.sb-collapse-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#cfe7ea;width:26px;height:26px;border-radius:8px;cursor:pointer;margin-left:auto;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px}
+.sidebar-foot{
+  border-top:1px solid rgba(255,255,255,.08);
+  padding-top:12px;margin-top:8px;
+  display:flex;align-items:center;gap:10px;padding-left:4px;flex-shrink:0;
+}
+.sidebar-foot .av{
+  width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(135deg,#25748a,#0c3d4a);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:12.5px;color:#fff;
+  border:1.5px solid rgba(255,255,255,.18);flex-shrink:0;
+}
+.sidebar-foot .who{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+.sidebar-foot .who strong{font-size:12.5px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-foot .who span{font-size:10.5px;color:#8fbac2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-collapse-btn{
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  color:#cfe7ea;width:26px;height:26px;border-radius:8px;
+  margin-left:auto;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;
+}
 
-.main{min-width:0;display:flex;flex-direction:column}
-.topbar{height:var(--topbar-h);position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;padding:0 26px;background:var(--bg-card);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
-.hamburger{display:none;width:36px;height:36px;border-radius:9px;border:1px solid var(--border);background:var(--white);align-items:center;justify-content:center;cursor:pointer;color:var(--navy);font-size:18px}
-.sb-toggle-desktop{width:34px;height:34px;border-radius:9px;border:1px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--navy);font-size:13px;flex-shrink:0}
+/* Main */
+.main{min-width:0;display:flex;flex-direction:column;width:100%}
+.topbar{
+  height:var(--topbar-h);position:sticky;top:0;z-index:30;
+  display:flex;align-items:center;gap:14px;padding:0 26px;
+  background:var(--bg-card);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.hamburger{
+  display:none;width:38px;height:38px;border-radius:9px;border:1px solid var(--border);
+  background:var(--white);align-items:center;justify-content:center;cursor:pointer;
+  color:var(--navy);font-size:16px;flex-shrink:0;
+}
+.sb-toggle-desktop{
+  width:34px;height:34px;border-radius:9px;border:1px solid var(--border);
+  background:var(--white);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:var(--navy);font-size:13px;flex-shrink:0;
+}
 html.dark .sb-toggle-desktop{background:rgba(255,255,255,.05);color:#dff0f2}
-.page-title{display:flex;flex-direction:column;line-height:1.2;min-width:0}
-.page-title h1{margin:0;font-size:clamp(16px,2.4vw,19px);font-weight:800;letter-spacing:-.01em}
-.breadcrumb{font-size:11px;color:var(--text-faint);display:flex;align-items:center;gap:6px;margin-bottom:2px}
+.page-title{display:flex;flex-direction:column;line-height:1.2;min-width:0;flex:1}
+.page-title h1{margin:0;font-size:clamp(16px,2.4vw,19px);font-weight:800;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.breadcrumb{font-size:11px;color:var(--text-faint);display:flex;align-items:center;gap:6px;margin-bottom:2px;flex-wrap:wrap;min-width:0}
 .breadcrumb a{color:var(--text-faint);text-decoration:none}
-.icon-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--navy);font-size:15px;transition:transform var(--transition),background var(--transition);margin-left:auto}
+.breadcrumb a:hover{color:var(--gold)}
+.icon-btn{
+  width:38px;height:38px;border-radius:10px;border:1px solid var(--border);
+  background:var(--white);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:var(--navy);font-size:15px;
+  transition:transform var(--transition),background var(--transition);flex-shrink:0;
+}
 html.dark .icon-btn{background:rgba(255,255,255,.04);color:#dff0f2}
 .icon-btn:hover{transform:translateY(-1px);background:var(--gold-soft);color:var(--navy-deep)}
-.content{padding:clamp(14px,2vw,22px) clamp(14px,2.6vw,26px) 60px;min-width:0}
+.content{padding:clamp(14px,2vw,22px) clamp(14px,2.6vw,26px) 60px;min-width:0;width:100%}
 @media(min-width:1920px){.content{max-width:1800px;margin:0 auto}}
 
+/* Page header */
 .page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
 .page-header h2{font-size:clamp(18px,2.6vw,23px);font-weight:800;letter-spacing:-.01em}
 .page-header .sub{font-size:13px;color:var(--text-dim);margin-top:3px;max-width:640px}
 .page-header .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 
-.layout{display:flex;gap:22px;align-items:flex-start}
-@media(max-width:1100px){.layout{flex-direction:column}}
-.side-menu{width:220px;flex-shrink:0;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:10px;position:sticky;top:calc(var(--topbar-h) + 16px)}
-@media(max-width:1100px){.side-menu{width:100%;position:static;display:flex;flex-wrap:wrap;gap:4px}}
-.side-menu .item{padding:9px 12px;font-size:13px;color:var(--text-dim);border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:2px;border:none;background:none;font-family:inherit;text-align:left}
-.side-menu .item:hover{background:var(--bg);color:var(--text)}
-.side-menu .item.active{background:var(--navy);color:#fff}
-@media(max-width:1100px){.side-menu .item{flex:1;min-width:110px;justify-content:center}}
-.panels{flex:1;min-width:0}
+/* Tabs */
+.tabs-desktop{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
+.tabs-desktop .tab{
+  padding:9px 16px;border-radius:10px;font-size:12.5px;font-weight:700;
+  color:var(--text-dim);border:1px solid var(--border);background:var(--white);
+  display:inline-flex;align-items:center;gap:7px;transition:var(--transition);min-height:38px;
+}
+html.dark .tabs-desktop .tab{background:rgba(255,255,255,.04)}
+.tabs-desktop .tab:hover{color:var(--text);border-color:var(--gold-soft)}
+.tabs-desktop .tab.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+html.dark .tabs-desktop .tab.active{background:var(--gold);color:var(--navy-deep)}
+.tabs-mobile{display:none;overflow-x:auto;overflow-y:hidden;margin:0 -14px 16px;padding:0 14px 8px;gap:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs-mobile::-webkit-scrollbar{display:none}
+.tabs-mobile .tab{
+  flex-shrink:0;padding:9px 14px;border-radius:99px;font-size:12px;font-weight:700;
+  color:var(--text-dim);border:1px solid var(--border);background:var(--white);
+  display:inline-flex;align-items:center;gap:6px;min-height:38px;white-space:nowrap;
+}
+html.dark .tabs-mobile .tab{background:rgba(255,255,255,.04)}
+.tabs-mobile .tab.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+@media(max-width:768px){.tabs-desktop{display:none}.tabs-mobile{display:flex}}
+
+/* Panels */
 .panel{display:none}
 .panel.active{display:block}
 
-.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow-sm);backdrop-filter:blur(10px)}
+/* Cards */
+.card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:18px 20px;
+  box-shadow:var(--shadow-sm);backdrop-filter:blur(10px);
+}
 .card + .card{margin-top:16px}
 .card h3{margin:0 0 12px;font-size:14px;font-weight:800}
 .card .hint{font-size:11.5px;color:var(--text-faint);margin-bottom:12px}
 
+/* KPI grid */
 .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
 @media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:768px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:480px){.kpi-grid{grid-template-columns:1fr}}
-.kpi{padding:14px 16px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border);box-shadow:var(--shadow-sm)}
-.kpi .lbl{font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
-.kpi .val{font-size:20px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums}
-.kpi .sub{font-size:11px;color:var(--text-faint);margin-top:4px}
+@media(max-width:640px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:400px){.kpi-grid{grid-template-columns:1fr}}
+.kpi{padding:14px 16px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border);box-shadow:var(--shadow-sm);display:flex;flex-direction:column;justify-content:space-between}
+.kpi .lbl{font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;font-weight:700;display:flex;align-items:center;gap:5px}
+.kpi .val{font-size:clamp(16px, 4vw, 20px);font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums;word-break:break-word;min-height:24px;line-height:1.2}
+.kpi .val.warn{color:var(--warn)}
+.kpi .val.danger{color:var(--danger)}
+.kpi .val.success{color:var(--success)}
+.kpi .sub{font-size:11px;color:var(--text-faint);margin-top:4px;line-height:1.3}
 
+/* Status bar */
+.status-bar{display:flex;height:28px;border-radius:var(--radius-md);overflow:hidden;background:var(--border);margin-bottom:16px}
+.status-bar > div{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;min-width:0;transition:flex-basis var(--transition)}
+.status-bar .completed{background:var(--success)}
+.status-bar .pending{background:var(--warn)}
+.status-bar .failed{background:var(--danger)}
+.status-bar .refunded{background:var(--info)}
+.status-bar .manual{background:var(--purple)}
+
+/* Filters */
 .filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center}
-.filters input,.filters select{border:1px solid var(--border);background:var(--white);border-radius:9px;padding:8px 12px;font-size:12.5px;color:var(--text);font-family:inherit;outline:none}
+.filters input,.filters select{
+  border:1px solid var(--border);background:var(--white);border-radius:9px;
+  padding:8px 12px;font-size:12.5px;color:var(--text);outline:none;
+  min-height:38px;font-family:inherit;
+}
 html.dark .filters input,html.dark .filters select{background:rgba(255,255,255,.04);color:var(--text)}
-.filters input[type="search"]{flex:1 1 260px;min-width:220px}
+.filters input[type="search"]{flex:1 1 240px;min-width:180px}
+.filters input[type="date"]{min-width:130px}
+.filters .chip-row{display:flex;flex-wrap:wrap;gap:6px;flex-basis:100%;margin-top:4px}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;
+  background:var(--info-bg);color:var(--info);font-size:11px;font-weight:600;
+}
+.chip button{color:currentColor;opacity:.7;display:inline-flex;padding:0;line-height:1}
+.chip button:hover{opacity:1}
 
-.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--white);border-radius:10px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;color:var(--navy);font-family:inherit;transition:background var(--transition)}
+@media(max-width:640px){
+  .filters{display:none}
+  .filters.open{
+    display:flex;position:fixed;inset:auto 0 0 0;z-index:350;background:var(--bg);
+    padding:16px;border-radius:20px 20px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.2);
+    flex-direction:column;align-items:stretch;max-height:80vh;overflow-y:auto;
+  }
+  .filters.open input,.filters.open select{width:100%;min-height:44px}
+  .filters.open .filters-close{display:flex;justify-content:flex-end;margin-bottom:6px}
+}
+.filters-close{display:none}
+.filter-trigger{display:none}
+@media(max-width:640px){.filter-trigger{display:inline-flex}}
+
+/* Buttons */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  border:1px solid var(--border);background:var(--white);
+  border-radius:10px;padding:8px 14px;font-size:12px;font-weight:600;
+  cursor:pointer;color:var(--navy);font-family:inherit;
+  transition:background var(--transition);min-height:38px;
+}
 html.dark .btn{background:rgba(255,255,255,.04);color:#dff0f2}
 .btn:hover:not(:disabled){background:var(--gold-soft);color:var(--navy-deep)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
@@ -106,16 +261,51 @@ html.dark .btn{background:rgba(255,255,255,.04);color:#dff0f2}
 .btn-primary:hover:not(:disabled){background:var(--navy-light);color:#fff}
 .btn-danger{background:var(--danger);color:#fff;border-color:var(--danger)}
 .btn-danger:hover:not(:disabled){background:#b91c1c;color:#fff}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--text-dim)}
+.btn-ghost:hover:not(:disabled){background:var(--bg);color:var(--text)}
+.btn-icon{padding:8px;min-width:38px;justify-content:center}
 
-.table-scroll{overflow-x:auto;overflow-y:auto;max-height:640px;border-radius:var(--radius)}
-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:1100px}
-thead th{text-align:left;padding:11px 14px;color:var(--text-dim);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1}
-tbody td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
-tbody tr{cursor:pointer;transition:background var(--transition)}
-tbody tr:hover{background:rgba(245,166,35,.05)}
-tbody tr:last-child td{border-bottom:none}
+/* Tables */
+.table-wrap{overflow-x:auto;overflow-y:auto;max-height:640px;border-radius:var(--radius-md);-webkit-overflow-scrolling:touch}
+.table-wrap table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:900px}
+.table-wrap thead th{
+  text-align:left;padding:11px 14px;color:var(--text-dim);font-weight:700;
+  font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+  background:var(--bg);border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:1;white-space:nowrap;
+}
+.table-wrap tbody td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+.table-wrap tbody tr{cursor:pointer;transition:background var(--transition)}
+.table-wrap tbody tr:hover{background:rgba(245,166,35,.05)}
+.table-wrap tbody tr:last-child td{border-bottom:none}
 
-.badge{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;text-transform:capitalize}
+@media(max-width:768px){
+  .table-wrap{border:none;background:transparent;max-height:none}
+  .table-wrap table,.table-wrap thead,.table-wrap tbody,.table-wrap th,.table-wrap td,.table-wrap tr{display:block}
+  .table-wrap thead{display:none}
+  .table-wrap tbody{display:flex;flex-direction:column;gap:10px}
+  .table-wrap tr{
+    background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);
+    padding:14px;position:relative;display:grid;grid-template-columns:1fr auto;gap:8px 12px;
+    min-height:44px;
+  }
+  .table-wrap td{padding:4px 0;border:none;font-size:12px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+  .table-wrap td::before{
+    content:attr(data-label);
+    font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--text-faint);flex-shrink:0;
+  }
+  .table-wrap td[data-primary]::before{display:none}
+  .table-wrap td[data-primary]{grid-column:1 / 2;display:block;font-weight:700;font-size:13px;margin-bottom:2px}
+  .table-wrap td[data-status]{grid-column:2 / 3;grid-row:1;justify-self:end}
+  .table-wrap td[data-status]::before{display:none}
+}
+
+/* Badges */
+.badge{
+  font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px;
+  display:inline-flex;align-items:center;gap:4px;white-space:nowrap;text-transform:capitalize;
+}
 .badge.success{background:var(--success-bg);color:var(--success)}
 .badge.danger{background:var(--danger-bg);color:var(--danger)}
 .badge.warn{background:var(--warn-bg);color:#b3720a}
@@ -123,25 +313,43 @@ tbody tr:last-child td{border-bottom:none}
 .badge.purple{background:var(--purple-bg);color:var(--purple)}
 .badge.neutral{background:var(--bg);color:var(--text-dim);border:1px solid var(--border)}
 
+/* Empty / Unavailable */
 .empty-state{text-align:center;padding:52px 20px;color:var(--text-faint)}
 .empty-state .ic{font-size:28px;margin-bottom:8px;display:block}
+.empty-state .msg{margin-bottom:14px;font-size:13px}
 .unavailable-box{text-align:center;padding:24px 14px;color:var(--text-faint)}
 .unavailable-box .ic{font-size:20px;margin-bottom:6px;display:block}
-.unavailable-box button{margin-top:10px;border:1px solid var(--border);background:var(--white);color:var(--navy);border-radius:8px;padding:6px 14px;font-size:11.5px;font-weight:700;cursor:pointer}
-html.dark .unavailable-box button{background:rgba(255,255,255,.04);color:#dff0f2}
 
-.skel{background:linear-gradient(90deg,var(--bg) 25%,var(--border) 50%,var(--bg) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;height:12px;display:block}
+/* Skeleton */
+.skel{
+  background:linear-gradient(90deg,var(--bg) 25%,var(--border) 50%,var(--bg) 75%);
+  background-size:200% 100%;animation:shimmer 1.5s infinite;
+  border-radius:6px;height:12px;display:block;
+}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
+/* Pagination */
 .pagination{display:flex;justify-content:space-between;align-items:center;padding:14px 4px 0;font-size:12.5px;color:var(--text-dim);flex-wrap:wrap;gap:8px}
-.pagination button{border:1px solid var(--border);background:var(--white);color:var(--navy);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;margin-left:6px}
+.pagination button{
+  border:1px solid var(--border);background:var(--white);color:var(--navy);
+  border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;margin-left:6px;min-height:34px;
+}
 html.dark .pagination button{background:rgba(255,255,255,.04);color:#dff0f2}
 .pagination button:disabled{opacity:.45;cursor:not-allowed}
+.pagination select{
+  border:1px solid var(--border);background:var(--white);border-radius:8px;
+  padding:6px 8px;font-size:12px;min-height:34px;
+}
+html.dark .pagination select{background:rgba(255,255,255,.04)}
 
-.provider-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-@media(max-width:900px){.provider-grid{grid-template-columns:1fr}}
-.provider-card{padding:18px;border-radius:var(--radius-lg);background:var(--bg-card);border:1px solid var(--border);box-shadow:var(--shadow-sm)}
-.provider-card .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+/* Provider cards */
+.provider-grid{display:grid;grid-template-columns:1fr;gap:14px;max-width:640px}
+.provider-card{
+  padding:20px;border-radius:var(--radius-lg);
+  background:var(--bg-card);border:1px solid var(--border);
+  box-shadow:var(--shadow-sm);
+}
+.provider-card .head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;gap:10px}
 .provider-card h4{margin:0;font-size:15px;font-weight:800}
 .provider-card .sub{font-size:11.5px;color:var(--text-dim);margin-top:2px}
 .status-dot-lg{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:middle}
@@ -149,82 +357,215 @@ html.dark .pagination button{background:rgba(255,255,255,.04);color:#dff0f2}
 .status-dot-lg.degraded{background:var(--warn);box-shadow:0 0 0 3px rgba(245,158,11,.18)}
 .status-dot-lg.unreachable{background:var(--danger);box-shadow:0 0 0 3px rgba(220,38,38,.18)}
 .status-dot-lg.not_configured{background:var(--text-faint)}
-.provider-card .metric{display:flex;justify-content:space-between;padding:6px 0;font-size:12.5px;border-bottom:1px dashed var(--border)}
+.provider-card .metric{
+  display:flex;justify-content:space-between;padding:6px 0;font-size:12.5px;
+  border-bottom:1px dashed var(--border);gap:10px;
+}
 .provider-card .metric:last-child{border-bottom:none}
-.provider-card .metric .k{color:var(--text-dim);font-weight:600}
-.provider-card .metric .v{font-weight:700}
+.provider-card .metric .k{color:var(--text-dim);font-weight:600;flex-shrink:0}
+.provider-card .metric .v{font-weight:700;text-align:right;word-break:break-word}
 .provider-card .btn-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
 
-.drawer-scrim{position:fixed;inset:0;background:rgba(5,15,20,.5);backdrop-filter:blur(2px);z-index:300;opacity:0;pointer-events:none;transition:opacity 220ms ease}
+/* Toggle */
+.toggle{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle span{position:absolute;cursor:pointer;inset:0;background:var(--text-faint);transition:var(--transition);border-radius:99px}
+.toggle span::before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:#fff;transition:var(--transition);border-radius:50%}
+.toggle input:checked + span{background:var(--success)}
+.toggle input:checked + span::before{transform:translateX(18px)}
+
+/* Drawer */
+.drawer-scrim{
+  position:fixed;inset:0;background:rgba(5,15,20,.5);backdrop-filter:blur(2px);
+  z-index:300;opacity:0;pointer-events:none;transition:opacity 220ms ease;
+}
 .drawer-scrim.show{opacity:1;pointer-events:auto}
-.drawer{position:fixed;top:0;right:0;height:100vh;width:min(720px,96vw);background:var(--bg);z-index:301;box-shadow:var(--shadow-lg);transform:translateX(100%);transition:transform 260ms cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
+.drawer{
+  position:fixed;top:0;right:0;height:100vh;height:100dvh;
+  width:min(720px,100vw);background:var(--bg);z-index:301;
+  box-shadow:var(--shadow-lg);transform:translateX(100%);
+  transition:transform 260ms cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;overflow:hidden;
+}
 .drawer.open{transform:translateX(0)}
-.dd-head{display:flex;align-items:center;gap:14px;padding:20px 22px;background:linear-gradient(135deg,var(--navy),var(--navy-deep));color:#fff;flex-shrink:0}
-.dd-head .dd-ic{width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+@media(max-width:768px){
+  .drawer{
+    top:auto;bottom:0;right:0;left:0;width:100vw;height:90vh;height:90dvh;
+    transform:translateY(100%);border-radius:20px 20px 0 0;
+  }
+  .drawer.open{transform:translateY(0)}
+}
+.dd-head{
+  display:flex;align-items:center;gap:14px;padding:20px 22px;
+  background:linear-gradient(135deg,var(--navy),var(--navy-deep));
+  color:#fff;flex-shrink:0;
+}
+.dd-head .dd-ic{
+  width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,.12);
+  display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;
+}
 .dd-head .dd-titles{flex:1;min-width:0}
-.dd-head h2{margin:0;font-size:16.5px;font-weight:800}
+.dd-head h2{margin:0;font-size:16.5px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dd-head .dd-sub{font-size:11.5px;color:rgba(255,255,255,.7);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dd-close{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:14px;flex-shrink:0}
-.dd-body{flex:1;overflow-y:auto;padding:20px 22px 40px}
-.dd-hero{padding:16px 18px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.dd-hero .amt{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
+.dd-close{
+  width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.08);color:#fff;font-size:14px;flex-shrink:0;
+}
+.dd-close:hover{background:rgba(255,255,255,.2)}
+.dd-body{flex:1;overflow-y:auto;padding:20px 22px 40px;-webkit-overflow-scrolling:touch}
+.dd-hero{
+  padding:16px 18px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border);
+  margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.dd-hero .amt{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;word-break:break-word}
 .dd-hero .meta{font-size:11px;color:var(--text-faint);margin-top:2px}
 .dd-section{margin-bottom:18px}
-.dd-section h4{margin:0 0 8px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);padding-bottom:6px;border-bottom:1px solid var(--border)}
-.dd-field{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:12.5px;border-bottom:1px dashed var(--border)}
+.dd-section h4{
+  margin:0 0 8px;font-size:11px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--text-dim);padding-bottom:6px;border-bottom:1px solid var(--border);
+}
+.dd-field{
+  display:flex;justify-content:space-between;gap:10px;padding:6px 0;
+  font-size:12.5px;border-bottom:1px dashed var(--border);
+}
 .dd-field:last-child{border-bottom:none}
-.dd-field .k{color:var(--text-dim);font-weight:600;min-width:140px}
+.dd-field .k{color:var(--text-dim);font-weight:600;min-width:130px;flex-shrink:0}
 .dd-field .v{font-weight:700;text-align:right;word-break:break-word;overflow-wrap:anywhere}
-.dd-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding:12px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border)}
+.dd-actions{
+  display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding:12px;border-radius:12px;
+  background:var(--bg-card);border:1px solid var(--border);
+}
+.dd-empty{text-align:center;color:var(--text-faint);padding:24px 10px;font-size:12px}
 .timeline{display:flex;flex-direction:column;gap:4px;font-size:12px}
 .timeline .t-item{padding:10px 12px;border-left:2px solid var(--gold);background:var(--bg-card);border-radius:0 8px 8px 0}
 .timeline .t-item .label{font-weight:600}
 .timeline .t-item .when{font-size:10.5px;color:var(--text-faint);margin-top:2px}
-.dd-empty{text-align:center;color:var(--text-faint);padding:24px 10px;font-size:12px}
 
-.modal-scrim{position:fixed;inset:0;background:rgba(5,15,20,.6);backdrop-filter:blur(3px);z-index:400;display:none;align-items:center;justify-content:center;padding:20px}
+/* Token block */
+.token-block{
+  background:#0c1f26;color:#d6e5ea;border-radius:10px;padding:12px 14px;
+  font-family:'JetBrains Mono',monospace;font-size:13px;word-break:break-all;
+  margin-top:8px;position:relative;
+}
+.token-block .copy-btn{
+  position:absolute;top:8px;right:8px;background:rgba(255,255,255,.1);color:#fff;
+  border:none;border-radius:6px;padding:4px 8px;font-size:10.5px;font-weight:600;cursor:pointer;
+}
+.token-block .copy-btn:hover{background:rgba(255,255,255,.2)}
+.token-block .val{margin-right:70px}
+
+/* Modal */
+.modal-scrim{
+  position:fixed;inset:0;background:rgba(5,15,20,.6);backdrop-filter:blur(3px);
+  z-index:400;display:none;align-items:center;justify-content:center;padding:20px;
+}
 .modal-scrim.show{display:flex}
-.modal{background:var(--white);border-radius:16px;max-width:520px;width:100%;box-shadow:var(--shadow-lg);overflow:hidden}
+.modal{
+  background:var(--white);border-radius:16px;max-width:520px;width:100%;
+  box-shadow:var(--shadow-lg);overflow:hidden;max-height:calc(100vh - 40px);
+  display:flex;flex-direction:column;
+}
 html.dark .modal{background:#12262c;color:var(--text)}
-.modal h3{margin:0;padding:18px 22px;font-size:16px;font-weight:800;border-bottom:1px solid var(--border)}
-.modal .body{padding:18px 22px;max-height:60vh;overflow-y:auto}
+.modal h3{margin:0;padding:18px 22px;font-size:16px;font-weight:800;border-bottom:1px solid var(--border);flex-shrink:0}
+.modal .body{padding:18px 22px;overflow-y:auto;flex:1}
 .modal .body p.note{font-size:12.5px;color:var(--text-dim);margin-bottom:12px;line-height:1.5}
 .modal .body label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px}
-.modal .body textarea{width:100%;border:1px solid var(--border);border-radius:9px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--white);color:var(--text);outline:none;resize:vertical}
-html.dark .modal .body textarea{background:rgba(255,255,255,.04);color:var(--text)}
-.modal .foot{display:flex;justify-content:flex-end;gap:8px;padding:14px 22px;border-top:1px solid var(--border);flex-wrap:wrap}
-
-.modal-error{display:none;margin:14px 0 4px;padding:12px 14px;border-radius:10px;background:var(--danger-bg);border:1px solid rgba(220,38,38,.25);font-size:12.5px;line-height:1.5;color:var(--text)}
+.modal .body textarea,.modal .body select,.modal .body input{
+  width:100%;border:1px solid var(--border);border-radius:9px;
+  padding:10px 12px;font-family:inherit;font-size:13px;
+  background:var(--white);color:var(--text);outline:none;resize:vertical;min-height:44px;
+}
+html.dark .modal .body textarea,
+html.dark .modal .body select,
+html.dark .modal .body input{background:rgba(255,255,255,.04);color:var(--text)}
+.modal .body .char-count{font-size:11px;color:var(--text-faint);text-align:right;margin-top:4px}
+.modal .body .char-count.error{color:var(--danger)}
+.modal .foot{
+  display:flex;justify-content:flex-end;gap:8px;padding:14px 22px;
+  border-top:1px solid var(--border);flex-wrap:wrap;flex-shrink:0;
+}
+.modal-error{
+  display:none;margin:14px 0 4px;padding:12px 14px;border-radius:10px;
+  background:var(--danger-bg);border:1px solid rgba(220,38,38,.25);
+  font-size:12.5px;line-height:1.5;color:var(--text);
+}
 .modal-error.show{display:block}
 .modal-error .head{display:flex;align-items:center;gap:8px;font-weight:800;color:var(--danger);margin-bottom:6px}
-.modal-error .code{font-family:'JetBrains Mono',monospace;font-size:11.5px;background:rgba(220,38,38,.12);color:var(--danger);padding:2px 6px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.modal-error .code{
+  font-family:'JetBrains Mono',monospace;font-size:11.5px;
+  background:rgba(220,38,38,.12);color:var(--danger);
+  padding:2px 6px;border-radius:6px;display:inline-block;margin-bottom:6px;
+}
 .modal-error .message{color:var(--text);margin-bottom:6px;font-weight:600}
 .modal-error .rid{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);word-break:break-all}
-.modal-error .hint{font-size:11.5px;color:var(--text-dim);margin-top:8px;padding-top:8px;border-top:1px dashed rgba(220,38,38,.25)}
 
-.debug-panel{display:none;margin-top:12px;padding:12px;border-radius:10px;background:#0c1f26;color:#d6e5ea;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.5;max-height:260px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+/* Debug */
+.debug-panel{
+  display:none;margin-top:12px;padding:12px;border-radius:10px;
+  background:#0c1f26;color:#d6e5ea;font-family:'JetBrains Mono',monospace;
+  font-size:11px;line-height:1.5;max-height:260px;overflow:auto;
+  white-space:pre-wrap;word-break:break-all;
+}
 .debug-panel.show{display:block}
 .debug-toggle{font-size:11px;color:var(--text-faint);cursor:pointer;background:none;border:none;text-decoration:underline;padding:4px 0}
 .debug-toggle:hover{color:var(--gold)}
 
-.toast-stack{position:fixed;bottom:22px;right:22px;display:flex;flex-direction:column;gap:10px;z-index:500;max-width:380px}
-.toast{background:#0c1f26;color:#fff;padding:12px 16px;border-radius:11px;font-size:12.8px;font-weight:600;box-shadow:var(--shadow-md);border-left:3px solid var(--gold);animation:toastIn .25s ease}
+/* Toast */
+.toast-stack{
+  position:fixed;bottom:22px;right:22px;display:flex;flex-direction:column;gap:10px;
+  z-index:500;max-width:380px;left:22px;pointer-events:none;
+}
+@media(min-width:641px){.toast-stack{left:auto}}
+.toast{
+  background:#0c1f26;color:#fff;padding:12px 16px;border-radius:11px;
+  font-size:12.8px;font-weight:600;box-shadow:var(--shadow-md);
+  border-left:3px solid var(--gold);animation:toastIn .25s ease;
+  pointer-events:auto;display:flex;align-items:flex-start;gap:8px;
+}
 .toast.success{border-left-color:var(--success)}
 .toast.error{border-left-color:var(--danger)}
+.toast.warn{border-left-color:var(--warn)}
 @keyframes toastIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
 
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:39;display:none}
 .scrim.show{display:block}
 
+.age-badge{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.age-badge.fresh{background:var(--info-bg);color:var(--info)}
+.age-badge.medium{background:var(--warn-bg);color:#b3720a}
+.age-badge.old{background:var(--danger-bg);color:var(--danger)}
+
 @media(max-width:768px){
-    .app{grid-template-columns:1fr!important}
-    .sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);width:290px!important;box-shadow:var(--shadow-lg);z-index:50;height:100vh}
-    .sidebar.open{transform:translateX(0)}
-    .hamburger{display:flex}
-    .sb-toggle-desktop{display:none}
-    .topbar{padding:0 14px;height:60px}
-    .content{padding:12px 10px 60px}
-    .page-header{flex-direction:column;align-items:stretch}
+  .app{grid-template-columns:1fr!important}
+  .sidebar{
+    position:fixed;left:0;top:0;transform:translateX(-100%);
+    width:290px!important;box-shadow:var(--shadow-lg);z-index:50;
+    height:100vh;height:100dvh;
+  }
+  .sidebar.open{transform:translateX(0)}
+  .hamburger{display:flex}
+  .sb-toggle-desktop{display:none}
+  .topbar{padding:0 14px;height:60px}
+  .content{padding:12px 10px 60px}
+  .page-header{flex-direction:column;align-items:stretch}
+  .page-header .actions{width:100%}
+  .page-header .actions .btn{flex:1;justify-content:center}
+  .dd-body{padding:16px 16px 100px}
+  .dd-actions{position:sticky;bottom:0;background:var(--bg-card);z-index:10;padding-bottom:14px}
+  .toast-stack{left:12px;right:12px;max-width:none;bottom:calc(20px + env(safe-area-inset-bottom,0))}
+}
+@media(max-width:480px){
+  .kpi .val{font-size:16px}
+  .dd-hero .amt{font-size:20px}
+  .dd-field .k{min-width:100px;font-size:11.5px}
+  .dd-field .v{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms!important;
+    transition-duration:.001ms!important;
+    scroll-behavior:auto!important;
+  }
 }
 </style>
 </head>
@@ -232,1103 +573,1454 @@ html.dark .modal .body textarea{background:rgba(255,255,255,.04);color:var(--tex
 <div class="app" id="appRoot">
 
 <aside class="sidebar" id="sidebar">
-    <div class="brand">
-        <img src="../images/miles.png" alt="" onerror="this.style.display='none'">
-        <div class="brand-text"><strong>MilesSpace</strong><span>Admin</span></div>
-        <button class="sb-collapse-btn" id="sbCollapseBtn"><i class="fas fa-angles-left"></i></button>
+  <div class="brand">
+    <img src="/images/miles.png" alt="" onerror="this.style.display='none'">
+    <div class="brand-text"><strong>MilesSpace</strong><span>Admin Console</span></div>
+    <button class="sb-collapse-btn" id="sbCollapseBtn" aria-label="Collapse sidebar" type="button">
+      <i class="fas fa-angles-left"></i>
+    </button>
+  </div>
+  <nav class="nav-scroll" id="navScroll" role="navigation" aria-label="Main navigation"></nav>
+  <div class="sidebar-foot" role="button" tabindex="0" id="sidebarFoot" aria-label="Account settings">
+    <div class="av" id="adminAvatar">AD</div>
+    <div class="who">
+      <strong id="adminName">Admin</strong>
+      <span id="adminRole">admin</span>
     </div>
-    <nav class="nav-scroll">
-        <div class="nav-group"><div class="nav-group-head"><span class="nav-label">Overview</span></div>
-            <div class="nav-items"><a href="/admin/dashboard" class="nav-item"><span class="ic">📊</span><span>Dashboard</span></a></div></div>
-        <div class="nav-group"><div class="nav-group-head"><span class="nav-label">Customers</span></div>
-            <div class="nav-items">
-                <a href="/admin/users" class="nav-item"><span class="ic">👥</span><span>Users</span></a>
-                <a href="/admin/support" class="nav-item"><span class="ic">💬</span><span>Support</span></a>
-            </div></div>
-        <div class="nav-group"><div class="nav-group-head"><span class="nav-label">Money</span></div>
-            <div class="nav-items">
-                <a href="/admin/transactions.html" class="nav-item"><span class="ic">💳</span><span>Transactions</span></a>
-                <a href="/admin/deposits.html" class="nav-item"><span class="ic">📥</span><span>Deposits</span></a>
-                <a href="/admin/ledger.html" class="nav-item"><span class="ic">📒</span><span>Ledger</span></a>
-                <a href="/admin/reconciliation.html" class="nav-item"><span class="ic">🔄</span><span>Reconciliation</span></a>
-            </div></div>
-        <div class="nav-group"><div class="nav-group-head"><span class="nav-label">Services</span></div>
-            <div class="nav-items">
-                <a href="/admin/sellgift.html" class="nav-item"><span class="ic">🎁</span><span>Gift Cards</span></a>
-                <a href="/admin/airtime-data.html" class="nav-item"><span class="ic">📶</span><span>Airtime &amp; Data</span></a>
-                <a href="/admin/bills.html" class="nav-item active"><span class="ic">🧾</span><span>Bills &amp; Utilities</span></a>
-                <a href="/admin/esim.html" class="nav-item"><span class="ic">📡</span><span>eSIM</span></a>
-                <a href="/admin/virtual-sms.html" class="nav-item"><span class="ic">📱</span><span>Virtual SMS</span></a>
-                <a href="/admin/boost.html" class="nav-item"><span class="ic">📈</span><span>Boost</span></a>
-                <a href="/admin/marketplace-products.html" class="nav-item"><span class="ic">📦</span><span>Marketplace</span></a>
-            </div></div>
-        <div class="nav-group"><div class="nav-group-head"><span class="nav-label">System</span></div>
-            <div class="nav-items"><a href="/admin/settings.html" class="nav-item"><span class="ic">⚙️</span><span>Settings</span></a></div></div>
-    </nav>
-    <div class="sidebar-foot">
-        <div class="av" id="adminAvatar">DA</div>
-        <div class="who"><strong id="adminName">Admin</strong><span id="adminRole">Admin</span></div>
-    </div>
+  </div>
 </aside>
-<div class="scrim" id="scrim"></div>
+<div class="scrim" id="scrim" aria-hidden="true"></div>
 
 <div class="main">
-    <header class="topbar">
-        <button class="hamburger" id="hamburger">☰</button>
-        <button class="sb-toggle-desktop" id="sbToggleDesktop"><i class="fas fa-bars"></i></button>
-        <div class="page-title">
-            <nav class="breadcrumb"><a href="/admin/dashboard.html">Home</a><span>/</span><span>Services</span><span>/</span><span>Bills &amp; Utilities</span></nav>
-            <h1>🧾 Bills &amp; Utilities</h1>
-        </div>
-        <button class="icon-btn" id="darkToggle" title="Toggle dark mode">🌙</button>
-    </header>
-
-    <div class="content">
-        <div class="page-header">
-            <div>
-                <h2>Bills &amp; Utilities Operations</h2>
-                <div class="sub">Electricity and Cable TV transactions. Airtime &amp; Data live on their own page.</div>
-            </div>
-            <div class="actions">
-                <button class="btn" id="refreshBtn"><i class="fas fa-rotate-right"></i> Refresh</button>
-            </div>
-        </div>
-
-        <div class="layout">
-            <aside class="side-menu" id="billsMenu">
-                <button class="item active" data-section="overview"><i class="fas fa-chart-pie" style="width:16px"></i> Overview</button>
-                <button class="item" data-section="orders"><i class="fas fa-receipt" style="width:16px"></i> Transactions</button>
-                <button class="item" data-section="electricity"><i class="fas fa-bolt" style="width:16px"></i> Electricity</button>
-                <button class="item" data-section="cable"><i class="fas fa-tv" style="width:16px"></i> Cable TV</button>
-                <button class="item" data-section="provider"><i class="fas fa-plug" style="width:16px"></i> Provider</button>
-                <button class="item" data-section="failures"><i class="fas fa-triangle-exclamation" style="width:16px"></i> Failures</button>
-            </aside>
-
-            <div class="panels">
-                <!-- OVERVIEW -->
-                <div class="panel active" id="panel-overview">
-                    <div class="kpi-grid">
-                        <div class="kpi"><div class="lbl">Total</div><div class="val" id="kpi-total">—</div></div>
-                        <div class="kpi"><div class="lbl">Completed</div><div class="val" id="kpi-completed" style="color:var(--success)">—</div></div>
-                        <div class="kpi"><div class="lbl">Pending</div><div class="val" id="kpi-pending" style="color:#b3720a">—</div></div>
-                        <div class="kpi"><div class="lbl">Failed</div><div class="val" id="kpi-failed" style="color:var(--danger)">—</div></div>
-                        <div class="kpi"><div class="lbl">Manual review</div><div class="val" id="kpi-review" style="color:var(--purple)">—</div></div>
-                        <div class="kpi"><div class="lbl">Today's transactions</div><div class="val" id="kpi-today">—</div></div>
-                        <div class="kpi"><div class="lbl">Today's revenue</div><div class="val" id="kpi-today-rev">—</div></div>
-                        <div class="kpi"><div class="lbl">Today's profit</div><div class="val" id="kpi-today-profit">—</div></div>
-                        <div class="kpi"><div class="lbl">Electricity</div><div class="val" id="kpi-electricity">—</div></div>
-                        <div class="kpi"><div class="lbl">Cable TV</div><div class="val" id="kpi-cable">—</div></div>
-                    </div>
-
-                    <div class="card">
-                        <h3>Recent bill transactions</h3>
-                        <div class="table-scroll">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Order</th>
-                                        <th>Customer</th>
-                                        <th>Category</th>
-                                        <th>Provider</th>
-                                        <th>Amount</th>
-                                        <th>Status</th>
-                                        <th>Created</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="recentBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ORDERS -->
-                <div class="panel" id="panel-orders">
-                    <div class="card">
-                        <h3>Bill transactions</h3>
-                        <div class="filters">
-                            <input type="search" id="fSearch" placeholder="Search reference, meter, smartcard, customer…">
-                            <select id="fCategory">
-                                <option value="all">All categories</option>
-                                <option value="electricity">Electricity</option>
-                                <option value="tv">Cable TV</option>
-                            </select>
-                            <select id="fStatus">
-                                <option value="all">All statuses</option>
-                                <option value="pending">Pending</option>
-                                <option value="processing">Processing</option>
-                                <option value="completed">Completed</option>
-                                <option value="failed">Failed</option>
-                                <option value="cancelled">Cancelled</option>
-                                <option value="manual_review">Manual review</option>
-                                <option value="refunded">Refunded</option>
-                            </select>
-                            <input type="date" id="fFrom">
-                            <input type="date" id="fTo">
-                            <button class="btn btn-primary" id="fApply"><i class="fas fa-filter"></i> Apply</button>
-                            <button class="btn" id="fClear">Clear</button>
-                        </div>
-                        <div class="table-scroll">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Order</th>
-                                        <th>Customer</th>
-                                        <th>Category</th>
-                                        <th>Recipient</th>
-                                        <th>Product</th>
-                                        <th>Amount</th>
-                                        <th>Fee</th>
-                                        <th>Profit</th>
-                                        <th>Status</th>
-                                        <th>Created</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="ordersBody"></tbody>
-                            </table>
-                        </div>
-                        <div class="pagination">
-                            <div id="ordersPageInfo">—</div>
-                            <div>
-                                <button id="ordersPrev" disabled>Previous</button>
-                                <button id="ordersNext" disabled>Next</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ELECTRICITY -->
-                <div class="panel" id="panel-electricity">
-                    <div class="card">
-                        <h3>Electricity providers (discos)</h3>
-                        <div class="hint">Static list served from VTpass. Fields come from the provider catalog.</div>
-                        <div class="table-scroll">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Disco</th>
-                                        <th>Code</th>
-                                        <th>Country</th>
-                                        <th>Meter types</th>
-                                        <th>Provider</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="elecBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- CABLE -->
-                <div class="panel" id="panel-cable">
-                    <div class="card">
-                        <h3>Cable TV providers</h3>
-                        <div class="table-scroll">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Provider</th>
-                                        <th>Code</th>
-                                        <th>Country</th>
-                                        <th>Provider</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="cableBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="card" id="packagesCard" style="display:none">
-                        <h3>Packages — <span id="packagesProvider"></span></h3>
-                        <div class="table-scroll">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Package</th>
-                                        <th>Code</th>
-                                        <th>Amount</th>
-                                        <th>Description</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="packagesBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- PROVIDER -->
-                <div class="panel" id="panel-provider">
-                    <div class="provider-grid" id="providerGrid">
-                        <div class="provider-card"><div class="empty-state"><span class="ic">⏳</span>Loading…</div></div>
-                    </div>
-                </div>
-
-                <!-- FAILURES -->
-                <div class="panel" id="panel-failures">
-                    <div class="card">
-                        <h3>Failed / manual-review bills</h3>
-                        <div class="table-scroll">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Order</th>
-                                        <th>Customer</th>
-                                        <th>Category</th>
-                                        <th>Amount</th>
-                                        <th>Status</th>
-                                        <th>Reason</th>
-                                        <th>Age</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="failuresBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <header class="topbar">
+    <button class="hamburger" id="hamburger" aria-label="Open navigation" type="button">
+      <i class="fas fa-bars"></i>
+    </button>
+    <button class="sb-toggle-desktop" id="sbToggleDesktop" aria-label="Toggle sidebar" type="button">
+      <i class="fas fa-bars"></i>
+    </button>
+    <div class="page-title">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="/admin/dashboard.html">Home</a>
+        <span>/</span>
+        <span>Services</span>
+        <span>/</span>
+        <span>Bills &amp; Utilities</span>
+      </nav>
+      <h1><i class="fas fa-file-invoice-dollar" style="color:var(--gold);margin-right:6px" aria-hidden="true"></i> Bills &amp; Utilities</h1>
     </div>
+    <button class="icon-btn" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode" type="button">
+      <i class="fas fa-moon"></i>
+    </button>
+  </header>
+
+  <div class="content">
+    <div class="page-header">
+      <div>
+        <h2>Bills &amp; Utilities</h2>
+        <div class="sub">Monitor, resolve, and reconcile VTpass bill payments — electricity, cable TV, and other utilities.</div>
+      </div>
+      <div class="actions">
+        <button class="btn" id="refreshBtn" type="button">
+          <i class="fas fa-rotate-right" aria-hidden="true"></i> Refresh
+        </button>
+      </div>
+    </div>
+
+    <div class="tabs-desktop" role="tablist" aria-label="Sections">
+      <button class="tab active" data-tab="overview" role="tab" aria-selected="true">
+        <i class="fas fa-chart-pie" aria-hidden="true"></i> Overview
+      </button>
+      <button class="tab" data-tab="transactions" role="tab" aria-selected="false">
+        <i class="fas fa-receipt" aria-hidden="true"></i> Transactions
+      </button>
+      <button class="tab" data-tab="attention" role="tab" aria-selected="false">
+        <i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Needs attention
+      </button>
+      <button class="tab" data-tab="electricity" role="tab" aria-selected="false">
+        <i class="fas fa-bolt" aria-hidden="true"></i> Electricity
+      </button>
+      <button class="tab" data-tab="cable" role="tab" aria-selected="false">
+        <i class="fas fa-tv" aria-hidden="true"></i> Cable TV
+      </button>
+      <button class="tab" data-tab="provider" role="tab" aria-selected="false">
+        <i class="fas fa-plug" aria-hidden="true"></i> Provider
+      </button>
+    </div>
+    <div class="tabs-mobile" role="tablist" aria-label="Sections">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="transactions">Transactions</button>
+      <button class="tab" data-tab="attention">Needs attention</button>
+      <button class="tab" data-tab="electricity">Electricity</button>
+      <button class="tab" data-tab="cable">Cable TV</button>
+      <button class="tab" data-tab="provider">Provider</button>
+    </div>
+
+    <section class="panel active" id="panel-overview" role="tabpanel">
+      <div class="kpi-grid" id="kpiGrid">
+        <div class="kpi"><div class="lbl">Total</div><div class="val" id="kpi-total"><span class="skel" style="width:60%"></span></div></div>
+        <div class="kpi"><div class="lbl">Completed</div><div class="val success" id="kpi-completed"><span class="skel" style="width:60%"></span></div></div>
+        <div class="kpi"><div class="lbl">Pending</div><div class="val" id="kpi-pending"><span class="skel" style="width:60%"></span></div></div>
+        <div class="kpi"><div class="lbl">Failed</div><div class="val danger" id="kpi-failed"><span class="skel" style="width:60%"></span></div></div>
+        <div class="kpi"><div class="lbl">Manual review</div><div class="val" id="kpi-manual"><span class="skel" style="width:60%"></span></div></div>
+        <div class="kpi"><div class="lbl">Refunded</div><div class="val" id="kpi-refunded"><span class="skel" style="width:60%"></span></div></div>
+        <div class="kpi"><div class="lbl">Today's count</div><div class="val" id="kpi-today"><span class="skel" style="width:60%"></span></div></div>
+        <div class="kpi"><div class="lbl">Today's revenue</div><div class="val" id="kpi-revenue"><span class="skel" style="width:60%"></span></div></div>
+        <div class="kpi"><div class="lbl">Today's profit</div><div class="val" id="kpi-profit"><span class="skel" style="width:60%"></span></div></div>
+                <div class="kpi">
+          <div>
+            <div class="lbl">VTpass balance</div>
+            <div class="val" id="kpi-balance"><span class="skel" style="width:60%"></span></div>
+          </div>
+          <div class="sub" id="kpi-balance-sub">&nbsp;</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Status breakdown</h3>
+        <div class="status-bar" id="statusBar" role="img" aria-label="Status breakdown">
+          <div style="flex:1;background:var(--border)"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Recent transactions</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Type</th>
+                <th>Customer</th>
+                <th>Recipient</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Age</th>
+              </tr>
+            </thead>
+            <tbody id="recentTbody">
+              <tr><td colspan="7"><div class="empty-state"><span class="ic"><i class="fas fa-circle-notch fa-spin"></i></span>Loading&hellip;</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-transactions" role="tabpanel">
+      <div class="card">
+        <h3>Transactions</h3>
+        <div class="filters" id="filtersBar">
+          <div class="filters-close">
+            <button class="btn btn-ghost" id="closeFilters" type="button" aria-label="Close filters">
+              <i class="fas fa-xmark"></i> Close
+            </button>
+          </div>
+          <input type="search" id="fSearch" placeholder="Search order ref, phone, meter, smartcard&hellip;" autocomplete="off">
+          <select id="fCategory">
+            <option value="">All categories</option>
+            <option value="electricity">Electricity</option>
+            <option value="tv">Cable TV</option>
+          </select>
+          <select id="fStatus">
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="processing">Processing</option>
+            <option value="provider_unknown">Provider unknown</option>
+            <option value="manual_review">Manual review</option>
+            <option value="completed">Completed</option>
+            <option value="failed">Failed</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="reversed">Reversed</option>
+            <option value="refunded">Refunded</option>
+          </select>
+          <input type="date" id="fFrom" aria-label="From date">
+          <input type="date" id="fTo" aria-label="To date">
+          <button class="btn btn-primary" id="applyFilters" type="button"><i class="fas fa-filter"></i> Apply</button>
+          <button class="btn" id="clearFilters" type="button">Clear</button>
+          <button class="btn" id="exportCsvBtn" type="button"><i class="fas fa-download"></i> Export</button>
+          <div class="chip-row" id="chipRow"></div>
+        </div>
+        <button class="btn filter-trigger" id="openFilters" type="button">
+          <i class="fas fa-filter"></i> Filters
+        </button>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Category</th>
+                <th>Customer</th>
+                <th>Recipient</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody id="ordersTbody">
+              <tr><td colspan="7"><div class="empty-state"><span class="ic"><i class="fas fa-circle-notch fa-spin"></i></span>Loading&hellip;</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <div id="pageInfo">&mdash;</div>
+          <div>
+            <select id="pageSize" aria-label="Page size">
+              <option value="25">25 / page</option>
+              <option value="50">50 / page</option>
+              <option value="100">100 / page</option>
+            </select>
+            <button id="prevPage" type="button" disabled>Previous</button>
+            <button id="nextPage" type="button" disabled>Next</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-attention" role="tabpanel">
+      <div class="card">
+        <h3>Needs attention</h3>
+        <div class="hint">Orders with age over 10 minutes, or flagged for manual review.</div>
+        <div class="dd-actions" id="bulkBar" style="display:none">
+          <span id="bulkCount" style="font-size:12.5px;color:var(--text-dim);align-self:center">0 selected</span>
+          <button class="btn btn-primary" id="bulkSyncBtn" type="button" disabled>
+            <i class="fas fa-sync"></i> Bulk sync
+          </button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="selectAll" aria-label="Select all"></th>
+                <th>Order</th>
+                <th>Customer</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Age</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="attentionTbody">
+              <tr><td colspan="7"><div class="empty-state"><span class="ic"><i class="fas fa-circle-notch fa-spin"></i></span>Loading&hellip;</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-electricity" role="tabpanel">
+      <div class="card">
+        <h3>Electricity providers</h3>
+        <div class="hint">Per-disco vending status. Enable or disable with confirmation.</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Provider</th>
+                <th>Code</th>
+                <th>Status</th>
+                <th>Enabled</th>
+              </tr>
+            </thead>
+            <tbody id="elecTbody">
+              <tr><td colspan="4"><div class="empty-state"><span class="ic"><i class="fas fa-circle-notch fa-spin"></i></span>Loading&hellip;</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-cable" role="tabpanel">
+      <div class="card">
+        <h3>Cable TV providers</h3>
+        <div class="hint">Per-provider subscription status.</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Provider</th>
+                <th>Code</th>
+                <th>Packages</th>
+                <th>Enabled</th>
+              </tr>
+            </thead>
+            <tbody id="cableTbody">
+              <tr><td colspan="4"><div class="empty-state"><span class="ic"><i class="fas fa-circle-notch fa-spin"></i></span>Loading&hellip;</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-provider" role="tabpanel">
+      <div class="provider-grid" id="providerGrid">
+        <div class="provider-card"><div class="empty-state"><span class="ic"><i class="fas fa-circle-notch fa-spin"></i></span>Loading&hellip;</div></div>
+      </div>
+    </section>
+  </div>
 </div>
 </div>
 
-<!-- DRAWER -->
 <div class="drawer-scrim" id="drawerScrim"></div>
-<aside class="drawer" id="drawer" role="dialog" aria-modal="true">
-    <div class="dd-head">
-        <div class="dd-ic" id="dIcon">🧾</div>
-        <div class="dd-titles"><h2 id="dTitle">Bill Order</h2><div class="dd-sub" id="dSub"></div></div>
-        <button class="dd-close" id="dClose">✕</button>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dTitle" tabindex="-1">
+  <div class="dd-head">
+    <div class="dd-ic" id="dIcon"><i class="fas fa-receipt"></i></div>
+    <div class="dd-titles">
+      <h2 id="dTitle">Bill Order</h2>
+      <div class="dd-sub" id="dSub"></div>
     </div>
-    <div class="dd-body" id="dBody"></div>
+    <button class="dd-close" id="dClose" aria-label="Close drawer" type="button">&#10005;</button>
+  </div>
+  <div class="dd-body" id="dBody"></div>
 </aside>
 
-<!-- MODAL -->
 <div class="modal-scrim" id="modalScrim">
-    <div class="modal" role="dialog" aria-modal="true">
-        <h3 id="mTitle">Action</h3>
-        <div class="body" id="mBody"></div>
-        <div class="foot">
-            <button class="btn" id="mCancel">Cancel</button>
-            <button class="btn btn-primary" id="mConfirm">Confirm</button>
-        </div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <h3 id="mTitle">Action</h3>
+    <div class="body" id="mBody"></div>
+    <div class="foot">
+      <button class="btn" id="mCancel" type="button">Cancel</button>
+      <button class="btn btn-primary" id="mConfirm" type="button">Confirm</button>
     </div>
+  </div>
 </div>
 
-<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+<div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
 
 <script>
 'use strict';
 
 const API = {
-    stats:           '/api/admin/bills/stats',
-    orders:          '/api/admin/bills/orders',
-    order:           id => `/api/admin/bills/orders/${encodeURIComponent(id)}`,
-    sync:            id => `/api/admin/bills/orders/${encodeURIComponent(id)}/sync`,
-    retry:           id => `/api/admin/bills/orders/${encodeURIComponent(id)}/retry`,
-    refund:          id => `/api/admin/bills/orders/${encodeURIComponent(id)}/refund`,
-    review:          id => `/api/admin/bills/orders/${encodeURIComponent(id)}/review`,
-    elecProviders:   '/api/admin/bills/electricity/providers',
-    cableProviders:  '/api/admin/bills/cable/providers',
-    cablePackages:   provider => `/api/admin/bills/cable/packages?provider=${encodeURIComponent(provider)}`,
-    providerHealth:  '/api/admin/bills/providers/health',
-    providerTest:    '/api/admin/bills/providers/health-check',
-    me:              '/api/admin/me'
+  stats:          '/api/admin/bills/stats',
+  orders:         '/api/admin/bills/orders',
+  order:          id => `/api/admin/bills/orders/${encodeURIComponent(id)}`,
+  sync:           id => `/api/admin/bills/orders/${encodeURIComponent(id)}/sync`,
+  retry:          id => `/api/admin/bills/orders/${encodeURIComponent(id)}/retry`,
+  refund:         id => `/api/admin/bills/orders/${encodeURIComponent(id)}/refund`,
+  review:         id => `/api/admin/bills/orders/${encodeURIComponent(id)}/review`,
+  elecProviders:  '/api/admin/bills/electricity/providers',
+  cableProviders: '/api/admin/bills/cable/providers',
+  cablePackages:  p => `/api/admin/bills/cable/packages?provider=${encodeURIComponent(p)}`,
+  health:         '/api/admin/bills/providers/health',
+  healthCheck:    '/api/admin/bills/providers/health-check',
+  me:             '/api/admin/me'
 };
 
-const CURRENCY_SYMBOLS = { NGN: '₦', USD: '$' };
+const CURRENCY_SYMBOLS = { NGN: '\u20A6', USD: '$' };
 
 const State = {
-    page: 1, limit: 25, totalPages: 1,
-    filters: {},
-    currentOrder: null
+  tab: 'overview',
+  orders: { page: 1, limit: 25, totalPages: 1, total: 0, rows: [] },
+  filters: { search: '', category: '', status: '', from: '', to: '' },
+  attention: { rows: [], selected: new Set() },
+  stats: null,
+  currentOrder: null
 };
 
 function escapeHtml(s) {
-    if (s === null || s === undefined) return '';
-    return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 function formatMoney(amount, currency) {
-    if (amount === null || amount === undefined || amount === '') return null;
-    const ccy = String(currency || '').toUpperCase();
-    const n = Number(amount);
-    if (!Number.isFinite(n)) return null;
-    const s = n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    return (CURRENCY_SYMBOLS[ccy] || (ccy ? ccy + ' ' : '')) + s;
+  if (amount === null || amount === undefined || amount === '') return '\u2014';
+  const ccy = String(currency || 'NGN').toUpperCase();
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return '\u2014';
+  const s = n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (CURRENCY_SYMBOLS[ccy] || (ccy + ' ')) + s;
 }
 function formatNumber(n) {
-    if (n === null || n === undefined || n === '') return null;
-    const num = Number(n);
-    return Number.isFinite(num) ? num.toLocaleString('en-US') : null;
+  if (n === null || n === undefined || n === '') return '\u2014';
+  const num = Number(n);
+  return Number.isFinite(num) ? num.toLocaleString('en-US') : '\u2014';
 }
 function timeAgo(iso) {
-    if (!iso) return '—';
-    const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-    if (s < 60) return 'just now';
-    if (s < 3600) return Math.floor(s / 60) + 'm ago';
-    if (s < 86400) return Math.floor(s / 3600) + 'h ago';
-    if (s < 604800) return Math.floor(s / 86400) + 'd ago';
-    return new Date(iso).toLocaleDateString();
+  if (!iso) return '\u2014';
+  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (!Number.isFinite(s) || s < 0) return '\u2014';
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  if (s < 604800) return Math.floor(s / 86400) + 'd ago';
+  return new Date(iso).toLocaleDateString();
 }
 function formatDateTime(iso) {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  if (!iso) return '\u2014';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '\u2014';
+  return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 function statusBadge(status) {
-    const s = String(status || '').toLowerCase();
-    if (s === 'completed') return 'success';
-    if (['failed','cancelled','reversed'].includes(s)) return 'danger';
-    if (s === 'refunded') return 'info';
-    if (s === 'manual_review') return 'purple';
-    if (['pending','processing','provider_unknown'].includes(s)) return 'warn';
-    return 'neutral';
+  const s = String(status || '').toLowerCase();
+  if (s === 'completed') return 'success';
+  if (s === 'failed' || s === 'cancelled' || s === 'reversed') return 'danger';
+  if (s === 'refunded') return 'info';
+  if (['pending','processing','provider_unknown'].includes(s)) return 'warn';
+  if (s === 'manual_review') return 'purple';
+  return 'neutral';
 }
-function categoryLabel(t) {
-    const s = String(t || '').toLowerCase();
-    if (s === 'electricity') return 'Electricity';
-    if (s === 'tv') return 'Cable TV';
-    return t || '—';
+function ageClass(iso) {
+  if (!iso) return '';
+  const mins = (Date.now() - new Date(iso).getTime()) / 60000;
+  if (mins < 10) return 'fresh';
+  if (mins < 60) return 'medium';
+  return 'old';
 }
-function showToast(msg, type = 'info') {
-    const stack = document.getElementById('toastStack');
-    if (!stack) return;
-    const el = document.createElement('div');
-    el.className = 'toast ' + type;
-    el.textContent = msg;
-    stack.appendChild(el);
-    setTimeout(() => el.remove(), 3400);
+function maskRecipient(value) {
+  const s = String(value || '').trim();
+  if (!s) return '\u2014';
+  if (s.length <= 4) return '****' + s.slice(-1);
+  const first = s.slice(0, Math.min(3, s.length - 3));
+  const last = s.slice(-3);
+  return first + '*'.repeat(Math.max(3, s.length - first.length - last.length)) + last;
+}
+function toast(msg, kind = 'info', ms = 3600) {
+  const stack = document.getElementById('toastStack');
+  if (!stack) return;
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  const icons = { success: 'fa-circle-check', error: 'fa-circle-xmark', warn: 'fa-triangle-exclamation', info: 'fa-circle-info' };
+  el.innerHTML = `<i class="fas ${icons[kind] || icons.info}" aria-hidden="true"></i><span>${escapeHtml(msg)}</span>`;
+  stack.appendChild(el);
+  setTimeout(() => el.remove(), ms);
+  while (stack.children.length > 5) stack.firstElementChild.remove();
+}
+function newIdempotencyKey() {
+  try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (_) {}
+  return 'ID-' + Date.now() + '-' + Math.random().toString(36).slice(2, 12);
+}
+function debounce(fn, ms) {
+  let t = null;
+  return function debounced(...args) {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, args), ms);
+  };
 }
 
 async function api(url, opts = {}) {
-    const startedAt = Date.now();
-    let res;
-    try { res = await AdminSession.fetch(url, opts); }
-    catch (e) { return { ok: false, status: 0, code: 'NETWORK_ERROR', error: 'Network error: ' + e.message, request_id: null, _debug: { url } }; }
-
-    let json = null, text = null;
-    try { text = await res.text(); } catch {}
-    try { json = text ? JSON.parse(text) : null; } catch {}
-
-    if (!res.ok || json?.success === false) {
-        return {
-            ok: false,
-            status: res.status,
-            code: json?.code || `HTTP_${res.status}`,
-            error: json?.message || json?.error || text || 'Request failed',
-            request_id: json?.request_id || res.headers.get('X-Request-ID') || null,
-            extra: json,
-            _debug: { url, status: res.status, durationMs: Date.now() - startedAt, body: json }
-        };
+  try {
+    if (!window.AdminSession || typeof window.AdminSession.fetch !== 'function') {
+      return { ok: false, status: 0, code: 'NO_SESSION', error: 'Session not loaded' };
     }
-    return { ok: true, data: json, _debug: { url, status: res.status, durationMs: Date.now() - startedAt } };
+    const res = await window.AdminSession.fetch(url, opts);
+    let json = null;
+    const ct = res.headers.get('content-type') || '';
+    if (ct.includes('application/json')) {
+      try { json = await res.json(); } catch (_) {}
+    }
+    if (!res.ok || (json && json.success === false)) {
+      return {
+        ok: false, status: res.status,
+        code: json?.code || ('HTTP_' + res.status),
+        error: json?.error || json?.message || 'Request failed',
+        request_id: json?.request_id || res.headers.get('X-Request-Id')
+      };
+    }
+    return { ok: true, status: res.status, data: json };
+  } catch (e) {
+    return { ok: false, status: 0, code: 'NETWORK_ERROR', error: e.message || 'Network error' };
+  }
 }
 
-function showSection(section) {
-    document.querySelectorAll('#billsMenu .item').forEach(el => {
-        el.classList.toggle('active', el.dataset.section === section);
+const NAV_GROUPS = [
+  { label: 'Overview', items: [
+    { href: '/admin/money-overview.html', icon: 'fa-chart-line', label: 'Money Overview' },
+    { href: '/admin/dashboard.html',      icon: 'fa-gauge-high', label: 'Dashboard' }
+  ]},
+  { label: 'Customers', items: [
+    { href: '/admin/users.html',   icon: 'fa-users',   label: 'Users' },
+    { href: '/admin/support.html', icon: 'fa-headset', label: 'Support' }
+  ]},
+  { label: 'Money', items: [
+    { href: '/admin/transactions.html',   icon: 'fa-arrow-right-arrow-left', label: 'Transactions' },
+    { href: '/admin/deposits.html',       icon: 'fa-circle-down',            label: 'Deposits' },
+    { href: '/admin/ledger.html',         icon: 'fa-book',                   label: 'Ledger' },
+    { href: '/admin/reconciliation.html', icon: 'fa-rotate',                 label: 'Reconciliation' }
+  ]},
+  { label: 'Services', items: [
+    { href: '/admin/sellgift.html',     icon: 'fa-gift',                label: 'Gift Cards' },
+    { href: '/admin/airtime-data.html', icon: 'fa-signal',              label: 'Airtime & Data' },
+    { href: '/admin/bills.html',        icon: 'fa-file-invoice-dollar', label: 'Bills & Utilities', active: true },
+    { href: '/admin/esim.html',         icon: 'fa-sim-card',            label: 'eSIM' },
+    { href: '/admin/virtual-sms.html',  icon: 'fa-mobile-screen',       label: 'Virtual SMS' },
+    { href: '/admin/boost.html',        icon: 'fa-arrow-trend-up',      label: 'Boost' }
+  ]},
+  { label: 'System', items: [
+    { href: '/admin/audit.html',    icon: 'fa-scroll', label: 'Audit Logs' },
+    { href: '/admin/settings.html', icon: 'fa-gear',   label: 'Settings' }
+  ]}
+];
+
+function renderNav() {
+  const c = document.getElementById('navScroll');
+  if (!c) return;
+  c.innerHTML = NAV_GROUPS.map(g => `
+    <span class="nav-label">${escapeHtml(g.label)}</span>
+    ${g.items.map(it => `
+      <a href="${escapeHtml(it.href)}" class="nav-item ${it.active ? 'active' : ''}" ${it.active ? 'aria-current="page"' : ''}>
+        <span class="ic"><i class="fas ${escapeHtml(it.icon)}" aria-hidden="true"></i></span>
+        <span>${escapeHtml(it.label)}</span>
+      </a>
+    `).join('')}
+  `).join('');
+}
+
+function initSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const scrim = document.getElementById('scrim');
+  const hbg = document.getElementById('hamburger');
+  const app = document.getElementById('appRoot');
+  if (!sidebar || !app) return;
+
+  const isMobile = () => window.matchMedia('(max-width: 900px)').matches;
+  const open = () => { if (!isMobile()) return; sidebar.classList.add('open'); scrim?.classList.add('show'); document.body.style.overflow = 'hidden'; };
+  const close = () => { sidebar.classList.remove('open'); scrim?.classList.remove('show'); document.body.style.overflow = ''; };
+  hbg?.addEventListener('click', () => sidebar.classList.contains('open') ? close() : open());
+  scrim?.addEventListener('click', close);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  window.addEventListener('resize', () => { if (!isMobile()) close(); });
+
+  const applyCollapsed = (v) => {
+    app.classList.toggle('sb-collapsed', v);
+    try { localStorage.setItem('ms_sb_collapsed', v ? '1' : '0'); } catch (_) {}
+  };
+  try { if (localStorage.getItem('ms_sb_collapsed') === '1') app.classList.add('sb-collapsed'); } catch (_) {}
+  document.getElementById('sbCollapseBtn')?.addEventListener('click', () => applyCollapsed(!app.classList.contains('sb-collapsed')));
+  document.getElementById('sbToggleDesktop')?.addEventListener('click', () => applyCollapsed(!app.classList.contains('sb-collapsed')));
+  document.getElementById('sidebarFoot')?.addEventListener('click', () => { window.location.href = '/admin/settings.html'; });
+}
+
+function initTheme() {
+  const stored = (() => { try { return localStorage.getItem('ms-theme'); } catch (_) { return null; } })();
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const dark = stored ? stored === 'dark' : prefersDark;
+  document.documentElement.classList.toggle('dark', dark);
+  const btn = document.getElementById('themeToggle');
+  if (btn) btn.innerHTML = `<i class="fas ${dark ? 'fa-sun' : 'fa-moon'}" aria-hidden="true"></i>`;
+  btn?.addEventListener('click', () => {
+    const isDark = !document.documentElement.classList.contains('dark');
+    document.documentElement.classList.toggle('dark', isDark);
+    try { localStorage.setItem('ms-theme', isDark ? 'dark' : 'light'); } catch (_) {}
+    btn.innerHTML = `<i class="fas ${isDark ? 'fa-sun' : 'fa-moon'}" aria-hidden="true"></i>`;
+  });
+}
+
+async function loadAdminIdentity() {
+  const res = await api(API.me);
+  const user = res.ok ? (res.data?.data?.user || res.data?.user) : null;
+  if (!user) return;
+  const name = user.username || user.name || user.email || 'Admin';
+  const role = user.role || 'admin';
+  const initial = String(name).trim().charAt(0).toUpperCase() || 'A';
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('adminName', name);
+  set('adminRole', role);
+  set('adminAvatar', initial);
+}
+
+function setTab(tab) {
+  State.tab = tab;
+  document.querySelectorAll('.tabs-desktop .tab, .tabs-mobile .tab').forEach(t => {
+    const active = t.dataset.tab === tab;
+    t.classList.toggle('active', active);
+    t.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + tab)?.classList.add('active');
+
+  if (tab === 'overview') loadStats();
+  if (tab === 'transactions') loadOrders();
+  if (tab === 'attention') loadAttention();
+  if (tab === 'electricity') loadElectricity();
+  if (tab === 'cable') loadCable();
+  if (tab === 'provider') loadProviderHealth();
+}
+function initTabs() {
+  document.querySelectorAll('.tabs-desktop .tab, .tabs-mobile .tab').forEach(t => {
+    t.addEventListener('click', () => setTab(t.dataset.tab));
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   OVERVIEW
+   ══════════════════════════════════════════════════════════════ */
+
+async function loadStats() {
+  const res = await api(API.stats);
+  if (!res.ok) {
+    document.querySelectorAll('#kpiGrid .val').forEach(el => {
+      el.innerHTML = `<span style="color:var(--text-faint);font-size:13px">Unavailable</span>`;
     });
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    const target = document.getElementById('panel-' + section);
-    if (target) target.classList.add('active');
+    const sub = document.getElementById('kpi-balance-sub');
+    if (sub) sub.textContent = res.error || '';
+    toast(res.error || 'Could not load stats', 'error');
+    return;
+  }
+  const s = res.data.stats || res.data.data?.stats || res.data.data || res.data || {};
+  State.stats = s;
 
-    if (section === 'orders')      loadOrders();
-    if (section === 'electricity') loadElectricity();
-    if (section === 'cable')       loadCable();
-    if (section === 'provider')    loadProvider();
-    if (section === 'failures')    loadFailures();
+  const set = (id, val, klass) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = escapeHtml(val);
+    el.className = 'val ' + (klass || '');
+  };
+
+  // Field names — match services/billsAdminService.js getStats() output.
+  set('kpi-total',     formatNumber(s.total));
+  set('kpi-completed', formatNumber(s.completed), 'success');
+  set('kpi-pending',   formatNumber(Number(s.pending || 0) + Number(s.processing || 0) + Number(s.provider_unknown || 0)));
+  set('kpi-failed',    formatNumber(Number(s.failed || 0) + Number(s.cancelled || 0) + Number(s.reversed || 0)), 'danger');
+  set('kpi-manual',    formatNumber(s.manual_review), '');
+  set('kpi-refunded',  formatNumber(s.refunded ?? 0), '');
+  set('kpi-today',     formatNumber(s.today_transactions));
+  set('kpi-revenue',   formatMoney(s.today_revenue, 'NGN'));
+  set('kpi-profit',    formatMoney(s.today_profit, 'NGN'));
+    set('kpi-balance',   s.vtpass_balance != null ? formatMoney(s.vtpass_balance, 'NGN') : '\u2014',
+                       s.vtpass_low ? 'warn' : '');
+
+  const sub = document.getElementById('kpi-balance-sub');
+  if (sub) {
+    if (s.vtpass_balance != null) {
+      sub.textContent = s.vtpass_low ? 'Below alert threshold' : 'Live VTpass balance';
+    } else {
+      sub.textContent = s.vtpass_balance_error || 'Not available on sandbox';
+    }
+  }
+
+  renderStatusBar(s);
+  loadRecent();
 }
 
-// ─── Overview ────────────────────────────────────────────────────
-async function loadOverview() {
-    const { ok, data } = await api(API.stats);
-    if (!ok) {
-        ['kpi-total','kpi-completed','kpi-pending','kpi-failed','kpi-review',
-         'kpi-today','kpi-today-rev','kpi-today-profit','kpi-electricity','kpi-cable']
-            .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '—'; });
-        return;
-    }
-    const s = data.stats || {};
-    const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ?? '—'; };
-
-    setText('kpi-total',      formatNumber(s.total));
-    setText('kpi-completed',  formatNumber(s.completed));
-    setText('kpi-pending',    formatNumber(s.pending));
-    setText('kpi-failed',     formatNumber(s.failed));
-    setText('kpi-review',     formatNumber(s.manual_review));
-    setText('kpi-today',      formatNumber(s.today_transactions));
-    setText('kpi-today-rev',  formatMoney(s.today_revenue, 'NGN'));
-    setText('kpi-today-profit', formatMoney(s.today_profit, 'NGN'));
-    setText('kpi-electricity', formatNumber(s.electricity_transactions));
-    setText('kpi-cable',      formatNumber(s.cable_transactions));
-
-    loadRecent();
+function renderStatusBar(s) {
+  const bar = document.getElementById('statusBar');
+  if (!bar) return;
+  const total = Number(s.total ?? 0);
+  const parts = [
+    { n: Number(s.completed ?? 0), cls: 'completed' },
+    { n: Number(s.pending ?? 0) + Number(s.processing ?? 0) + Number(s.provider_unknown ?? 0), cls: 'pending' },
+    { n: Number(s.failed ?? 0) + Number(s.cancelled ?? 0) + Number(s.reversed ?? 0), cls: 'failed' },
+    { n: Number(s.manual_review ?? 0), cls: 'manual' },
+    { n: Number(s.refunded ?? 0), cls: 'refunded' }
+  ];
+  if (!total || parts.every(p => !p.n)) {
+    bar.innerHTML = `<div style="flex:1;background:var(--border)"></div>`;
+    return;
+  }
+  bar.innerHTML = parts.map(p => {
+    const pct = total ? (p.n / total * 100) : 0;
+    return pct > 0
+      ? `<div class="${p.cls}" style="flex-basis:${pct}%;flex-grow:0">${p.n}</div>`
+      : '';
+  }).join('');
+  bar.setAttribute('aria-label', parts.map(p => `${p.cls}: ${p.n}`).join(', '));
 }
 
 async function loadRecent() {
-    const tb = document.getElementById('recentBody');
-    tb.innerHTML = `<tr><td colspan="7"><span class="skel" style="width:60%;display:inline-block"></span></td></tr>`;
-    const { ok, data } = await api(API.orders + '?limit=8');
-    if (!ok) {
-        tb.innerHTML = `<tr><td colspan="7"><div class="unavailable-box">Unable to load</div></td></tr>`;
-        return;
-    }
-    const rows = data.orders || [];
-    if (!rows.length) {
-        tb.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="ic">📭</span>No bill transactions yet</div></td></tr>`;
-        return;
-    }
-    tb.innerHTML = rows.map(o => `
-        <tr data-id="${escapeHtml(o.id)}">
-            <td><span class="mono" style="font-size:11px">${escapeHtml(o.reference)}</span></td>
-            <td>${escapeHtml(o.user?.username || '—')}</td>
-            <td>${escapeHtml(o.category)}</td>
-            <td>${escapeHtml(o.service_id || '—')}</td>
-            <td>${formatMoney(o.customer_amount, o.currency) || '—'}</td>
-            <td><span class="badge ${statusBadge(o.status)}">${escapeHtml(o.status)}</span></td>
-            <td title="${escapeHtml(formatDateTime(o.created_at))}">${escapeHtml(timeAgo(o.created_at))}</td>
-        </tr>
-    `).join('');
-    tb.querySelectorAll('tr[data-id]').forEach(tr => tr.addEventListener('click', () => openOrder(tr.dataset.id)));
+  const tb = document.getElementById('recentTbody');
+  if (!tb) return;
+  tb.innerHTML = Array.from({ length: 4 }).map(() =>
+    `<tr><td colspan="7"><span class="skel" style="width:70%"></span></td></tr>`
+  ).join('');
+  const res = await api(API.orders + '?page=1&limit=8');
+  if (!res.ok) {
+    tb.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="ic"><i class="fas fa-circle-exclamation"></i></span><div class="msg">Unable to load recent orders</div><button class="btn" onclick="loadStats()">Retry</button></div></td></tr>`;
+    return;
+  }
+  const rows = res.data.orders || res.data.data?.orders || [];
+  if (!rows.length) {
+    tb.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="ic"><i class="fas fa-inbox"></i></span>No bill orders yet</div></td></tr>`;
+    return;
+  }
+  tb.innerHTML = rows.map(o => `
+    <tr data-open="${escapeHtml(o.id)}" tabindex="0">
+      <td data-primary><span class="mono">${escapeHtml(o.reference || o.id?.slice(0,8) || '\u2014')}</span></td>
+      <td data-label="Type">${escapeHtml(o.category || o.service_type || '\u2014')}</td>
+      <td data-label="Customer">${escapeHtml(o.user?.username || o.user?.email || '\u2014')}</td>
+      <td data-label="Recipient">${escapeHtml(o.recipient_masked || maskRecipient(o.recipient || ''))}</td>
+      <td data-label="Amount">${formatMoney(o.customer_amount ?? o.amount, 'NGN')}</td>
+      <td data-status><span class="badge ${statusBadge(o.status)}">${escapeHtml(o.status || '\u2014')}</span></td>
+      <td data-label="Age" title="${escapeHtml(formatDateTime(o.created_at))}">${escapeHtml(timeAgo(o.created_at))}</td>
+    </tr>
+  `).join('');
+  tb.querySelectorAll('tr[data-open]').forEach(tr => {
+    tr.addEventListener('click', () => openOrder(tr.dataset.open));
+    tr.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openOrder(tr.dataset.open); }
+    });
+  });
 }
 
-// ─── Orders ──────────────────────────────────────────────────────
-function buildOrdersQuery() {
-    const q = new URLSearchParams();
-    q.set('page', State.page);
-    q.set('limit', State.limit);
-    const f = State.filters;
-    if (f.search) q.set('search', f.search);
-    if (f.category && f.category !== 'all') q.set('category', f.category);
-    if (f.status && f.status !== 'all') q.set('status', f.status);
-    if (f.from) q.set('from', f.from);
-    if (f.to) q.set('to', f.to);
-    return q.toString();
+/* ══════════════════════════════════════════════════════════════
+   TRANSACTIONS
+   ══════════════════════════════════════════════════════════════ */
+
+function buildQuery() {
+  const q = new URLSearchParams();
+  q.set('page', State.orders.page);
+  q.set('limit', State.orders.limit);
+  if (State.filters.search)   q.set('search', State.filters.search);
+  if (State.filters.category) q.set('category', State.filters.category);
+  if (State.filters.status)   q.set('status', State.filters.status);
+  if (State.filters.from)     q.set('from', State.filters.from);
+  if (State.filters.to)       q.set('to', State.filters.to);
+  return q.toString();
 }
 
 async function loadOrders() {
-    const tb = document.getElementById('ordersBody');
-    tb.innerHTML = `<tr><td colspan="10"><span class="skel" style="width:60%;display:inline-block"></span></td></tr>`;
-    const { ok, data, error } = await api(API.orders + '?' + buildOrdersQuery());
-    if (!ok) {
-        tb.innerHTML = `<tr><td colspan="10"><div class="unavailable-box">${escapeHtml(error)}<button onclick="loadOrders()">Retry</button></div></td></tr>`;
-        return;
-    }
-    const rows = data.orders || [];
-    State.totalPages = data.totalPages || 1;
-    if (!rows.length) {
-        tb.innerHTML = `<tr><td colspan="10"><div class="empty-state"><span class="ic">📭</span>No bill transactions match your filters</div></td></tr>`;
-        document.getElementById('ordersPageInfo').textContent = 'No results';
-        document.getElementById('ordersPrev').disabled = true;
-        document.getElementById('ordersNext').disabled = true;
-        return;
-    }
+  const tb = document.getElementById('ordersTbody');
+  if (!tb) return;
+  tb.innerHTML = Array.from({ length: 6 }).map(() =>
+    `<tr><td colspan="7"><span class="skel" style="width:60%"></span></td></tr>`
+  ).join('');
+
+  const res = await api(API.orders + '?' + buildQuery());
+  if (!res.ok) {
+    tb.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="ic"><i class="fas fa-circle-exclamation"></i></span><div class="msg">${escapeHtml(res.error || 'Failed to load')}</div><button class="btn" onclick="loadOrders()">Retry</button></div></td></tr>`;
+    return;
+  }
+  const rows = res.data.orders || res.data.data?.orders || [];
+  const count = res.data.count ?? res.data.data?.count ?? 0;
+  const totalPages = res.data.totalPages ?? res.data.data?.totalPages ?? 1;
+  State.orders.total = count;
+  State.orders.totalPages = totalPages;
+  State.orders.rows = rows;
+
+  if (!rows.length) {
+    tb.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="ic"><i class="fas fa-inbox"></i></span>No orders match your filters</div></td></tr>`;
+  } else {
     tb.innerHTML = rows.map(o => `
-        <tr data-id="${escapeHtml(o.id)}">
-            <td><span class="mono" style="font-size:11px">${escapeHtml(o.reference)}</span></td>
-            <td>${escapeHtml(o.user?.username || '—')}</td>
-            <td>${escapeHtml(o.category)}</td>
-            <td>${escapeHtml(o.recipient_masked || '—')}</td>
-            <td>${escapeHtml(o.variation_code || o.service_id || '—')}</td>
-            <td>${formatMoney(o.customer_amount, o.currency) || '—'}</td>
-            <td>${formatMoney(o.service_fee, o.currency) || '—'}</td>
-            <td>${formatMoney(o.profit, o.currency) || '—'}</td>
-            <td><span class="badge ${statusBadge(o.status)}">${escapeHtml(o.status)}</span></td>
-            <td title="${escapeHtml(formatDateTime(o.created_at))}">${escapeHtml(timeAgo(o.created_at))}</td>
-        </tr>
+      <tr data-open="${escapeHtml(o.id)}" tabindex="0">
+        <td data-primary><span class="mono">${escapeHtml(o.reference || o.id?.slice(0,8) || '\u2014')}</span></td>
+        <td data-label="Category">${escapeHtml(o.category || o.service_type || '\u2014')}</td>
+        <td data-label="Customer">${escapeHtml(o.user?.username || o.user?.email || '\u2014')}</td>
+        <td data-label="Recipient">${escapeHtml(o.recipient_masked || maskRecipient(o.recipient || ''))}</td>
+        <td data-label="Amount">${formatMoney(o.customer_amount ?? o.amount, 'NGN')}</td>
+        <td data-status><span class="badge ${statusBadge(o.status)}">${escapeHtml(o.status || '\u2014')}</span></td>
+        <td data-label="Created" title="${escapeHtml(formatDateTime(o.created_at))}">${escapeHtml(timeAgo(o.created_at))}</td>
+      </tr>
     `).join('');
-    tb.querySelectorAll('tr[data-id]').forEach(tr => tr.addEventListener('click', () => openOrder(tr.dataset.id)));
-    document.getElementById('ordersPageInfo').textContent =
-        `Showing ${(State.page - 1) * State.limit + 1}–${Math.min(State.page * State.limit, data.count)} of ${data.count}`;
-    document.getElementById('ordersPrev').disabled = State.page <= 1;
-    document.getElementById('ordersNext').disabled = State.page >= State.totalPages;
+    tb.querySelectorAll('tr[data-open]').forEach(tr => {
+      tr.addEventListener('click', () => openOrder(tr.dataset.open));
+      tr.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openOrder(tr.dataset.open); }
+      });
+    });
+  }
+
+  const start = count ? (State.orders.page - 1) * State.orders.limit + 1 : 0;
+  const end = Math.min(State.orders.page * State.orders.limit, count);
+  document.getElementById('pageInfo').textContent = count
+    ? `Showing ${start}\u2013${end} of ${formatNumber(count)}`
+    : 'No results';
+  document.getElementById('prevPage').disabled = State.orders.page <= 1;
+  document.getElementById('nextPage').disabled = State.orders.page >= totalPages;
+
+  renderFilterChips();
 }
 
-// ─── Electricity ─────────────────────────────────────────────────
+function renderFilterChips() {
+  const row = document.getElementById('chipRow');
+  if (!row) return;
+  const active = Object.entries(State.filters).filter(([, v]) => v);
+  row.innerHTML = active.map(([k, v]) => `
+    <span class="chip">
+      ${escapeHtml(k)}: ${escapeHtml(v)}
+      <button type="button" data-remove-filter="${escapeHtml(k)}" aria-label="Remove ${escapeHtml(k)} filter">
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </button>
+    </span>
+  `).join('');
+  row.querySelectorAll('[data-remove-filter]').forEach(b => {
+    b.addEventListener('click', () => {
+      const k = b.dataset.removeFilter;
+      State.filters[k] = '';
+      const id = 'f' + k.charAt(0).toUpperCase() + k.slice(1);
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+      State.orders.page = 1;
+      loadOrders();
+    });
+  });
+}
+
+function initFilters() {
+  const applyFilters = () => {
+    State.filters.search = (document.getElementById('fSearch').value || '').trim();
+    State.filters.category = document.getElementById('fCategory').value;
+    State.filters.status = document.getElementById('fStatus').value;
+    State.filters.from = document.getElementById('fFrom').value;
+    State.filters.to = document.getElementById('fTo').value;
+    State.orders.page = 1;
+    document.getElementById('filtersBar').classList.remove('open');
+    loadOrders();
+  };
+  document.getElementById('applyFilters')?.addEventListener('click', applyFilters);
+  document.getElementById('clearFilters')?.addEventListener('click', () => {
+    ['fSearch','fCategory','fStatus','fFrom','fTo'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    State.filters = { search: '', category: '', status: '', from: '', to: '' };
+    State.orders.page = 1;
+    loadOrders();
+  });
+  document.getElementById('fSearch')?.addEventListener('input',
+    debounce(() => { State.filters.search = document.getElementById('fSearch').value.trim(); State.orders.page = 1; loadOrders(); }, 300)
+  );
+  document.getElementById('openFilters')?.addEventListener('click', () => document.getElementById('filtersBar').classList.add('open'));
+  document.getElementById('closeFilters')?.addEventListener('click', () => document.getElementById('filtersBar').classList.remove('open'));
+  document.getElementById('pageSize')?.addEventListener('change', e => {
+    State.orders.limit = parseInt(e.target.value, 10) || 25;
+    State.orders.page = 1;
+    loadOrders();
+  });
+  document.getElementById('prevPage')?.addEventListener('click', () => {
+    if (State.orders.page > 1) { State.orders.page--; loadOrders(); }
+  });
+  document.getElementById('nextPage')?.addEventListener('click', () => {
+    if (State.orders.page < State.orders.totalPages) { State.orders.page++; loadOrders(); }
+  });
+  document.getElementById('exportCsvBtn')?.addEventListener('click', async () => {
+    const res = await api(API.orders + '?' + buildQuery() + '&limit=1000');
+    if (!res.ok) { toast(res.error || 'Export failed', 'error'); return; }
+    const rows = res.data.orders || res.data.data?.orders || [];
+    if (!rows.length) { toast('Nothing to export', 'warn'); return; }
+    const header = ['reference','category','customer','recipient','amount','status','created_at'];
+    const csv = [header.join(',')];
+    for (const r of rows) {
+      csv.push([
+        r.reference || '',
+        r.category || r.service_type || '',
+        r.user?.username || r.user?.email || '',
+        r.recipient_masked || '',
+        r.customer_amount ?? r.amount ?? '',
+        r.status || '',
+        r.created_at || ''
+      ].map(v => {
+        const s = String(v == null ? '' : v);
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      }).join(','));
+    }
+    const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `bills-${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    toast('CSV downloaded', 'success');
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   NEEDS ATTENTION
+   ══════════════════════════════════════════════════════════════ */
+
+async function loadAttention() {
+  const tb = document.getElementById('attentionTbody');
+  if (!tb) return;
+  tb.innerHTML = `<tr><td colspan="7"><span class="skel" style="width:50%"></span></td></tr>`;
+
+  const statuses = ['pending','processing','provider_unknown','manual_review'];
+  const results = await Promise.all(statuses.map(s => api(`${API.orders}?status=${s}&limit=100`)));
+  const rows = results.filter(r => r.ok).flatMap(r => r.data.orders || r.data.data?.orders || []);
+
+  rows.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+  State.attention.rows = rows;
+  State.attention.selected.clear();
+  updateBulkBar();
+
+  if (!rows.length) {
+    tb.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="ic"><i class="fas fa-circle-check" style="color:var(--success)"></i></span>All caught up — nothing needs attention.</div></td></tr>`;
+    return;
+  }
+
+  tb.innerHTML = rows.map(o => `
+    <tr data-id="${escapeHtml(o.id)}" tabindex="0">
+      <td><input type="checkbox" data-select="${escapeHtml(o.id)}" aria-label="Select order ${escapeHtml(o.reference || o.id)}"></td>
+      <td data-primary><span class="mono">${escapeHtml(o.reference || o.id?.slice(0,8))}</span></td>
+      <td data-label="Customer">${escapeHtml(o.user?.username || o.user?.email || '\u2014')}</td>
+      <td data-label="Amount">${formatMoney(o.customer_amount ?? o.amount, 'NGN')}</td>
+      <td data-status><span class="badge ${statusBadge(o.status)}">${escapeHtml(o.status || '\u2014')}</span></td>
+      <td><span class="age-badge ${ageClass(o.created_at)}">${escapeHtml(timeAgo(o.created_at))}</span></td>
+      <td>
+        <button class="btn btn-icon" data-sync="${escapeHtml(o.id)}" aria-label="Sync order">
+          <i class="fas fa-sync" aria-hidden="true"></i>
+        </button>
+      </td>
+    </tr>
+  `).join('');
+
+  tb.querySelectorAll('tr[data-id]').forEach(tr => {
+    tr.addEventListener('click', e => {
+      if (e.target.closest('input,button')) return;
+      openOrder(tr.dataset.id);
+    });
+    tr.addEventListener('keydown', e => {
+      if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('input,button')) {
+        e.preventDefault(); openOrder(tr.dataset.id);
+      }
+    });
+  });
+  tb.querySelectorAll('[data-select]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (cb.checked) State.attention.selected.add(cb.dataset.select);
+      else State.attention.selected.delete(cb.dataset.select);
+      updateBulkBar();
+    });
+  });
+  tb.querySelectorAll('[data-sync]').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      btn.disabled = true;
+      const r = await api(API.sync(btn.dataset.sync), { method: 'POST' });
+      btn.disabled = false;
+      if (r.ok) toast('Synced', 'success');
+      else toast(r.error || 'Sync failed', 'error');
+      loadAttention();
+    });
+  });
+  const selectAll = document.getElementById('selectAll');
+  if (selectAll) {
+    selectAll.onchange = () => {
+      tb.querySelectorAll('[data-select]').forEach(cb => {
+        cb.checked = selectAll.checked;
+        if (selectAll.checked) State.attention.selected.add(cb.dataset.select);
+        else State.attention.selected.delete(cb.dataset.select);
+      });
+      updateBulkBar();
+    };
+  }
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulkBar');
+  const count = document.getElementById('bulkCount');
+  const btn = document.getElementById('bulkSyncBtn');
+  const n = State.attention.selected.size;
+  if (!bar) return;
+  bar.style.display = n > 0 ? 'flex' : 'none';
+  if (count) count.textContent = `${n} selected`;
+  if (btn) btn.disabled = n === 0;
+}
+
+function initBulkSync() {
+  document.getElementById('bulkSyncBtn')?.addEventListener('click', async () => {
+    const ids = Array.from(State.attention.selected);
+    if (!ids.length) return;
+    const btn = document.getElementById('bulkSyncBtn');
+    btn.disabled = true;
+    let ok = 0, fail = 0;
+    for (const id of ids) {
+      const r = await api(API.sync(id), { method: 'POST' });
+      if (r.ok) ok++; else fail++;
+    }
+    toast(`Synced ${ok}, failed ${fail}`, fail ? 'warn' : 'success');
+    State.attention.selected.clear();
+    loadAttention();
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ELECTRICITY + CABLE
+   ══════════════════════════════════════════════════════════════ */
+
 async function loadElectricity() {
-    const tb = document.getElementById('elecBody');
-    tb.innerHTML = `<tr><td colspan="6"><div class="empty-state"><span class="ic">⏳</span>Loading…</div></td></tr>`;
-    const { ok, data } = await api(API.elecProviders);
-    if (!ok) {
-        tb.innerHTML = `<tr><td colspan="6"><div class="unavailable-box">Unable to load</div></td></tr>`;
-        return;
-    }
-    const rows = data.providers || [];
-    tb.innerHTML = rows.map(p => `
-        <tr>
-            <td><strong>${escapeHtml(p.name)}</strong></td>
-            <td><span class="mono" style="font-size:11px">${escapeHtml(p.id)}</span></td>
-            <td>${escapeHtml(p.country)}</td>
-            <td>${escapeHtml((p.meter_types || []).join(', '))}</td>
-            <td>${escapeHtml(p.provider)}</td>
-            <td><span class="badge ${p.enabled ? 'success' : 'neutral'}">${p.enabled ? 'Enabled' : 'Disabled'}</span></td>
-        </tr>
-    `).join('');
+  const tb = document.getElementById('elecTbody');
+  if (!tb) return;
+  tb.innerHTML = `<tr><td colspan="4"><span class="skel" style="width:40%"></span></td></tr>`;
+  const res = await api(API.elecProviders);
+  if (!res.ok) {
+    tb.innerHTML = `<tr><td colspan="4"><div class="empty-state"><span class="ic"><i class="fas fa-circle-exclamation"></i></span><div class="msg">${escapeHtml(res.error || 'Failed')}</div><button class="btn" onclick="loadElectricity()">Retry</button></div></td></tr>`;
+    return;
+  }
+  const providers = res.data.providers || res.data.data?.providers || [];
+  if (!providers.length) {
+    tb.innerHTML = `<tr><td colspan="4"><div class="empty-state"><span class="ic"><i class="fas fa-inbox"></i></span>No electricity providers</div></td></tr>`;
+    return;
+  }
+  tb.innerHTML = providers.map(p => `
+    <tr>
+      <td data-primary>${escapeHtml(p.name || p.label || p.code || '\u2014')}</td>
+      <td data-label="Code"><span class="mono">${escapeHtml(p.id || p.code || '\u2014')}</span></td>
+      <td data-label="Status"><span class="badge ${p.enabled !== false ? 'success' : 'neutral'}">${p.enabled !== false ? 'Enabled' : 'Disabled'}</span></td>
+      <td data-label="Toggle">
+        <label class="toggle">
+          <input type="checkbox" data-toggle="${escapeHtml(p.id || p.code)}" ${p.enabled !== false ? 'checked' : ''} aria-label="Toggle ${escapeHtml(p.name || p.code)}">
+          <span></span>
+        </label>
+      </td>
+    </tr>
+  `).join('');
+  tb.querySelectorAll('[data-toggle]').forEach(inp => {
+    inp.addEventListener('change', () => openToggleConfirm(inp.dataset.toggle, inp.checked, () => loadElectricity()));
+  });
 }
 
-// ─── Cable ───────────────────────────────────────────────────────
 async function loadCable() {
-    const tb = document.getElementById('cableBody');
-    tb.innerHTML = `<tr><td colspan="6"><div class="empty-state"><span class="ic">⏳</span>Loading…</div></td></tr>`;
-    const { ok, data } = await api(API.cableProviders);
-    if (!ok) {
-        tb.innerHTML = `<tr><td colspan="6"><div class="unavailable-box">Unable to load</div></td></tr>`;
-        return;
+  const tb = document.getElementById('cableTbody');
+  if (!tb) return;
+  tb.innerHTML = `<tr><td colspan="4"><span class="skel" style="width:40%"></span></td></tr>`;
+  const res = await api(API.cableProviders);
+  if (!res.ok) {
+    tb.innerHTML = `<tr><td colspan="4"><div class="empty-state"><span class="ic"><i class="fas fa-circle-exclamation"></i></span><div class="msg">${escapeHtml(res.error || 'Failed')}</div><button class="btn" onclick="loadCable()">Retry</button></div></td></tr>`;
+    return;
+  }
+  const providers = res.data.providers || res.data.data?.providers || [];
+  if (!providers.length) {
+    tb.innerHTML = `<tr><td colspan="4"><div class="empty-state"><span class="ic"><i class="fas fa-inbox"></i></span>No cable providers</div></td></tr>`;
+    return;
+  }
+  tb.innerHTML = providers.map(p => `
+    <tr>
+      <td data-primary>${escapeHtml(p.name || p.label || p.code || '\u2014')}</td>
+      <td data-label="Code"><span class="mono">${escapeHtml(p.id || p.code || '\u2014')}</span></td>
+      <td data-label="Packages">${escapeHtml(String(p.packages ?? p.package_count ?? '\u2014'))}</td>
+      <td data-label="Toggle">
+        <label class="toggle">
+          <input type="checkbox" data-toggle="${escapeHtml(p.id || p.code)}" ${p.enabled !== false ? 'checked' : ''} aria-label="Toggle ${escapeHtml(p.name || p.code)}">
+          <span></span>
+        </label>
+      </td>
+    </tr>
+  `).join('');
+  tb.querySelectorAll('[data-toggle]').forEach(inp => {
+    inp.addEventListener('change', () => openToggleConfirm(inp.dataset.toggle, inp.checked, () => loadCable()));
+  });
+}
+
+function openToggleConfirm(code, enabled, onDone) {
+  openModal({
+    title: enabled ? 'Enable provider' : 'Disable provider',
+    bodyHtml: `
+      <p class="note">${enabled ? 'Enabling this provider will allow new orders.' : 'Disabling this provider will block all new orders for it. Existing orders are not affected.'}</p>
+      <label for="toggleReason">Reason</label>
+      <textarea id="toggleReason" rows="3" placeholder="Why is this being changed?"></textarea>
+    `,
+    confirmLabel: enabled ? 'Enable' : 'Disable',
+    onConfirm: async () => {
+      const reason = document.getElementById('toggleReason').value.trim();
+      if (reason.length < 4) {
+        showModalError({ code: 'REASON_REQUIRED', error: 'Reason must be at least 4 characters.' });
+        return false;
+      }
+      const res = await api(`/api/admin/bills/services/${encodeURIComponent(code)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled, reason })
+      });
+      if (res.status === 404) {
+        toast('Feature not yet available — server returned 404', 'warn');
+        onDone();
+        return true;
+      }
+      if (!res.ok) { showModalError(res); return false; }
+      toast(`Provider ${enabled ? 'enabled' : 'disabled'}`, 'success');
+      onDone();
+      return true;
     }
-    const rows = data.providers || [];
-    tb.innerHTML = rows.map(p => `
-        <tr>
-            <td><strong>${escapeHtml(p.name)}</strong></td>
-            <td><span class="mono" style="font-size:11px">${escapeHtml(p.id)}</span></td>
-            <td>${escapeHtml(p.country)}</td>
-            <td>${escapeHtml(p.provider)}</td>
-            <td><span class="badge ${p.enabled ? 'success' : 'neutral'}">${p.enabled ? 'Enabled' : 'Disabled'}</span></td>
-            <td><button class="btn" data-packages="${escapeHtml(p.id)}"><i class="fas fa-list"></i> Packages</button></td>
-        </tr>
-    `).join('');
-    tb.querySelectorAll('[data-packages]').forEach(btn => {
-        btn.addEventListener('click', () => loadPackages(btn.dataset.packages));
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PROVIDER HEALTH
+   ══════════════════════════════════════════════════════════════ */
+
+async function loadProviderHealth() {
+  const grid = document.getElementById('providerGrid');
+  if (!grid) return;
+  grid.innerHTML = `<div class="provider-card"><div class="empty-state"><span class="ic"><i class="fas fa-circle-notch fa-spin"></i></span>Loading&hellip;</div></div>`;
+  const res = await api(API.health);
+  if (!res.ok) {
+    grid.innerHTML = `<div class="provider-card"><div class="empty-state"><span class="ic"><i class="fas fa-circle-exclamation"></i></span><div class="msg">${escapeHtml(res.error || 'Health unavailable')}</div><button class="btn" onclick="loadProviderHealth()">Retry</button></div></div>`;
+    return;
+  }
+  // Backend returns FLAT: { provider: 'vtpass', status: 'operational', reachable: true, ... }
+  const raw = res.data.health || res.data.data?.health || res.data;
+  const vtpass = raw.vtpass || raw.VTpass || (raw.provider === 'vtpass' ? raw : raw);
+  grid.innerHTML = renderProviderCard('vtpass', vtpass);
+
+  grid.querySelectorAll('[data-test]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Testing…';
+      const r = await api(API.healthCheck, { method: 'POST' });
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-heart-pulse"></i> Test health';
+      if (r.ok) { toast('Health check complete', 'success'); loadProviderHealth(); }
+      else toast(r.error || 'Health check failed', 'error');
     });
+  });
 }
 
-async function loadPackages(providerId) {
-    const card = document.getElementById('packagesCard');
-    const title = document.getElementById('packagesProvider');
-    const body = document.getElementById('packagesBody');
-    card.style.display = 'block';
-    title.textContent = providerId;
-    body.innerHTML = `<tr><td colspan="4"><div class="empty-state"><span class="ic">⏳</span>Loading…</div></td></tr>`;
-    const { ok, data, error } = await api(API.cablePackages(providerId));
-    if (!ok) {
-        body.innerHTML = `<tr><td colspan="4"><div class="unavailable-box">${escapeHtml(error)}</div></td></tr>`;
-        return;
-    }
-    const rows = data.packages || [];
-    if (!rows.length) {
-        body.innerHTML = `<tr><td colspan="4"><div class="empty-state">No packages</div></td></tr>`;
-        return;
-    }
-    body.innerHTML = rows.map(p => `
-        <tr>
-            <td><strong>${escapeHtml(p.name)}</strong></td>
-            <td><span class="mono" style="font-size:11px">${escapeHtml(p.variation_code)}</span></td>
-            <td>${formatMoney(p.amount, p.currency) || '—'}</td>
-            <td>${escapeHtml(p.description || '—')}</td>
-        </tr>
-    `).join('');
-}
-
-// ─── Provider ────────────────────────────────────────────────────
-async function loadProvider() {
-    const grid = document.getElementById('providerGrid');
-    grid.innerHTML = `<div class="provider-card"><div class="empty-state"><span class="ic">⏳</span>Loading…</div></div>`;
-    const { ok, data, error } = await api(API.providerHealth);
-    if (!ok) {
-        grid.innerHTML = `<div class="provider-card"><div class="unavailable-box">${escapeHtml(error)}</div></div>`;
-        return;
-    }
-    const h = data.health || {};
-    const cls = ['operational','degraded','unreachable','not_configured'].includes(h.status) ? h.status : '';
-    const statusText = {
-        operational: 'Operational', degraded: 'Degraded',
-        unreachable: 'Unreachable', not_configured: 'Not configured'
-    }[h.status] || 'Unknown';
-
-    grid.innerHTML = `
-        <div class="provider-card">
-            <div class="head">
-                <div>
-                    <h4>${escapeHtml(h.label || 'VTpass')}</h4>
-                    <div class="sub">${escapeHtml(h.category || 'Bills & Utilities')}</div>
-                </div>
-                <div><span class="status-dot-lg ${cls}"></span><strong>${escapeHtml(statusText)}</strong></div>
-            </div>
-            <div class="metric"><span class="k">Configured</span><span class="v">${h.configured ? '✓ Yes' : '✗ No'}</span></div>
-            <div class="metric"><span class="k">Reachable</span><span class="v">${h.reachable ? '✓ Yes' : '✗ No'}</span></div>
-            <div class="metric"><span class="k">Environment</span><span class="v">${escapeHtml(h.environment || '—')}</span></div>
-            <div class="metric"><span class="k">Latency</span><span class="v">${h.latencyMs != null ? escapeHtml(h.latencyMs + 'ms') : '—'}</span></div>
-            <div class="metric"><span class="k">Last success</span><span class="v">${h.lastSuccess ? escapeHtml(timeAgo(h.lastSuccess)) : '—'}</span></div>
-            <div class="metric"><span class="k">Last failure</span><span class="v">${h.lastFailure?.at ? escapeHtml(timeAgo(h.lastFailure.at)) : '—'}</span></div>
-            <div class="metric"><span class="k">Orders (24h)</span><span class="v">${formatNumber(h.recentCount) ?? '0'}</span></div>
-            ${h.lastError ? `<div class="metric"><span class="k">Last error</span><span class="v" style="color:var(--danger)">${escapeHtml(h.lastError)}</span></div>` : ''}
-            <div class="btn-row">
-                <button class="btn" id="testProviderBtn"><i class="fas fa-heart-pulse"></i> Test health</button>
-            </div>
+function renderProviderCard(key, h) {
+  const status = h.status
+    || (h.reachable === true ? 'operational'
+    : (h.configured === false ? 'not_configured' : 'unreachable'));
+  const cls = ['operational','degraded','unreachable','not_configured'].includes(status) ? status : 'unreachable';
+  const label = { operational: 'Operational', degraded: 'Degraded', unreachable: 'Unreachable', not_configured: 'Not configured' }[cls] || 'Unknown';
+  const name = key === 'vtpass' ? 'VTpass' : 'DT One';
+  const sub = key === 'vtpass' ? 'Nigeria bills & airtime' : 'Global airtime';
+  return `
+    <div class="provider-card">
+      <div class="head">
+        <div>
+          <h4>${escapeHtml(name)}</h4>
+          <div class="sub">${escapeHtml(sub)}</div>
         </div>
-    `;
-    document.getElementById('testProviderBtn')?.addEventListener('click', async () => {
-        const btn = document.getElementById('testProviderBtn');
-        btn.disabled = true;
-        const res = await api(API.providerTest, { method: 'POST' });
-        btn.disabled = false;
-        if (!res.ok) { showToast(res.error || 'Health check failed', 'error'); return; }
-        const ok2 = !!res.data.connectivity;
-        showToast(`Health check: ${ok2 ? 'reachable' : 'unreachable'}`, ok2 ? 'success' : 'error');
-        loadProvider();
-    });
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="status-dot-lg ${cls}"></span>
+          <strong style="font-size:12px">${escapeHtml(label)}</strong>
+        </div>
+      </div>
+      <div class="metric"><span class="k">Environment</span><span class="v">${escapeHtml(h.environment || '\u2014')}</span></div>
+      <div class="metric"><span class="k">Latency</span><span class="v">${h.latencyMs != null ? escapeHtml(h.latencyMs + ' ms') : '\u2014'}</span></div>
+      <div class="metric"><span class="k">Last success</span><span class="v">${h.lastSuccess ? escapeHtml(timeAgo(h.lastSuccess)) : '\u2014'}</span></div>
+      <div class="metric"><span class="k">Last failure</span><span class="v">${h.lastFailure?.at ? escapeHtml(timeAgo(h.lastFailure.at)) : '\u2014'}</span></div>
+      <div class="metric"><span class="k">Orders 24h</span><span class="v">${formatNumber(h.recentCount)}</span></div>
+      <div class="metric"><span class="k">Wallet balance</span><span class="v">${h.balance != null ? formatMoney(h.balance, key === 'vtpass' ? 'NGN' : 'USD') : '\u2014'}</span></div>
+      ${h.lastError ? `<div class="metric"><span class="k">Last error</span><span class="v" style="color:var(--danger)">${escapeHtml(h.lastError)}</span></div>` : ''}
+      <div class="btn-row">
+        <button class="btn" data-test="${escapeHtml(key)}" type="button"><i class="fas fa-heart-pulse"></i> Test health</button>
+      </div>
+    </div>
+  `;
 }
 
-// ─── Failures ────────────────────────────────────────────────────
-async function loadFailures() {
-    const tb = document.getElementById('failuresBody');
-    tb.innerHTML = `<tr><td colspan="8"><div class="empty-state"><span class="ic">⏳</span>Loading…</div></td></tr>`;
-    const [failedRes, reviewRes] = await Promise.all([
-        api(API.orders + '?status=failed&limit=100'),
-        api(API.orders + '?status=manual_review&limit=100')
-    ]);
-    const rows = [
-        ...(failedRes.ok ? failedRes.data.orders : []),
-        ...(reviewRes.ok ? reviewRes.data.orders : [])
-    ];
-    if (!rows.length) {
-        tb.innerHTML = `<tr><td colspan="8"><div class="empty-state"><span class="ic">✅</span>No failed or manual-review bills</div></td></tr>`;
-        return;
-    }
-    tb.innerHTML = rows.map(o => `
-        <tr data-id="${escapeHtml(o.id)}">
-            <td><span class="mono" style="font-size:11px">${escapeHtml(o.reference)}</span></td>
-            <td>${escapeHtml(o.user?.username || '—')}</td>
-            <td>${escapeHtml(o.category)}</td>
-            <td>${formatMoney(o.customer_amount, o.currency) || '—'}</td>
-            <td><span class="badge ${statusBadge(o.status)}">${escapeHtml(o.status)}</span></td>
-            <td style="max-width:260px">${escapeHtml(o.failure_reason || '—')}</td>
-            <td>${escapeHtml(timeAgo(o.created_at))}</td>
-            <td><button class="btn" data-open="${escapeHtml(o.id)}"><i class="fas fa-eye"></i> View</button></td>
-        </tr>
-    `).join('');
-    tb.querySelectorAll('[data-open]').forEach(btn => btn.addEventListener('click', () => openOrder(btn.dataset.open)));
-}
-
-// ─── Drawer ──────────────────────────────────────────────────────
-function openDrawer() {
-    document.getElementById('drawer').classList.add('open');
-    document.getElementById('drawerScrim').classList.add('show');
-}
-function closeDrawer() {
-    document.getElementById('drawer').classList.remove('open');
-    document.getElementById('drawerScrim').classList.remove('show');
-    State.currentOrder = null;
-}
+/* ══════════════════════════════════════════════════════════════
+   DRAWER
+   ══════════════════════════════════════════════════════════════ */
 
 async function openOrder(id) {
-    document.getElementById('dIcon').textContent = '🧾';
-    document.getElementById('dTitle').textContent = 'Loading…';
-    document.getElementById('dSub').textContent = '';
-    document.getElementById('dBody').innerHTML = '<div class="dd-empty">Loading…</div>';
-    openDrawer();
-    const res = await api(API.order(id));
-    if (!res.ok) {
-        document.getElementById('dBody').innerHTML = `
-            <div class="modal-error show" style="margin:0">
-                <div class="head"><i class="fas fa-circle-exclamation"></i> Failed to load</div>
-                <div class="code">${escapeHtml(res.code || 'UNKNOWN')}</div>
-                <div class="message">${escapeHtml(res.error || '—')}</div>
-                ${res.request_id ? `<div class="rid">request_id: ${escapeHtml(res.request_id)}</div>` : ''}
-            </div>`;
-        return;
-    }
-    State.currentOrder = res.data.order;
-    renderOrder(res.data);
+  const drawer = document.getElementById('drawer');
+  const scrim = document.getElementById('drawerScrim');
+  const body = document.getElementById('dBody');
+  document.getElementById('dTitle').textContent = 'Loading\u2026';
+  document.getElementById('dSub').textContent = '';
+  body.innerHTML = `<div class="dd-empty">Loading order\u2026</div>`;
+  drawer.classList.add('open');
+  scrim.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  drawer.focus();
+
+  const res = await api(API.order(id));
+  if (!res.ok) {
+    body.innerHTML = `<div class="empty-state"><span class="ic"><i class="fas fa-circle-exclamation"></i></span><div class="msg">${escapeHtml(res.error || 'Unable to load order')}</div><button class="btn" onclick="openOrder('${escapeHtml(id)}')">Retry</button></div>`;
+    return;
+  }
+  State.currentOrder = res.data;
+  renderOrder(res.data);
+}
+
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawerScrim').classList.remove('show');
+  document.body.style.overflow = '';
+  State.currentOrder = null;
 }
 
 function renderOrder(payload) {
-    const o = payload.order;
-    const u = payload.user;
-    const svc = payload.service_detail || {};
-    const tx = payload.transaction;
-    const refund = payload.refund_transaction;
-    const led = payload.ledger_entries || [];
-    const timeline = payload.timeline || [];
+  const o = payload.order || payload.data?.order || {};
+  const user = payload.user || payload.data?.user;
+  const service = payload.service_detail || payload.data?.service_detail || {};
+  const tx = payload.transaction || payload.data?.transaction;
+  const ledger = payload.ledger_entries || payload.data?.ledger_entries || [];
+  const timeline = payload.timeline || payload.data?.timeline || [];
 
-    document.getElementById('dTitle').textContent = o.reference;
-    document.getElementById('dSub').textContent = `${o.category} · ${o.service_id || ''}`;
+  document.getElementById('dIcon').innerHTML = `<i class="fas ${o.category === 'electricity' || o.service_type === 'electricity' ? 'fa-bolt' : 'fa-tv'}"></i>`;
+  document.getElementById('dTitle').textContent = o.reference || 'Bill Order';
+  document.getElementById('dSub').textContent = `${o.category || o.service_type || ''} \u00B7 ${o.provider || ''} \u00B7 ${formatDateTime(o.created_at)}`;
 
-    const amt = formatMoney(o.customer_amount, o.currency) || '—';
+  const amt = formatMoney(o.customer_amount ?? o.amount, 'NGN');
+  const hero = `
+    <div class="dd-hero">
+      <div>
+        <div class="amt">${amt}</div>
+        <div class="meta">${escapeHtml(o.provider || '')} \u00B7 ${escapeHtml(o.recipient_masked || maskRecipient(o.recipient || ''))}</div>
+      </div>
+      <div style="text-align:right">
+        <span class="badge ${statusBadge(o.status)}" style="font-size:11.5px;padding:4px 12px">${escapeHtml(o.status || '\u2014')}</span>
+        <div class="meta" style="margin-top:6px">${escapeHtml(timeAgo(o.created_at))}</div>
+      </div>
+    </div>`;
 
-    const hero = `
-        <div class="dd-hero">
-            <div>
-                <div class="amt">${escapeHtml(amt)}</div>
-                <div class="meta">${escapeHtml(o.category)} · ${escapeHtml(o.service_id || '')}</div>
-            </div>
-            <div style="text-align:right">
-                <span class="badge ${statusBadge(o.status)}" style="font-size:11.5px;padding:4px 12px">${escapeHtml(o.status)}</span>
-                <div class="meta" style="margin-top:6px">${escapeHtml(formatDateTime(o.created_at))}</div>
-            </div>
-        </div>`;
+  const actions = buildActions(o);
 
-    const actions = buildActions(o);
+  const customer = `
+    <div class="dd-section">
+      <h4>Customer</h4>
+      <div class="dd-field"><span class="k">Username</span><span class="v">${escapeHtml(user?.username || '\u2014')}</span></div>
+      <div class="dd-field"><span class="k">Email</span><span class="v">${escapeHtml(user?.email || '\u2014')}</span></div>
+      <div class="dd-field"><span class="k">Recipient</span><span class="v mono">${escapeHtml(o.recipient_masked || maskRecipient(o.recipient || ''))}</span></div>
+    </div>`;
 
-    const customer = `
-        <div class="dd-section">
-            <h4>Customer</h4>
-            <div class="dd-field"><span class="k">Username</span><span class="v">${escapeHtml(u?.username || '—')}</span></div>
-            <div class="dd-field"><span class="k">Email</span><span class="v">${escapeHtml(u?.email || '—')}</span></div>
-        </div>`;
+  let serviceSection = '';
+  if (o.service_type === 'electricity') {
+    serviceSection = `
+      <div class="dd-section">
+        <h4>Electricity</h4>
+        <div class="dd-field"><span class="k">Disco</span><span class="v">${escapeHtml(service.disco || o.service_id || '\u2014')}</span></div>
+        <div class="dd-field"><span class="k">Meter</span><span class="v mono">${escapeHtml(service.meter_number_masked || '\u2014')}</span></div>
+        <div class="dd-field"><span class="k">Meter type</span><span class="v">${escapeHtml(service.meter_type || '\u2014')}</span></div>
+        <div class="dd-field"><span class="k">Customer name</span><span class="v">${escapeHtml(service.customer_name || '\u2014')}</span></div>
+        <div class="dd-field"><span class="k">Address</span><span class="v">${escapeHtml(service.customer_address || '\u2014')}</span></div>
+        ${service.units ? `<div class="dd-field"><span class="k">Units</span><span class="v">${escapeHtml(String(service.units))}</span></div>` : ''}
+        ${service.token ? `<div class="dd-field" style="flex-direction:column;gap:4px"><span class="k">Token</span><div class="token-block" style="width:100%;margin-top:4px"><span class="val mono">${escapeHtml(service.token)}</span><button class="copy-btn" onclick="copyToClipboard('${escapeHtml(service.token)}')">Copy</button></div></div>` : ''}
+      </div>`;
+  } else if (o.service_type === 'tv') {
+    serviceSection = `
+      <div class="dd-section">
+        <h4>Cable TV</h4>
+        <div class="dd-field"><span class="k">Provider</span><span class="v">${escapeHtml(service.provider || o.service_id || '\u2014')}</span></div>
+        <div class="dd-field"><span class="k">Smartcard</span><span class="v mono">${escapeHtml(service.smartcard_masked || '\u2014')}</span></div>
+        <div class="dd-field"><span class="k">Package</span><span class="v">${escapeHtml(service.package || '\u2014')}</span></div>
+        <div class="dd-field"><span class="k">Current package</span><span class="v">${escapeHtml(service.current_package || '\u2014')}</span></div>
+        <div class="dd-field"><span class="k">Type</span><span class="v">${escapeHtml(service.subscription_type || '\u2014')}</span></div>
+      </div>`;
+  }
 
-    const service = o.service_type === 'electricity' ? `
-        <div class="dd-section">
-            <h4>Electricity</h4>
-            <div class="dd-field"><span class="k">Disco</span><span class="v">${escapeHtml(svc.disco || '—')}</span></div>
-            <div class="dd-field"><span class="k">Meter number</span><span class="v mono">${escapeHtml(svc.meter_number_masked || '—')}</span></div>
-            <div class="dd-field"><span class="k">Meter type</span><span class="v">${escapeHtml(svc.meter_type || '—')}</span></div>
-            <div class="dd-field"><span class="k">Customer name</span><span class="v">${escapeHtml(svc.customer_name || '—')}</span></div>
-            <div class="dd-field"><span class="k">Address</span><span class="v">${escapeHtml(svc.customer_address || '—')}</span></div>
-            ${svc.token ? `<div class="dd-field"><span class="k">Token</span><span class="v mono">${escapeHtml(svc.token)}</span></div>` : ''}
-            ${svc.units ? `<div class="dd-field"><span class="k">Units</span><span class="v">${escapeHtml(svc.units)}</span></div>` : ''}
-        </div>` : `
-        <div class="dd-section">
-            <h4>Cable TV</h4>
-            <div class="dd-field"><span class="k">Provider</span><span class="v">${escapeHtml(svc.provider || '—')}</span></div>
-            <div class="dd-field"><span class="k">Smartcard</span><span class="v mono">${escapeHtml(svc.smartcard_masked || '—')}</span></div>
-            <div class="dd-field"><span class="k">Package</span><span class="v">${escapeHtml(svc.package || '—')}</span></div>
-            <div class="dd-field"><span class="k">Current package</span><span class="v">${escapeHtml(svc.current_package || '—')}</span></div>
-            <div class="dd-field"><span class="k">Subscription</span><span class="v">${escapeHtml(svc.subscription_type || '—')}</span></div>
-        </div>`;
+  const providerSection = `
+    <div class="dd-section">
+      <h4>Provider</h4>
+      <div class="dd-field"><span class="k">Provider</span><span class="v">${escapeHtml(o.provider || '\u2014')}</span></div>
+      <div class="dd-field"><span class="k">Request ID</span><span class="v mono">${escapeHtml(o.provider_request_id || '\u2014')}</span></div>
+      <div class="dd-field"><span class="k">Transaction ID</span><span class="v mono">${escapeHtml(o.provider_transaction_id || '\u2014')}</span></div>
+      <div class="dd-field"><span class="k">Provider status</span><span class="v">${escapeHtml(o.provider_status || '\u2014')}</span></div>
+      <div class="dd-field"><span class="k">Provider code</span><span class="v mono">${escapeHtml(o.provider_code || '\u2014')}</span></div>
+      <div class="dd-field"><span class="k">Last check</span><span class="v">${escapeHtml(timeAgo(o.last_reconciliation_at))}</span></div>
+    </div>`;
 
-    const provider = `
-        <div class="dd-section">
-            <h4>Provider</h4>
-            <div class="dd-field"><span class="k">Provider</span><span class="v">${escapeHtml(o.provider)}</span></div>
-            <div class="dd-field"><span class="k">Request ID</span><span class="v mono">${escapeHtml(o.provider_request_id || '—')}</span></div>
-            <div class="dd-field"><span class="k">Transaction ID</span><span class="v mono">${escapeHtml(o.provider_transaction_id || '—')}</span></div>
-            <div class="dd-field"><span class="k">Provider status</span><span class="v">${escapeHtml(o.provider_status || '—')}</span></div>
-            <div class="dd-field"><span class="k">Provider code</span><span class="v mono">${escapeHtml(o.provider_code || '—')}</span></div>
-            ${o.failure_reason ? `<div class="dd-field"><span class="k">Failure reason</span><span class="v" style="color:var(--danger)">${escapeHtml(o.failure_reason)}</span></div>` : ''}
-        </div>`;
+  const financial = (tx && o.status === 'completed') ? `
+    <div class="dd-section">
+      <h4>Financial</h4>
+      <div class="dd-field"><span class="k">Amount</span><span class="v">${formatMoney(tx.amount, 'NGN')}</span></div>
+      <div class="dd-field"><span class="k">Provider cost</span><span class="v">${formatMoney(o.provider_amount, 'NGN')}</span></div>
+      <div class="dd-field"><span class="k">Profit</span><span class="v" style="color:var(--success)">${formatMoney(o.profit, 'NGN')}</span></div>
+    </div>` : '';
 
-    const financial = `
-        <div class="dd-section">
-            <h4>Financial</h4>
-            <div class="dd-field"><span class="k">Base amount</span><span class="v">${formatMoney(o.base_amount, o.currency) || '—'}</span></div>
-            <div class="dd-field"><span class="k">Service fee</span><span class="v">${formatMoney(o.service_fee, o.currency) || '—'}</span></div>
-            <div class="dd-field"><span class="k">Total charged</span><span class="v">${formatMoney(o.customer_amount, o.currency) || '—'}</span></div>
-            <div class="dd-field"><span class="k">Provider cost</span><span class="v">${formatMoney(o.provider_amount, o.currency) || '—'}</span></div>
-            <div class="dd-field"><span class="k">Profit</span><span class="v">${formatMoney(o.profit, o.currency) || '—'}</span></div>
-            ${tx ? `<div class="dd-field"><span class="k">Ledger tx</span><span class="v mono">${escapeHtml(tx.id)}</span></div>` : ''}
-            ${refund ? `<div class="dd-field"><span class="k">Refund</span><span class="v">${formatMoney(refund.amount, refund.currency) || '—'}</span></div>` : ''}
-        </div>`;
+  const ledgerSection = ledger.length ? `
+    <div class="dd-section">
+      <h4>Ledger</h4>
+      ${ledger.map(e => `<div class="dd-field"><span class="k">${escapeHtml(e.entry_type || '')}</span><span class="v">${formatMoney(e.amount, 'NGN')} &middot; after ${formatMoney(e.balance_after, 'NGN')}</span></div>`).join('')}
+    </div>` : '';
 
-    const ledger = led.length ? `
-        <div class="dd-section">
-            <h4>Ledger</h4>
-            ${led.map(e => `
-                <div class="dd-field">
-                    <span class="k">${escapeHtml(e.entry_type || '')} ${escapeHtml(e.currency || '')}</span>
-                    <span class="v">${formatMoney(e.amount, e.currency) || '—'} · after ${formatMoney(e.balance_after, e.currency) || '—'}</span>
-                </div>
-            `).join('')}
-        </div>` : '';
+  const timelineSection = timeline.length ? `
+    <div class="dd-section">
+      <h4>Timeline</h4>
+      <div class="timeline">
+        ${timeline.map(t => `<div class="t-item"><div class="label">${escapeHtml(t.label || '')}</div><div class="when">${escapeHtml(formatDateTime(t.at))}</div></div>`).join('')}
+      </div>
+    </div>` : '';
 
-    const timelineSection = timeline.length ? `
-        <div class="dd-section">
-            <h4>Timeline</h4>
-            <div class="timeline">
-                ${timeline.map(t => `
-                    <div class="t-item">
-                        <div class="label">${escapeHtml(t.label)}</div>
-                        <div class="when">${escapeHtml(formatDateTime(t.at))}</div>
-                    </div>
-                `).join('')}
-            </div>
-        </div>` : '';
+  const rawSection = `
+    <div class="dd-section">
+      <button class="debug-toggle" onclick="this.nextElementSibling.classList.toggle('show')" type="button"><i class="fas fa-code"></i> Raw response</button>
+      <pre class="debug-panel">${escapeHtml(JSON.stringify(payload, null, 2))}</pre>
+    </div>`;
 
-    const debugSection = `
-        <div class="dd-section">
-            <button class="debug-toggle" id="debugToggle"><i class="fas fa-code"></i> Show raw response</button>
-            <pre class="debug-panel" id="debugPanel"></pre>
-        </div>`;
+  document.getElementById('dBody').innerHTML =
+    hero + actions + customer + serviceSection + providerSection +
+    financial + ledgerSection + timelineSection + rawSection;
 
-    document.getElementById('dBody').innerHTML =
-        hero + actions + customer + service + provider + financial + ledger + timelineSection + debugSection;
-
-    document.getElementById('debugToggle')?.addEventListener('click', () => {
-        const dp = document.getElementById('debugPanel');
-        dp.classList.toggle('show');
-        if (dp.classList.contains('show')) dp.textContent = JSON.stringify(payload, null, 2);
+  document.getElementById('btnSync')?.addEventListener('click', () => {
+    const btn = document.getElementById('btnSync');
+    btn.disabled = true;
+    api(API.sync(o.id), { method: 'POST' }).then(r => {
+      if (r.ok) { toast('Synced', 'success'); openOrder(o.id); loadStats(); }
+      else toast(r.error || 'Sync failed', 'error');
+      btn.disabled = false;
     });
-
-    document.getElementById('btnSync')?.addEventListener('click', () => runSync(o));
-    document.getElementById('btnRetry')?.addEventListener('click', () => openRetryModal(o));
-    document.getElementById('btnRefund')?.addEventListener('click', () => openRefundModal(o));
-    document.getElementById('btnReview')?.addEventListener('click', () => openReviewModal(o));
+  });
+  document.getElementById('btnRetry')?.addEventListener('click', () => openActionModal('retry', o));
+  document.getElementById('btnRefund')?.addEventListener('click', () => openActionModal('refund', o));
+  document.getElementById('btnReview')?.addEventListener('click', () => openActionModal('review', o));
 }
 
 function buildActions(o) {
-    const buttons = [];
-    const status = String(o.status || '').toLowerCase();
-
-    if (status !== 'completed' && status !== 'refunded') {
-        buttons.push(`<button class="btn" id="btnSync"><i class="fas fa-sync"></i> Sync provider status</button>`);
-    }
-    if (status === 'failed' || status === 'manual_review') {
-        buttons.push(`<button class="btn btn-primary" id="btnRetry"><i class="fas fa-rotate-right"></i> Retry order</button>`);
-    }
-    if (['failed','cancelled','manual_review'].includes(status)) {
-        buttons.push(`<button class="btn btn-danger" id="btnRefund"><i class="fas fa-rotate-left"></i> Refund customer</button>`);
-    }
-    if (['processing','pending'].includes(status)) {
-        buttons.push(`<button class="btn" id="btnReview"><i class="fas fa-clipboard-check"></i> Mark for manual review</button>`);
-    }
-    if (!buttons.length) return '';
-    return `<div class="dd-actions">${buttons.join('')}</div>`;
+  const status = String(o.status || '').toLowerCase();
+  const btns = [];
+  if (!['completed','refunded'].includes(status)) btns.push(`<button class="btn" id="btnSync" type="button"><i class="fas fa-sync"></i> Sync</button>`);
+  if (['failed','manual_review'].includes(status)) btns.push(`<button class="btn btn-primary" id="btnRetry" type="button"><i class="fas fa-rotate-right"></i> Retry</button>`);
+  if (status === 'failed' && !o.refunded) btns.push(`<button class="btn btn-danger" id="btnRefund" type="button"><i class="fas fa-rotate-left"></i> Refund</button>`);
+  if (['processing','pending','manual_review'].includes(status)) btns.push(`<button class="btn" id="btnReview" type="button"><i class="fas fa-clipboard-check"></i> Mark for review</button>`);
+  return btns.length ? `<div class="dd-actions">${btns.join('')}</div>` : '';
 }
 
-async function runSync(o) {
-    const btn = document.getElementById('btnSync');
-    if (btn) btn.disabled = true;
-    const res = await api(API.sync(o.id), { method: 'POST' });
-    if (btn) btn.disabled = false;
-    if (!res.ok) { showToast(`${res.code}: ${res.error}`, 'error'); return; }
-    showToast(`Synced: ${res.data.resolved || 'unknown'}`, 'success');
-    openOrder(o.id);
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('Copied', 'success');
+  } catch (_) {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('Copied', 'success'); } catch (e) { toast('Copy failed', 'error'); }
+    document.body.removeChild(ta);
+  }
 }
 
-// ─── Modal ───────────────────────────────────────────────────────
-function openModal({ title, bodyHtml, confirmLabel = 'Confirm', onConfirm }) {
-    const scrim = document.getElementById('modalScrim');
-    document.getElementById('mTitle').textContent = title;
-    document.getElementById('mBody').innerHTML =
-        bodyHtml +
-        `<div class="modal-error" id="modalError">
-            <div class="head"><i class="fas fa-circle-exclamation"></i> <span id="modalErrorHead">Request failed</span></div>
-            <div class="code" id="modalErrorCode"></div>
-            <div class="message" id="modalErrorMessage"></div>
-            <div class="rid" id="modalErrorRid"></div>
-            <div class="hint" id="modalErrorHint" style="display:none"></div>
-        </div>`;
-    document.getElementById('mConfirm').textContent = confirmLabel;
-    document.getElementById('mConfirm').disabled = false;
-
-    const cancel = () => {
-        scrim.classList.remove('show');
-        document.getElementById('mConfirm').onclick = null;
-    };
-    document.getElementById('mCancel').onclick = cancel;
-    document.getElementById('mConfirm').onclick = async () => {
-        const btn = document.getElementById('mConfirm');
-        btn.disabled = true;
-        try { const ok = await onConfirm(); if (ok) cancel(); }
-        finally { btn.disabled = false; }
-    };
-    scrim.classList.add('show');
+function initDrawer() {
+  document.getElementById('dClose')?.addEventListener('click', closeDrawer);
+  document.getElementById('drawerScrim')?.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if (document.getElementById('drawer').classList.contains('open')) closeDrawer();
+      if (document.getElementById('modalScrim').classList.contains('show')) closeModal();
+    }
+  });
 }
 
-function clearModalError() {
-    const el = document.getElementById('modalError');
-    if (el) el.classList.remove('show');
+/* ══════════════════════════════════════════════════════════════
+   ACTIONS + MODAL
+   ══════════════════════════════════════════════════════════════ */
+
+function openActionModal(kind, o) {
+  const config = {
+    retry:  { title: 'Retry order',    label: 'Retry',  minReason: 10, endpoint: 'retry' },
+    refund: { title: 'Refund order',   label: 'Refund', minReason: 10, endpoint: 'refund' },
+    review: { title: 'Mark for review',label: 'Mark',   minReason: 4,  endpoint: 'review' }
+  }[kind];
+  if (!config) return;
+
+  const idemKey = newIdempotencyKey();
+  const amt = formatMoney(o.customer_amount ?? o.amount, 'NGN');
+  const note = kind === 'refund'
+    ? `This credits the customer's wallet for ${amt} and marks the order refunded. Only use if the provider did not fulfil.`
+    : kind === 'retry'
+      ? 'This re-attempts the provider request. Only use if the previous attempt failed.'
+      : 'This marks the order for manual review.';
+
+  openModal({
+    title: config.title,
+    confirmLabel: config.label,
+    bodyHtml: `
+      <p class="note">${escapeHtml(note)}</p>
+      <label for="modalReason">Reason (min ${config.minReason} characters)</label>
+      <textarea id="modalReason" rows="3" placeholder="Explain briefly…"></textarea>
+      <div class="char-count" id="charCount">0 / ${config.minReason}</div>
+    `,
+    confirmDisabled: true,
+    onRender: () => {
+      const textarea = document.getElementById('modalReason');
+      const counter = document.getElementById('charCount');
+      textarea.addEventListener('input', () => {
+        const n = textarea.value.trim().length;
+        counter.textContent = `${n} / ${config.minReason}`;
+        counter.classList.toggle('error', n > 0 && n < config.minReason);
+        document.getElementById('mConfirm').disabled = n < config.minReason;
+      });
+      textarea.focus();
+    },
+    onConfirm: async () => {
+      const reason = document.getElementById('modalReason').value.trim();
+      if (reason.length < config.minReason) {
+        showModalError({ code: 'REASON_REQUIRED', error: `Reason must be at least ${config.minReason} characters.` });
+        return false;
+      }
+      const res = await api(API[config.endpoint](o.id), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idemKey },
+        body: JSON.stringify({ reason })
+      });
+      if (!res.ok) { showModalError(res); return false; }
+      toast('Success', 'success');
+      openOrder(o.id);
+      loadStats();
+      return true;
+    }
+  });
+}
+
+function openModal({ title, bodyHtml, confirmLabel = 'Confirm', confirmDisabled = false, onRender, onConfirm }) {
+  const scrim = document.getElementById('modalScrim');
+  document.getElementById('mTitle').textContent = title;
+  document.getElementById('mBody').innerHTML = bodyHtml + `
+    <div class="modal-error" id="modalError">
+      <div class="head"><i class="fas fa-circle-exclamation"></i> Request failed</div>
+      <div class="code" id="modalErrorCode"></div>
+      <div class="message" id="modalErrorMessage"></div>
+      <div class="rid" id="modalErrorRid"></div>
+    </div>`;
+  const mConfirm = document.getElementById('mConfirm');
+  mConfirm.textContent = confirmLabel;
+  mConfirm.disabled = confirmDisabled;
+  mConfirm.onclick = async () => {
+    mConfirm.disabled = true;
+    try {
+      const ok = await onConfirm();
+      if (ok) closeModal();
+    } catch (e) {
+      showModalError({ code: 'UNKNOWN', error: e.message || 'Unexpected error' });
+    } finally {
+      mConfirm.disabled = false;
+    }
+  };
+  document.getElementById('mCancel').onclick = closeModal;
+  scrim.classList.add('show');
+  if (onRender) onRender();
+}
+
+function closeModal() {
+  document.getElementById('modalScrim').classList.remove('show');
 }
 
 function showModalError(res) {
-    const errEl = document.getElementById('modalError');
-    if (!errEl) return;
-    errEl.classList.add('show');
-    document.getElementById('modalErrorHead').textContent = 'Server rejected this action';
-    document.getElementById('modalErrorCode').textContent = res.code || 'UNKNOWN';
-    document.getElementById('modalErrorMessage').textContent = res.error || 'Request failed';
-    const rid = document.getElementById('modalErrorRid');
-    if (res.request_id) { rid.textContent = 'request_id: ' + res.request_id; rid.style.display = 'block'; }
-    else { rid.textContent = ''; rid.style.display = 'none'; }
-
-    let hint = '';
-    if (res.code === 'REASON_REQUIRED') hint = 'Type a reason of at least 4 characters.';
-    else if (res.code === 'NOT_REFUNDABLE') hint = 'Only failed, cancelled, or manual-review orders can be refunded.';
-    else if (res.code === 'ALREADY_REFUNDED') hint = 'This order has already been refunded.';
-    else if (res.code === 'ORDER_STATE_CHANGED') hint = 'Another admin changed this order. Reload before retrying.';
-    else if (res.code === 'AUDIT_WRITE_FAILED') hint = 'Audit log failed; the action was aborted. Try again.';
-    else if (res.code === 'LEDGER_REFUND_FAILED') hint = 'Wallet credit failed. Check the Ledger page.';
-    else if (res.status >= 500) hint = 'Server error. Include the request_id when contacting support.';
-
-    const hintEl = document.getElementById('modalErrorHint');
-    if (hint) { hintEl.textContent = hint; hintEl.style.display = 'block'; }
-    else hintEl.style.display = 'none';
+  const el = document.getElementById('modalError');
+  if (!el) return;
+  el.classList.add('show');
+  document.getElementById('modalErrorCode').textContent = res.code || 'UNKNOWN';
+  document.getElementById('modalErrorMessage').textContent = res.error || res.message || 'Request failed';
+  document.getElementById('modalErrorRid').textContent = res.request_id ? `request_id: ${res.request_id}` : '';
 }
 
-function openRetryModal(o) {
-    const status = String(o.status || '').toLowerCase();
-    const eligible = status === 'failed' || status === 'manual_review';
-    openModal({
-        title: 'Retry bill order',
-        confirmLabel: 'Retry',
-        bodyHtml: `
-            <p class="note">Before sending a new request, the backend asks VTpass what actually happened to the original. If the provider already fulfilled, the order is completed instead of retried. Only a confirmed provider rejection triggers a new purchase.</p>
-            ${!eligible
-                ? `<div class="modal-error show">
-                       <div class="head"><i class="fas fa-circle-info"></i> Not available</div>
-                       <div class="message">Retry is only allowed for failed or manual-review orders. Current status: <strong>${escapeHtml(o.status)}</strong>.</div>
-                   </div>`
-                : `<label for="retryReason">Reason (required)</label>
-                   <textarea id="retryReason" rows="3"></textarea>`}
-        `,
-        onConfirm: async () => {
-            if (!eligible) return false;
-            const reason = document.getElementById('retryReason').value.trim();
-            if (reason.length < 4) { showModalError({ code: 'REASON_REQUIRED', error: 'Reason must be at least 4 characters.' }); return false; }
-            clearModalError();
-            const res = await api(API.retry(o.id), {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason })
-            });
-            if (!res.ok) { showModalError(res); return false; }
-            showToast(`Retry outcome: ${res.data.outcome}`, res.data.outcome.startsWith('retried_completed') ? 'success' : 'info');
-            openOrder(o.id); loadOrders();
-            return true;
-        }
-    });
+/* ══════════════════════════════════════════════════════════════
+   INIT
+   ══════════════════════════════════════════════════════════════ */
+
+function init() {
+  renderNav();
+  initSidebar();
+  initTheme();
+  initTabs();
+  initFilters();
+  initDrawer();
+  initBulkSync();
+
+  document.getElementById('refreshBtn')?.addEventListener('click', () => {
+    if (State.tab === 'overview') loadStats();
+    else if (State.tab === 'transactions') loadOrders();
+    else if (State.tab === 'attention') loadAttention();
+    else if (State.tab === 'electricity') loadElectricity();
+    else if (State.tab === 'cable') loadCable();
+    else if (State.tab === 'provider') loadProviderHealth();
+    toast('Refreshed', 'success', 1500);
+  });
+
+  if (!window.AdminSession || typeof window.AdminSession.getToken !== 'function' || !window.AdminSession.getToken()) {
+    if (window.AdminSession && typeof window.AdminSession.redirectToLogin === 'function') {
+      window.AdminSession.redirectToLogin();
+    } else {
+      window.location.replace('/admin/index.html');
+    }
+    return;
+  }
+
+  loadAdminIdentity();
+  loadStats();
 }
 
-function openRefundModal(o) {
-    const status = String(o.status || '').toLowerCase();
-    const eligible = ['failed','cancelled','manual_review'].includes(status);
-    openModal({
-        title: 'Refund bill order',
-        confirmLabel: 'Refund',
-        bodyHtml: `
-            <p class="note">Credits the customer's wallet and marks the order refunded. The original debit is left unchanged.</p>
-            ${!eligible
-                ? `<div class="modal-error show">
-                       <div class="head"><i class="fas fa-circle-info"></i> Not available</div>
-                       <div class="message">Refund is only allowed for failed, cancelled, or manual-review orders. Current status: <strong>${escapeHtml(o.status)}</strong>.</div>
-                       <div class="hint">If the order is processing, click Sync provider status first. If VTpass confirms the transaction failed, the order moves to failed and Refund becomes available.</div>
-                   </div>`
-                : `<label for="refundReason">Reason (required)</label>
-                   <textarea id="refundReason" rows="3"></textarea>`}
-        `,
-        onConfirm: async () => {
-            if (!eligible) return false;
-            const reason = document.getElementById('refundReason').value.trim();
-            if (reason.length < 4) { showModalError({ code: 'REASON_REQUIRED', error: 'Reason must be at least 4 characters.' }); return false; }
-            clearModalError();
-            const res = await api(API.refund(o.id), {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason })
-            });
-            if (!res.ok) { showModalError(res); return false; }
-            showToast(res.data?.refund?.already_refunded ? 'Already refunded' : 'Refund applied', 'success');
-            openOrder(o.id); loadOrders();
-            return true;
-        }
-    });
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init, { once: true });
+} else {
+  setTimeout(init, 50);
 }
 
-function openReviewModal(o) {
-    const status = String(o.status || '').toLowerCase();
-    const eligible = ['processing','pending'].includes(status);
-    openModal({
-        title: 'Mark for manual review',
-        confirmLabel: 'Mark',
-        bodyHtml: `
-            <p class="note">Moves the order to <strong>manual_review</strong> for a human to resolve.</p>
-            ${!eligible
-                ? `<div class="modal-error show">
-                       <div class="head"><i class="fas fa-circle-info"></i> Not available</div>
-                       <div class="message">Only processing or pending orders can be marked. Current status: <strong>${escapeHtml(o.status)}</strong>.</div>
-                   </div>`
-                : `<label for="reviewReason">Reason (required)</label>
-                   <textarea id="reviewReason" rows="3"></textarea>`}
-        `,
-        onConfirm: async () => {
-            if (!eligible) return false;
-            const reason = document.getElementById('reviewReason').value.trim();
-            if (reason.length < 4) { showModalError({ code: 'REASON_REQUIRED', error: 'Reason must be at least 4 characters.' }); return false; }
-            clearModalError();
-            const res = await api(API.review(o.id), {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason })
-            });
-            if (!res.ok) { showModalError(res); return false; }
-            showToast('Marked for review', 'success');
-            openOrder(o.id); loadOrders();
-            return true;
-        }
-    });
-}
-
-// ─── Admin profile ───────────────────────────────────────────────
-async function loadAdminProfile() {
-    const { ok, data } = await api(API.me);
-    if (!ok || !data?.data?.user) return;
-    const user = data.data.user;
-    const name = user.username || user.email?.split('@')[0] || 'Admin';
-    const role = user.role || 'admin';
-    document.getElementById('adminName').textContent = name;
-    document.getElementById('adminRole').textContent = role.charAt(0).toUpperCase() + role.slice(1);
-    document.getElementById('adminAvatar').textContent = name.slice(0, 1).toUpperCase();
-}
-
-// ─── Init ────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-    if (!AdminSession.getToken()) return AdminSession.redirectToLogin();
-
-    document.getElementById('hamburger')?.addEventListener('click', () => {
-        document.getElementById('sidebar').classList.toggle('open');
-        document.getElementById('scrim').classList.toggle('show');
-    });
-    document.getElementById('scrim')?.addEventListener('click', () => {
-        document.getElementById('sidebar').classList.remove('open');
-        document.getElementById('scrim').classList.remove('show');
-    });
-    document.getElementById('sbToggleDesktop')?.addEventListener('click', () => document.getElementById('appRoot').classList.toggle('sb-collapsed'));
-    document.getElementById('sbCollapseBtn')?.addEventListener('click', () => document.getElementById('appRoot').classList.toggle('sb-collapsed'));
-
-    document.getElementById('darkToggle')?.addEventListener('click', () => {
-        document.documentElement.classList.toggle('dark');
-        document.getElementById('darkToggle').textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
-    });
-
-    document.querySelectorAll('#billsMenu .item').forEach(el => {
-        el.addEventListener('click', () => showSection(el.dataset.section));
-    });
-
-    document.getElementById('fApply')?.addEventListener('click', () => {
-        State.filters = {
-            search: document.getElementById('fSearch').value.trim(),
-            category: document.getElementById('fCategory').value,
-            status: document.getElementById('fStatus').value,
-            from: document.getElementById('fFrom').value,
-            to: document.getElementById('fTo').value
-        };
-        State.page = 1;
-        loadOrders();
-    });
-    document.getElementById('fClear')?.addEventListener('click', () => {
-        ['fSearch','fFrom','fTo'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-        ['fCategory','fStatus'].forEach(id => { const el = document.getElementById(id); if (el) el.value = 'all'; });
-        State.filters = {};
-        State.page = 1;
-        loadOrders();
-    });
-    document.getElementById('fSearch')?.addEventListener('keydown', e => {
-        if (e.key === 'Enter') document.getElementById('fApply').click();
-    });
-
-    document.getElementById('ordersPrev')?.addEventListener('click', () => { if (State.page > 1) { State.page--; loadOrders(); } });
-    document.getElementById('ordersNext')?.addEventListener('click', () => { if (State.page < State.totalPages) { State.page++; loadOrders(); } });
-
-    document.getElementById('refreshBtn')?.addEventListener('click', () => {
-        const active = document.querySelector('#billsMenu .item.active')?.dataset.section || 'overview';
-        loadOverview();
-        if (active !== 'overview') showSection(active);
-        showToast('Refreshed', 'success');
-    });
-
-    document.getElementById('dClose')?.addEventListener('click', closeDrawer);
-    document.getElementById('drawerScrim')?.addEventListener('click', closeDrawer);
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
-            closeDrawer();
-            document.getElementById('modalScrim').classList.remove('show');
-        }
-    });
-    document.getElementById('modalScrim')?.addEventListener('click', e => {
-        if (e.target.id === 'modalScrim') document.getElementById('modalScrim').classList.remove('show');
-    });
-
-    loadAdminProfile();
-    loadOverview();
-});
-
+window.openOrder = openOrder;
+window.loadStats = loadStats;
 window.loadOrders = loadOrders;
+window.loadElectricity = loadElectricity;
+window.loadCable = loadCable;
+window.loadProviderHealth = loadProviderHealth;
+window.copyToClipboard = copyToClipboard;
 </script>
 </body>
 </html>

@@ -473,7 +473,7 @@
       display: flex; align-items: center; gap: 8px; padding: 6px 14px;
       background: var(--srf2); border: 1px solid var(--bdr);
       border-radius: var(--rp); white-space: nowrap;
-      flex-shrink: 0; cursor: pointer;
+      flex-shrink: 0; cursor: pointer; text-decoration: none; color: inherit;
       transition: border-color .2s, box-shadow .2s;
     }
     .ticker-item:hover { border-color: var(--p); box-shadow: var(--s0); }
@@ -1091,10 +1091,10 @@
         </div>
       </div>
 
-      <div class="ticker-section fu d2">
+      <div class="ticker-section fu d2" id="tickerSection">
         <div class="ticker-lbl">
-          <i class="fas fa-bullhorn" id="tickerIcon"></i>
-          <span id="tickerTitle">Live Updates</span>
+          <i class="fas fa-bullhorn"></i>
+          <span>Live Updates</span>
         </div>
         <div class="ticker-wrap">
           <div class="ticker-track" id="tickerTrack">
@@ -1105,32 +1105,8 @@
         </div>
       </div>
 
-      <div class="announce-row fu d2">
-        <a href="fund.html" class="ann-card c1">
-          <h4>💰 Fund Wallet</h4>
-          <p>Top up your NGN wallet instantly using bank transfer or card.</p>
-          <span class="ann-lm">Fund Now <i class="fas fa-arrow-right"></i></span>
-        </a>
-        <a href="esim.html" class="ann-card c2">
-          <h4>📶 Buy eSIM</h4>
-          <p>Purchase eSIM for mobile connectivity.</p>
-          <span class="ann-lm">Buy Now <i class="fas fa-arrow-right"></i></span>
-        </a>
-        <a href="airtime.html" class="ann-card c3">
-          <h4>📱 Global TopUp</h4>
-          <p>Global airtime and data top-up service.</p>
-          <span class="ann-lm">Recharge Now <i class="fas fa-arrow-right"></i></span>
-        </a>
-        <a href="usersettings.html" class="ann-card c4">
-          <h4>🔐 Secure Your Account</h4>
-          <p>Enable 2FA, change password &amp; protect your wallet.</p>
-          <span class="ann-lm">Go to Security <i class="fas fa-arrow-right"></i></span>
-        </a>
-        <a href="giftcards.html" class="ann-card c5">
-          <h4>🎁 Send a Gift Card</h4>
-          <p>Buy gift cards for friends &amp; family.</p>
-          <span class="ann-lm">Buy Gift Card <i class="fas fa-arrow-right"></i></span>
-        </a>
+      <div class="announce-row fu d2" id="announceRow" hidden>
+        <!-- Populated from /api/announcements/active -->
       </div>
 
       <div class="fu d3">
@@ -1305,6 +1281,7 @@ const State = {
   hidden: false,
   balanceLoaded: false,
   tickerItems: [],
+  announcementItems: [],
   txCache: [],
   pinSubmitting: false
 };
@@ -1320,9 +1297,9 @@ const DOM = {
   dropNgn:     document.getElementById('drop-ngn-sub'),
   dropUsd:     document.getElementById('drop-usd-sub'),
   eyeIc:       document.getElementById('eyeIc'),
+  tickerSection: document.getElementById('tickerSection'),
   tickerTrack: document.getElementById('tickerTrack'),
-  tickerIcon:  document.getElementById('tickerIcon'),
-  tickerTitle: document.getElementById('tickerTitle'),
+  announceRow: document.getElementById('announceRow'),
   txBody:      document.getElementById('txBody'),
 };
 
@@ -1340,7 +1317,6 @@ function redirectToLogin() {
   }
 }
 
-/* Use MS.esc if available, else local fallback */
 function escapeHtml(s) {
   if (window.MS && window.MS.esc) return window.MS.esc(s);
   if (s == null) return '';
@@ -1349,14 +1325,12 @@ function escapeHtml(s) {
   }[c]));
 }
 
-/* Use MS.safeText if available, else local scrub of provider names */
 function safeText(s) {
   if (window.MS && window.MS.safeText) return window.MS.safeText(s);
   if (typeof s !== 'string') return s;
   return s.replace(/dt\s*-?one|dtone|vt\s*-?pass|kora\s*-?pay|\bkora\b|now\s*-?payments/gi, 'our service partner');
 }
 
-/* Toast — textContent only (no innerHTML injection) */
 function toast(msg, type = 'info') {
   const c = document.getElementById('toastWrap');
   if (!c) return;
@@ -1651,29 +1625,35 @@ let tickerOffset = 0;
 let tickerSpeed = 1.2;
 let tickerMax = 0;
 
+const TICKER_LINK_REL   = /^\/($|[^/])/;
+const TICKER_LINK_HTTPS = /^https:\/\//i;
+const HEX_RE            = /^#[0-9a-fA-F]{6}$/;
+
 async function loadTicker() {
-  if (!DOM.tickerTrack) return;
+  const section = DOM.tickerSection;
+  const track   = DOM.tickerTrack;
+  if (!track || !section) return;
+
   try {
-    const res = await api('/ticker/items', {}, true);
-    const items = res.data || [];
-    if (items.length > 0) {
-      State.tickerItems = items;
-      renderTicker(items);
-      if (DOM.tickerIcon)  DOM.tickerIcon.className = items[0]?.icon || 'fas fa-bullhorn';
-      if (DOM.tickerTitle) DOM.tickerTitle.textContent = items[0]?.title || 'Live Updates';
+    const res = await api('/ticker/items', {}, false);
+    const items = Array.isArray(res?.data) ? res.data : [];
+
+    if (!items.length) {
+      // Legitimately empty — hide the whole ticker section.
+      section.style.display = 'none';
+      State.tickerItems = [];
+      if (tickerAnimationId) { cancelAnimationFrame(tickerAnimationId); tickerAnimationId = null; }
       return;
     }
 
-    const defaultItems = [
-      { icon: '📢', text: 'Welcome to MilesSpace!', badge: 'NEW' },
-      { icon: '💰', text: 'USD wallet now available', badge: 'HOT' },
-      { icon: '📱', text: 'Virtual numbers from 120+ countries' },
-      { icon: '🎁', text: 'Buy and sell Gift Cards', badge: 'NEW' },
-    ];
-    State.tickerItems = defaultItems;
-    renderTicker(defaultItems);
+    section.style.display = '';
+    State.tickerItems = items;
+    renderTicker(items);
   } catch (e) {
     console.warn('loadTicker error:', e.message);
+    // Network failure — hide rather than showing stale hardcoded defaults.
+    section.style.display = 'none';
+    if (tickerAnimationId) { cancelAnimationFrame(tickerAnimationId); tickerAnimationId = null; }
   }
 }
 
@@ -1689,13 +1669,24 @@ function renderTicker(items) {
   }
 
   const doubled = [...items, ...items];
-  DOM.tickerTrack.innerHTML = doubled.map(item => `
-    <div class="ticker-item">
-      <span class="ticker-icon">${escapeHtml(item.icon || '📌')}</span>
-      <span class="ticker-text">${escapeHtml(item.text || '')}</span>
-      ${item.badge ? `<span class="ticker-badge">${escapeHtml(item.badge)}</span>` : ''}
-    </div>
-  `).join('');
+  DOM.tickerTrack.innerHTML = doubled.map(item => {
+    const icon  = escapeHtml(item.icon || '📌');
+    const text  = escapeHtml(item.text || '');
+    const badge = item.badge ? escapeHtml(item.badge) : '';
+    const color = (item.badge_color && HEX_RE.test(item.badge_color))
+      ? ` style="background:${escapeHtml(item.badge_color)};color:#fff"`
+      : '';
+    const badgeHtml = badge ? `<span class="ticker-badge"${color}>${badge}</span>` : '';
+
+    const link = item.link && (TICKER_LINK_REL.test(item.link) || TICKER_LINK_HTTPS.test(item.link))
+      ? item.link : null;
+
+    const inner = `<span class="ticker-icon">${icon}</span><span class="ticker-text">${text}</span>${badgeHtml}`;
+
+    return link
+      ? `<a class="ticker-item" href="${escapeHtml(link)}">${inner}</a>`
+      : `<span class="ticker-item">${inner}</span>`;
+  }).join('');
 
   setTimeout(initTickerAnimation, 0);
 }
@@ -1715,6 +1706,8 @@ function initTickerAnimation() {
     widthOfOneSet += children[i].offsetWidth + 12;
   }
   tickerMax = widthOfOneSet;
+
+  if (tickerMax <= 0) return;
 
   let lastTime = performance.now();
 
@@ -1747,22 +1740,68 @@ document.addEventListener('visibilitychange', () => {
       tickerAnimationId = null;
     }
   } else {
-    if (!tickerAnimationId && DOM.tickerTrack) {
-      let lastTime = performance.now();
-      function animate(time) {
-        const delta = time - lastTime;
-        if (delta > 10) {
-          tickerOffset -= tickerSpeed;
-          if (Math.abs(tickerOffset) >= tickerMax) tickerOffset = 0;
-          if (DOM.tickerTrack) DOM.tickerTrack.style.transform = `translate3d(${tickerOffset}px, 0, 0)`;
-          lastTime = time;
-        }
-        tickerAnimationId = requestAnimationFrame(animate);
-      }
-      tickerAnimationId = requestAnimationFrame(animate);
+    if (!tickerAnimationId && DOM.tickerTrack && State.tickerItems.length) {
+      initTickerAnimation();
     }
   }
 });
+
+/* ═══════════════════════════════════════════════════════════════
+   ANNOUNCEMENTS
+   ═══════════════════════════════════════════════════════════════ */
+
+const ANNOUNCEMENT_FALLBACK = [
+  { title: '💰 Fund Wallet',         body: 'Top up your NGN wallet instantly using bank transfer or card.', cta_label: 'Fund Now',      link: '/fund.html',         theme: 'c1' },
+  { title: '📶 Buy eSIM',            body: 'Purchase eSIM for mobile connectivity.',                         cta_label: 'Buy Now',       link: '/esim.html',         theme: 'c2' },
+  { title: '📱 Global TopUp',        body: 'Global airtime and data top-up service.',                        cta_label: 'Recharge Now',  link: '/airtime.html',      theme: 'c3' },
+  { title: '🔐 Secure Your Account', body: 'Enable 2FA, change password & protect your wallet.',            cta_label: 'Go to Security',link: '/usersettings.html', theme: 'c4' },
+  { title: '🎁 Send a Gift Card',    body: 'Buy gift cards for friends & family.',                           cta_label: 'Buy Gift Card', link: '/giftcards.html',    theme: 'c5' }
+];
+
+const ANNOUNCE_LINK_REL   = /^\/($|[^/])/;
+const ANNOUNCE_LINK_HTTPS = /^https:\/\//i;
+const ANNOUNCE_THEME_RE   = /^c[1-5]$/;
+
+async function loadAnnouncements() {
+  const row = DOM.announceRow;
+  if (!row) return;
+
+  try {
+    const res = await api('/announcements/active', {}, false);
+    const items = Array.isArray(res?.data) ? res.data : [];
+
+    if (!items.length) {
+      // Legitimately empty — hide the row. Do not show fallback.
+      row.hidden = true;
+      row.innerHTML = '';
+      State.announcementItems = [];
+      return;
+    }
+
+    row.hidden = false;
+    State.announcementItems = items;
+    row.innerHTML = items.map(a => renderAnnouncementCard(a)).join('');
+  } catch (e) {
+    console.warn('loadAnnouncements error:', e.message);
+    // Network failure — show fallback cards so the dashboard is never blank.
+    row.hidden = false;
+    State.announcementItems = ANNOUNCEMENT_FALLBACK;
+    row.innerHTML = ANNOUNCEMENT_FALLBACK.map(a => renderAnnouncementCard(a)).join('');
+  }
+}
+
+function renderAnnouncementCard(a) {
+  const theme = (a.theme && ANNOUNCE_THEME_RE.test(a.theme)) ? a.theme : 'c1';
+  const link = a.link && (ANNOUNCE_LINK_REL.test(a.link) || ANNOUNCE_LINK_HTTPS.test(a.link))
+    ? a.link : '#';
+  const cta = a.cta_label ? escapeHtml(a.cta_label) : 'Learn More';
+  return `
+    <a href="${escapeHtml(link)}" class="ann-card ${theme}">
+      <h4>${escapeHtml(a.title || '')}</h4>
+      <p>${escapeHtml(a.body || '')}</p>
+      <span class="ann-lm">${cta} <i class="fas fa-arrow-right"></i></span>
+    </a>`;
+}
 
 /* ═══════════════════════════════════════════════════════════════
    TRANSACTIONS
@@ -1887,7 +1926,6 @@ function getTxRef(t) {
   return t.reference_id || t.reference || t.ref || t.txn_ref || t.tx_ref || t.transaction_ref || t.id || '—';
 }
 
-/* Status — always user-safe. Never returns raw provider_unknown / manual_review */
 function getStatusInfo(status) {
   const s = (status || 'pending').toLowerCase();
   if (['completed','success','successful','ok','finished','delivered','sms_received'].includes(s)) {
@@ -1905,7 +1943,6 @@ function getStatusInfo(status) {
   if (['under_review','manual_review','partially_paid','review'].includes(s)) {
     return { label: 'Under review', dot: 'pend' };
   }
-  // Unknown status: never leak provider_unknown / manual_review
   if (s.includes('provider') || s.includes('manual')) {
     return { label: 'Processing', dot: 'pend' };
   }
@@ -1919,7 +1956,6 @@ function wireTxRowClicks() {
   });
 }
 
-/* Delegated data-copy handler (replaces inline onclick) */
 document.addEventListener('click', (e) => {
   const copyBtn = e.target.closest('[data-copy]');
   if (copyBtn) {
@@ -2251,17 +2287,16 @@ async function initDashboard() {
   initPinOnboarding();
   await loadUser();
   loadTicker();
+  loadAnnouncements();
 
-  /* Fire loadTransactions() directly, no await — first paint happens fast */
   loadTransactions();
 
-  /* Keep the IntersectionObserver as fallback (no-op if already loaded) */
   setupLazyLoading();
   prefetchLinks();
 
   setInterval(() => {
-    const tickerVisible = DOM.tickerTrack && DOM.tickerTrack.offsetParent !== null;
-    if (tickerVisible) loadTicker();
+    if (DOM.tickerSection && DOM.tickerSection.style.display !== 'none') loadTicker();
+    loadAnnouncements();
     if (!document.hidden) loadUser();
   }, 60000);
 }
@@ -2280,6 +2315,7 @@ window.Dashboard = {
   cache: Cache,
   State: State,
   loadTicker,
+  loadAnnouncements,
   loadUser
 };
 </script>

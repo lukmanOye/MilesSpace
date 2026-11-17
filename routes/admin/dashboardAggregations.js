@@ -11,21 +11,23 @@
 //     { available: false, reason, partial: true, missing: [...] }.
 //   • Nothing fabricated. Nothing silently swallowed.
 //
-// CHANGE LOG (v7):
-//   • Removed getPresenceStats() and all admin_presence_summary use.
-//   • Added getStatsRange({from,to}) that calls admin_stats_range once
-//     and returns current + previous values (change % is computed by
-//     the route handler; the aggregator just exposes the raw pairs).
-//   • Added getVolume7d() → per-day NGN + USD volume with real dates.
-//   • Added getOpenTicketsCount(), getFailedWebhooksCount(),
-//     getReconciliationCount().
-//   • Added getProviderBalances() — mockless. Returns
-//     { available: false, reason } when keys are missing or provider
-//     errors, never a fake number.
-//   • Added logAdminAction(ctx, action, targetType, targetId, meta) —
-//     writes to public.admin_audit_logs. Fails silently (logs to
-//     console only); never blocks the request that triggered it.
-//   • Every existing function kept its name and return shape.
+// CHANGE LOG (v7.1 — correctness pass):
+//   • getStatsRange(): count fields now preserve `null` instead of
+//     coercing to 0. A missing RPC field no longer fabricates a 0
+//     for signups/logins/txn/txnFailed/deposits/depositsPending/
+//     supportOpen/usersTotal.
+//   • getVolume7d(): day keys are normalized to YYYY-MM-DD so a
+//     Postgres `date` and a timestamp string for the same day merge
+//     into one bucket. Also back-fills missing days so `dates` always
+//     has exactly 7 entries (real dates, zero-filled amounts).
+//   • getDepositStats(): a provider that is available but has no
+//     NGN row is reported as '0.00' (genuine zero), NOT unavailable.
+//     USD totals are computed from whichever provider(s) are up —
+//     the previous code required BOTH kora AND crypto to succeed,
+//     which under-reported when only one was down.
+//   • sumMoneyStrings(): unchanged (null-in → null-out) — callers
+//     decide what a null means.
+//   • All exports and signatures unchanged.
 // ─────────────────────────────────────────────────────────────────
 
 'use strict';
@@ -38,10 +40,6 @@ const PROVIDER_LOW_BALANCE = Object.freeze({
     USD: '500.00'
 });
 
-// Kora + NowPayments balance endpoints. These are only called when
-// the corresponding env var is present, so a missing key always
-// yields { available: false, reason: 'NOT_CONFIGURED' } — no fake
-// numbers.
 const PROVIDER_BALANCE_TTL_MS = 60_000;
 
 // ─── WAT boundaries ──────────────────────────────────────────────
@@ -138,6 +136,20 @@ function sumMoneyStrings(values) {
     return fromCents(total);
 }
 
+// ─── Field coercion helpers ──────────────────────────────────────
+// Preserves null. Only converts when the value is genuinely present.
+// A null/undefined/'' → null (never 0). This is what prevents the
+// "fabricated 0" bug in getStatsRange().
+function numOrNull(v) {
+    if (v == null || v === '') return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+}
+function strOrNull(v) {
+    if (v == null || v === '') return null;
+    return String(v);
+}
+
 // ─── USERS ───────────────────────────────────────────────────────
 async function getUserStats() {
     const day = watDayBounds();
@@ -157,20 +169,23 @@ async function getUserStats() {
         };
     }
     const row = unwrapRpcRow(r.value);
+    const toCount = (v) => numOrNull(v) ?? 0;  // counts default to 0 only when provider succeeded
     return {
-        total:     ok(Number(row.total_users     || 0)),
-        customers: ok(Number(row.customer_users  || 0)),
-        newToday:  ok(Number(row.new_today       || 0)),
-        newMonth:  ok(Number(row.new_month       || 0)),
-        suspended: ok(Number(row.suspended_users || 0))
+        total:     ok(toCount(row.total_users)),
+        customers: ok(toCount(row.customer_users)),
+        newToday:  ok(toCount(row.new_today)),
+        newMonth:  ok(toCount(row.new_month)),
+        suspended: ok(toCount(row.suspended_users))
     };
 }
 
 // ─── RANGE-AWARE STATS BUNDLE ────────────────────────────────────
 // Calls admin_stats_range(p_from,p_to,p_prev_from,p_prev_to).
-// Returns current + previous values so the route can compute the
-// change % without touching money as numbers (it uses the string
-// pairs only for display).
+//
+// FIX (v7.1): every count field now uses numOrNull() instead of
+// `Number(v || 0)`. A field the RPC did not return stays null, so
+// the route can render "Data unavailable" instead of a fake 0.
+// Money fields already used strOrNull() and are unchanged.
 async function getStatsRange({ from, to }) {
     const validFrom = isIsoDate(from) ? from : watDayBounds().start;
     const validTo   = isIsoDate(to)   ? to   : watDayBounds().end;
@@ -195,8 +210,6 @@ async function getStatsRange({ from, to }) {
     }
 
     const row = unwrapRpcRow(r.value);
-    const num = (v) => Number(v || 0);
-    const str = (v) => (v == null ? null : String(v));
 
     return {
         available: true,
@@ -205,25 +218,25 @@ async function getStatsRange({ from, to }) {
         prevFrom,
         prevTo,
         current: {
-            usersTotal:      num(row.users_total),
-            signups:         num(row.signups_current),
-            logins:          num(row.logins_current),
-            txn:             num(row.txn_current),
-            txnFailed:       num(row.txn_failed_current),
-            deposits:        num(row.deposits_current),
-            depositsPending: num(row.deposits_pending),
-            revenueNgn:      str(row.revenue_ngn_current),
-            revenueUsd:      str(row.revenue_usd_current),
-            supportOpen:     num(row.support_open)
+            usersTotal:      numOrNull(row.users_total),
+            signups:         numOrNull(row.signups_current),
+            logins:          numOrNull(row.logins_current),
+            txn:             numOrNull(row.txn_current),
+            txnFailed:       numOrNull(row.txn_failed_current),
+            deposits:        numOrNull(row.deposits_current),
+            depositsPending: numOrNull(row.deposits_pending),
+            revenueNgn:      strOrNull(row.revenue_ngn_current),
+            revenueUsd:      strOrNull(row.revenue_usd_current),
+            supportOpen:     numOrNull(row.support_open)
         },
         previous: {
-            signups:    num(row.signups_previous),
-            logins:     num(row.logins_previous),
-            txn:        num(row.txn_previous),
-            txnFailed:  num(row.txn_failed_previous),
-            deposits:   num(row.deposits_previous),
-            revenueNgn: str(row.revenue_ngn_previous),
-            revenueUsd: str(row.revenue_usd_previous)
+            signups:    numOrNull(row.signups_previous),
+            logins:     numOrNull(row.logins_previous),
+            txn:        numOrNull(row.txn_previous),
+            txnFailed:  numOrNull(row.txn_failed_previous),
+            deposits:   numOrNull(row.deposits_previous),
+            revenueNgn: strOrNull(row.revenue_ngn_previous),
+            revenueUsd: strOrNull(row.revenue_usd_previous)
         }
     };
 }
@@ -231,6 +244,14 @@ async function getStatsRange({ from, to }) {
 // ─── VOLUME SERIES (7 days, real dates) ──────────────────────────
 // "Volume" = sum of transaction.amount for completed/successful
 // statuses. Customer flow, NOT revenue.
+//
+// FIX (v7.1):
+//   • Day keys are normalized to YYYY-MM-DD regardless of whether
+//     Postgres returns a `date` or a full timestamp string.
+//   • Missing days within the 7-day window are back-filled with
+//     '0.00' so `dates` always has exactly 7 entries and the chart
+//     x-axis aligns. (Zero volume on a real day is a real 0.00,
+//     not a fabricated one.)
 async function getVolume7d() {
     const r = await callRpc('admin_volume_7d');
     if (!r.available) {
@@ -245,11 +266,22 @@ async function getVolume7d() {
     }
     const rows = Array.isArray(r.value) ? r.value : [];
 
+    // Normalize any date-ish value to YYYY-MM-DD.
+    const toDayKey = (v) => {
+        if (v instanceof Date) return v.toISOString().slice(0, 10);
+        if (typeof v === 'string') {
+            // Accept '2026-01-15' or '2026-01-15T...' — take first 10 chars if ISO.
+            const m = v.match(/^\d{4}-\d{2}-\d{2}/);
+            if (m) return m[0];
+            const d = new Date(v);
+            return isNaN(d.getTime()) ? String(v) : d.toISOString().slice(0, 10);
+        }
+        return String(v);
+    };
+
     const byDate = new Map();
     for (const row of rows) {
-        const d = row.day_date instanceof Date
-            ? row.day_date.toISOString().slice(0, 10)
-            : String(row.day_date);
+        const d = toDayKey(row.day_date);
         if (!byDate.has(d)) byDate.set(d, { date: d, ngn: '0.00', usd: '0.00', ngnCount: 0, usdCount: 0 });
         const entry = byDate.get(d);
         if (row.currency === 'USD') {
@@ -260,6 +292,19 @@ async function getVolume7d() {
             entry.ngnCount = Number(row.txn_count || 0);
         }
     }
+
+    // Back-fill missing days over the last 7 calendar days (WAT).
+    const today = watDayBounds();
+    const todayKey = today.start.slice(0, 10);
+    const dayMs = 24 * 60 * 60 * 1000;
+    const startMs = new Date(todayKey + 'T00:00:00Z').getTime();
+    for (let i = 6; i >= 0; i--) {
+        const key = new Date(startMs - i * dayMs).toISOString().slice(0, 10);
+        if (!byDate.has(key)) {
+            byDate.set(key, { date: key, ngn: '0.00', usd: '0.00', ngnCount: 0, usdCount: 0 });
+        }
+    }
+
     const dates = [...byDate.keys()].sort();
     const ngnSeries = dates.map(d => byDate.get(d).ngn);
     const usdSeries = dates.map(d => byDate.get(d).usd);
@@ -295,6 +340,15 @@ async function getWalletLiabilities() {
 }
 
 // ─── DEPOSITS (partial-provider safe) ────────────────────────────
+//
+// FIX (v7.1):
+//   • A provider that is AVAILABLE but has no NGN row is now reported
+//     as '0.00' (a genuine zero), not `unavailable`. The old code
+//     conflated "no deposits today" with "query failed".
+//   • USD totals are computed from whichever provider(s) are up,
+//     instead of requiring BOTH kora AND crypto. If only one is down,
+//     USD still reports the other's contribution — with
+//     `partial: true` + `missingSources` so the route can flag it.
 async function getDepositStats() {
     const day = watDayBounds();
     const month = watMonthBounds();
@@ -321,6 +375,8 @@ async function getDepositStats() {
         ? { partial: true, missingSources }
         : { partial: false, missingSources: [] };
 
+    // Counts: only add when BOTH sources are available (the "all
+    // sources" contract). A missing source makes the count unavailable.
     const addBothKnown = (a, b) => (a == null || b == null) ? null : a + b;
 
     const todayCount     = addBothKnown(koraRow?.today_count     ?? null, cryptoRow?.today_count     ?? null);
@@ -329,14 +385,38 @@ async function getDepositStats() {
     const completedTotal = addBothKnown(koraRow?.completed_count ?? null, cryptoRow?.completed_count ?? null);
     const pendingTotal   = addBothKnown(koraOpenRow?.count       ?? null, cryptoOpenRow?.count       ?? null);
 
-    const todayNgn = kora.available ? sumMoneyStrings([koraRow?.today_ngn ?? null]) : null;
-    const monthNgn = kora.available ? sumMoneyStrings([koraRow?.month_ngn ?? null]) : null;
-    const todayUsd = (kora.available && crypto.available)
-        ? sumMoneyStrings([koraRow?.today_usd ?? null, cryptoRow?.today_usd ?? null])
-        : null;
-    const monthUsd = (kora.available && crypto.available)
-        ? sumMoneyStrings([koraRow?.month_usd ?? null, cryptoRow?.month_usd ?? null])
-        : null;
+    // Money: for each currency, sum from whichever provider(s) are up.
+    // If a provider is down, the sum is `partial` (flagged in meta) but
+    // still reflects the up provider(s) — never a fake 0, never a
+    // silently-dropped contribution.
+    const sumFromUpProviders = (fields) => {
+        const present = [];
+        for (const { available, value } of fields) {
+            if (!available) continue;
+            const c = toCents(value);
+            if (c === null) continue; // provider up but field absent → skip, don't fake
+            present.push(c);
+        }
+        if (present.length === 0) return null; // nothing to report
+        let total = 0n;
+        for (const c of present) total += c;
+        return fromCents(total);
+    };
+
+    const todayNgn = sumFromUpProviders([
+        { available: kora.available, value: koraRow?.today_ngn ?? null }
+    ]);
+    const monthNgn = sumFromUpProviders([
+        { available: kora.available, value: koraRow?.month_ngn ?? null }
+    ]);
+    const todayUsd = sumFromUpProviders([
+        { available: kora.available,   value: koraRow?.today_usd ?? null },
+        { available: crypto.available, value: cryptoRow?.today_usd ?? null }
+    ]);
+    const monthUsd = sumFromUpProviders([
+        { available: kora.available,   value: koraRow?.month_usd ?? null },
+        { available: crypto.available, value: cryptoRow?.month_usd ?? null }
+    ]);
 
     const wrap = (val, reason) => val == null
         ? unavailable(reason, partialMeta)
@@ -371,13 +451,13 @@ async function getDepositStats() {
     return {
         today: {
             count: wrap(todayCount, 'INCOMPLETE_PROVIDER_DATA'),
-            ngn:   wrap(todayNgn,   kora.available ? 'NO_KORA_TODAY_NGN' : 'NO_KORA_DATA'),
-            usd:   wrap(todayUsd,   'INCOMPLETE_PROVIDER_DATA')
+            ngn:   wrap(todayNgn,   'NO_PROVIDER_NGN_DATA'),
+            usd:   wrap(todayUsd,   'NO_PROVIDER_USD_DATA')
         },
         month: {
             count: wrap(monthCount, 'INCOMPLETE_PROVIDER_DATA'),
-            ngn:   wrap(monthNgn,   kora.available ? 'NO_KORA_MONTH_NGN' : 'NO_KORA_DATA'),
-            usd:   wrap(monthUsd,   'INCOMPLETE_PROVIDER_DATA')
+            ngn:   wrap(monthNgn,   'NO_PROVIDER_NGN_DATA'),
+            usd:   wrap(monthUsd,   'NO_PROVIDER_USD_DATA')
         },
         pending:   wrap(pendingTotal,   'INCOMPLETE_OPEN_QUERY'),
         failed:    wrap(failedTotal,    'INCOMPLETE_PROVIDER_DATA'),
@@ -426,8 +506,6 @@ async function getTransactionStats() {
 }
 
 // ─── REVENUE ─────────────────────────────────────────────────────
-// Unchanged shape. The revenue-page and the KPI drawer call this
-// same RPC — there is no other place revenue is defined.
 async function getRevenueStats() {
     const day = watDayBounds();
     const month = watMonthBounds();
@@ -594,9 +672,6 @@ async function _koraBalances() {
         _writeCache(cacheKey, value);
         return value;
     }
-    // Kora returns { data: { NGN: "123.45", USD: "10.00", ... } }.
-    // We only expose NGN and USD; anything else is ignored, not
-    // invented. Missing currency → unavailable for that currency.
     const raw = res.data?.data || res.data || {};
     const value = {
         available: true,
@@ -629,7 +704,6 @@ async function _nowPaymentsBalances() {
         _writeCache(cacheKey, value);
         return value;
     }
-    // NowPayments returns { balance: { USD: 12.5, ... } }.
     const raw = res.data?.balance || res.data || {};
     const value = {
         available: true,
@@ -690,9 +764,6 @@ async function getProviderBalances() {
 // ─── AUDIT HELPER ───────────────────────────────────────────────
 // Writes to admin_audit_logs. Never throws; the caller's request
 // must not fail because an audit write failed.
-//
-// ctx is what the route handler receives: req.adminContext, plus
-// req.ip and req.headers['user-agent'].
 async function logAdminAction(ctx, action, targetType, targetId, meta = {}) {
     try {
         const adminId   = ctx?.id || null;

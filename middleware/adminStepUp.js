@@ -14,6 +14,13 @@
 //   2. If those are undefined (adminAuth not on this route, or an
 //      older code path), fall back to reading user_sessions here.
 //
+// [CHANGED] 2025-11-09 — E.1
+//   • The fallback path previously queried `user_sessions.id`. The
+//     primary key is `session_id`; querying `id` always failed with
+//     `column "id" does not exist`, returning 503 STEP_UP_UNAVAILABLE
+//     to any route mounted without adminAuth first. Fixed to select
+//     `session_id`. No logic change — only the column name.
+//
 // Exports:
 //   requireStepUpAuth({ maxAgeSeconds })  — Express middleware
 //   assertStepUp({ sessionId, userId, maxAgeSeconds }) — programmatic
@@ -23,7 +30,7 @@
 
 const { supabaseAdmin } = require('../db/supabase');
 
-const DEFAULT_MAX_AGE_SECONDS = 300;   // 5 minutes
+const DEFAULT_MAX_AGE_SECONDS = 300;
 
 function sendStepUpError(res, status, code, message, extra = {}) {
     if (res.headersSent) return;
@@ -43,9 +50,7 @@ function requireStepUpAuth(options = {}) {
                 return sendStepUpError(res, 401, 'AUTH_REQUIRED', 'Authentication required.');
             }
 
-            // ─── NEW: use adminAuth's attached values ────────────────
-            // adminAuth already read user_sessions and set these. If
-            // they are present (defined), we skip the DB read.
+            // ─── Use adminAuth's attached values ────────────────────
             if (req.sessionMfaVerified !== undefined) {
                 if (!req.sessionMfaVerified || !req.sessionMfaVerifiedAt) {
                     return sendStepUpError(res, 403, 'MFA_REQUIRED',
@@ -70,13 +75,8 @@ function requireStepUpAuth(options = {}) {
                 };
                 return next();
             }
-            // ────────────────────────────────────────────────────────
 
             // ─── Fallback: read user_sessions directly ──────────────
-            // This path runs only when adminAuth did not attach the
-            // fields (e.g. this middleware is mounted on a route that
-            // does not go through adminAuth first — should not happen
-            // in practice, but kept for safety).
             const sessionId = admin?.sessionId || req.user?.session_id;
             if (!sessionId) {
                 return sendStepUpError(res, 401, 'INVALID_SESSION',
@@ -85,9 +85,12 @@ function requireStepUpAuth(options = {}) {
 
             let sessionRow, sessionErr;
             try {
+                // [CHANGED] was `.select('id, ...').eq('session_id', ...)`.
+                // Querying `id` fails with column-does-not-exist; the
+                // primary key is `session_id`. Now selects `session_id`.
                 const result = await supabaseAdmin
                     .from('user_sessions')
-                    .select('id, mfa_verified, mfa_verified_at, is_active, revoked_at, expires_at')
+                    .select('session_id, mfa_verified, mfa_verified_at, is_active, revoked_at, expires_at')
                     .eq('session_id', sessionId)
                     .eq('user_id', admin.id)
                     .maybeSingle();
@@ -174,7 +177,7 @@ async function assertStepUp({ sessionId, userId, maxAgeSeconds = DEFAULT_MAX_AGE
 
 module.exports = {
     requireStepUpAuth,
-    requireStepUp: requireStepUpAuth,   // alias so userRoutes.js's import works
+    requireStepUp: requireStepUpAuth,
     assertStepUp,
     DEFAULT_MAX_AGE_SECONDS
 };
