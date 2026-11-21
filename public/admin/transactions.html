@@ -119,6 +119,46 @@ html.dark .dd-tab.active { color: #dff0f2; }
 .dd-hero .amount.debit { color: var(--danger); }
 .dd-hero .meta { font-size: 11px; color: var(--text-faint); }
 .dd-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; padding: 12px; border-radius: var(--r-md); background: var(--bg-card); border: 1px solid var(--border); }
+/* ═══════════════════════════════════════════════════════════════════
+   FIX: Sidebar Nav Group Headers (White Box Issue)
+   ═══════════════════════════════════════════════════════════════════ */
+.nav-group-head {
+    background: transparent !important;
+    border: none !important;
+    color: rgba(255, 255, 255, 0.6) !important; /* Dimmed white for the label */
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 10px 6px;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+}
+
+.nav-group-head:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.nav-group-head .nav-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    font-weight: 700;
+    color: #6fa2ad; /* Muted teal/blue color from your theme */
+}
+
+/* Ensure the chevron icon is styled correctly */
+.nav-group-head .chev {
+    font-size: 10px;
+    color: #6fa2ad;
+    transition: transform 0.2s ease;
+}
+
+/* Rotate chevron when group is collapsed */
+.nav-group.collapsed .chev {
+    transform: rotate(-90deg);
+}
 </style>
 </head>
 <body>
@@ -358,8 +398,8 @@ const State = {
   typeRegistry: null
 };
 
-const $  = (s, r = document) => r.querySelector(s);
-const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const qs  = (s, r = document) => r.querySelector(s);
+const qsa = (s, r = document) => Array.from(r.querySelectorAll(s));
 
 function esc(s) {
   if (s === null || s === undefined) return '';
@@ -419,7 +459,7 @@ function statusBadge(s) {
 }
 
 function toast(msg, kind = 'info', duration = 3600) {
-  const stack = $('#toastStack');
+  const stack = qs('#toastStack');
   if (!stack) return;
   const el = document.createElement('div');
   el.className = 'toast ' + (kind === 'warning' ? 'warn' : kind);
@@ -476,12 +516,12 @@ async function apiFetch(url, opts = {}) {
 }
 
 function initSidebarToggle() {
-  const sidebar = $('#sidebar');
-  const scrim = $('#scrim');
-  const hbg = $('#hamburger');
-  const collapse = $('#sbCollapseBtn');
-  const toggleDesktop = $('#sbToggleDesktop');
-  const app = $('#appRoot');
+  const sidebar = qs('#sidebar');
+  const scrim = qs('#scrim');
+  const hbg = qs('#hamburger');
+  const collapse = qs('#sbCollapseBtn');
+  const toggleDesktop = qs('#sbToggleDesktop');
+  const app = qs('#appRoot');
   if (!sidebar) return;
 
   const openSidebar = () => {
@@ -521,7 +561,7 @@ function initSidebarToggle() {
 }
 
 function initTheme() {
-  const btn = $('#themeToggle');
+  const btn = qs('#themeToggle');
   const apply = (dark) => {
     document.documentElement.classList.toggle('dark', dark);
     document.documentElement.classList.toggle('light', !dark);
@@ -544,17 +584,72 @@ function initAdminIdentity() {
     if (!u) return;
     const name = u.name || u.username || u.email || 'Admin';
     const role = u.role || 'admin';
-    $('#adminName') && ($('#adminName').textContent = name);
-    $('#adminRole') && ($('#adminRole').textContent = role);
-    $('#adminAvatar') && ($('#adminAvatar').textContent = initials(name));
-    $('#chipName') && ($('#chipName').textContent = name);
-    $('#chipRole') && ($('#chipRole').textContent = role);
-    $('#chipAvatar') && ($('#chipAvatar').textContent = initials(name));
+    qs('#adminName') && (qs('#adminName').textContent = name);
+    qs('#adminRole') && (qs('#adminRole').textContent = role);
+    qs('#adminAvatar') && (qs('#adminAvatar').textContent = initials(name));
+    qs('#chipName') && (qs('#chipName').textContent = name);
+    qs('#chipRole') && (qs('#chipRole').textContent = role);
+    qs('#chipAvatar') && (qs('#chipAvatar').textContent = initials(name));
   } catch {}
 }
 
+function renderSidebarFallback() {
+  const sidebar = qs('#sidebar');
+  if (!sidebar || sidebar.children.length > 0) return; // Already rendered
+
+  const NAV = window.MS?.NAV || [
+    { label: 'Overview', items: [
+      { href: '/admin/money-overview.html', icon: 'fa-chart-line', label: 'Money Overview', key: 'money-overview' },
+      { href: '/admin/dashboard.html', icon: 'fa-gauge-high', label: 'Dashboard', key: 'dashboard' }
+    ]},
+    { label: 'Money', items: [
+      { href: '/admin/transactions.html', icon: 'fa-arrow-right-arrow-left', label: 'Transactions', key: 'transactions' },
+      { href: '/admin/deposits.html', icon: 'fa-circle-down', label: 'Deposits', key: 'deposits' },
+      { href: '/admin/ledger.html', icon: 'fa-book', label: 'Ledger', key: 'ledger' },
+      { href: '/admin/reconciliation.html', icon: 'fa-rotate', label: 'Reconciliation', key: 'reconciliation' }
+    ]}
+  ];
+
+  let html = `
+    <div class="brand">
+      <img src="/images/miles.png" alt="MilesSpace" onerror="this.style.display='none'">
+      <div class="brand-text"><strong>MilesSpace</strong><span>Admin</span></div>
+    </div>
+    <nav class="nav-scroll">`;
+
+  for (const group of NAV) {
+    html += `
+      <div class="nav-group">
+        <div class="nav-group-head"><span class="nav-label">${esc(group.label)}</span></div>
+        <div class="nav-items">`;
+    for (const item of group.items) {
+      html += `
+        <a href="${item.href}" class="nav-item" data-key="${item.key}">
+          <span class="ic"><i class="fas ${item.icon}"></i></span>
+          <span class="txt">${esc(item.label)}</span>
+        </a>`;
+    }
+    html += `</div></div>`;
+  }
+
+  html += `</nav>
+    <div class="sidebar-foot">
+      <div class="av" id="adminAvatar">AD</div>
+      <div class="who"><strong id="adminName">Admin</strong><span id="adminRole">Admin</span></div>
+    </div>`;
+
+  sidebar.innerHTML = html;
+
+  const currentPath = window.location.pathname;
+  sidebar.querySelectorAll('.nav-item').forEach(a => {
+    if (a.getAttribute('href') === currentPath) {
+      a.classList.add('active');
+    }
+  });
+}
+
 function renderStats(s) {
-  const el = $('#statsRow');
+  const el = qs('#statsRow');
   if (!el) return;
   if (!s) {
     el.innerHTML = ['Total','Completed','Pending','Failed'].map(l => `
@@ -607,7 +702,7 @@ async function loadTypes() {
   if (!registry) return;
   State.typeRegistry = registry;
 
-  const sel = $('#fType');
+  const sel = qs('#fType');
   if (!sel) return;
   const opts = ['<option value="">All Types</option>'];
   const byGroup = new Map();
@@ -646,16 +741,16 @@ function filtersFromUrl() {
 }
 
 function applyFiltersToForm(f) {
-  $('#fSearch').value = f.search;
-  $('#fType').value = f.type;
-  $('#fStatus').value = f.status;
-  $('#fCurrency').value = f.currency;
-  $('#fFeedback').value = f.feedback || 'all';
-  $('#fProvider').value = f.provider;
-  $('#fUserId').value = f.user_id;
-  $('#fFrom').value = f.from;
-  $('#fTo').value = f.to;
-  $('#fLimit').value = f.limit;
+  qs('#fSearch').value = f.search;
+  qs('#fType').value = f.type;
+  qs('#fStatus').value = f.status;
+  qs('#fCurrency').value = f.currency;
+  qs('#fFeedback').value = f.feedback || 'all';
+  qs('#fProvider').value = f.provider;
+  qs('#fUserId').value = f.user_id;
+  qs('#fFrom').value = f.from;
+  qs('#fTo').value = f.to;
+  qs('#fLimit').value = f.limit;
 }
 
 function syncUrlFromState({ replace = false } = {}) {
@@ -692,7 +787,7 @@ function transactionIdFromHash() {
 }
 
 function renderAppliedFilters() {
-  const wrap = $('#appliedFilters');
+  const wrap = qs('#appliedFilters');
   const f = State.filters;
   const chips = [];
   const push = (label, key) => {
@@ -714,15 +809,15 @@ function renderAppliedFilters() {
   wrap.querySelectorAll('[data-clear]').forEach(btn => {
     btn.addEventListener('click', () => {
       const key = btn.dataset.clear;
-      if (key === 'search') $('#fSearch').value = '';
-      else if (key === 'type') $('#fType').value = '';
-      else if (key === 'status') $('#fStatus').value = 'all';
-      else if (key === 'currency') $('#fCurrency').value = 'all';
-      else if (key === 'feedback') $('#fFeedback').value = 'all';
-      else if (key === 'provider') $('#fProvider').value = '';
-      else if (key === 'user_id') $('#fUserId').value = '';
-      else if (key === 'from') $('#fFrom').value = '';
-      else if (key === 'to') $('#fTo').value = '';
+      if (key === 'search') qs('#fSearch').value = '';
+      else if (key === 'type') qs('#fType').value = '';
+      else if (key === 'status') qs('#fStatus').value = 'all';
+      else if (key === 'currency') qs('#fCurrency').value = 'all';
+      else if (key === 'feedback') qs('#fFeedback').value = 'all';
+      else if (key === 'provider') qs('#fProvider').value = '';
+      else if (key === 'user_id') qs('#fUserId').value = '';
+      else if (key === 'from') qs('#fFrom').value = '';
+      else if (key === 'to') qs('#fTo').value = '';
       readFilters();
       State.page = 1;
       loadList();
@@ -733,7 +828,7 @@ function renderAppliedFilters() {
 }
 
 function renderSkeleton() {
-  const tb = $('#tableBody');
+  const tb = qs('#tableBody');
   if (!tb) return;
   let h = '';
   for (let i = 0; i < 8; i++) {
@@ -743,7 +838,7 @@ function renderSkeleton() {
 }
 
 function renderEmpty() {
-  $('#tableBody').innerHTML = `
+  qs('#tableBody').innerHTML = `
     <tr><td colspan="8">
       <div class="empty-state">
         <i class="fas fa-inbox" aria-hidden="true"></i>
@@ -754,7 +849,7 @@ function renderEmpty() {
 }
 
 function renderError(msg) {
-  $('#tableBody').innerHTML = `
+  qs('#tableBody').innerHTML = `
     <tr><td colspan="8">
       <div class="unavailable-box">
         <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
@@ -762,11 +857,11 @@ function renderError(msg) {
         <button class="btn btn-ghost retry" type="button" id="tableRetry"><i class="fas fa-rotate" aria-hidden="true"></i> Retry</button>
       </div>
     </td></tr>`;
-  $('#tableRetry')?.addEventListener('click', loadList);
+  qs('#tableRetry')?.addEventListener('click', loadList);
 }
 
 function renderRows(rows) {
-  const tb = $('#tableBody');
+  const tb = qs('#tableBody');
   if (!tb) return;
   if (!rows || !rows.length) { renderEmpty(); return; }
   tb.innerHTML = rows.map(t => {
@@ -862,8 +957,8 @@ async function loadList() {
 
   if (!r.ok) {
     renderError(r.error);
-    $('#pageInfo').textContent = '—';
-    $('#pagerControls').innerHTML = '';
+    qs('#pageInfo').textContent = '—';
+    qs('#pagerControls').innerHTML = '';
     return;
   }
   const p = r.data?.data || r.data || {};
@@ -873,14 +968,14 @@ async function loadList() {
 
   const start = State.count ? (State.page - 1) * State.limit + 1 : 0;
   const end = Math.min(State.page * State.limit, State.count);
-  $('#pageInfo').textContent = State.count
+  qs('#pageInfo').textContent = State.count
     ? `Showing ${start}–${end} of ${State.count}`
     : 'No results';
   renderPager();
 }
 
 function renderPager() {
-  const c = $('#pagerControls');
+  const c = qs('#pagerControls');
   if (!c) return;
   c.innerHTML = '';
   if (State.totalPages <= 1) return;
@@ -920,8 +1015,8 @@ let _drawerReturnFocus = null;
 
 function openDrawer() {
   _drawerReturnFocus = document.activeElement;
-  const drawer = $('#detailDrawer');
-  const scrim = $('#drawerScrim');
+  const drawer = qs('#detailDrawer');
+  const scrim = qs('#drawerScrim');
   drawer.classList.add('open');
   drawer.setAttribute('aria-hidden', 'false');
   scrim.classList.add('open');
@@ -929,7 +1024,7 @@ function openDrawer() {
   setTimeout(() => {
     const focusable = drawer.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
     if (focusable) focusable.focus();
-    else $('#ddClose')?.focus();
+    else qs('#ddClose')?.focus();
   }, 100);
   if (!drawer._trapBound) {
     drawer._trapBound = true;
@@ -951,8 +1046,8 @@ function openDrawer() {
 }
 
 function closeDrawer() {
-  const drawer = $('#detailDrawer');
-  const scrim = $('#drawerScrim');
+  const drawer = qs('#detailDrawer');
+  const scrim = qs('#drawerScrim');
   drawer.classList.remove('open');
   drawer.setAttribute('aria-hidden', 'true');
   scrim.classList.remove('open');
@@ -967,17 +1062,17 @@ function closeDrawer() {
 
 async function openDetail(id) {
   const token = ++State.requestToken;
-  $('#ddIcon').innerHTML = '<i class="fas fa-credit-card" aria-hidden="true"></i>';
-  $('#ddTitle').textContent = 'Loading…';
-  $('#ddSub').textContent = '';
-  $('#ddBody').innerHTML = '<div class="dd-empty">Loading transaction…</div>';
+  qs('#ddIcon').innerHTML = '<i class="fas fa-credit-card" aria-hidden="true"></i>';
+  qs('#ddTitle').textContent = 'Loading…';
+  qs('#ddSub').textContent = '';
+  qs('#ddBody').innerHTML = '<div class="dd-empty">Loading transaction…</div>';
   openDrawer();
 
   const r = await apiFetch(API.detail(id));
   if (token !== State.requestToken) return;
 
   if (!r.ok) {
-    $('#ddBody').innerHTML = `<div class="dd-empty">${esc(r.error || 'Unable to load transaction.')}</div>`;
+    qs('#ddBody').innerHTML = `<div class="dd-empty">${esc(r.error || 'Unable to load transaction.')}</div>`;
     return;
   }
   const p = r.data?.data || r.data;
@@ -1005,9 +1100,9 @@ function renderDetail(p) {
   const feedback = p.feedback || null;
   const primaryRef = t.customer_reference || t.reference || t.id;
 
-  $('#ddIcon').innerHTML = `<i class="${esc(t.icon || 'fa-solid fa-credit-card')}" aria-hidden="true"></i>`;
-  $('#ddTitle').textContent = primaryRef;
-  $('#ddSub').textContent = `${t.type_label || t.type || ''} · ${u?.username || u?.email || ''}`;
+  qs('#ddIcon').innerHTML = `<i class="${esc(t.icon || 'fa-solid fa-credit-card')}" aria-hidden="true"></i>`;
+  qs('#ddTitle').textContent = primaryRef;
+  qs('#ddSub').textContent = `${t.type_label || t.type || ''} · ${u?.username || u?.email || ''}`;
 
   const amt = fmtMoney(t.absolute_amount, t.currency) || '—';
   const feeStr = t.fee != null && Number(t.fee) > 0 ? fmtMoney(t.fee, t.currency) : '—';
@@ -1167,7 +1262,7 @@ function renderDetail(p) {
         </div>`).join('')}</div>`
       : `<div class="dd-empty">No admin actions recorded.</div>`;
 
-  $('#ddBody').innerHTML = `
+  qs('#ddBody').innerHTML = `
     ${hero}
     ${actions}
     <div class="dd-tabs" role="tablist">
@@ -1182,17 +1277,17 @@ function renderDetail(p) {
     <div class="dd-tab-content" id="panel-audit" role="tabpanel" data-tab-content="audit">${auditTab}</div>
   `;
 
-  $$('.dd-tab').forEach(tab => {
+  qsa('.dd-tab').forEach(tab => {
     tab.addEventListener('click', () => {
-      $$('.dd-tab').forEach(x => { x.classList.remove('active'); x.setAttribute('aria-selected', 'false'); });
-      $$('.dd-tab-content').forEach(x => x.classList.remove('active'));
+      qsa('.dd-tab').forEach(x => { x.classList.remove('active'); x.setAttribute('aria-selected', 'false'); });
+      qsa('.dd-tab-content').forEach(x => x.classList.remove('active'));
       tab.classList.add('active');
       tab.setAttribute('aria-selected', 'true');
       const tgt = document.querySelector(`.dd-tab-content[data-tab-content="${tab.dataset.tab}"]`);
       if (tgt) tgt.classList.add('active');
     });
     tab.addEventListener('keydown', (e) => {
-      const tabs = $$('.dd-tab');
+      const tabs = qsa('.dd-tab');
       const idx = tabs.indexOf(tab);
       if (e.key === 'ArrowRight') { e.preventDefault(); tabs[(idx + 1) % tabs.length].focus(); tabs[(idx + 1) % tabs.length].click(); }
       if (e.key === 'ArrowLeft')  { e.preventDefault(); tabs[(idx - 1 + tabs.length) % tabs.length].focus(); tabs[(idx - 1 + tabs.length) % tabs.length].click(); }
@@ -1201,7 +1296,7 @@ function renderDetail(p) {
     });
   });
 
-  $$('.copy-btn').forEach(btn => {
+  qsa('.copy-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const text = btn.dataset.copy || '';
       if (!text) return;
@@ -1214,9 +1309,9 @@ function renderDetail(p) {
     });
   });
 
-  $('#btnChangeStatus')?.addEventListener('click', () => openStatusModal(t, allowedTransitions));
-  $('#btnRefund')?.addEventListener('click', () => openRefundModal(t, refundPolicy));
-  $('#btnNote')?.addEventListener('click', () => openNoteModal(t));
+  qs('#btnChangeStatus')?.addEventListener('click', () => openStatusModal(t, allowedTransitions));
+  qs('#btnRefund')?.addEventListener('click', () => openRefundModal(t, refundPolicy));
+  qs('#btnNote')?.addEventListener('click', () => openNoteModal(t));
 }
 
 function buildActions(t, allowedTransitions, canResolve, canRefund, refundPolicy) {
@@ -1244,11 +1339,11 @@ let _modalReturnFocus = null;
 let _modalStack = [];
 
 function openModal({ title, bodyHtml, confirmLabel = 'Confirm', onConfirm, confirmClass = 'btn-primary' }) {
-  const scrim = $('#modalScrim');
+  const scrim = qs('#modalScrim');
   _modalReturnFocus = document.activeElement;
-  $('#modalTitle').textContent = title;
-  $('#modalBody').innerHTML = bodyHtml;
-  const confirmBtn = $('#modalConfirm');
+  qs('#modalTitle').textContent = title;
+  qs('#modalBody').innerHTML = bodyHtml;
+  const confirmBtn = qs('#modalConfirm');
   confirmBtn.textContent = confirmLabel;
   confirmBtn.className = 'btn ' + confirmClass;
   confirmBtn.disabled = false;
@@ -1264,8 +1359,8 @@ function openModal({ title, bodyHtml, confirmLabel = 'Confirm', onConfirm, confi
   };
   _modalStack.push(close);
 
-  $('#modalCancel').onclick = close;
-  $('#modalClose').onclick = close;
+  qs('#modalCancel').onclick = close;
+  qs('#modalClose').onclick = close;
   confirmBtn.onclick = async () => {
     confirmBtn.disabled = true;
     try {
@@ -1292,13 +1387,13 @@ document.addEventListener('keydown', e => {
     close();
     return;
   }
-  if ($('#detailDrawer').classList.contains('open')) {
+  if (qs('#detailDrawer').classList.contains('open')) {
     e.preventDefault();
     closeDrawer();
   }
 });
 
-$('#modalScrim').addEventListener('click', (e) => {
+qs('#modalScrim').addEventListener('click', (e) => {
   if (e.target.id === 'modalScrim') {
     const top = _modalStack[_modalStack.length - 1];
     if (top) top();
@@ -1322,8 +1417,8 @@ function openStatusModal(t, allowed) {
       <textarea id="statusReason" rows="3" placeholder="Why is this changing?"></textarea>
     `,
     onConfirm: async () => {
-      const next = $('#statusNext').value;
-      const reason = $('#statusReason').value.trim();
+      const next = qs('#statusNext').value;
+      const reason = qs('#statusReason').value.trim();
       if (reason.length < 4) { toast('Reason required.', 'error'); return false; }
       const r = await apiFetch(API.status(t.id), {
         method: 'PUT',
@@ -1389,8 +1484,8 @@ function openRefundModal(t, policy) {
       </div>
     `,
     onConfirm: async () => {
-      const amountStr = $('#refundAmount').value.trim();
-      const reason = $('#refundReason').value.trim();
+      const amountStr = qs('#refundAmount').value.trim();
+      const reason = qs('#refundReason').value.trim();
 
       if (!/^\d+(\.\d{1,2})?$/.test(amountStr)) {
         toast('Amount must be a number with at most 2 decimal places.', 'error'); return false;
@@ -1403,7 +1498,7 @@ function openRefundModal(t, policy) {
 
       const needsTyped = amountNum >= threshold;
       if (needsTyped) {
-        const typed = $('#refundTyped')?.value.trim() || '';
+        const typed = qs('#refundTyped')?.value.trim() || '';
         if (typed !== 'REFUND') { toast('Type REFUND to confirm.', 'error'); return false; }
       }
 
@@ -1450,22 +1545,22 @@ function openRefundModal(t, policy) {
   });
 
   setTimeout(() => {
-    $('#fullAmountBtn')?.addEventListener('click', () => {
-      $('#refundAmount').value = String(remaining.toFixed(2));
+    qs('#fullAmountBtn')?.addEventListener('click', () => {
+      qs('#refundAmount').value = String(remaining.toFixed(2));
       maybeShowTypedConfirm();
     });
-    $('#refundAmount')?.addEventListener('input', maybeShowTypedConfirm);
+    qs('#refundAmount')?.addEventListener('input', maybeShowTypedConfirm);
     function maybeShowTypedConfirm() {
-      const raw = $('#refundAmount').value.trim();
+      const raw = qs('#refundAmount').value.trim();
       const n = Number(raw);
       if (Number.isFinite(n) && n >= threshold) {
-        $('#refundConfirm').style.display = 'block';
-        $('#refundConfirmText').textContent =
+        qs('#refundConfirm').style.display = 'block';
+        qs('#refundConfirmText').textContent =
           'Credit ' + (fmtMoney(n, currency) || n) + ' to ' + (userEmail || 'customer') +
           ' — this will go to approval.';
       } else {
-        $('#refundConfirm').style.display = 'none';
-        const el = $('#refundTyped');
+        qs('#refundConfirm').style.display = 'none';
+        const el = qs('#refundTyped');
         if (el) el.value = '';
       }
     }
@@ -1481,7 +1576,7 @@ function openNoteModal(t) {
       <textarea id="noteText" rows="4" placeholder="Add context for other admins…" maxlength="1000"></textarea>
     `,
     onConfirm: async () => {
-      const note = $('#noteText').value.trim();
+      const note = qs('#noteText').value.trim();
       if (note.length < 2) { toast('Note text is required.', 'error'); return false; }
       const r = await apiFetch(API.note(t.id), {
         method: 'POST',
@@ -1498,16 +1593,16 @@ function openNoteModal(t) {
 
 function readFilters() {
   State.filters = {
-    search:   $('#fSearch').value.trim(),
-    type:     $('#fType').value,
-    status:   $('#fStatus').value,
-    currency: $('#fCurrency').value,
-    feedback: $('#fFeedback').value || 'all',
-    provider: $('#fProvider').value.trim(),
-    user_id:  $('#fUserId').value.trim(),
-    from:     $('#fFrom').value,
-    to:       $('#fTo').value,
-    limit:    $('#fLimit').value,
+    search:   qs('#fSearch').value.trim(),
+    type:     qs('#fType').value,
+    status:   qs('#fStatus').value,
+    currency: qs('#fCurrency').value,
+    feedback: qs('#fFeedback').value || 'all',
+    provider: qs('#fProvider').value.trim(),
+    user_id:  qs('#fUserId').value.trim(),
+    from:     qs('#fFrom').value,
+    to:       qs('#fTo').value,
+    limit:    qs('#fLimit').value,
     sort:     State.filters.sort || '',
     order:    State.filters.order || ''
   };
@@ -1515,7 +1610,7 @@ function readFilters() {
 }
 
 async function exportCsv() {
-  const btn = $('#exportBtn');
+  const btn = qs('#exportBtn');
   const prevHtml = btn.innerHTML;
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Preparing…';
@@ -1589,20 +1684,23 @@ document.addEventListener('DOMContentLoaded', () => {
   initSidebarToggle();
   initTheme();
 
-  $('#applyBtn').addEventListener('click', () => {
+  // If the external sidebar script failed, build it here.
+  setTimeout(renderSidebarFallback, 50);
+
+  qs('#applyBtn').addEventListener('click', () => {
     readFilters();
     State.page = 1;
     loadList();
     loadStats();
     syncUrlFromState();
   });
-  $('#clearBtn').addEventListener('click', () => {
-    ['fSearch','fFrom','fTo','fProvider','fUserId'].forEach(id => { const el = $('#' + id); if (el) el.value = ''; });
-    $('#fType').value = '';
-    $('#fStatus').value = 'all';
-    $('#fCurrency').value = 'all';
-    $('#fFeedback').value = 'all';
-    $('#fLimit').value = '25';
+  qs('#clearBtn').addEventListener('click', () => {
+    ['fSearch','fFrom','fTo','fProvider','fUserId'].forEach(id => { const el = qs('#' + id); if (el) el.value = ''; });
+    qs('#fType').value = '';
+    qs('#fStatus').value = 'all';
+    qs('#fCurrency').value = 'all';
+    qs('#fFeedback').value = 'all';
+    qs('#fLimit').value = '25';
     State.filters.sort = '';
     State.filters.order = '';
     readFilters();
@@ -1611,7 +1709,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadStats();
     syncUrlFromState();
   });
-  $('#fSearch').addEventListener('keydown', (e) => {
+  qs('#fSearch').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       readFilters();
       State.page = 1;
@@ -1621,14 +1719,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  $$('th [data-sort]').forEach(btn => {
+  qsa('th [data-sort]').forEach(btn => {
     btn.addEventListener('click', () => {
       const col = btn.dataset.sort;
       const th = btn.closest('th');
       const current = th.getAttribute('aria-sort') || 'none';
       let nextOrder = 'desc';
       if (current === 'descending') nextOrder = 'asc';
-      $$('th[aria-sort]').forEach(x => x.setAttribute('aria-sort', 'none'));
+      qsa('th[aria-sort]').forEach(x => x.setAttribute('aria-sort', 'none'));
       th.setAttribute('aria-sort', nextOrder === 'asc' ? 'ascending' : 'descending');
       State.filters.sort = col;
       State.filters.order = nextOrder;
@@ -1638,10 +1736,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  $('#refreshBtn').addEventListener('click', () => { loadList(); loadStats(); });
-  $('#exportBtn').addEventListener('click', exportCsv);
-  $('#ddClose').addEventListener('click', closeDrawer);
-  $('#drawerScrim').addEventListener('click', closeDrawer);
+  qs('#refreshBtn').addEventListener('click', () => { loadList(); loadStats(); });
+  qs('#exportBtn').addEventListener('click', exportCsv);
+  qs('#ddClose').addEventListener('click', closeDrawer);
+  qs('#drawerScrim').addEventListener('click', closeDrawer);
 
   window.addEventListener('popstate', () => {
     const f = filtersFromUrl();
@@ -1652,7 +1750,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadStats();
     const hashId = transactionIdFromHash();
     if (hashId) openDetail(hashId);
-    else if ($('#detailDrawer').classList.contains('open')) closeDrawer();
+    else if (qs('#detailDrawer').classList.contains('open')) closeDrawer();
   });
 
   const initialFilters = filtersFromUrl();

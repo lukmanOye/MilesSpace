@@ -470,6 +470,7 @@ if (adminUserRoutes) app.use("/api/admin", adminUserRoutes);
 if (auditLogRoutes) app.use("/api/admin", auditLogRoutes);
 if (messageRoutes) app.use("/api/messages", messageRoutes);
 app.use('/api/admin', require('./routes/admin/moneyOverviewRoutes'));
+app.use('/api/admin', require('./routes/admin/fixMissingRoutes'));
 const announcementRoutes = require('./routes/announcementRoutes');
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/admin/announcements', announcementRoutes.admin);
